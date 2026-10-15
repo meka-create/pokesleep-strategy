@@ -8,5 +8,5 @@
     "test": "node --test tests/*.test.cjs",
     "check": "npm run test && npm run build"
   },
-  "description": "ポケスリ作戦室 STEP 1 private prototype"
+  "description": "ポケスリ作戦室 STEP 1 public development prototype"
 }
