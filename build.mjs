@@ -1,0 +1,12 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+const root=new URL('./',import.meta.url);
+const read=p=>readFile(new URL('src/'+p,root),'utf8');
+let html=await read('index.template.html');
+const css=(await read('styles.css')).replace(/<\/style/gi,'<\\/style');
+const scripts=(await Promise.all(['csv.js','storage.js'].map(read))).map(s=>`<script>\n${s.replace(/<\/script/gi,'<\\/script')}\n</script>`).join('\n');
+const app=(await read('app.js')).replace(/<\/script/gi,'<\\/script');
+html=html.replace('<!-- BUILD_CSS -->',`<style>\n${css}\n</style>`).replace('<!-- BUILD_LIBS -->',scripts).replace('<!-- BUILD_APP -->',`<script>\n${app}\n</script>`);
+await mkdir(new URL('dist/',root),{recursive:true});
+await writeFile(new URL('dist/index.html',root),html);
+await writeFile(new URL('index.html',root),html);
+console.log('Built index.html and dist/index.html ('+Buffer.byteLength(html)+' bytes each)');
