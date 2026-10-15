@@ -10,6 +10,7 @@
   <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 1</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>まずはイベント条件と手持ちのポケモンを登録します。編成の自動計算は次のステップで順次追加します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
+    <div id="criticalNotice" class="error" role="alert" hidden></div>
     <nav class="tabs" role="tablist" aria-label="機能切り替え">
       <button class="tab active" data-tab="event" role="tab" aria-selected="true">イベント</button>
       <button class="tab" data-tab="box" role="tab" aria-selected="false">ボックス <span id="boxCountTab" class="tab-counter">0</span></button>
@@ -42,7 +43,7 @@
     </section>
     <section id="panel-box" class="panel" role="tabpanel" hidden>
       <div class="section-heading"><div><div class="eyebrow">MY BOX</div><h3>ポケモンボックス</h3></div><span class="outline-tag" id="boxTotal">0匹</span></div>
-      <div class="card import-card"><div class="import-icon">▤</div><h4>pokesleep-tool のCSVを読み込む</h4><p>「個体値ぶっこみスキャン」「AIぶっこみスキャン」の16列CSVにも対応。端末内だけで解析し、外部には送信しません。</p><label class="primary file-button" for="csvFile">CSV / TSV を選ぶ<input id="csvFile" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values,text/plain"></label><p class="hint">新しいファイルを読み込むと、ボックス全体を置き換えます。</p></div>
+      <div class="card import-card"><div class="import-icon">▤</div><h4>pokesleep-tool のCSVを読み込む</h4><p>「個体値ぶっこみスキャン」「AIぶっこみスキャン」の16列CSVにも対応。端末内だけで解析し、外部には送信しません。</p><label class="primary file-button" for="csvFile">CSV / TSV を選ぶ<input id="csvFile" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values,text/plain"></label><p class="hint">新しいファイルを読み込むと、ボックス全体を置き換えます。睡眠パーティの同一個体は可能な限り引き継ぎます。</p></div>
       <div id="importError" class="error" role="alert" hidden></div>
       <div class="section-heading minor"><h3>睡眠用パーティ</h3><span class="soft-counter" id="sleepCount">0 / 5</span></div>
       <div class="card"><p class="muted small">0:00～7:30に固定で使う育成用の5匹。下の一覧から選択してください。</p><div id="sleepList" class="sleep-list"></div></div>
@@ -87,20 +88,27 @@
   function parseDelimited(text, delimiter) {
     if (typeof text !== 'string') throw new Error('テキストを読み込めません。');
     text = text.replace(/^\uFEFF/, '');
-    const rows=[]; let row=[],field='',quoted=false,atStart=true;
+    const rows=[]; let row=[],field='',quoted=false,closedQuote=false,atStart=true;
     for (let i=0;i<text.length;i++) {
       const c=text[i];
       if (quoted) {
         if (c==='"' && text[i+1]==='"') {field+='"'; i++;}
-        else if (c==='"') quoted=false;
+        else if (c==='"') {quoted=false;closedQuote=true;}
         else field+=c;
-      } else if (c==='"' && atStart) { quoted=true; atStart=false; }
-      else if (c===delimiter) {row.push(field);field='';atStart=true;}
-      else if (c==='\n'||c==='\r') {
-        if(c==='\r'&&text[i+1]==='\n')i++;
-        row.push(field); if(row.some(v=>v.trim()!=='')) rows.push(row);
-        row=[];field='';atStart=true;
-      } else {field+=c;atStart=false;}
+      } else if (c===delimiter || c==='\n' || c==='\r') {
+        row.push(field);field='';atStart=true;closedQuote=false;
+        if(c!==delimiter) {
+          if(c==='\r'&&text[i+1]==='\n')i++;
+          if(row.some(v=>v.trim()!=='')) rows.push(row);
+          row=[];
+        }
+      } else if (c==='"' && atStart) {
+        quoted=true;atStart=false;
+      } else if(c==='"'||closedQuote) {
+        throw new Error('CSVの引用符の位置が不正です。');
+      } else {
+        field+=c;atStart=false;
+      }
     }
     if(quoted) throw new Error('CSV内の引用符が閉じられていません。');
     row.push(field); if(row.some(v=>v.trim()!==''))rows.push(row);
@@ -126,6 +134,10 @@
       if(!pokemon){errors.push(`${line}行目: ポケモン名が空です`);continue;}
       if(!Number.isInteger(level)||level<1||level>100){errors.push(`${line}行目: レベルが不正です`);continue;}
       if(!Number.isInteger(skillLevel)||skillLevel<1||skillLevel>20){errors.push(`${line}行目: スキルレベルが不正です`);continue;}
+      const shinyRaw=get('shiny').toLowerCase();
+      if(!['','0','1','true','false','はい','いいえ','yes','no'].includes(shinyRaw)){
+        errors.push(`${line}行目: 色違いの値が不正です`);continue;
+      }
       const sleepHoursRaw=get('sleepHours');
       if(sleepHoursRaw && (!Number.isFinite(Number(sleepHoursRaw))||Number(sleepHoursRaw)<0)){errors.push(`${line}行目: 一緒に眠った時間が不正です`);continue;}
       items.push({id:`p-${i}`,nickname:get('nickname'),pokemon,level,skillLevel,
@@ -133,7 +145,7 @@
         mainSkill:get('mainSkill'),nature:get('nature'),
         subskills:[get('lv10'),get('lv25'),get('lv50'),get('lv70'),get('lv80')],
         sleepHours:sleepHoursRaw===''?null:Number(sleepHoursRaw),
-        shiny:['1','true','はい','yes'].includes(get('shiny').toLowerCase()),sourceRow:line});
+        shiny:['1','true','はい','yes'].includes(shinyRaw),sourceRow:line});
     }
     // All-or-nothing import: never silently replace the box with a partial parse.
     if(errors.length)throw new Error(`${errors.length}行に問題があります。既存ボックスは変更していません。\n${errors.slice(0,8).join('\n')}${errors.length>8?'\nほか'+(errors.length-8)+'行':''}`);
@@ -151,22 +163,47 @@
 'use strict';
 const KEY='pokesleep-event-planner/step1/v1';
 const newState=()=>({version:1,box:[],sleepIds:[],event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
+const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
+const validEnum=(v,choices)=>choices.includes(v);
 function validateState(x){
- if(!x||x.version!==1||!Array.isArray(x.box)||!Array.isArray(x.sleepIds)||!x.event||typeof x.event!=='object')throw new Error('対応していないバックアップ形式です。');
+ if(!x||x.version!==1||!Array.isArray(x.box)||!Array.isArray(x.sleepIds)||!x.event||typeof x.event!=='object'||Array.isArray(x.event))throw new Error('対応していないバックアップ形式です。');
  if(x.box.length>10000)throw new Error('ボックスが大きすぎます。');
- for(const p of x.box){if(!p||typeof p.id!=='string'||typeof p.pokemon!=='string'||!Number.isInteger(p.level)||p.level<1)throw new Error('ポケモンデータが不正です。');}
+ for(const p of x.box){
+  if(!p||typeof p!=='object'||typeof p.id!=='string'||!p.id||!cleanText(p.pokemon,120)||!p.pokemon||!cleanText(p.nickname,300)||!Number.isInteger(p.level)||p.level<1||p.level>100||!Number.isInteger(p.skillLevel)||p.skillLevel<1||p.skillLevel>20||!Array.isArray(p.ingredients)||p.ingredients.length!==3||!p.ingredients.every(v=>cleanText(v,120))||!Array.isArray(p.subskills)||p.subskills.length!==5||!p.subskills.every(v=>cleanText(v,120))||!cleanText(p.mainSkill,120)||!cleanText(p.nature,120)||!(p.sleepHours===null||(Number.isFinite(p.sleepHours)&&p.sleepHours>=0))||typeof p.shiny!=='boolean')throw new Error('ポケモンデータが不正です。');
+ }
  const ids=new Set(x.box.map(p=>p.id));
  if(ids.size!==x.box.length)throw new Error('ボックスに重複した内部IDがあります。');
- const sleep=x.sleepIds.filter(id=>ids.has(id));
- if(new Set(sleep).size!==sleep.length||sleep.length>5)throw new Error('睡眠パーティに重複・超過があります。');
+ if(x.sleepIds.some(id=>typeof id!=='string'||!ids.has(id))||new Set(x.sleepIds).size!==x.sleepIds.length||x.sleepIds.length>5)throw new Error('睡眠パーティが不正です。');
  const e=x.event;
- if(![1,2].includes(Number(e.duration))||!['random','curry','salad','dessert'].includes(e.food1)||!['random','curry','salad','dessert'].includes(e.food2))throw new Error('イベント設定が不正です。');
- return {version:1,box:x.box,sleepIds:sleep,event:{...newState().event,...e,duration:Number(e.duration)},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
+ if(![1,2].includes(Number(e.duration))||!validEnum(e.food1,['random','curry','salad','dessert'])||!validEnum(e.food2,['random','curry','salad','dessert'])||!cleanText(e.name,100)||!cleanText(e.start,10)||!cleanText(e.map,80)||!cleanText(e.berries,100)||!cleanText(e.effects,1000)||!['campPrep','camp1','camp2'].every(k=>typeof e[k]==='boolean'))throw new Error('イベント設定が不正です。');
+ if(e.start&&!/^\d{4}-\d{2}-\d{2}$/.test(e.start))throw new Error('イベント開始日が不正です。');
+ return {version:1,box:x.box,sleepIds:[...x.sleepIds],event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
-function load(){try{const s=localStorage.getItem(KEY);return s?validateState(JSON.parse(s)):newState();}catch(e){return newState();}}
-function save(state){localStorage.setItem(KEY,JSON.stringify(validateState(state)));}
+// Preserve selected individuals on a refreshed export. First match full IV-like
+// fingerprints; only fall back to nickname+species when BOTH boxes are unique.
+function reconcileSleepIds(previous, next){
+ const selected=previous.sleepIds.map(id=>previous.box.find(p=>p.id===id)).filter(Boolean);
+ const used=new Set();const result=[];
+ const signature=p=>JSON.stringify([p.nickname,p.pokemon,p.level,p.skillLevel,p.ingredients,p.mainSkill,p.nature,p.subskills,p.sleepHours,p.shiny]);
+ for(const original of selected){
+  let match=next.find(p=>!used.has(p.id)&&signature(p)===signature(original));
+  if(!match){
+   const key=p=>JSON.stringify([p.nickname,p.pokemon]);
+   const oldMatches=previous.box.filter(p=>key(p)===key(original));
+   const newMatches=next.filter(p=>key(p)===key(original));
+   if(oldMatches.length===1&&newMatches.length===1&&!used.has(newMatches[0].id))match=newMatches[0];
+  }
+  if(match){used.add(match.id);result.push(match.id);}
+ }
+ return result;
+}
+let loadError='';
+function load(){try{const s=localStorage.getItem(KEY);loadError='';return s?validateState(JSON.parse(s)):newState();}catch(e){loadError='保存済みデータを読み込めません。上書きを防止しています。バックアップから復元するか、すべてのローカルデータを消去してください。';return newState();}}
+function save(state){if(loadError)throw new Error(loadError);localStorage.setItem(KEY,JSON.stringify(validateState(state)));}
+function allowRecovery(){loadError='';}
+function getLoadError(){return loadError;}
 function available(){try{const k=KEY+'/probe';localStorage.setItem(k,'1');localStorage.removeItem(k);return true;}catch(e){return false;}}
-const api={newState,validateState,load,save,available,KEY};
+const api={newState,validateState,reconcileSleepIds,load,save,available,getLoadError,allowRecovery,KEY};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeStorage=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -178,7 +215,8 @@ root.PokeStorage=api;
 const $=id=>document.getElementById(id);
 const storage=window.PokeStorage;
 let state=storage.load();
-const save=()=>{try{storage.save(state);$('storageNotice').textContent='このブラウザ内への保存：利用可能';$('storageNotice').className='small ok';return true;}catch(e){$('storageNotice').textContent='このブラウザでは永続保存できません。設定・保存からJSONバックアップを取得してください。';$('storageNotice').className='small warn';return false;}};
+const save=()=>{try{storage.save(state);$('storageNotice').textContent='このブラウザ内への保存：利用可能';$('storageNotice').className='small ok';$('criticalNotice').hidden=true;return true;}catch(e){$('storageNotice').textContent=storage.getLoadError()||'保存に失敗しました。現在の変更は未保存です。設定・保存からJSONバックアップを取得してください。';$('storageNotice').className='small warn';$('criticalNotice').textContent=$('storageNotice').textContent;$('criticalNotice').hidden=false;return false;}};
+const notifySave=(success,ok)=>toast(success?(ok||'保存しました。'):'保存に失敗しました。設定・保存からJSONバックアップを取得してください。');
 const enc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(message){const t=$('toast');t.textContent=message;t.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.hidden=true,3500);}
 function setTab(tab){for(const btn of document.querySelectorAll('.tab')){const active=btn.dataset.tab===tab;btn.classList.toggle('active',active);btn.setAttribute('aria-selected',active?'true':'false');}for(const p of document.querySelectorAll('.panel'))p.hidden=p.id!==`panel-${tab}`;}
@@ -188,26 +226,28 @@ function readEvent(){const e={name:$('eventName').value.trim(),start:$('eventSta
 function status(){let name=state.event.name||'イベント未設定';$('dataState').textContent=`${state.box.length}匹登録 / 睡眠パーティ ${state.sleepIds.length}/5匹 / ${name}`;$('boxTotal').textContent=`${state.box.length}匹`;$('boxCountTab').textContent=state.box.length;}
 function renderSleep(){const ids=state.sleepIds;const selected=ids.map(id=>state.box.find(p=>p.id===id)).filter(Boolean);$('sleepCount').textContent=`${selected.length} / 5`;
  $('sleepList').innerHTML=selected.length?selected.map((p,i)=>`<div class="sleep-item"><span class="sleep-index">${i+1}</span><span class="sleep-title">${enc(p.nickname||p.pokemon)}<small>${enc(p.pokemon)} · Lv${p.level}</small></span><button data-remove="${enc(p.id)}" class="remove" aria-label="${enc(p.pokemon)}を外す">外す</button></div>`).join(''):'<div class="empty-mini">まだ選択されていません。下の一覧から5匹選んでください。</div>';
- for(const btn of $('sleepList').querySelectorAll('[data-remove]'))btn.addEventListener('click',()=>{state.sleepIds=state.sleepIds.filter(id=>id!==btn.dataset.remove);save();renderBox();});}
+ for(const btn of $('sleepList').querySelectorAll('[data-remove]'))btn.addEventListener('click',()=>{state.sleepIds=state.sleepIds.filter(id=>id!==btn.dataset.remove);notifySave(save(),'睡眠パーティを変更しました。');renderBox();});}
 function renderBox(){status();renderSleep();let q=$('searchPokemon').value.toLocaleLowerCase('ja');const found=state.box.filter(p=>[p.nickname,p.pokemon].some(s=>(s||'').toLocaleLowerCase('ja').includes(q)));const view=found.slice(0,120);
  $('pokemonList').innerHTML=view.length?view.map(p=>{const selected=state.sleepIds.includes(p.id);return `<div class="pokemon-row"><div class="pokemon-symbol">${enc((p.pokemon||'?').slice(0,1))}</div><div class="pokemon-info"><b>${enc(p.nickname||p.pokemon)}</b><div>${enc(p.pokemon)} · Lv${p.level} · スキルLv${p.skillLevel}</div><div class="pokemon-details">${enc(p.nature||'せいかく未設定')} / ${enc(p.ingredients.filter(Boolean).join('・')||'食材未設定')}</div></div><button class="pick ${selected?'selected':''}" data-add="${enc(p.id)}" ${!selected&&state.sleepIds.length>=5?'disabled':''}>${selected?'選択中':'睡眠用に追加'}</button></div>`;}).join(''):'<div class="card empty">'+(state.box.length?'該当するポケモンがありません。':'CSVを読み込むとここに一覧が表示されます。')+'</div>';
  $('boxMore').hidden=found.length<=120;$('boxMore').textContent=found.length>120?`検索結果 ${found.length}匹のうち、先頭120匹を表示しています。検索して絞り込んでください。`:'';
- for(const btn of $('pokemonList').querySelectorAll('[data-add]'))btn.addEventListener('click',()=>{let id=btn.dataset.add;if(state.sleepIds.includes(id)){state.sleepIds=state.sleepIds.filter(x=>x!==id);}else if(state.sleepIds.length<5)state.sleepIds.push(id);save();renderBox();});}
+ for(const btn of $('pokemonList').querySelectorAll('[data-add]'))btn.addEventListener('click',()=>{let id=btn.dataset.add;if(state.sleepIds.includes(id)){state.sleepIds=state.sleepIds.filter(x=>x!==id);}else if(state.sleepIds.length<5)state.sleepIds.push(id);notifySave(save(),'睡眠パーティを変更しました。');renderBox();});}
 function download(filename,data,type){const blob=new Blob([data],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 $('eventDuration').addEventListener('change',showDuration);
-$('saveEvent').addEventListener('click',()=>{state.event=readEvent();state.updatedAt=new Date().toISOString();save();status();toast('イベント条件を保存しました。');});
+$('saveEvent').addEventListener('click',()=>{state.event=readEvent();state.updatedAt=new Date().toISOString();const saved=save();status();notifySave(saved,'イベント条件を保存しました。');});
 for(const btn of document.querySelectorAll('.tab'))btn.addEventListener('click',()=>setTab(btn.dataset.tab));
 $('searchPokemon').addEventListener('input',renderBox);
 $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;$('importError').hidden=true;try{
  if(file.size>8*1024*1024)throw new Error('ファイルが8MBを超えています。');
  const text=await file.text();const result=PokeCsv.parseBoxText(text);
- if(state.box.length&&!confirm(`ボックスを${result.items.length}匹で置き換えますか？ 睡眠パーティの選択は初期化されます。`))return;
- state.box=result.items;state.sleepIds=[];state.updatedAt=new Date().toISOString();save();renderBox();toast(`${result.items.length}匹を読み込みました。`);
+ const kept=storage.reconcileSleepIds(state,result.items);
+ if(state.box.length&&!confirm(`ボックスを${result.items.length}匹で置き換えますか？ 睡眠パーティは一致する個体のみ引き継ぎます（${kept.length}/${state.sleepIds.length}匹）。`))return;
+ state.box=result.items;state.sleepIds=kept;state.updatedAt=new Date().toISOString();const saved=save();renderBox();notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`);
  }catch(e){$('importError').textContent=e.message||String(e);$('importError').hidden=false;}finally{ev.target.value='';}});
 $('downloadBackup').addEventListener('click',()=>{download(`pokesleep_event_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2),'application/json;charset=utf-8');toast('バックアップを保存しました。');});
-$('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;save();fillEvent();renderBox();toast('バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
-$('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();save();fillEvent();$('searchPokemon').value='';renderBox();toast('端末内の保存情報を消去しました。');});
-$('storageNotice').textContent=storage.available()?'このブラウザ内への保存：利用可能':'この環境は保存が制限されています。必ずJSONバックアップをご利用ください。';
+$('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;storage.allowRecovery();const saved=save();fillEvent();renderBox();notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
+$('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();storage.allowRecovery();const saved=save();fillEvent();$('searchPokemon').value='';renderBox();notifySave(saved,'端末内の保存情報を消去しました。');});
+$('storageNotice').textContent=storage.getLoadError()|| (storage.available()?'このブラウザ内への保存：利用可能':'この環境は保存が制限されています。必ずJSONバックアップをご利用ください。');
+if(storage.getLoadError()){$('storageNotice').className='small warn';$('criticalNotice').textContent=storage.getLoadError();$('criticalNotice').hidden=false;}
 fillEvent();renderBox();setTab('event');
 })();
 
