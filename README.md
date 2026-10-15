@@ -22,13 +22,21 @@ npm run check
 ```
 ビルドは `src/index.template.html`, `src/styles.css`, `src/{csv,storage,app}.js` を結合して `index.html` と `dist/index.html` を生成します。
 
-## 公開方針（開発中と完成後）
-**開発中はリポジトリをPublicにしてGitHub Pagesで実機試験する。完成後は認証付きの非公開運用へ移行する。** ソースコードをPrivateに変更するだけでは、サイトのアクセス制限は実現しません。完成後の公開先はSTEP 6で確定します。
+## 開発中の公開設定とデータ保護
+開発中は **Public リポジトリ＋GitHub Pages** を使用します。開発サイト（公開設定が有効な場合）：https://meka-create.github.io/pokesleep-strategy/
+サイトは一般公開されます。個人CSV・JSONバックアップ・秘密鍵・パスワードを公開リポジトリにアップロードしないでください。
+CSV/バックアップの処理はブラウザ内で行い、アプリから個人データを外部送信する機能はありません。
+**完成後は認証付き非公開運用へ移行**します。Privateリポジトリへの変更だけではサイトは非公開になりません。公開済みソースのコピーを取り消すこともできません。
 
-開発中のURL（Pagesを設定して公開が成功した場合）：https://meka-create.github.io/pokesleep-strategy/
-GitHubの Settings → Pages で Source: Deploy from a branch、Branch: main、Folder: /(root) を選択して Save してください。
+## STEP 1 中間監査・修正
+- 不正なCSV引用符・不明な色違い値を拒否し、既存のボックスを保護。
+- CSVの再インポートで識別可能な睡眠用5匹を引き継ぐ。同名個体が曖昧なら誤対応を避ける。
+- JSONバックアップのデータ構造を厳格に検証。破損したローカルデータを無断上書きしない。
+- 保存に失敗した場合は画面上部に警告を残し、成功と誤表示しない。
+- Node自動テスト14件、Chromiumモバイル幅UI試験でCSV・設定・バックアップ復元などを確認。
 
-**公開リポジトリに個人CSV、JSONバックアップ、パスワード、APIキー、機密データをコミットしないこと。** インポートしたボックス・個人設定は原則ブラウザ内に保存されます。公開後にPrivateへ戻しても、第三者が取得したソースコードや公開フォークを取り消すことはできません。
+## ビルド・公開
+ソース変更後は `npm run check` を実行し、生成されたルートの `index.html` と `dist/index.html` をコミットします。GitHub Pagesの配信元は `main` / `/(root)` です。Android Chromeの最終実機検証は利用者が行います。
 
 ## データ・計算資産の再利用予定
 - [nitoyon/pokesleep-tool](https://github.com/nitoyon/pokesleep-tool)（MIT）: CSV仕様は `src/util/Formatter/BoxExporter.ts`、`BoxImporter.ts` を確認。データ・計算の具体的な移植はSTEP 2以降。
@@ -37,7 +45,6 @@ GitHubの Settings → Pages で Source: Deploy from a branch、Branch: main、F
 ## STEP終了時の監査観点
 CSVの取り込み互換、異常CSVでデータが消えないこと、睡眠パーティ選択、イベント期間と料理モードの保存、JSON復元、狭い画面での操作。ユーザーの監査指示を受けるまでSTEP 2へ移行しません。
 
-## GitHubへアップロードする場合
-ZIPを**展開してから**、`index.html` と `src/`、`tests/`、`docs/` などをリポジトリの**最上位**へアップロードします。ZIPファイル単体のアップロードでは中身は展開されません。`index.html` が最上位にある状態が正解です。
-
-**重要：** 開発中はPublicリポジトリでGitHub Pagesを利用します。`index.html` の配置に加えて、Settings → Pagesから公開元を設定する必要があります。完成後の認証付き非公開サイトは未構築です。
+## GitHubへのアップロード
+ZIPを展開し、`index.html`、`src/`、`tests/`、`docs/` をリポジトリ最上位に配置してください。ZIP単体は自動展開されません。
+個人CSVやバックアップファイルをコミットしないでください。
