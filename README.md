@@ -22,8 +22,13 @@ npm run check
 ```
 ビルドは `src/index.template.html`, `src/styles.css`, `src/{csv,storage,app}.js` を結合して `index.html` と `dist/index.html` を生成します。
 
-## 非公開運用
-この成果物は**インターネット公開していません**。GitHubの個人アカウントで非公開リポジトリを作る場合は、GitHub PagesをONにしても通常はサイトが一般公開されます。個人向けの正式ホスティング方式は非公開アクセス制御の用意後に決めます。個人CSVやJSONバックアップはリポジトリへコミットしないでください。
+## 公開方針（開発中と完成後）
+**開発中はリポジトリをPublicにしてGitHub Pagesで実機試験する。完成後は認証付きの非公開運用へ移行する。** ソースコードをPrivateに変更するだけでは、サイトのアクセス制限は実現しません。完成後の公開先はSTEP 6で確定します。
+
+開発中のURL（Pagesを設定して公開が成功した場合）：https://meka-create.github.io/pokesleep-strategy/
+GitHubの Settings → Pages で Source: Deploy from a branch、Branch: main、Folder: /(root) を選択して Save してください。
+
+**公開リポジトリに個人CSV、JSONバックアップ、パスワード、APIキー、機密データをコミットしないこと。** インポートしたボックス・個人設定は原則ブラウザ内に保存されます。公開後にPrivateへ戻しても、第三者が取得したソースコードや公開フォークを取り消すことはできません。
 
 ## データ・計算資産の再利用予定
 - [nitoyon/pokesleep-tool](https://github.com/nitoyon/pokesleep-tool)（MIT）: CSV仕様は `src/util/Formatter/BoxExporter.ts`、`BoxImporter.ts` を確認。データ・計算の具体的な移植はSTEP 2以降。
@@ -35,4 +40,4 @@ CSVの取り込み互換、異常CSVでデータが消えないこと、睡眠�
 ## GitHubへアップロードする場合
 ZIPを**展開してから**、`index.html` と `src/`、`tests/`、`docs/` などをリポジトリの**最上位**へアップロードします。ZIPファイル単体のアップロードでは中身は展開されません。`index.html` が最上位にある状態が正解です。
 
-**重要：** Privateリポジトリに `index.html` を配置しただけでは、誰でも開けるWebサイトにはなりません。GitHub Pagesがそのリポジトリと契約プランで利用可能か、サイトが一般公開にならないかを別途確認してください。サイトの非公開アクセス方式は未導入です。
+**重要：** 開発中はPublicリポジトリでGitHub Pagesを利用します。`index.html` の配置に加えて、Settings → Pagesから公開元を設定する必要があります。完成後の認証付き非公開サイトは未構築です。
