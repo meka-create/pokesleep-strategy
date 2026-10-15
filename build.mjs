@@ -8,4 +8,5 @@ const app=(await read('app.js')).replace(/<\/script/gi,'<\\/script');
 html=html.replace('<!-- BUILD_CSS -->',`<style>\n${css}\n</style>`).replace('<!-- BUILD_LIBS -->',scripts).replace('<!-- BUILD_APP -->',`<script>\n${app}\n</script>`);
 await mkdir(new URL('dist/',root),{recursive:true});
 await writeFile(new URL('dist/index.html',root),html);
-console.log('Built dist/index.html ('+Buffer.byteLength(html)+' bytes)');
+await writeFile(new URL('index.html',root),html);
+console.log('Built index.html and dist/index.html ('+Buffer.byteLength(html)+' bytes each)');
