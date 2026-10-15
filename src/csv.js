@@ -25,20 +25,27 @@
   function parseDelimited(text, delimiter) {
     if (typeof text !== 'string') throw new Error('テキストを読み込めません。');
     text = text.replace(/^\uFEFF/, '');
-    const rows=[]; let row=[],field='',quoted=false,atStart=true;
+    const rows=[]; let row=[],field='',quoted=false,closedQuote=false,atStart=true;
     for (let i=0;i<text.length;i++) {
       const c=text[i];
       if (quoted) {
         if (c==='"' && text[i+1]==='"') {field+='"'; i++;}
-        else if (c==='"') quoted=false;
+        else if (c==='"') {quoted=false;closedQuote=true;}
         else field+=c;
-      } else if (c==='"' && atStart) { quoted=true; atStart=false; }
-      else if (c===delimiter) {row.push(field);field='';atStart=true;}
-      else if (c==='\n'||c==='\r') {
-        if(c==='\r'&&text[i+1]==='\n')i++;
-        row.push(field); if(row.some(v=>v.trim()!=='')) rows.push(row);
-        row=[];field='';atStart=true;
-      } else {field+=c;atStart=false;}
+      } else if (c===delimiter || c==='\n' || c==='\r') {
+        row.push(field);field='';atStart=true;closedQuote=false;
+        if(c!==delimiter) {
+          if(c==='\r'&&text[i+1]==='\n')i++;
+          if(row.some(v=>v.trim()!=='')) rows.push(row);
+          row=[];
+        }
+      } else if (c==='"' && atStart) {
+        quoted=true;atStart=false;
+      } else if(c==='"'||closedQuote) {
+        throw new Error('CSVの引用符の位置が不正です。');
+      } else {
+        field+=c;atStart=false;
+      }
     }
     if(quoted) throw new Error('CSV内の引用符が閉じられていません。');
     row.push(field); if(row.some(v=>v.trim()!==''))rows.push(row);
@@ -64,6 +71,10 @@
       if(!pokemon){errors.push(`${line}行目: ポケモン名が空です`);continue;}
       if(!Number.isInteger(level)||level<1||level>100){errors.push(`${line}行目: レベルが不正です`);continue;}
       if(!Number.isInteger(skillLevel)||skillLevel<1||skillLevel>20){errors.push(`${line}行目: スキルレベルが不正です`);continue;}
+      const shinyRaw=get('shiny').toLowerCase();
+      if(!['','0','1','true','false','はい','いいえ','yes','no'].includes(shinyRaw)){
+        errors.push(`${line}行目: 色違いの値が不正です`);continue;
+      }
       const sleepHoursRaw=get('sleepHours');
       if(sleepHoursRaw && (!Number.isFinite(Number(sleepHoursRaw))||Number(sleepHoursRaw)<0)){errors.push(`${line}行目: 一緒に眠った時間が不正です`);continue;}
       items.push({id:`p-${i}`,nickname:get('nickname'),pokemon,level,skillLevel,
@@ -71,7 +82,7 @@
         mainSkill:get('mainSkill'),nature:get('nature'),
         subskills:[get('lv10'),get('lv25'),get('lv50'),get('lv70'),get('lv80')],
         sleepHours:sleepHoursRaw===''?null:Number(sleepHoursRaw),
-        shiny:['1','true','はい','yes'].includes(get('shiny').toLowerCase()),sourceRow:line});
+        shiny:['1','true','はい','yes'].includes(shinyRaw),sourceRow:line});
     }
     // All-or-nothing import: never silently replace the box with a partial parse.
     if(errors.length)throw new Error(`${errors.length}行に問題があります。既存ボックスは変更していません。\n${errors.slice(0,8).join('\n')}${errors.length>8?'\nほか'+(errors.length-8)+'行':''}`);
