@@ -124,6 +124,14 @@ function recoveryNatureFactor(jp){
  return RECOVERY_UP.includes(en)?1.2:RECOVERY_DOWN.includes(en)?.88:1;
 }
 function activeSkills(p){return p.subskills.filter((_,i)=>p.level>=[10,25,50,70,80][i]).map(s=>s||'');}
+// Upstream evolutionCount=-1 means "no stage metadata", NOT minus one evolution.
+// Normal Pikachu is a legacy exception (Pichu -> Pikachu): carryLimit 17 -> 22.
+// Costumed Pikachu forms do not inherit that extra five.
+function baseCarryCapacity(sp){
+ const stages=Number.isInteger(sp.evolutionCount)?Math.max(0,sp.evolutionCount):0;
+ const pikachuBonus=sp.name==='ピカチュウ'&&sp.english==='Pikachu'?5:0;
+ return (sp.carryLimit||10)+5*stages+pikachuBonus;
+}
 function signature(p,sp,team,camp,warnings){
  const sub=activeSkills(p),count=s=>sub.includes(s)?1:0;
  const speedNature=(function(){const f=natureFactor(p.nature,['Lonely','Adamant','Naughty','Brave'],['Bold','Timid','Calm','Modest']);return f===1.2?.9:f===.8?1.075:1;})();
@@ -143,7 +151,7 @@ function signature(p,sp,team,camp,warnings){
  const skillRate=rawSkillRate===0?0:clamp(rawSkillRate/(1-Math.pow(1-rawSkillRate,pity+1)),0,1);
  const berryPerHelp=(sp.specialty==='Berries'||sp.specialty==='All'?2:1)+count('きのみの数S');
  const ribbon=(p.sleepHours>=2000?8:p.sleepHours>=1000?6:p.sleepHours>=500?3:p.sleepHours>=200?1:0);
- const cap=(sp.carryLimit||10)+5*(sp.evolutionCount||0)+ribbon+count('最大所持数アップS')*6+count('最大所持数アップM')*12+count('最大所持数アップL')*18;
+ const cap=baseCarryCapacity(sp)+ribbon+count('最大所持数アップS')*6+count('最大所持数アップM')*12+count('最大所持数アップL')*18;
  const slots=p.level>=60?3:p.level>=30?2:1;
  const ingSlots=[];
  for(let j=0;j<slots;j++){
@@ -153,7 +161,7 @@ function signature(p,sp,team,camp,warnings){
    ingSlots.push({key,count:def['c'+(j+1)]});
  }
  const skill=sp.skill;
- return {p,sp,interval:Math.max(150,base/(camp?1.2:1)),ingRate,skillRate,berryPerHelp,carry:cap*(camp?1.2:1),ingSlots,skill,stockMax:sp.specialty==='Skills'?2:1};
+ return {p,sp,interval:Math.max(150,base/(camp?1.2:1)),ingRate,skillRate,berryPerHelp,carry:camp?Math.ceil(cap*1.2):cap,ingSlots,skill,stockMax:sp.specialty==='Skills'?2:1};
 }
 function energySpeed(e){return e>80?.45:e>60?.52:e>40?.58:e>1?.66:1;}
 function effectivePotCapacity(base,skillBonus,day,camp){
@@ -610,7 +618,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
