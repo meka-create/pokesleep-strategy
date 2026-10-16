@@ -3,7 +3,7 @@ const root=new URL('./',import.meta.url);
 const read=p=>readFile(new URL('src/'+p,root),'utf8');
 let html=await read('index.template.html');
 const css=(await read('styles.css')).replace(/<\/style/gi,'<\\/style');
-const scripts=(await Promise.all(['csv.js','storage.js','master.js','simulator.js'].map(read))).map(s=>`<script>\n${s.replace(/<\/script/gi,'<\\/script')}\n</script>`).join('\n');
+const scripts=(await Promise.all(['csv.js','storage.js','master.js','recipes.js','simulator.js'].map(read))).map(s=>`<script>\n${s.replace(/<\/script/gi,'<\\/script')}\n</script>`).join('\n');
 const app=(await read('app.js')).replace(/<\/script/gi,'<\\/script');
 html=html.replace('<!-- BUILD_CSS -->',`<style>\n${css}\n</style>`).replace('<!-- BUILD_LIBS -->',scripts).replace('<!-- BUILD_APP -->',`<script>\n${app}\n</script>`);
 await mkdir(new URL('dist/',root),{recursive:true});
