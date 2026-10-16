@@ -28,7 +28,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.5</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.6</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -95,7 +95,9 @@
   <label class="field"><span>食材バッグ容量（0＝未指定）</span><input id="simBagCapacity" type="number" min="0" max="10000" step="1" value="0"></label>
   <label class="field"><span>睡眠スコア <small>7時間30分なら目安88点</small></span><input id="simSleepScore" type="number" min="0" max="100" value="88"></label>
   <label class="field"><span>初期げんき（全員共通）</span><input id="simInitialEnergy" type="number" min="0" max="150" value="100"></label>
-  <label class="field wide"><span>試算するレシピ（全78品・レベル70）</span><select id="simRecipe"><option value="">料理は計算しない</option></select></label>
+  <label class="field wide"><span>料理の選び方</span><select id="simRecipeMode"><option value="fixed">指定したレシピだけ作る（従来どおり）</option><option value="fallback">指定レシピを優先し、材料不足なら代替</option><option value="best">各食事で作れる最高エナジーレシピを選ぶ</option></select></label>
+  <label class="field wide"><span>優先・固定レシピ（全78品・レベル70）</span><select id="simRecipe"><option value="">レシピ未選択</option></select></label>
+  <p class="small muted">「最高エナジー」はその食事時点の選択です。7日間全体の料理最適化やゲーム内の「おまかせ料理」ではありません。料理カテゴリがランダムの場合は計上しません。</p>
  </div>
  <details class="card sim-inventory">
   <summary>初期食材の個数を入力する（全19種類・任意）</summary>
@@ -116,6 +118,7 @@
   <h3 id="simTotal">—</h3>
   <div id="simBreakdown" class="sim-breakdown"></div>
   <div class="section-heading minor"><h3>日別の概算</h3></div><div id="simDaily"></div>
+  <div class="section-heading minor"><h3>料理履歴・食材消費</h3></div><p id="simMealSummary" class="small muted"></p><div id="simMeals"></div>
   <div class="section-heading minor"><h3>得られた食材（期待個数）</h3></div><div id="simIngredients"></div>
   <div class="section-heading minor"><h3>計算上の注意・未対応</h3></div><div id="simWarnings" class="sim-warnings"></div>
  </div>
@@ -231,7 +234,7 @@
 (function(root){
 'use strict';
 const KEY='pokesleep-event-planner/step1/v1';
-const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,sleepScore:88,initialEnergy:100,recipeId:'',magnetIngredients:[],initialIngredients:{}});
+const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,sleepScore:88,initialEnergy:100,recipeId:'',recipeMode:'fixed',magnetIngredients:[],initialIngredients:{}});
 const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
 const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
 const validEnum=(v,choices)=>choices.includes(v);
@@ -257,11 +260,11 @@ function validateState(x){
   teams[key]=[...a];
  }
  const between=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
- if(!between(sim.fieldBonus,0,100)||!between(sim.tapMinutes,120,180)||!between(sim.potSize,7,300)||!between(sim.bagCapacity??0,0,10000)||!Number.isInteger(sim.bagCapacity??0)||!between(sim.sleepScore,0,100)||!between(sim.initialEnergy,0,150)||!cleanText(sim.recipeId,80)||!sim.initialIngredients||typeof sim.initialIngredients!=='object'||Array.isArray(sim.initialIngredients))throw new Error('計算設定が不正です。');
+ if(!between(sim.fieldBonus,0,100)||!between(sim.tapMinutes,120,180)||!between(sim.potSize,7,300)||!between(sim.bagCapacity??0,0,10000)||!Number.isInteger(sim.bagCapacity??0)||!between(sim.sleepScore,0,100)||!between(sim.initialEnergy,0,150)||!cleanText(sim.recipeId,80)||!['fixed','fallback','best'].includes(sim.recipeMode??'fixed')||!sim.initialIngredients||typeof sim.initialIngredients!=='object'||Array.isArray(sim.initialIngredients))throw new Error('計算設定が不正です。');
  const magnet=sim.magnetIngredients??[];
  if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!['leek','mushroom','egg','potato','apple','herb','sausage','milk','honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado'].includes(k)))throw new Error('発見済み食材の設定が不正です。');
  for(const [k,v] of Object.entries(sim.initialIngredients))if(!cleanText(k,40)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
- return {version:1,box:x.box,sleepIds:[...x.sleepIds],simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
+ return {version:1,box:x.box,sleepIds:[...x.sleepIds],simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
 // Preserve selected individuals on a refreshed export. First match full IV-like
 // fingerprints; only fall back to nickname+species when BOTH boxes are unique.
@@ -380,6 +383,27 @@ function effectivePotCapacity(base,skillBonus,day,camp){
  const weekend=day===6?2:1;
  return Math.round((base*weekend+clamp(skillBonus,0,200))*(camp?1.5:1));
 }
+// Greedy per-meal planner, not a global weekly optimizer and not in-game random auto-cook.
+function chooseRecipe({mode='fixed',preferredId='',foodMode,inventory,potCapacity}){
+ if(!['fixed','fallback','best'].includes(mode))throw Error('料理選択モードが不正です。');
+ if(foodMode==='random'||!['curry','salad','dessert'].includes(foodMode))return null;
+ const fits=r=>r.type===foodMode&&Object.values(r.requirements).reduce((a,b)=>a+b,0)<=potCapacity
+   &&Object.entries(r.requirements).every(([key,count])=>(inventory[key]||0)+1e-6>=count);
+ const preferred=RECIPES.find(r=>r.id===preferredId);
+ if(mode==='fixed')return preferred&&fits(preferred)?preferred:null;
+ if(mode==='fallback'){
+  if(!preferred)throw Error('代替料理モードでは優先するレシピを選んでください。');
+  if(preferred.type!==foodMode)return null;
+  if(fits(preferred))return preferred;
+ }
+ // Stable tie break: higher energy first, then fewer mandatory ingredients, then ID.
+ return RECIPES.filter(fits).sort((a,b)=>b.strength70-a.strength70
+  ||Object.values(a.requirements).reduce((n,v)=>n+v,0)-Object.values(b.requirements).reduce((n,v)=>n+v,0)
+  ||a.id.localeCompare(b.id))[0]||null;
+}
+function mealRecovery(energy){
+ return energy>=80?1:energy>=60?2:energy>=40?3:energy>=20?4:5;
+}
 function berryUnit(type,lv,favorites,fieldBonus){const b0=BERRY[type];const raw=Math.max(b0+lv-1,Math.round(Math.pow(1.025,lv-1)*b0));return roundup(roundup(raw*(1+fieldBonus/100))*(favorites.includes(type)?2:1));}
 function simulate(input){
  if(!input||!Array.isArray(input.box))throw Error('ボックスがありません。');
@@ -397,7 +421,7 @@ function simulate(input){
  const warnings=new Set();
  if(!favorite.length)warnings.add('このフィールドの好みのきのみは未確定です。好みボーナスを計上していません。');
  const species=new Map(Master.species.map(s=>[s.name,s]));
- const members=new Map(), energy=new Map(),pocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0};
+ const members=new Map(), energy=new Map(),pocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,meals:[],consumedIngredients:{}};
  for(const p of input.box){energy.set(p.id,initialEnergy);pocket.set(p.id,{used:0,berries:0,ingredients:{},skill:0});}
  for(const key of periods)for(const id of teams[key]){
   if(!members.has(id)){
@@ -416,13 +440,15 @@ function simulate(input){
  const bagUsed=()=>Object.values(inventory).reduce((sum,n)=>sum+n,0);
  if(bagCapacity&&bagUsed()>bagCapacity)throw Error('初期食材の合計が食材バッグ容量を超えています。');
  if(!bagCapacity)warnings.add('食材バッグ容量が未設定です。満杯時の食材回収制限は考慮していません。');
+ const recipeMode=opts.recipeMode??'fixed';
+ if(!['fixed','fallback','best'].includes(recipeMode))throw Error('料理選択モードが不正です。');
  const recipe=RECIPES.find(r=>r.id===opts.recipeId);
- if(!recipe)warnings.add('レシピ未選択：料理エナジーを計上していません。');
- else if(opts.foodMode!=='random'&&opts.foodMode!==recipe.type)warnings.add('レシピと料理カテゴリが一致しません。料理エナジーを計上していません。');
- if(opts.foodMode==='random')warnings.add('ランダム料理カテゴリは未確定です。選択レシピの成立時のみ試算し、ランダム期待値ではありません。');
- const dishesAllowed=recipe&&opts.foodMode===recipe.type;
- if(recipe)warnings.add('食材の期待個数は端数を含む近似です。実際に揃った食材数や料理回数とは異なります。');
- if(recipe&&opts.foodMode==='random')warnings.add('料理カテゴリを確定するまで料理のエナジーは計上しません。');
+ if(recipeMode==='fixed'&&!recipe)warnings.add('レシピ未選択：料理エナジーを計上していません。');
+ if(recipeMode==='fallback'&&!recipe)throw Error('代替料理モードでは優先するレシピを選んでください。');
+ if(recipeMode!=='best'&&recipe&&opts.foodMode!=='random'&&opts.foodMode!==recipe.type)warnings.add('レシピと料理カテゴリが一致しません。料理エナジーを計上していません。');
+ if(opts.foodMode==='random')warnings.add('ランダム料理カテゴリは未確定です。料理カテゴリを確定するまで料理エナジーは計上しません。');
+ if(recipeMode!=='fixed')warnings.add('料理の自動選択は各食事時点のLv70レシピエナジー最大を選ぶ近似です。翌日の食材確保や週間総エナジーを見越した最適化ではありません。');
+ warnings.add('食材の期待個数は端数を含む近似です。実際に揃った食材数や料理回数とは異なります。');
  if(opts.map==='シアンの砂浜EX'||opts.map==='ワカクサ本島EX')warnings.add('EXフィールド固有の補正には未対応です。');
  if(opts.eventEffects)warnings.add('イベント補正メモはSTEP5まで計算に反映しません。');
  const warningsSkills=new Set(),warningsSkillsExcluded=new Set();
@@ -504,14 +530,21 @@ function simulate(input){
   help(ids,minutes/60,camp,mid);
   for(const id of ids)if(awake)energy.set(id,clamp(energy.get(id)-minutes/10,0,150));
  }
- function cook(day){if(!dishesAllowed)return 0;const needed=Object.entries(recipe.requirements);const count=needed.reduce((a,[k,v])=>a+v,0);
-   // The temporary skill bonus persists if no meal is cooked and is spent at the next actual meal.
-   const effectivePot=effectivePotCapacity(pot,potBonus,day,!!opts.camp);
-   if(count>effectivePot)return 0;
-   if(needed.some(([k,v])=>(inventory[k]||0)+1e-6<v))return 0;
-   for(const [k,v] of needed)inventory[k]-=v;
-   const value=recipe.strength70*(1+bonus/100);
+ function cook(day,meal,teamIds){
+   const capacity=effectivePotCapacity(pot,potBonus,day,!!opts.camp);
+   const chosen=chooseRecipe({mode:recipeMode,preferredId:opts.recipeId||'',foodMode:opts.foodMode,inventory,potCapacity:capacity});
+   if(!chosen)return 0;
+   const needed=Object.entries(chosen.requirements);
+   for(const [k,v] of needed){
+    inventory[k]-=v;
+    status.consumedIngredients[k]=(status.consumedIngredients[k]||0)+v;
+   }
+   const value=chosen.strength70*(1+bonus/100);
    status.cooking+=value;
+   status.meals.push({day:day+1,meal,recipeId:chosen.id,name:chosen.name,energy:value,
+     count:needed.reduce((n,[,v])=>n+v,0),potCapacity:capacity,usedPotBonus:potBonus});
+   // Cooking restores a small amount of energy to the current on-field party.
+   for(const id of teamIds)energy.set(id,clamp(energy.get(id)+mealRecovery(energy.get(id)),0,150));
    potBonus=0;
    return value;
  }
@@ -522,7 +555,7 @@ function simulate(input){
   let current=null;
   for(let t=7.5;t<24-1e-9;t+=.25){
     const key=t<12?'morning':t<18?'noon':'evening',ids=teams[key];
-    if(current!==key){if(current)collect(teams[current]);current=key;collect(ids);if([7.5,12,18].includes(t))cook(d);}
+    if(current!==key){if(current)collect(teams[current]);current=key;collect(ids);if([7.5,12,18].includes(t))cook(d,t===7.5?'朝':t===12?'昼':'夜',ids);}
     const sinceWake=(t-7.5)*60;
     if(Math.abs(sinceWake/tapMinutes-Math.round(sinceWake/tapMinutes))<1e-6 &&t>7.5)collect(ids);
     tickActive(ids,15,!!opts.camp,true);
@@ -555,11 +588,11 @@ function simulate(input){
  if(status.unassignedMagnet>0)warnings.add('食材ゲット系スキルで抽選候補が未設定のため、ランダム食材の期待'+status.unassignedMagnet.toFixed(1)+'個は料理材料に計上していません。発見済み食材を選択してください。');
  if(Object.keys(status.skillIngredients).length)warnings.add('食材ゲット系の抽選は選択した発見済み食材に均等配分した期待値近似です。実際の抽選単位・食材の偏りは未再現です。');
  warnings.add('暫定期待値モデルです。げんき・所持上限・スキルストック・ピティ補正は近似であり、ゲーム内の厳密値とは一致しません。前週からの所持品持ち越しは未対応です。');
- if(recipe)warnings.add('料理はLv70の選択レシピのみ、成立した場合に計上します。追加食材・代替料理・大成功は未対応です。鍋拡張の余剰容量は料理エナジーに直接加算しません。');
+ warnings.add('料理はLv70・追加食材なし・大成功なしの試算です。ごちゃまぜ料理と鍋拡張の余剰食材エナジーは未計上です。');
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
- return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,inventory,days:daySummaries,warnings:[...warnings],models:members.size};
+ return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -670,6 +703,7 @@ function fillSimulation(){
   $('simRecipe').append(o);
  }
  $('simRecipe').value=sim.recipeId;
+ $('simRecipeMode').value=sim.recipeMode||'fixed';
  const container=$('simIngredientFields');container.replaceChildren();
  for(const [key,name] of Object.entries(PokeMaster.ingredients)){
   const label=document.createElement('label');label.className='field';
@@ -709,7 +743,7 @@ function readSimulation(){
   teams[key]=values;
  }
  if(state.sleepIds.length!==5)throw Error('ボックスタブで睡眠パーティ5匹を指定してください。');
- return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,bagCapacity:data.simBagCapacity,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,initialIngredients,magnetIngredients};
+ return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,bagCapacity:data.simBagCapacity,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,recipeMode:$('simRecipeMode').value,initialIngredients,magnetIngredients};
 }
 $('fillAllRosters').addEventListener('click',()=>{
  if(state.sleepIds.length!==5){toast('先にボックスタブで睡眠用5匹を選択してください。');setTab('box');return;}
@@ -735,6 +769,15 @@ $('runSim').addEventListener('click',()=>{
   for(const [label,value] of stats){const cell=document.createElement('div');cell.className='sim-stat';const a=document.createElement('small');a.textContent=label;const b=document.createElement('strong');b.textContent=yen(value);cell.append(a,b);breakdown.append(cell);}
   $('simDaily').replaceChildren();
   for(const day of result.days){const row=document.createElement('div');row.className='sim-day';const total=day.berries+day.cooking+day.skills;const left=document.createElement('span');left.textContent='第'+day.day+'日';const right=document.createElement('strong');right.textContent=yen(total);row.append(left,right);$('simDaily').append(row);}
+  $('simMealSummary').textContent='成立した料理 '+result.meals.length+' / 21食（料理エナジー '+yen(result.cooking)+'）。余剰食材・大成功は未計上。';
+  $('simMeals').replaceChildren();
+  if(!result.meals.length)$('simMeals').textContent='成立したレシピなし／未計上';
+  for(const meal of result.meals){
+   const row=document.createElement('div');row.className='sim-day';
+   const label=document.createElement('span');label.textContent='第'+meal.day+'日 '+meal.meal+'：'+meal.name+'（'+meal.count+'個）';
+   const score=document.createElement('strong');score.textContent=yen(meal.energy);
+   row.append(label,score);$('simMeals').append(row);
+  }
   $('simIngredients').replaceChildren();
   const entries=Object.entries(result.ingredients).sort((a,b)=>b[1]-a[1]);
   for(const [key,value] of entries){const row=document.createElement('div');row.className='sim-day';const name=document.createElement('span');const viaSkill=result.skillIngredients[key]||0;name.textContent=(PokeMaster.ingredients[key]||key)+(viaSkill>0?'（スキル由来 '+viaSkill.toFixed(1)+'個を含む）':'');const count=document.createElement('strong');count.textContent=value.toFixed(1)+' 個';row.append(name,count);$('simIngredients').append(row);}
