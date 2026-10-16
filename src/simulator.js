@@ -9,6 +9,7 @@ const BERRY=Master.berry, ING=Master.strength;
 const FAVORITES={'シアンの砂浜':['water','fairy','flying'],'トープ洞窟':['ground','fire','rock'],'ウノハナ雪原':['ice','normal','dark'],'ラピスラズリ湖畔':['grass','psychic','fighting'],'ゴールド旧発電所':['electric','ghost','steel'],'アンバー渓谷':['poison','bug','dragon']};
 const SKILL_STRENGTH={'Charge Strength S':[400,569,785,1083,1496,2066,3212],'Charge Strength M':[880,1251,1726,2383,3290,4546,6858],'Charge Strength S (Random)':[500,711.5,981.5,1354,1870,2582.5,4015]};
 const HEAL_ALL=[5,7,9,11,15,18],HEAL_SELF=[12,16,21,27,34,43];
+const TASTY_CHANCE=[4,5,6,7,8,10];
 const INGREDIENT_MAGNET={
  'Ingredient Magnet S':[6,8,11,14,17,21,24],
  'Ingredient Magnet S (Plus)':[5,7,9,11,13,16,18],
@@ -159,7 +160,9 @@ function simulate(input){
  const magnetPool=opts.magnetIngredients??[];
  if(!Array.isArray(magnetPool)||new Set(magnetPool).size!==magnetPool.length||
     magnetPool.some(k=>!Object.prototype.hasOwnProperty.call(Master.ingredients,k)))throw Error('食材ゲットSの抽選対象が不正です。');
- let potBonus=0;
+ let potBonus=0,successBonus=0;
+ const extraMode=opts.extraMode??'none',successMode=opts.successMode??'none';
+ if(!['none','fill'].includes(extraMode)||!['none','expected'].includes(successMode))throw Error('追加食材・大成功の設定が不正です。');
  function addInventory(key,count,fromSkill){
   const available=bagCapacity?Math.max(0,bagCapacity-bagUsed()):count;
   const accepted=Math.max(0,Math.min(count,available));
@@ -202,6 +205,10 @@ function simulate(input){
     }
     status.berries+=triggers*energyGain;
     if(burst.critical)warnings.add('ばけのかわの大成功率18.5%は期待値で計算しています。抽選結果の上下振れは未再現です。');
+   }
+   else if(actual==='Tasty Chance S'){
+    if(successMode==='expected')successBonus=clamp(successBonus+triggers*TASTY_CHANCE[clamp(pair.p.skillLevel-1,0,5)]/100,0,.7);
+    else warnings.add('料理チャンスSは大成功期待値OFFのため計上していません。');
    }
    else if(INGREDIENT_MAGNET[actual]){
     const produced=triggers*INGREDIENT_MAGNET[actual][clamp(pair.p.skillLevel-1,0,6)];
@@ -255,10 +262,26 @@ function simulate(input){
     inventory[k]-=v;
     status.consumedIngredients[k]=(status.consumedIngredients[k]||0)+v;
    }
-   const value=chosen.strength70*(1+bonus/100);
+   const mandatoryCount=needed.reduce((n,[,v])=>n+v,0);
+   const extraIngredients={};let extraEnergy=0,extraCount=0;
+   if(extraMode==='fill'){
+    const candidates=Object.keys(ING).filter(k=>ING[k]>0)
+      .sort((a,b)=>ING[b]-ING[a]||a.localeCompare(b));
+    for(const key of candidates){
+     const count=Math.min(Math.floor(Math.max(0,inventory[key]||0)),capacity-mandatoryCount-extraCount);
+     if(count<=0)continue;
+     inventory[key]-=count;status.consumedIngredients[key]=(status.consumedIngredients[key]||0)+count;
+     extraIngredients[key]=count;extraCount+=count;extraEnergy+=count*ING[key];
+    }
+   }
+   const baseEnergy=(chosen.strength70+extraEnergy)*(1+bonus/100);
+   const greatChance=successMode==='expected'?clamp((day===6?.3:.1)+successBonus,0,1):0;
+   const value=baseEnergy*(1+greatChance*(day===6?2:1));
    status.cooking+=value;
    status.meals.push({day:day+1,meal,recipeId:chosen.id,name:chosen.name,energy:value,
-     count:needed.reduce((n,[,v])=>n+v,0),potCapacity:capacity,usedPotBonus:potBonus});
+     count:mandatoryCount+extraCount,mandatoryCount,extraIngredients,extraEnergy,successProbability:greatChance,
+     potCapacity:capacity,usedPotBonus:potBonus});
+   if(successMode==='expected')successBonus*=1-greatChance;
    // Cooking restores a small amount of energy to the current on-field party.
    for(const id of teamIds)energy.set(id,clamp(energy.get(id)+mealRecovery(energy.get(id)),0,150));
    potBonus=0;
@@ -304,9 +327,12 @@ function simulate(input){
  if(status.unassignedMagnet>0)warnings.add('食材ゲット系スキルで抽選候補が未設定のため、ランダム食材の期待'+status.unassignedMagnet.toFixed(1)+'個は料理材料に計上していません。発見済み食材を選択してください。');
  if(Object.keys(status.skillIngredients).length)warnings.add('食材ゲット系の抽選は選択した発見済み食材に均等配分した期待値近似です。実際の抽選単位・食材の偏りは未再現です。');
  warnings.add('暫定期待値モデルです。げんき・所持上限・スキルストック・ピティ補正は近似であり、ゲーム内の厳密値とは一致しません。前週からの所持品持ち越しは未対応です。');
- warnings.add('料理はLv70・追加食材なし・大成功なしの試算です。ごちゃまぜ料理と鍋拡張の余剰食材エナジーは未計上です。');
+ if(extraMode==='none')warnings.add('追加食材はOFFです。鍋の余剰容量による食材エナジーは未計上です。');
+ else warnings.add('追加食材は高エナジー食材から鍋を埋める短期近似です。翌食・翌週の食材温存やレシピの自動切替は考慮しません。');
+ if(successMode==='none')warnings.add('料理の大成功はOFFです。料理チャンスSの寄与も未計上です。');
+ else warnings.add('大成功は平日10%・日曜30%の推定確率と料理チャンスSの期待値近似です。大成功時のスキル蓄積リセットや結果のばらつきは簡略化しています。');
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
- return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
+ return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
 }
 const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
