@@ -90,6 +90,7 @@ function fillSimulation(){
  $('simFieldBonus').value=sim.fieldBonus;
  $('simTap').value=sim.tapMinutes;
  $('simPot').value=sim.potSize;
+ $('simBagCapacity').value=sim.bagCapacity||0;
  $('simSleepScore').value=sim.sleepScore;
  $('simInitialEnergy').value=sim.initialEnergy;
  $('simRecipe').replaceChildren();
@@ -111,7 +112,7 @@ function fillSimulation(){
  renderSimulator();
 }
 function readSimulation(){
- const numbers=[['simFieldBonus',0,100],['simTap',120,180],['simPot',7,300],['simSleepScore',0,100],['simInitialEnergy',0,150]];
+ const numbers=[['simFieldBonus',0,100],['simTap',120,180],['simPot',7,300],['simBagCapacity',0,10000],['simSleepScore',0,100],['simInitialEnergy',0,150]];
  const data={};
  for(const [id,min,max] of numbers){
   const raw=$(id).value.trim(),v=Number(raw);if(raw===''||!Number.isFinite(v)||v<min||v>max||!Number.isInteger(v))throw Error(id+' の入力値を確認してください。');
@@ -129,7 +130,7 @@ function readSimulation(){
   teams[key]=values;
  }
  if(state.sleepIds.length!==5)throw Error('ボックスタブで睡眠パーティ5匹を指定してください。');
- return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,initialIngredients};
+ return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,bagCapacity:data.simBagCapacity,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,initialIngredients};
 }
 $('fillAllRosters').addEventListener('click',()=>{
  if(state.sleepIds.length!==5){toast('先にボックスタブで睡眠用5匹を選択してください。');setTab('box');return;}
