@@ -113,3 +113,15 @@ test('optional extra food and great-success settings persist with meal trace',()
  assert.equal(saved.simulation.successMode,'expected');
  assert.equal(app.items.get('simResult').hidden,false);
 });
+
+test('result summary reflects actual optional culinary settings, not stale blanket exclusion',()=>{
+ const app=boot();
+ app.callbacks.get('fillAllRosters:click')();
+ app.items.get('simRecipeMode').value='best';
+ app.items.get('simExtraMode').value='fill';
+ app.items.get('simSuccessMode').value='expected';
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ assert.match(app.items.get('simMealSummary').textContent,/追加食材：期待値で計上/);
+ assert.match(app.items.get('simMealSummary').textContent,/大成功：推定期待値で計上/);
+});
