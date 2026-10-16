@@ -69,10 +69,14 @@
   <label class="field"><span>鍋容量</span><input id="simPot" type="number" min="7" max="300" step="1" value="57"></label>
   <label class="field"><span>睡眠スコア <small>7時間30分なら目安88点</small></span><input id="simSleepScore" type="number" min="0" max="100" value="88"></label>
   <label class="field"><span>初期げんき（全員共通）</span><input id="simInitialEnergy" type="number" min="0" max="150" value="100"></label>
-  <label class="field wide"><span>試算するレシピ（代表5品のみ）</span><select id="simRecipe"><option value="">料理は計算しない</option></select></label>
-  <label class="field"><span>初期リンゴ（個）</span><input id="simApple" type="number" min="0" max="10000" value="0"></label>
-  <label class="field"><span>初期ミルク（個）</span><input id="simMilk" type="number" min="0" max="10000" value="0"></label>
-  <label class="field"><span>初期マメミート（個）</span><input id="simSausage" type="number" min="0" max="10000" value="0"></label>
+  <label class="field wide"><span>試算するレシピ（全78品・レベル70）</span><select id="simRecipe"><option value="">料理は計算しない</option></select></label>
+ </div>
+ <details class="card sim-inventory">
+  <summary>初期食材の個数を入力する（全19種類・任意）</summary>
+  <p class="small muted">イベント週の開始時点で持っている食材数です。未入力は0個として計算します。個数は必要な食材だけ設定できます。</p>
+  <div id="simIngredientFields" class="form-grid"></div>
+ </details>
+ <div class="form-grid" hidden>
  </div>
  <div class="small muted sim-conditions">マップ・料理カテゴリ・キャンプチケット設定は「イベント」タブの第1週設定を使います。週切替の月曜4:00～7:30は獲得ゼロとして扱います。</div>
  <button class="primary full" id="runSim" disabled>7日間を試算する</button>
