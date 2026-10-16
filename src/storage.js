@@ -22,7 +22,8 @@ function validateState(x){
  const teams={};
  for(const key of ['morning','noon','evening']) {
   const a=sim.teams[key];
-  if(!Array.isArray(a)||a.length>5||new Set(a).size!==a.length||a.some(id=>typeof id!=='string'||!ids.has(id)))throw new Error('計算用パーティが不正です。');
+  const chosen=Array.isArray(a)?a.filter(Boolean):[];
+  if(!Array.isArray(a)||a.length>5||new Set(chosen).size!==chosen.length||a.some(id=>typeof id!=='string'||(id!==''&&!ids.has(id))))throw new Error('計算用パーティが不正です。');
   teams[key]=[...a];
  }
  const between=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
