@@ -28,7 +28,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.9</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.10</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -120,6 +120,10 @@
   <h3 id="simTotal">—</h3>
   <div id="simBreakdown" class="sim-breakdown"></div>
   <div class="section-heading minor"><h3>日別の概算</h3></div><div id="simDaily"></div>
+  <details class="sim-night-details"><summary>睡眠中のげんき推移（睡眠用5匹の平均）</summary>
+   <p class="small muted">0:00から7:30は無操作でおてつだいとげんき減少を計算します。通常睡眠回復の上限は100、げんき回復ボーナス本人は105。最終夜は翌月曜4:00までで打ち切ります。</p>
+   <div id="simNightEnergy"></div>
+  </details>
   <div class="section-heading minor"><h3>料理履歴・食材消費</h3></div><p id="simMealSummary" class="small muted"></p><div id="simMeals"></div>
   <div class="section-heading minor"><h3>得られた食材（期待個数）</h3></div><div id="simIngredients"></div>
   <div class="section-heading minor"><h3>計算上の注意・未対応</h3></div><div id="simWarnings" class="sim-warnings"></div>
@@ -490,6 +494,12 @@ function cheerWeights(teamIds,energy){
  const lowest=teamIds.filter(id=>(energy.get(id)??0)<=minimum+1e-9);
  return new Map(teamIds.map(id=>[id,.3/teamIds.length+((energy.get(id)??0)<=minimum+1e-9?.7/lowest.length:0)]));
 }
+function recoverFromSleep(current,score,natureRecovery,teamRecoveryBonus,selfHasRecoveryBonus){
+ const limit=selfHasRecoveryBonus?105:100;
+ const amount=Math.max(0,Math.round(score*natureRecovery*(1+.14*teamRecoveryBonus)));
+ // A sleep result must never reduce energy already above the sleep-recovery cap.
+ return clamp(Math.max(current,Math.min(limit,current+amount)),0,150);
+}
 function mealRecovery(energy){
  if(energy>=150)return 0;
  if(energy>=81)return 1;
@@ -830,7 +840,7 @@ function simulate(input){
    potBonus=0;
    return value;
  }
- const daySummaries=[];
+ const daySummaries=[],nightEnergy=[];
  
  for(let d=0;d<7;d++){
   const before={berries:status.berries,cooking:status.cooking,skills:status.skills,sneaky:status.sneaky};
@@ -850,18 +860,23 @@ function simulate(input){
   collect(teams.evening);
   resetStockpileLeaving(teams.evening,teams.sleep);
   // No interaction from 00:00 until 07:30. Sunday -> Monday only 00:00-04:00 counts for this week.
+  // Helpers DO lose Energy while asleep: -1 Energy per 10 minutes, as when awake.
   const sleepHours=d===6?4:7.5;
-  for(let h=0;h<sleepHours-1e-9;h+=.25)help(teams.sleep,.25,!!opts.camp);
-  // Sleep recovery occurs only after a full sleep, including the final day for continuation; no box recovery.
+  const beforeSleep=Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]));
+  for(let h=0;h<sleepHours-1e-9;h+=.25)tickActive(teams.sleep,15,!!opts.camp,true);
+  const beforeRecovery=Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]));
+  // Recovery happens at the next 07:30 research/collection, not while asleep.
+  // Only the fixed sleeping five recover. The user's box 5% recovery is intentionally excluded.
   if(d<6){
    const recoverBonuses=teams.sleep.filter(id=>activeSkills(byId.get(id)).includes('げんき回復ボーナス')).length;
    for(const id of teams.sleep){
     const p=byId.get(id),f=natureFactor(p.nature,RECOVERY_UP,RECOVERY_DOWN);
-    const restore=Math.min(150,Math.round(score)*f*(1+.14*recoverBonuses));
-    energy.set(id,clamp(energy.get(id)+restore,0,150));
+    const selfHasBonus=activeSkills(p).includes('げんき回復ボーナス');
+    energy.set(id,recoverFromSleep(energy.get(id),score,f,recoverBonuses,selfHasBonus));
    }
    collect(teams.sleep);
   }
+  nightEnergy.push({day:d+1,hours:sleepHours,beforeSleep,beforeRecovery,afterRecovery:Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]))});
   // The next Monday 04:00 is a field reset, NOT an interaction.
   // Do not credit the still-carried berries/ingredients or skill stock to the old week.
   daySummaries.push({day:d+1,berries:status.berries-before.berries,cooking:status.cooking-before.cooking,skills:status.skills-before.skills});
@@ -888,9 +903,9 @@ function simulate(input){
  if(successMode==='none')warnings.add('料理の大成功はOFFです。料理チャンスSの寄与も未計上です。');
  else warnings.add('大成功は平日10%・日曜30%の推定確率と料理チャンスSの期待値近似です。大成功時のスキル蓄積リセットや結果のばらつきは簡略化しています。');
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
- return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
+ return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -1069,6 +1084,20 @@ $('runSim').addEventListener('click',()=>{
   for(const [label,value] of stats){const cell=document.createElement('div');cell.className='sim-stat';const a=document.createElement('small');a.textContent=label;const b=document.createElement('strong');b.textContent=yen(value);cell.append(a,b);breakdown.append(cell);}
   $('simDaily').replaceChildren();
   for(const day of result.days){const row=document.createElement('div');row.className='sim-day';const total=day.berries+day.cooking+day.skills;const left=document.createElement('span');left.textContent='第'+day.day+'日';const right=document.createElement('strong');right.textContent=yen(total);row.append(left,right);$('simDaily').append(row);}
+  $('simNightEnergy').replaceChildren();
+  const sleepIds=state.sleepIds;
+  const average=values=>sleepIds.reduce((sum,id)=>sum+Number(values[id]||0),0)/sleepIds.length;
+  for(const night of result.nightEnergy){
+   const row=document.createElement('div');row.className='sim-day';
+   const left=document.createElement('span');left.textContent='第'+night.day+'夜（'+night.hours+'時間）';
+   const right=document.createElement('strong');
+   const before=average(night.beforeSleep).toFixed(1),low=average(night.beforeRecovery).toFixed(1);
+   const after=average(night.afterRecovery).toFixed(1);
+   right.textContent=night.day===7
+    ?before+' → '+low+'（翌月曜4:00・回復前）'
+    :before+' → '+low+' → '+after;
+   row.append(left,right);$('simNightEnergy').append(row);
+  }
   $('simMealSummary').textContent='成立した料理 '+result.meals.length+' / 21食（料理エナジー '+yen(result.cooking)+'）。'
    +'追加食材：'+(sim.extraMode==='fill'?'期待値で計上':'OFF')+'／大成功：'+(sim.successMode==='expected'?'推定期待値で計上':'OFF')+'。'
    +(result.extraHelps>0?' 追加おてつだい '+result.extraHelps.toFixed(1)+'回（期待値、獲得きのみ・食材へ反映）。':'');
