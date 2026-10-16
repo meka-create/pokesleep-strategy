@@ -326,3 +326,47 @@ test('Disguise Berry Burst grants expected crit-weighted berries',()=>{
  assert.ok(result.berries>0);
  assert.ok(result.warnings.some(w=>w.includes('ばけのかわの大成功率')));
 });
+
+test('bonus food option fills spare pot only with available food and reports exact energy',()=>{
+ const a=input();a.options.recipeMode='fixed';a.options.recipeId='apple_curry';a.options.potSize=57;
+ a.options.initialIngredients={apple:140,tail:70};
+ const x=sim.simulate(a);
+ a.options.extraMode='fill';const y=sim.simulate(a);
+ assert.ok(y.meals[0].extraEnergy>0);
+ assert.ok(y.meals[0].count<=y.meals[0].potCapacity);
+ assert.ok(y.cooking>x.cooking,'same initial stock with extra ingredient mode must add first-meal energy');
+ for(const row of y.meals)assert.ok(row.count<=row.potCapacity);
+});
+test('extra ingredients are charged only at base energy without Lv70 multiplier',()=>{
+ const a=input();a.options.recipeMode='fixed';a.options.recipeId='apple_curry';
+ a.options.extraMode='fill';a.options.potSize=20;
+ a.options.initialIngredients={apple:7,tail:50};
+ const r=sim.simulate(a),first=r.meals[0];
+ assert.equal(first.count,20);
+ assert.equal(first.extraEnergy,13*342);
+ assert.ok(Math.abs(first.energy-(sim.RECIPES.find(x=>x.id==='apple_curry').strength70+first.extraEnergy)*(1+a.options.fieldBonus/100))<1e-5);
+});
+test('great-success expected energy uses baseline weekday 10% and Sunday 30%',()=>{
+ const a=input();a.options.recipeMode='fixed';a.options.recipeId='apple_curry';
+ a.options.initialIngredients={apple:250};a.options.successMode='expected';
+ const r=sim.simulate(a);
+ assert.ok(r.meals.length>0);
+ for(const row of r.meals)assert.ok(Math.abs(row.successProbability-(row.day===7?.3:.1))<1e-10);
+ const weekday=r.meals.find(x=>x.day<7);assert.ok(weekday);
+ assert.ok(Math.abs(weekday.energy-sim.RECIPES.find(x=>x.id==='apple_curry').strength70*(1+a.options.fieldBonus/100)*1.1)<1e-6);
+});
+test('Tasty Chance adds probability in expected mode and remains uncredited when disabled',()=>{
+ const a=input();a.options.recipeMode='fixed';a.options.recipeId='apple_curry';
+ a.options.initialIngredients={apple:300};a.options.successMode='expected';
+ const dedenne=master.species.find(p=>p.skill==='Tasty Chance S');assert.ok(dedenne);
+ a.box.forEach(p=>p.pokemon=dedenne.name);
+ const withSkill=sim.simulate(a);
+ assert.ok(withSkill.meals.some(m=>m.successProbability>(m.day===7?.3:.1)));
+ a.options.successMode='none';const withoutMode=sim.simulate(a);
+ assert.ok(withoutMode.meals.every(m=>m.successProbability===0));
+ assert.ok(withoutMode.warnings.some(w=>w.includes('料理チャンスS')));
+});
+test('legacy recipe simulator keeps extras and success OFF absent explicit flags',()=>{
+ const a=input();const r=sim.simulate(a);
+ assert.ok(r.meals.every(m=>!m.extraEnergy&&m.successProbability===0));
+});
