@@ -298,20 +298,31 @@ test('legacy fixed dish mode is unchanged when recipeMode is absent',()=>{
  const a=input(),b=input();b.options.recipeMode='fixed';
  assert.equal(sim.simulate(a).cooking,sim.simulate(b).cooking);
 });
-test('cooking energy recovery is 1 to 5 depending on active energy',()=>{
- assert.equal(sim.mealRecovery(0),5);
- assert.equal(sim.mealRecovery(19),5);
- assert.equal(sim.mealRecovery(20),4);
- assert.equal(sim.mealRecovery(39),4);
- assert.equal(sim.mealRecovery(40),3);
- assert.equal(sim.mealRecovery(59),3);
- assert.equal(sim.mealRecovery(60),2);
- assert.equal(sim.mealRecovery(79),2);
- assert.equal(sim.mealRecovery(80),1);
- assert.equal(sim.mealRecovery(150),1);
+test('cooking recovery follows v3.5 table 0-9 across boundaries',()=>{
+ const cases=[[0,9],[10,9],[11,8],[20,8],[21,7],[30,7],[31,6],[40,6],[41,5],[50,5],
+ [51,4],[60,4],[61,3],[70,3],[71,2],[80,2],[81,1],[149,1],[150,0]];
+ for(const [before,expected] of cases)assert.equal(sim.mealRecovery(before),expected,'Energy='+before);
 });
 test('no meal is cooked without selecting a recipe in legacy fixed mode',()=>{
  const a=input();a.options.recipeId='';a.options.recipeMode='fixed';
  const r=sim.simulate(a);
  assert.equal(r.cooking,0);assert.equal(r.meals.length,0);
+});
+
+test('berry burst skill counts each teammate berry strength without counting skill twice',()=>{
+ const a=input();a.box[0].pokemon='ワシボン'; // Replace below with species matching the main skill, not a fixed name.
+ const b=master.species.find(s=>s.skill==='Berry Burst');
+ assert.ok(b);
+ a.box.forEach(p=>p.pokemon=b.name);
+ const result=sim.simulate(a);
+ assert.ok(result.berries>0);
+ assert.ok(!result.warnings.some(w=>w.includes('未対応のメインスキル')&&w.includes('Berry Burst')));
+});
+test('Disguise Berry Burst grants expected crit-weighted berries',()=>{
+ const b=master.species.find(s=>s.skill==='Berry Burst (Disguise)');
+ assert.ok(b);
+ const a=input();a.box.forEach(p=>p.pokemon=b.name);
+ const result=sim.simulate(a);
+ assert.ok(result.berries>0);
+ assert.ok(result.warnings.some(w=>w.includes('ばけのかわの大成功率')));
 });
