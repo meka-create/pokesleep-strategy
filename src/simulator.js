@@ -20,6 +20,10 @@ const POT_BOOST={
 };
 const RECOVERY_UP=['Bold','Impish','Lax','Relaxed'],RECOVERY_DOWN=['Hasty','Lonely','Gentle','Mild'];
 const RECIPES=root.PokeRecipes||[];
+const BERRY_BURST={
+ 'Berry Burst':{self:[11,14,21,24,27,30],others:[1,2,2,3,4,5],critical:0},
+ 'Berry Burst (Disguise)':{self:[8,10,15,17,19,21],others:[1,2,2,3,4,5],critical:.185}
+};
 // User-directed exclusions: these seven main skills do not contribute to
 // energy, ingredients, healing, extra help, or skill-trigger totals.
 const EXCLUDED_MAIN_SKILLS=new Set([
@@ -187,6 +191,18 @@ function simulate(input){
    else if(actual==='Energy for Everyone S'){const r=HEAL_ALL[clamp(pair.p.skillLevel-1,0,HEAL_ALL.length-1)];
      for(const who of teamIds){const recipient=byId.get(who);const f=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));}}
    else if(actual==='Charge Energy S'){const f=natureFactor(pair.p.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers*f,0,150));}
+   else if(BERRY_BURST[actual]){
+    const burst=BERRY_BURST[actual],level=clamp(pair.p.skillLevel-1,0,burst.self.length-1);
+    const own=burst.self[level]*(1+2*burst.critical);
+    let energyGain=own*berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
+    for(const teammate of teamIds){
+     if(teammate===id)continue;
+     const target=members.get(teammate);if(!target)continue;
+     energyGain+=burst.others[level]*berryUnit(target.sp.type,target.p.level,favorite,bonus);
+    }
+    status.berries+=triggers*energyGain;
+    if(burst.critical)warnings.add('ばけのかわの大成功率18.5%は期待値で計算しています。抽選結果の上下振れは未再現です。');
+   }
    else if(INGREDIENT_MAGNET[actual]){
     const produced=triggers*INGREDIENT_MAGNET[actual][clamp(pair.p.skillLevel-1,0,6)];
     if(!magnetPool.length)status.unassignedMagnet+=produced;
