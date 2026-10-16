@@ -156,6 +156,7 @@ function mealRecovery(energy){
  if(energy>=11)return 8;
  return 9;
 }
+function helperBoostCount(level,species){return HELPER_BOOST[clamp(level-1,0,5)][clamp(species-1,0,4)];}
 function teamSpeciesCount(ids,members,triggerId){
  const triggerType=members.get(triggerId)?.sp?.type;
  return new Set(ids.map(id=>members.get(id)?.sp).filter(sp=>sp&&sp.type===triggerType).map(sp=>sp.id)).size;
@@ -307,7 +308,7 @@ function simulate(input){
    }
    else if(actual==='Helper Boost'){
     const speciesCount=teamSpeciesCount(teamIds,members,id);
-    const n=HELPER_BOOST[clamp(pair.p.skillLevel-1,0,5)][clamp(speciesCount-1,0,4)];
+    const n=helperBoostCount(pair.p.skillLevel,speciesCount);
     for(const who of teamIds)giveHelps(who,triggers*n);
     warnings.add('おてつだいブーストは同タイプの異なる種族数と全員の追加おてつだいを反映した期待値です。');
    }
@@ -546,7 +547,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,lunarBerryCounts,dracoBerryCounts,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_LONG_RUN,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
