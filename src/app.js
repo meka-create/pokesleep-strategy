@@ -103,6 +103,8 @@ function fillSimulation(){
  }
  $('simRecipe').value=sim.recipeId;
  $('simRecipeMode').value=sim.recipeMode||'fixed';
+ $('simExtraMode').value=sim.extraMode||'none';
+ $('simSuccessMode').value=sim.successMode||'none';
  const container=$('simIngredientFields');container.replaceChildren();
  for(const [key,name] of Object.entries(PokeMaster.ingredients)){
   const label=document.createElement('label');label.className='field';
@@ -142,7 +144,7 @@ function readSimulation(){
   teams[key]=values;
  }
  if(state.sleepIds.length!==5)throw Error('ボックスタブで睡眠パーティ5匹を指定してください。');
- return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,bagCapacity:data.simBagCapacity,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,recipeMode:$('simRecipeMode').value,initialIngredients,magnetIngredients};
+ return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,bagCapacity:data.simBagCapacity,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,recipeMode:$('simRecipeMode').value,extraMode:$('simExtraMode').value,successMode:$('simSuccessMode').value,initialIngredients,magnetIngredients};
 }
 $('fillAllRosters').addEventListener('click',()=>{
  if(state.sleepIds.length!==5){toast('先にボックスタブで睡眠用5匹を選択してください。');setTab('box');return;}
@@ -173,7 +175,7 @@ $('runSim').addEventListener('click',()=>{
   if(!result.meals.length)$('simMeals').textContent='成立したレシピなし／未計上';
   for(const meal of result.meals){
    const row=document.createElement('div');row.className='sim-day';
-   const label=document.createElement('span');label.textContent='第'+meal.day+'日 '+meal.meal+'：'+meal.name+'（'+meal.count+'個）';
+   const label=document.createElement('span');label.textContent='第'+meal.day+'日 '+meal.meal+'：'+meal.name+'（'+meal.count+'個'+(meal.extraEnergy?'／追加分+'+yen(meal.extraEnergy):'')+(meal.successProbability?'／大成功推定'+Math.round(meal.successProbability*100)+'%':'')+'）';
    const score=document.createElement('strong');score.textContent=yen(meal.energy);
    row.append(label,score);$('simMeals').append(row);
   }
