@@ -40,6 +40,7 @@ $('downloadBackup').addEventListener('click',()=>{download(`pokesleep_event_back
 $('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;storage.allowRecovery();const saved=save();fillEvent();renderBox();fillSimulation();notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
 $('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();storage.allowRecovery();const saved=save();fillEvent();$('searchPokemon').value='';renderBox();fillSimulation();$('simResult').hidden=true;notifySave(saved,'端末内の保存情報を消去しました。');});
 const rosterKeys=['morning','noon','evening'];
+const ingredientEditors=Object.create(null);
 function renderSimulator(){
  if(!window.PokeSimulator)return;
  for(const key of rosterKeys){
@@ -93,19 +94,34 @@ function fillSimulation(){
  $('simInitialEnergy').value=sim.initialEnergy;
  $('simRecipe').replaceChildren();
  const blank=document.createElement('option');blank.value='';blank.textContent='料理は計算しない';$('simRecipe').append(blank);
- for(const r of PokeSimulator.RECIPES){const o=document.createElement('option');o.value=r.id;o.textContent=r.name+' / Lv70';$('simRecipe').append(o);}
+ for(const r of PokeSimulator.RECIPES){
+  const o=document.createElement('option');o.value=r.id;
+  o.textContent=({curry:'カレー',salad:'サラダ',dessert:'デザート'}[r.type]||r.type)+'｜'+r.name+'（'+Object.values(r.requirements).reduce((a,b)=>a+b,0)+'個）';
+  $('simRecipe').append(o);
+ }
  $('simRecipe').value=sim.recipeId;
- $('simApple').value=sim.initialIngredients.apple||0;
- $('simMilk').value=sim.initialIngredients.milk||0;
- $('simSausage').value=sim.initialIngredients.sausage||0;
+ const container=$('simIngredientFields');container.replaceChildren();
+ for(const [key,name] of Object.entries(PokeMaster.ingredients)){
+  const label=document.createElement('label');label.className='field';
+  const span=document.createElement('span');span.textContent=name;
+  const input=document.createElement('input');input.type='number';input.min='0';input.max='10000';input.step='1';
+  input.value=sim.initialIngredients[key]||0;input.setAttribute('aria-label',name+' の初期在庫数');
+  label.append(span,input);container.append(label);ingredientEditors[key]=input;
+ }
  renderSimulator();
 }
 function readSimulation(){
- const numbers=[['simFieldBonus',0,100],['simTap',120,180],['simPot',7,300],['simSleepScore',0,100],['simInitialEnergy',0,150],['simApple',0,10000],['simMilk',0,10000],['simSausage',0,10000]];
+ const numbers=[['simFieldBonus',0,100],['simTap',120,180],['simPot',7,300],['simSleepScore',0,100],['simInitialEnergy',0,150]];
  const data={};
  for(const [id,min,max] of numbers){
   const raw=$(id).value.trim(),v=Number(raw);if(raw===''||!Number.isFinite(v)||v<min||v>max||!Number.isInteger(v))throw Error(id+' の入力値を確認してください。');
   data[id]=v;
+ }
+ const initialIngredients={};
+ for(const [key,input] of Object.entries(ingredientEditors)){
+  const raw=String(input.value).trim(),v=Number(raw);
+  if(raw===''||!Number.isInteger(v)||v<0||v>10000)throw Error((PokeMaster.ingredients[key]||key)+' の在庫数を確認してください。');
+  if(v!==0)initialIngredients[key]=v;
  }
  const teams={};for(const key of rosterKeys){
   const values=Array.from(document.querySelector('[data-roster="'+key+'"]').querySelectorAll('select')).map(x=>x.value);
@@ -113,7 +129,7 @@ function readSimulation(){
   teams[key]=values;
  }
  if(state.sleepIds.length!==5)throw Error('ボックスタブで睡眠パーティ5匹を指定してください。');
- return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,initialIngredients:{apple:data.simApple,milk:data.simMilk,sausage:data.simSausage}};
+ return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,initialIngredients};
 }
 $('fillAllRosters').addEventListener('click',()=>{
  if(state.sleepIds.length!==5){toast('先にボックスタブで睡眠用5匹を選択してください。');setTab('box');return;}
