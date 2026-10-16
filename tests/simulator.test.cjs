@@ -659,4 +659,14 @@ test('stockpile user benefits from keeping the same party rather than frequent r
  const steady=sim.simulate(a),switched=sim.simulate(fresh);
  assert.ok(Number.isFinite(steady.skills)&&Number.isFinite(switched.skills));
  assert.ok(switched.skills<steady.skills,'reset at team swap should limit finite-week payout');
+ assert.ok(switched.stockpileResets>0,'swaps must reset stored state');
+ assert.ok(switched.stockpileExpectedLost>0,'lost pending stacks must be tracked without energy credit');
+ assert.ok(steady.stockpileResets===0,'stable rosters should not reset');
+ assert.ok(Object.values(steady.stockpilePending).every(x=>Number.isFinite(x)&&x>=0&&x<=10));
+});
+
+test('Stockpile empty team switch never fabricates a payout',()=>{
+ const state=sim.emptyStockpile(),result=sim.advanceStockpile(state,0,7);
+ assert.equal(result.earned,0);
+ assert.deepEqual([...result.state],[...state]);
 });
