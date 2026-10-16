@@ -154,7 +154,8 @@ function simulate(input){
    else if(INGREDIENT_MAGNET[actual]){
     const produced=triggers*INGREDIENT_MAGNET[actual][clamp(pair.p.skillLevel-1,0,6)];
     if(!magnetPool.length)status.unassignedMagnet+=produced;
-    else for(const key of magnetPool)addInventory(key,produced/magnetPool.length,true);
+    else {const available=bagCapacity?Math.min(produced,Math.max(0,bagCapacity-bagUsed())):produced;
+      for(const key of magnetPool)addInventory(key,available/magnetPool.length,true);}
     if(actual==='Ingredient Magnet S (Plus)')warnings.add('プラスの条件付き追加食材は未計上です（ランダム食材部分のみ）。');
     if(actual==='Ingredient Magnet S (Present)')warnings.add('プレゼントのアメ効果はエナジーに換算しません。');
    }
