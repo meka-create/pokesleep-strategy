@@ -133,3 +133,26 @@ test('high-end recipe cannot cook without enough pot and stock',()=>{
 test('legacy recipe ids remain stable after full catalog upgrade',()=>{
  for(const id of ['apple_curry','white_stew','apple_salad','bean_salad','apple_juice'])assert.ok(sim.RECIPES.some(x=>x.id===id));
 });
+
+test('ingredient bag cap prevents phantom inventory beyond capacity',()=>{
+ const a=input();a.options.recipeId='';a.options.initialIngredients={apple:20};a.options.bagCapacity=35;
+ const result=sim.simulate(a);
+ assert.ok(Object.values(result.inventory).reduce((n,v)=>n+v,0)<=35+1e-8);
+ assert.ok(result.warnings.some(w=>w.includes('食材バッグ満杯')));
+});
+test('invalid initial stock exceeding bag is rejected',()=>{
+ const a=input();a.options.initialIngredients={apple:100};a.options.bagCapacity=50;
+ assert.throws(()=>sim.simulate(a),/食材バッグ容量/);
+});
+test('unknown ingredient keys are rejected instead of silently accepted',()=>{
+ const a=input();a.options.initialIngredients={'unknown-item':100};
+ assert.throws(()=>sim.simulate(a),/初期食材数/);
+});
+test('bag cap reduces collected ingredients compared with unlimited bag',()=>{
+ const a=input(),b=input();
+ a.options.recipeId='';b.options.recipeId='';
+ a.options.initialIngredients={apple:20};b.options.initialIngredients={apple:20};
+ a.options.bagCapacity=35;b.options.bagCapacity=0;
+ const small=sim.simulate(a),full=sim.simulate(b);
+ assert.ok(small.ingredients.apple<full.ingredients.apple);
+});
