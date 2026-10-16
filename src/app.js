@@ -131,7 +131,7 @@ $('runSim').addEventListener('click',()=>{
  try{
   const sim=readSimulation();state.simulation=sim;
   const saved=save();if(!saved)throw Error('設定を保存できません。バックアップを取得してから再試行してください。');
-  const result=PokeSimulator.simulate({box:state.box,teams:{...sim.teams,sleep:state.sleepIds},options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1}});
+  const result=PokeSimulator.simulate({box:state.box,teams:{...sim.teams,sleep:state.sleepIds},options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1,eventEffects:state.event.effects}});
   const yen=n=>Math.round(n).toLocaleString('ja-JP');
   $('simTotal').textContent=yen(result.total)+' エナジー（暫定概算）';
   const stats=[['きのみ',result.berries],['料理',result.cooking],['直接スキル',result.skills]];
