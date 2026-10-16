@@ -444,3 +444,20 @@ test('Bad Dreams direct strength and Dark-only energy penalty are distinct from 
  assert.ok(r.warnings.some(x=>x.includes('ナイトメア')));
  assert.ok(!r.warnings.some(x=>x.includes('未対応のメインスキル')&&x.includes('Bad Dreams')));
 });
+
+test('Moonlight and Berry Juice base healing are simulated with explicit conditional omissions',()=>{
+ const selections=[
+ ['Charge Energy S (Moonlight)','つきのひかり'],
+ ['Energy for Everyone S (Berry Juice)','きのみジュース']
+ ];
+ for(const [skill,warning] of selections){
+  const sp=master.species.find(x=>x.skill===skill);assert.ok(sp);
+  const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=6;});
+  a.options.initialEnergy=10;a.options.sleepScore=40;
+  const r=sim.simulate(a);
+  assert.equal(r.skills,0);
+  assert.ok(r.berries>0);
+  assert.ok(r.warnings.some(w=>w.includes(warning)));
+  assert.ok(!r.warnings.some(w=>w.includes('未対応のメインスキル')&&w.includes(skill)));
+ }
+});
