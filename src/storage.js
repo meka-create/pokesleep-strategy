@@ -1,7 +1,7 @@
 (function(root){
 'use strict';
 const KEY='pokesleep-event-planner/step1/v1';
-const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,sleepScore:88,initialEnergy:100,recipeId:'',magnetIngredients:[],initialIngredients:{}});
+const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,sleepScore:88,initialEnergy:100,recipeId:'',recipeMode:'fixed',magnetIngredients:[],initialIngredients:{}});
 const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
 const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
 const validEnum=(v,choices)=>choices.includes(v);
@@ -27,11 +27,11 @@ function validateState(x){
   teams[key]=[...a];
  }
  const between=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
- if(!between(sim.fieldBonus,0,100)||!between(sim.tapMinutes,120,180)||!between(sim.potSize,7,300)||!between(sim.bagCapacity??0,0,10000)||!Number.isInteger(sim.bagCapacity??0)||!between(sim.sleepScore,0,100)||!between(sim.initialEnergy,0,150)||!cleanText(sim.recipeId,80)||!sim.initialIngredients||typeof sim.initialIngredients!=='object'||Array.isArray(sim.initialIngredients))throw new Error('計算設定が不正です。');
+ if(!between(sim.fieldBonus,0,100)||!between(sim.tapMinutes,120,180)||!between(sim.potSize,7,300)||!between(sim.bagCapacity??0,0,10000)||!Number.isInteger(sim.bagCapacity??0)||!between(sim.sleepScore,0,100)||!between(sim.initialEnergy,0,150)||!cleanText(sim.recipeId,80)||!['fixed','fallback','best'].includes(sim.recipeMode??'fixed')||!sim.initialIngredients||typeof sim.initialIngredients!=='object'||Array.isArray(sim.initialIngredients))throw new Error('計算設定が不正です。');
  const magnet=sim.magnetIngredients??[];
  if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!['leek','mushroom','egg','potato','apple','herb','sausage','milk','honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado'].includes(k)))throw new Error('発見済み食材の設定が不正です。');
  for(const [k,v] of Object.entries(sim.initialIngredients))if(!cleanText(k,40)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
- return {version:1,box:x.box,sleepIds:[...x.sleepIds],simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
+ return {version:1,box:x.box,sleepIds:[...x.sleepIds],simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
 // Preserve selected individuals on a refreshed export. First match full IV-like
 // fingerprints; only fall back to nickname+species when BOTH boxes are unique.
