@@ -1,4 +1,4 @@
-# ポケスリ作戦室 – STEP 1
+# ポケスリ作戦室 – STEP 2（暫定計算・監査待ち）
 
 ## いま使えるもの
 - pokesleep-tool の16列CSV/TSVの読み込み（文字列の引用符・改行・BOM対応）。不正な行がある場合は読み込みを中止し、既存ボックスを保持します。
@@ -7,8 +7,17 @@
 - イベント名・日付・1/2週・フィールド・料理方針・補正メモ・各週のいいキャンプチケットON/OFF。
 - ブラウザ保存、JSONバックアップと復元。保存はブラウザの同一オリジン単位で行われます。
 
-## 未実装（意図的）
-エナジー予測、編成の自動最適化、レシピ/食材マスター、イベントの自動取得、イベントのランダム条件の評価、マスター自動更新は後続のSTEP 2～6で実装します。STEP 1の画面に計算結果のダミー数値は表示しません。
+## STEP 2で追加したもの
+- pokesleep-tool由来の249種マスター（おてつだい・食材確率・スキル確率など）。
+- 朝7:30・昼12:00・夜18:00の手動5匹パーティと、固定の睡眠5匹をつなげた7日間の概算。
+- きのみ・食材・対応済みスキル・代表5レシピのLv70料理エナジーを試算。
+- 2〜3時間回収、げんき、所持数、キャンプチケット、フィールドボーナス、週境界を簡易考慮。
+- 試算用チーム・パラメータを保存。STEP1の古いバックアップも復元可能。
+
+**重要：STEP 2はまだ概算の試験版です。** 未対応スキルや料理、EX、イベント効果、精密な所持数・スキルストックはゲーム内厳密値として扱わず警告します。利用する前に [STEP 2の制約・監査状況](docs/STEP2_STATUS.md) を確認してください。
+
+## 以降のSTEP
+STEP3：チーム自動最適化／ヒーラー比較。STEP4：食材の事前準備。STEP5：ランダム条件・イベント効果・2週間。STEP6：マスター自動更新・完成後非公開運用。
 
 ## Android Chromeで試す
 `index.html`（または `dist/index.html`）はCSSとJSをすべて内蔵した **単独HTMLファイル** です。ZIPを展開して `index.html` をChromeで開きます。ファイルを開く方法によってはAndroidのファイルマネージャーがプレビューを表示することがあります。その場合は「Chromeで開く」を選択してください。ファイルURL上のlocalStorageは端末や起動方法により動作が異なるため、**JSONバックアップを保存**してください。
@@ -16,11 +25,11 @@
 PCの場合は `index.html` を直接開けます。開発時は `python3 -m http.server 8765 --bind 127.0.0.1` 等でローカル配信できます（LANには公開しません）。
 
 ## 開発
-Node.js 22以上。依存パッケージ不要。
+Node.js 22以上。依存パッケージ不要。現行のチェックはSTEP1/STEP2の計24件を含みます。
 ```
 npm run check
 ```
-ビルドは `src/index.template.html`, `src/styles.css`, `src/{csv,storage,app}.js` を結合して `index.html` と `dist/index.html` を生成します。
+ビルドは `src/index.template.html`, `src/styles.css`, `src/{csv,storage,master,simulator,app}.js` を結合して `index.html` と `dist/index.html` を生成します。
 
 ## 開発中の公開設定とデータ保護
 開発中は **Public リポジトリ＋GitHub Pages** を使用します。開発サイト（公開設定が有効な場合）：https://meka-create.github.io/pokesleep-strategy/
@@ -42,8 +51,8 @@ CSV/バックアップの処理はブラウザ内で行い、アプリから個�
 - [nitoyon/pokesleep-tool](https://github.com/nitoyon/pokesleep-tool)（MIT）: CSV仕様は `src/util/Formatter/BoxExporter.ts`、`BoxImporter.ts` を確認。データ・計算の具体的な移植はSTEP 2以降。
 - [akirahaan-blip/pksl.teams](https://github.com/akirahaan-blip/pksl.teams)（MIT）: 料理・編成UI等の設計参考。現時点でコードは複製していません。
 
-## STEP終了時の監査観点
-CSVの取り込み互換、異常CSVでデータが消えないこと、睡眠パーティ選択、イベント期間と料理モードの保存、JSON復元、狭い画面での操作。ユーザーの監査指示を受けるまでSTEP 2へ移行しません。
+## STEP 2の監査観点
+CSV互換・旧バックアップ保存・計算値の根拠・7日間の週境界・睡眠中の無操作・所持上限・スキル未対応の明示・料理の成立判定・UIの実機動作。ユーザーの監査指示と合格判定を受けるまでSTEP 3には進みません。
 
 ## GitHubへのアップロード
 ZIPを展開し、`index.html`、`src/`、`tests/`、`docs/` をリポジトリ最上位に配置してください。ZIP単体は自動展開されません。
