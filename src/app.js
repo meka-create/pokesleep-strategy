@@ -21,13 +21,33 @@ function renderSimulator(){
     }
     select.value=previous[i]||'';
     select.addEventListener('change',()=>{
-      const values=Array.from(holder.querySelectorAll('select')).map(x=>x.value).filter(Boolean);
-      if(new Set(values).size!==values.length){toast('同じ時間帯に同一個体を2匹指定できません。');renderSimulator();return;}
-      state.simulation.teams[key]=values;notifySave(save(),'試算用パーティを保存しました。');
+      const values=Array.from(holder.querySelectorAll('select')).map(x=>x.value);
+      const chosen=values.filter(Boolean);
+      if(new Set(chosen).size!==chosen.length){
+        select.value=previous[i]||'';
+        toast('同じ時間帯に同一個体を2匹指定できません。');
+        return;
+      }
+      state.simulation.teams[key]=values;
+      notifySave(save(),'試算用パーティを保存しました。');
+      updateRosterStatus();
     });
     line.append(index,select);holder.append(line);
   }
  }
+ updateRosterStatus();
+}
+function updateRosterStatus(){
+ const status=$('simRosterStatus');if(!status)return;
+ const missing=[];
+ for(const [key,name] of [['morning','朝'],['noon','昼'],['evening','夜']]){
+  const count=(state.simulation.teams[key]||[]).filter(Boolean).length;
+  if(count!==5)missing.push(name+' '+count+'/5');
+ }
+ if(state.sleepIds.length!==5)missing.push('睡眠 '+state.sleepIds.length+'/5');
+ status.textContent=missing.length?'未完成：'+missing.join(' ／ '):'朝・昼・夜・睡眠の20枠が揃いました。試算できます。';
+ status.className='small '+(missing.length?'warn':'ok');
+ $('runSim').disabled=missing.length>0;
 }
 function fillSimulation(){
  const sim=state.simulation||storage.defaultSimulation();
@@ -60,10 +80,15 @@ function readSimulation(){
  if(state.sleepIds.length!==5)throw Error('ボックスタブで睡眠パーティ5匹を指定してください。');
  return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,initialIngredients:{apple:data.simApple,milk:data.simMilk,sausage:data.simSausage}};
 }
+$('fillAllRosters').addEventListener('click',()=>{
+ if(state.sleepIds.length!==5){toast('先にボックスタブで睡眠用5匹を選択してください。');setTab('box');return;}
+ for(const key of rosterKeys)state.simulation.teams[key]=[...state.sleepIds];
+ const saved=save();renderSimulator();notifySave(saved,'睡眠パーティを朝・昼・夜に一括設定しました。');
+});
 for(const btn of document.querySelectorAll('.sim-copy'))btn.addEventListener('click',()=>{
  const from=btn.dataset.copyFrom,to=btn.dataset.copyTo;
  const ids=from==='sleep'?state.sleepIds:state.simulation.teams[from];
- if(ids.length!==5){toast('コピー元の5匹が揃っていません。');return;}
+ if(ids.length!==5||ids.some(id=>!id)){toast('コピー元の5匹が揃っていません。');return;}
  state.simulation.teams[to]=[...ids];notifySave(save(),'5匹の編成をコピーしました。');renderSimulator();
 });
 $('runSim').addEventListener('click',()=>{
