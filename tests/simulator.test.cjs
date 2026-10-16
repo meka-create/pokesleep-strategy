@@ -519,12 +519,13 @@ test('Helper Boost respects multi-species parameter and produces finite week str
  assert.ok(r.berries>0&&Number.isFinite(r.total));
  assert.ok(r.warnings.some(w=>w.includes('おてつだいブースト')));
 });
-test('Heal Pulse restores energy with explicit note for omitted additional helps',()=>{
+test('Heal Pulse restores energy and generates expected extra helps without new main skill procs',()=>{
  const sp=master.species.find(s=>s.skill==='Energizing Cheer S (Heal Pulse)');assert.ok(sp);
  const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=6;});
  const r=sim.simulate(a);
  assert.ok(Number.isFinite(r.total));
- assert.ok(r.warnings.some(w=>w.includes('いやしのはどうの追加おてつだい')));
+ assert.ok(r.extraHelps>0);
+ assert.ok(r.warnings.some(w=>w.includes('いやしのはどうは回復・追加おてつだい')));
 });
 test('Seven user-excluded main skills remain excluded after additional branches',()=>{
  for(const skill of [...sim.EXCLUDED_MAIN_SKILLS]){
@@ -554,4 +555,46 @@ test('every main skill in the 249-species snapshot is modeled or explicitly excl
  }
  assert.deepEqual(skipped,[]);
  assert.equal(intentional.size,7);
+});
+
+test('extra helpful and helper boost produce bonus helps in a separate pocket',()=>{
+ for(const skill of ['Extra Helpful S','Helper Boost']){
+  const sp=master.species.find(p=>p.skill===skill);assert.ok(sp);
+  const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=6;});
+  const r=sim.simulate(a);
+  assert.ok(r.extraHelps>0,skill);
+  assert.ok(r.berries>0,skill);
+  assert.ok(Number.isFinite(r.total),skill);
+ }
+});
+test('Lunar and Draco same-type unique species count ignores different types and duplicate members',()=>{
+ const members=new Map([
+ ['a',{sp:{id:1,type:'dragon'}}],
+ ['b',{sp:{id:2,type:'dragon'}}],
+ ['c',{sp:{id:2,type:'dragon'}}],
+ ['d',{sp:{id:3,type:'water'}}],
+ ['e',{sp:{id:4,type:'psychic'}}]
+ ]);
+ assert.equal(sim.teamSpeciesCount(['a','b','c','d','e'],members,'a'),2);
+ assert.equal(sim.teamSpeciesCount(['a','b','c','d','e'],members,'d'),1);
+ assert.equal(sim.teamSpeciesCount(['a','b','c','d','e'],members,'e'),1);
+});
+test('upstream stockpile level 1-7 long-run energy values are used',()=>{
+ assert.deepEqual([...sim.STOCKPILE_LONG_RUN],[644.3,915.95,1263.97,1745.19,2408.59,3327.75,4834.38]);
+});
+test('helper boost matches upstream for same-type species count 1 through 5',()=>{
+ const expected=[[2,2,3,4,6],[3,3,4,5,7],[3,3,5,6,8],[4,4,6,7,9],[4,5,7,8,10],[5,6,8,9,11]];
+ for(let level=1;level<=6;level++)for(let species=1;species<=5;species++)
+  assert.equal(sim.helperBoostCount(level,species),expected[level-1][species-1]);
+});
+test('forced extra helps do not fabricate skill triggers when original skill rate is zero',()=>{
+ const arcanine=master.species.find(s=>s.skill==='Extra Helpful S');assert.ok(arcanine);
+ const original=arcanine.skillRate;
+ try{
+  arcanine.skillRate=0;
+  const a=input();a.box.forEach(p=>{p.pokemon=arcanine.name;p.skillLevel=7;});
+  const r=sim.simulate(a);
+  assert.equal(r.extraHelps,0);
+  assert.equal(r.skillTriggers,0);
+ }finally{arcanine.skillRate=original;}
 });
