@@ -37,6 +37,7 @@ test('STEP2 browser startup and one-tap team setup produce results',()=>{
  assert.equal(app.items.get('runSim').disabled,false);
  app.items.get('simRecipe').value='apple_curry';
  assert.equal(app.items.get('simRecipe').children.length,79);
+ assert.equal(app.items.get('simRecipeMode').value,'fixed');
  assert.equal(app.items.get('simIngredientFields').children.length,19);
  assert.equal(app.items.get('simMagnetFields').children.length,19);
  app.callbacks.get('runSim:click')();
@@ -77,4 +78,24 @@ test('discovered ingredient checkboxes save only selected ingredient pool',()=>{
  assert.equal(saved.simulation.magnetIngredients.length,2);
  const expected=Object.keys(app.ctx.PokeMaster.ingredients);
  assert.deepEqual(saved.simulation.magnetIngredients,[expected[0],expected[3]]);
+});
+
+test('auto dish choice survives save and creates meal trace in real UI wiring',()=>{
+ const app=boot();
+ app.callbacks.get('fillAllRosters:click')();
+ app.items.get('simRecipeMode').value='best';
+ app.items.get('simRecipe').value='';
+ const arr=app.items.get('simIngredientFields').children;
+ // Enough apples and milk to cook dishes during the week.
+ for(let i=0;i<arr.length;i++){
+  if(['とくせんリンゴ','モーモーミルク'].includes(arr[i].children[0].textContent))arr[i].children[1].value='100';
+ }
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ const state=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(state.simulation.recipeMode,'best');
+ // The sample event is curry: auto must not choose desserts or salads.
+ assert.equal(app.items.get('simResult').hidden,false);
+ assert.ok(app.items.get('simMeals').children.length>0);
+ assert.match(app.items.get('simMealSummary').textContent,/成立した料理/);
 });
