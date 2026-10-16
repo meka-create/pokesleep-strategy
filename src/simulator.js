@@ -26,7 +26,8 @@ const CHEER_HEAL={
 const INGREDIENT_MAGNET={
  'Ingredient Magnet S':[6,8,11,14,17,21,24],
  'Ingredient Magnet S (Plus)':[5,7,9,11,13,16,18],
- 'Ingredient Magnet S (Present)':[4,6,8,10,12,15,17]
+ 'Ingredient Magnet S (Present)':[4,6,8,10,12,15,17],
+ 'Cooking Assist S (Bulk Up)':[6,8,11,14,17,21,24]
 };
 const POT_BOOST={
  'Cooking Power-Up S':[7,10,12,17,22,27,31],
@@ -259,6 +260,13 @@ function simulate(input){
       for(const key of magnetPool)addInventory(key,available/magnetPool.length,true);}
     if(actual==='Ingredient Magnet S (Plus)')warnings.add('プラスの条件付き追加食材は未計上です（ランダム食材部分のみ）。');
     if(actual==='Ingredient Magnet S (Present)')warnings.add('プレゼントのアメ効果はエナジーに換算しません。');
+    if(actual==='Cooking Assist S (Bulk Up)'){
+     if(successMode==='expected'){
+      const chanceAmounts=[1,2,2,3,3,4,5];
+      successBonus=clamp(successBonus+triggers*chanceAmounts[clamp(pair.p.skillLevel-1,0,6)]/100,0,.7);
+     }else warnings.add('ビルドアップの大成功確率アップは大成功期待値OFFのため未計上です。');
+     warnings.add('ビルドアップの食材は発見済み食材への均等配分・大成功率は期待値近似です。');
+    }
    }
    else if(POT_BOOST[actual]){
     potBonus=Math.min(200,potBonus+triggers*POT_BOOST[actual][clamp(pair.p.skillLevel-1,0,6)]);
