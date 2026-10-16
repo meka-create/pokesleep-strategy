@@ -38,6 +38,7 @@ test('STEP2 browser startup and one-tap team setup produce results',()=>{
  app.items.get('simRecipe').value='apple_curry';
  assert.equal(app.items.get('simRecipe').children.length,79);
  assert.equal(app.items.get('simIngredientFields').children.length,19);
+ assert.equal(app.items.get('simMagnetFields').children.length,19);
  app.callbacks.get('runSim:click')();
  assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
  assert.equal(app.items.get('simResult').hidden,false);
@@ -62,4 +63,18 @@ test('all 19 ingredient input values survive simulation save and restore',()=>{
  assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
  const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
  assert.equal(Object.values(saved.simulation.initialIngredients).includes(45),true);
+});
+
+test('discovered ingredient checkboxes save only selected ingredient pool',()=>{
+ const app=boot();
+ app.callbacks.get('fillAllRosters:click')();
+ const labels=app.items.get('simMagnetFields').children;
+ labels[0].children[0].checked=true;
+ labels[3].children[0].checked=true;
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(saved.simulation.magnetIngredients.length,2);
+ const expected=Object.keys(app.ctx.PokeMaster.ingredients);
+ assert.deepEqual(saved.simulation.magnetIngredients,[expected[0],expected[3]]);
 });
