@@ -734,3 +734,25 @@ test('invalid inputs cannot bypass per-meal energy calculation guard',()=>{
  assert.throws(()=>sim.calculateMealEnergy(100,-1,50,0,0),/不正/);
  assert.throws(()=>sim.calculateMealEnergy(100,0,50,0,7),/不正/);
 });
+
+test('ingredient stock is conserved across all meal and success combinations',()=>{
+ const a=input();
+ a.box.forEach(p=>{p.pokemon='フシギバナ';p.skillLevel=7;});
+ a.options.foodMode='curry';a.options.recipeMode='best';a.options.recipeId='';
+ a.options.potSize=100;a.options.bagCapacity=65;
+ a.options.magnetIngredients=['apple','milk','honey'];
+ a.options.initialIngredients={apple:15,milk:10,honey:12};
+ for(const extraMode of ['none','fill'])for(const successMode of ['none','expected']){
+  a.options.extraMode=extraMode;a.options.successMode=successMode;
+  const r=sim.simulate(a),ingredients=new Set([
+   ...Object.keys(a.options.initialIngredients),...Object.keys(r.ingredients),
+   ...Object.keys(r.consumedIngredients),...Object.keys(r.inventory)
+  ]);
+  for(const key of ingredients){
+   const ledger=(a.options.initialIngredients[key]||0)+(r.ingredients[key]||0)
+     -(r.consumedIngredients[key]||0)-(r.inventory[key]||0);
+   assert.ok(Math.abs(ledger)<1e-5,key+' unbalanced: '+ledger);
+  }
+  assert.ok(Object.values(r.inventory).reduce((n,v)=>n+v,0)<=65+1e-5);
+ }
+});
