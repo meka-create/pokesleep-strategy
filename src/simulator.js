@@ -10,6 +10,10 @@ const FAVORITES={'シアンの砂浜':['water','fairy','flying'],'トープ洞�
 const SKILL_STRENGTH={'Charge Strength S':[400,569,785,1083,1496,2066,3212],'Charge Strength M':[880,1251,1726,2383,3290,4546,6858],'Charge Strength S (Random)':[500,711.5,981.5,1354,1870,2582.5,4015]};
 const HEAL_ALL=[5,7,9,11,15,18],HEAL_SELF=[12,16,21,27,34,43];
 const TASTY_CHANCE=[4,5,6,7,8,10];
+const CHEER_HEAL={
+ 'Energizing Cheer S':[12,15,20,25,33,44],
+ 'Energizing Cheer S (Nuzzle)':[9,12,16,20,27,35]
+};
 const INGREDIENT_MAGNET={
  'Ingredient Magnet S':[6,8,11,14,17,21,24],
  'Ingredient Magnet S (Plus)':[5,7,9,11,13,16,18],
@@ -96,6 +100,13 @@ function chooseRecipe({mode='fixed',preferredId='',foodMode,inventory,potCapacit
  return RECIPES.filter(fits).sort((a,b)=>b.strength70-a.strength70
   ||Object.values(a.requirements).reduce((n,v)=>n+v,0)-Object.values(b.requirements).reduce((n,v)=>n+v,0)
   ||a.id.localeCompare(b.id))[0]||null;
+}
+// Target-weight proxy (not a measured game probability): 70% shared by
+// lowest-energy teammates and 30% distributed over the entire party.
+function cheerWeights(teamIds,energy){
+ const minimum=Math.min(...teamIds.map(id=>energy.get(id)??0));
+ const lowest=teamIds.filter(id=>(energy.get(id)??0)<=minimum+1e-9);
+ return new Map(teamIds.map(id=>[id,.3/teamIds.length+((energy.get(id)??0)<=minimum+1e-9?.7/lowest.length:0)]));
 }
 function mealRecovery(energy){
  if(energy>=150)return 0;
@@ -194,6 +205,16 @@ function simulate(input){
    else if(actual==='Energy for Everyone S'){const r=HEAL_ALL[clamp(pair.p.skillLevel-1,0,HEAL_ALL.length-1)];
      for(const who of teamIds){const recipient=byId.get(who);const f=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));}}
    else if(actual==='Charge Energy S'){const f=natureFactor(pair.p.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers*f,0,150));}
+   else if(CHEER_HEAL[actual]){
+    const heal=CHEER_HEAL[actual][clamp(pair.p.skillLevel-1,0,5)];
+    const weights=cheerWeights(teamIds,energy);
+    for(const who of teamIds){
+     const recipient=byId.get(who),rate=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);
+     energy.set(who,clamp(energy.get(who)+heal*triggers*(weights.get(who)||0)*rate,0,150));
+    }
+    warnings.add('げんきエールの回復対象は最低げんき優先70%／残り均等30%の仮定です。実際の抽選確率は確定していません。');
+    if(actual==='Energizing Cheer S (Nuzzle)')warnings.add('ほっぺすりすりのスキル発動可能ボーナスは未計上です。');
+   }
    else if(BERRY_BURST[actual]){
     const burst=BERRY_BURST[actual],level=clamp(pair.p.skillLevel-1,0,burst.self.length-1);
     const own=burst.self[level]*(1+2*burst.critical);
@@ -334,7 +355,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
