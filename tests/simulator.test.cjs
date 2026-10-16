@@ -535,3 +535,23 @@ test('Seven user-excluded main skills remain excluded after additional branches'
   assert.ok(r.warnings.some(w=>w.includes('指定により計算対象外')));
  }
 });
+
+test('every main skill in the 249-species snapshot is modeled or explicitly excluded',()=>{
+ const firstBySkill=new Map();
+ for(const sp of master.species)if(!firstBySkill.has(sp.skill))firstBySkill.set(sp.skill,sp);
+ assert.equal(firstBySkill.size,36);
+ const intentional=new Set([...sim.EXCLUDED_MAIN_SKILLS]);
+ const skipped=[];
+ for(const [skill,sp] of firstBySkill){
+  const a=input();
+  a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=1;});
+  a.options.recipeId='';a.options.initialIngredients={};a.options.magnetIngredients=['apple','milk'];
+  const r=sim.simulate(a);
+  assert.ok(Number.isFinite(r.total),skill);
+  const warnings=r.warnings.filter(w=>w.startsWith('未対応のメインスキル'));
+  if(warnings.length)skipped.push(skill);
+  if(intentional.has(skill))assert.ok(r.warnings.some(w=>w.includes('指定により計算対象外')),skill);
+ }
+ assert.deepEqual(skipped,[]);
+ assert.equal(intentional.size,7);
+});
