@@ -598,3 +598,15 @@ test('forced extra helps do not fabricate skill triggers when original skill rat
   assert.equal(r.skillTriggers,0);
  }finally{arcanine.skillRate=original;}
 });
+
+test('extra help production is above the same Pokemon with skill intentionally excluded',()=>{
+ const sp=master.species.find(s=>s.skill==='Extra Helpful S');assert.ok(sp);
+ const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=6;});
+ const withSkill=sim.simulate(a);
+ const original=sp.skill;
+ let withoutSkill;
+ try{sp.skill='Metronome';withoutSkill=sim.simulate(a);}finally{sp.skill=original;}
+ assert.ok(withSkill.extraHelps>0);
+ assert.ok(withSkill.berries>withoutSkill.berries,'extra helps must contribute collectible berries');
+ assert.equal(withoutSkill.extraHelps,0);
+});
