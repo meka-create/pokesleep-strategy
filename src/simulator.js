@@ -117,6 +117,12 @@ function nums(x){return Number.isFinite(Number(x))?Number(x):0;}
 function natureFactor(jp,up,down){const en=Object.keys(Master.natures).find(k=>Master.natures[k]===jp)||'';
  return up.includes(en)?1.2:down.includes(en)?.8:1;
 }
+// Energy-recovery-down natures use 0.88, not the 0.80 chance modifier.
+// Source: nitoyon/pokesleep-tool src/util/Nature.ts#energyRecoveryFactor.
+function recoveryNatureFactor(jp){
+ const en=Object.keys(Master.natures).find(k=>Master.natures[k]===jp)||'';
+ return RECOVERY_UP.includes(en)?1.2:RECOVERY_DOWN.includes(en)?.88:1;
+}
 function activeSkills(p){return p.subskills.filter((_,i)=>p.level>=[10,25,50,70,80][i]).map(s=>s||'');}
 function signature(p,sp,team,camp,warnings){
  const sub=activeSkills(p),count=s=>sub.includes(s)?1:0;
@@ -372,7 +378,7 @@ function simulate(input){
     const bonusHelp=teamHasLatiTwins(teamIds,members)?(lvl<2?1:lvl<5?2:3):0;
     const helps=triggers*(HEAL_PULSE_HELP[lvl]+bonusHelp);
     for(const who of teamIds){
-     const recipient=byId.get(who),factor=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);
+     const recipient=byId.get(who),factor=recoveryNatureFactor(recipient.nature);
      energy.set(who,clamp(energy.get(who)+triggers*heal*2/teamIds.length*factor,0,150));
      giveHelps(who,helps*2/teamIds.length);
     }
@@ -388,21 +394,21 @@ function simulate(input){
     }
     status.berries+=triggers*berryEnergy;
     for(const who of teamIds){
-     const recipient=byId.get(who),f=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);
+     const recipient=byId.get(who),f=recoveryNatureFactor(recipient.nature);
      energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));
     }
     warnings.add('みかづきのいのりの回復ときのみは種族数を基に期待値計算しています。発動タイミング・丸めは簡易モデルです。');
    }
    else if(actual==='Energy for Everyone S'||actual==='Energy for Everyone S (Berry Juice)'){const r=HEAL_ALL[clamp(pair.p.skillLevel-1,0,HEAL_ALL.length-1)];
-     for(const who of teamIds){const recipient=byId.get(who);const f=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));}
+     for(const who of teamIds){const recipient=byId.get(who);const f=recoveryNatureFactor(recipient.nature);energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));}
      if(actual==='Energy for Everyone S (Berry Juice)')warnings.add('きのみジュースの追加獲得はアイテム不使用方針によりエナジーに換算しません。');}
-   else if(actual==='Charge Energy S'||actual==='Charge Energy S (Moonlight)'){const f=natureFactor(pair.p.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers*f,0,150));
+   else if(actual==='Charge Energy S'||actual==='Charge Energy S (Moonlight)'){const f=recoveryNatureFactor(pair.p.nature);energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers*f,0,150));
     if(actual==='Charge Energy S (Moonlight)')warnings.add('つきのひかりの追加でチーム1匹を回復する効果は未計上です。');}
    else if(CHEER_HEAL[actual]){
     const heal=CHEER_HEAL[actual][clamp(pair.p.skillLevel-1,0,5)];
     const weights=cheerWeights(teamIds,energy);
     for(const who of teamIds){
-     const recipient=byId.get(who),rate=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);
+     const recipient=byId.get(who),rate=recoveryNatureFactor(recipient.nature);
      energy.set(who,clamp(energy.get(who)+heal*triggers*(weights.get(who)||0)*rate,0,150));
     }
     warnings.add('げんきエールの回復対象は最低げんき優先70%／残り均等30%の仮定です。実際の抽選確率は確定していません。');
@@ -569,7 +575,7 @@ function simulate(input){
   if(d<6){
    const recoverBonuses=teams.sleep.filter(id=>activeSkills(byId.get(id)).includes('げんき回復ボーナス')).length;
    for(const id of teams.sleep){
-    const p=byId.get(id),f=natureFactor(p.nature,RECOVERY_UP,RECOVERY_DOWN);
+    const p=byId.get(id),f=recoveryNatureFactor(p.nature);
     const selfHasBonus=activeSkills(p).includes('げんき回復ボーナス');
     energy.set(id,recoverFromSleep(energy.get(id),score,f,recoverBonuses,selfHasBonus));
    }
@@ -604,7 +610,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
