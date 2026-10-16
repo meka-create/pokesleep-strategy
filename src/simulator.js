@@ -11,6 +11,17 @@ const SKILL_STRENGTH={'Charge Strength S':[400,569,785,1083,1496,2066,3212],'Cha
 const HEAL_ALL=[5,7,9,11,15,18],HEAL_SELF=[12,16,21,27,34,43];
 const RECOVERY_UP=['Bold','Impish','Lax','Relaxed'],RECOVERY_DOWN=['Hasty','Lonely','Gentle','Mild'];
 const RECIPES=root.PokeRecipes||[];
+// User-directed exclusions: these seven main skills do not contribute to
+// energy, ingredients, healing, extra help, or skill-trigger totals.
+const EXCLUDED_MAIN_SKILLS=new Set([
+ 'Metronome',
+ 'Skill Copy (Mimic)',
+ 'Skill Copy (Transform)',
+ 'Versatile',
+ 'Dream Shard Magnet S',
+ 'Dream Shard Magnet S (Random)',
+ 'Dream Shard Magnet S (Aura Sphere)'
+]);
 function clamp(x,l,h){return Math.max(l,Math.min(h,x));}
 function roundup(x){return Math.ceil(x-1e-9);}
 function nums(x){return Number.isFinite(Number(x))?Number(x):0;}
@@ -46,7 +57,7 @@ function signature(p,sp,team,camp,warnings){
    if(!def){warnings.add('食材設定を種族マスターと照合できない個体があります。該当食材の生産は未計上です。');continue;}
    ingSlots.push({key,count:def['c'+(j+1)]});
  }
- const skill=sp.skill==='Versatile'?(Master.species.find(z=>z.skillName===p.mainSkill)||{}).skill:sp.skill;
+ const skill=sp.skill;
  return {p,sp,interval:Math.max(150,base/(camp?1.2:1)),ingRate,skillRate,berryPerHelp,carry:cap*(camp?1.2:1),ingSlots,skill,stockMax:sp.specialty==='Skills'?2:1};
 }
 function energySpeed(e){return e>80?.45:e>60?.52:e>40?.58:e>1?.66:1;}
@@ -95,7 +106,7 @@ function simulate(input){
  if(recipe&&opts.foodMode==='random')warnings.add('料理カテゴリを確定するまで料理のエナジーは計上しません。');
  if(opts.map==='シアンの砂浜EX'||opts.map==='ワカクサ本島EX')warnings.add('EXフィールド固有の補正には未対応です。');
  if(opts.eventEffects)warnings.add('イベント補正メモはSTEP5まで計算に反映しません。');
- const warningsSkills=new Set();
+ const warningsSkills=new Set(),warningsSkillsExcluded=new Set();
  function collect(teamIds){
   for(const id of teamIds){
    const pair=members.get(id);if(!pair)continue;
@@ -109,8 +120,11 @@ function simulate(input){
     if(accepted){inventory[key]=(inventory[key]||0)+accepted;status.ingredients[key]=(status.ingredients[key]||0)+accepted;}
     if(v-accepted>1e-9){remainingInPocket[key]=v-accepted;uncollected+=v-accepted;}
    }
-   let triggers=bag.skill;const skill=pair.sp.skill,actual=pair.sp.skill==='Versatile'?(Master.species.find(z=>z.skillName===pair.p.mainSkill)||{}).skill:skill;
-   if(SKILL_STRENGTH[actual]){const levels=SKILL_STRENGTH[actual];status.skills+=triggers*levels[clamp(pair.p.skillLevel-1,0,levels.length-1)]*(1+bonus/100);}
+   const actual=pair.sp.skill;
+   const excluded=EXCLUDED_MAIN_SKILLS.has(actual);
+   const triggers=excluded?0:bag.skill;
+   if(excluded)warningsSkillsExcluded.add(actual);
+   else if(SKILL_STRENGTH[actual]){const levels=SKILL_STRENGTH[actual];status.skills+=triggers*levels[clamp(pair.p.skillLevel-1,0,levels.length-1)]*(1+bonus/100);}
    else if(actual==='Energy for Everyone S'){const r=HEAL_ALL[clamp(pair.p.skillLevel-1,0,HEAL_ALL.length-1)];
      for(const who of teamIds){const recipient=byId.get(who);const f=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));}}
    else if(actual==='Charge Energy S'){const f=natureFactor(pair.p.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers*f,0,150));}
@@ -136,7 +150,7 @@ function simulate(input){
    const sneaky=overflow*x.berryPerHelp;
    const strength=berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
    status.berries+=sneaky*strength;status.sneaky+=sneaky*strength;
-   bag.skill=Math.min(x.stockMax,bag.skill+fits*x.skillRate);
+   bag.skill=EXCLUDED_MAIN_SKILLS.has(pair.sp.skill)?0:Math.min(x.stockMax,bag.skill+fits*x.skillRate);
   }
  }
  function tickActive(ids,minutes,camp,awake){
@@ -184,12 +198,18 @@ function simulate(input){
   daySummaries.push({day:d+1,berries:status.berries-before.berries,cooking:status.cooking-before.cooking,skills:status.skills-before.skills});
  }
  for(const s of warningsSkills)warnings.add('未対応のメインスキル（エナジー寄与未計上）：'+s);
+ if(warningsSkillsExcluded.size)warnings.add('指定により計算対象外のメインスキルがあります：'+[...warningsSkillsExcluded].map(s=>({
+  'Metronome':'ゆびをふる','Skill Copy (Mimic)':'ものまね','Skill Copy (Transform)':'へんしん',
+  'Versatile':'オールマイティー','Dream Shard Magnet S':'ゆめのかけらゲットS',
+  'Dream Shard Magnet S (Random)':'ゆめのかけらゲットS（ランダム）',
+  'Dream Shard Magnet S (Aura Sphere)':'はどうだん'
+ })[s]).join('、')+'。これらのスキル効果は評価せず、通常のおてつだい・きのみ・食材は計算します。');
  warnings.add('暫定期待値モデルです。げんき・所持上限・スキルストック・ピティ補正は近似であり、ゲーム内の厳密値とは一致しません。食材バッグの総容量制限・前週からの所持品持ち越しは未対応です。');
  if(recipe)warnings.add('料理はLv70の選択レシピのみ、成立した場合に計上します。追加食材・代替料理・大成功は未対応です。');
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,inventory,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
