@@ -244,3 +244,74 @@ test('pot expansion enables a weekday recipe unreachable with the same permanent
  assert.equal(ordinary.days.slice(0,6).reduce((sum,d)=>sum+d.cooking,0),0);
  assert.ok(coil.cooking>ordinary.cooking);
 });
+
+test('greedy cooking only chooses the strongest recipe feasible right now',()=>{
+ const stock={apple:8,milk:7};
+ const preferred=sim.chooseRecipe({mode:'fixed',preferredId:'apple_curry',foodMode:'curry',inventory:stock,potCapacity:57});
+ const strongest=sim.chooseRecipe({mode:'best',preferredId:'apple_curry',foodMode:'curry',inventory:stock,potCapacity:57});
+ assert.equal(preferred.id,'apple_curry');
+ assert.equal(strongest.id,'white_stew');
+});
+test('preferred recipe is cooked when feasible, otherwise a valid fallback is picked',()=>{
+ const common={foodMode:'curry',potCapacity:57,preferredId:'apple_curry',mode:'fallback'};
+ assert.equal(sim.chooseRecipe({...common,inventory:{apple:7,milk:7}}).id,'apple_curry');
+ assert.equal(sim.chooseRecipe({...common,inventory:{apple:6,milk:7}}).id,'white_stew');
+ assert.equal(sim.chooseRecipe({...common,inventory:{apple:0,milk:0}}),null);
+});
+test('random cuisine, mismatched mode and pot shortage cannot produce phantom dishes',()=>{
+ const base={mode:'best',preferredId:'',inventory:{apple:100,milk:100},potCapacity:5};
+ assert.equal(sim.chooseRecipe({...base,foodMode:'curry'}),null);
+ assert.equal(sim.chooseRecipe({...base,foodMode:'random',potCapacity:100}),null);
+ assert.throws(()=>sim.chooseRecipe({...base,foodMode:'curry',mode:'unsupported'}),/料理選択モード/);
+});
+test('meal traces and consumption reconcile to exact configured recipe costs',()=>{
+ const a=input();a.options.recipeMode='best';a.options.recipeId='';
+ a.options.foodMode='curry';a.options.initialIngredients={apple:70,milk:70,sausage:70};
+ const r=sim.simulate(a);
+ assert.ok(r.meals.length>0&&r.meals.length<=21);
+ assert.ok(Math.abs(r.meals.reduce((n,m)=>n+m.energy,0)-r.cooking)<1e-5);
+ const consume={};
+ for(const meal of r.meals){
+  const rec=sim.RECIPES.find(x=>x.id===meal.recipeId);
+  assert.ok(rec&&rec.type==='curry');
+  assert.ok(meal.count<=meal.potCapacity);
+  for(const [k,v] of Object.entries(rec.requirements))consume[k]=(consume[k]||0)+v;
+ }
+ assert.deepEqual(r.consumedIngredients,consume);
+ for(const v of Object.values(r.inventory))assert.ok(v>=-1e-5);
+});
+test('automatic cooking is confined to the configured weekly cuisine',()=>{
+ const a=input();a.options.recipeMode='best';a.options.recipeId='';
+ a.options.foodMode='salad';a.options.initialIngredients={apple:100,sausage:100};
+ const r=sim.simulate(a);
+ assert.ok(r.meals.length>0);
+ assert.ok(r.meals.every(m=>sim.RECIPES.find(x=>x.id===m.recipeId).type==='salad'));
+});
+test('no auto-meal is credited when weekly cuisine is random',()=>{
+ const a=input();a.options.recipeMode='best';a.options.recipeId='';
+ a.options.foodMode='random';
+ const r=sim.simulate(a);
+ assert.equal(r.cooking,0);assert.equal(r.meals.length,0);
+ assert.ok(r.warnings.some(w=>w.includes('カテゴリは未確定')));
+});
+test('legacy fixed dish mode is unchanged when recipeMode is absent',()=>{
+ const a=input(),b=input();b.options.recipeMode='fixed';
+ assert.equal(sim.simulate(a).cooking,sim.simulate(b).cooking);
+});
+test('cooking energy recovery is 1 to 5 depending on active energy',()=>{
+ assert.equal(sim.mealRecovery(0),5);
+ assert.equal(sim.mealRecovery(19),5);
+ assert.equal(sim.mealRecovery(20),4);
+ assert.equal(sim.mealRecovery(39),4);
+ assert.equal(sim.mealRecovery(40),3);
+ assert.equal(sim.mealRecovery(59),3);
+ assert.equal(sim.mealRecovery(60),2);
+ assert.equal(sim.mealRecovery(79),2);
+ assert.equal(sim.mealRecovery(80),1);
+ assert.equal(sim.mealRecovery(150),1);
+});
+test('no meal is cooked without selecting a recipe in legacy fixed mode',()=>{
+ const a=input();a.options.recipeId='';a.options.recipeMode='fixed';
+ const r=sim.simulate(a);
+ assert.equal(r.cooking,0);assert.equal(r.meals.length,0);
+});
