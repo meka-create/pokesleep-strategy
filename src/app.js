@@ -170,7 +170,9 @@ $('runSim').addEventListener('click',()=>{
   for(const [label,value] of stats){const cell=document.createElement('div');cell.className='sim-stat';const a=document.createElement('small');a.textContent=label;const b=document.createElement('strong');b.textContent=yen(value);cell.append(a,b);breakdown.append(cell);}
   $('simDaily').replaceChildren();
   for(const day of result.days){const row=document.createElement('div');row.className='sim-day';const total=day.berries+day.cooking+day.skills;const left=document.createElement('span');left.textContent='第'+day.day+'日';const right=document.createElement('strong');right.textContent=yen(total);row.append(left,right);$('simDaily').append(row);}
-  $('simMealSummary').textContent='成立した料理 '+result.meals.length+' / 21食（料理エナジー '+yen(result.cooking)+'）。余剰食材・大成功は未計上。';
+  $('simMealSummary').textContent='成立した料理 '+result.meals.length+' / 21食（料理エナジー '+yen(result.cooking)+'）。'
+   +'追加食材：'+(sim.extraMode==='fill'?'期待値で計上':'OFF')+'／大成功：'+(sim.successMode==='expected'?'推定期待値で計上':'OFF')+'。'
+   +(result.extraHelps>0?' 追加おてつだい '+result.extraHelps.toFixed(1)+'回（期待値、獲得きのみ・食材へ反映）。':'');
   $('simMeals').replaceChildren();
   if(!result.meals.length)$('simMeals').textContent='成立したレシピなし／未計上';
   for(const meal of result.meals){
