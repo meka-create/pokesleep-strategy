@@ -489,12 +489,13 @@ test('Psystrike direct energy works without claiming to reproduce the berry zone
  assert.ok(r.skills>0);
  assert.ok(r.warnings.some(w=>w.includes('マゴのみゾーン強化')));
 });
-test('Stockpile uses explicit long run energy rather than instant full-spit bonus',()=>{
+test('Stockpile has finite-horizon payouts rather than immediate long-run value',()=>{
  const sp=master.species.find(s=>s.skill==='Charge Strength S (Stockpile)');assert.ok(sp);
  const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=6;});
  const r=sim.simulate(a);
  assert.ok(r.skills>0);
- assert.ok(r.warnings.some(w=>w.includes('長期期待値')));
+ assert.ok(r.warnings.some(w=>w.includes('蓄積0回から開始')));
+ assert.ok(r.warnings.every(w=>!w.includes('長期期待値')));
 });
 test('Lunar Blessing contributes expected berry energy and team healing',()=>{
  const sp=master.species.find(s=>s.skill==='Energy for Everyone S (Lunar Blessing)');assert.ok(sp);
@@ -579,8 +580,9 @@ test('Lunar and Draco same-type unique species count ignores different types and
  assert.equal(sim.teamSpeciesCount(['a','b','c','d','e'],members,'d'),1);
  assert.equal(sim.teamSpeciesCount(['a','b','c','d','e'],members,'e'),1);
 });
-test('upstream stockpile level 1-7 long-run energy values are used',()=>{
- assert.deepEqual([...sim.STOCKPILE_LONG_RUN],[644.3,915.95,1263.97,1745.19,2408.59,3327.75,4834.38]);
+test('Stockpile reward levels 1 and 7 use explicit rewards from cited skill table',()=>{
+ assert.deepEqual([...sim.STOCKPILE_REWARDS[0]],[600,1020,1500,2040,2640,3300,4020,4920,6480,8880,12120]);
+ assert.deepEqual([...sim.STOCKPILE_REWARDS[6]],[4502,7653,11255,15307,19809,24761,30163,36916,46370,59876,82386]);
 });
 test('helper boost matches upstream for same-type species count 1 through 5',()=>{
  const expected=[[2,2,3,4,6],[3,3,4,5,7],[3,3,5,6,8],[4,4,6,7,9],[4,5,7,8,10],[5,6,8,9,11]];
@@ -609,4 +611,52 @@ test('extra help production is above the same Pokemon with skill intentionally e
  assert.ok(withSkill.extraHelps>0);
  assert.ok(withSkill.berries>withoutSkill.berries,'extra helps must contribute collectible berries');
  assert.equal(withoutSkill.extraHelps,0);
+});
+
+test('Stockpile starts at zero: one expected trigger grants only 25% chance of 0-stack Spit Up',()=>{
+ const initial=sim.emptyStockpile();
+ const once=sim.advanceStockpile(initial,1,1);
+ assert.ok(Math.abs(once.earned-150)<1e-10);
+ assert.ok(Math.abs(once.state[0]-.25)<1e-10);
+ assert.ok(Math.abs(once.state[1]-.75)<1e-10);
+ const half=sim.advanceStockpile(initial,.5,1);
+ assert.ok(Math.abs(half.earned-75)<1e-10);
+ assert.ok(Math.abs(half.state.reduce((n,p)=>n+p,0)-1)<1e-10);
+});
+test('Stockpile reward is recognized only when released and unspent charge is never credited',()=>{
+ let state=sim.emptyStockpile(),earned=0;
+ for(let n=0;n<17;n++){
+  const result=sim.advanceStockpile(state,1,7);
+  state=result.state;earned+=result.earned;
+  assert.ok(Math.abs(state.reduce((a,b)=>a+b,0)-1)<1e-8);
+ }
+ assert.ok(earned>0);
+ const unspent=state.reduce((sum,p,k)=>sum+p*k,0);
+ assert.ok(unspent>0);
+ // Only Spit Up energy was credited; there is no additional end-of-week payout.
+ const none=sim.advanceStockpile(state,0,7);
+ assert.equal(none.earned,0);
+});
+test('Stockpile state probability mass is stable under long finite sequences',()=>{
+ let state=sim.emptyStockpile(),credited=0;
+ for(let n=0;n<200;n++){
+  const outcome=sim.advanceStockpile(state,.83,7);
+  state=outcome.state;credited+=outcome.earned;
+ }
+ assert.ok(credited>0&&Number.isFinite(credited));
+ assert.ok(Math.abs(state.reduce((sum,p)=>sum+p,0)-1)<1e-6);
+ assert.ok(state.every(p=>p>=0&&p<=1));
+});
+test('stockpile user benefits from keeping the same party rather than frequent reset',()=>{
+ const sp=master.species.find(s=>s.skill==='Charge Strength S (Stockpile)');
+ const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=7;p.subskills=['スキル確率アップM','','','',''];});
+ const fresh={...a,teams:{...a.teams}};
+ const filler=Array.from({length:5},(_,i)=>({...a.box[i],id:'alt'+i,pokemon:'ライチュウ'}));
+ fresh.box=[...a.box,...filler];
+ fresh.teams.noon=filler.map(p=>p.id);
+ fresh.teams.evening=filler.map(p=>p.id);
+ // Daytime substitutions reset the charge; uninterrupted periods do not.
+ const steady=sim.simulate(a),switched=sim.simulate(fresh);
+ assert.ok(Number.isFinite(steady.skills)&&Number.isFinite(switched.skills));
+ assert.ok(switched.skills<steady.skills,'reset at team swap should limit finite-week payout');
 });
