@@ -9,7 +9,7 @@ const BERRY=Master.berry, ING=Master.strength;
 const FAVORITES={'シアンの砂浜':['water','fairy','flying'],'トープ洞窟':['ground','fire','rock'],'ウノハナ雪原':['ice','normal','dark'],'ラピスラズリ湖畔':['grass','psychic','fighting'],'ゴールド旧発電所':['electric','ghost','steel'],'アンバー渓谷':['poison','bug','dragon']};
 const SKILL_STRENGTH={'Charge Strength S':[400,569,785,1083,1496,2066,3212],'Charge Strength M':[880,1251,1726,2383,3290,4546,6858],'Charge Strength M (Bad Dreams)':[2640,3753,5178,7149,9870,13638,18515],'Charge Strength S (Random)':[500,711.5,981.5,1354,1870,2582.5,4015]};
 const HEAL_ALL=[5,7,9,11,15,18],HEAL_SELF=[12,16,21,27,34,43];
-const STOCKPILE_LONG_RUN=[659.45,937.49,1293.68,1786.21,2465.22,3405.99,4948.04];
+const STOCKPILE_LONG_RUN=[644.3,915.95,1263.97,1745.19,2408.59,3327.75,4834.38];
 const LUNAR_HEAL=[3,4,5,7,9,11];
 const LUNAR_BERRIES=[
  [[5,1],[7,1],[9,1],[12,1],[14,2]],
@@ -150,7 +150,10 @@ function mealRecovery(energy){
  if(energy>=11)return 8;
  return 9;
 }
-function teamSpeciesCount(ids,members){return new Set(ids.map(id=>members.get(id)?.sp?.id).filter(x=>x!==undefined)).size;}
+function teamSpeciesCount(ids,members,triggerId){
+ const triggerType=members.get(triggerId)?.sp?.type;
+ return new Set(ids.map(id=>members.get(id)?.sp).filter(sp=>sp&&sp.type===triggerType).map(sp=>sp.id)).size;
+}
 function teamHasLatiTwins(ids,members){
  const a=ids.map(id=>members.get(id)?.sp?.english);
  return a.includes('Latios')&&a.includes('Latias');
@@ -278,7 +281,7 @@ function simulate(input){
    }
    else if(actual==='Energy for Everyone S (Lunar Blessing)'){
     const level=clamp(pair.p.skillLevel-1,0,5),r=LUNAR_HEAL[level];
-    const speciesCount=teamSpeciesCount(teamIds,members),counts=lunarBerryCounts(level+1,speciesCount);
+    const speciesCount=teamSpeciesCount(teamIds,members,id),counts=lunarBerryCounts(level+1,speciesCount);
     let berryEnergy=counts[0]*berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
     for(const who of teamIds){
      const target=members.get(who);if(!target||who===id)continue;
@@ -308,7 +311,7 @@ function simulate(input){
     if(actual==='Energizing Cheer S (Heal Pulse)')warnings.add('いやしのはどうの追加おてつだい・ラティアスとラティオスの同時編成ボーナスは未計上です。');
    }
    else if(actual==='Berry Burst (Draco Meteor)'){
-    const speciesCount=teamSpeciesCount(teamIds,members);
+    const speciesCount=teamSpeciesCount(teamIds,members,id);
     const [own,others]=dracoBerryCounts(pair.p.skillLevel,speciesCount,teamHasLatiTwins(teamIds,members));
     let energyGain=own*berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
     for(const who of teamIds){
