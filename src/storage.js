@@ -1,7 +1,7 @@
 (function(root){
 'use strict';
 const KEY='pokesleep-event-planner/step1/v1';
-const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,sleepScore:100,initialEnergy:100,recipeId:'',initialIngredients:{}});
+const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,sleepScore:88,initialEnergy:100,recipeId:'',initialIngredients:{}});
 const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
 const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
 const validEnum=(v,choices)=>choices.includes(v);
