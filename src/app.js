@@ -102,6 +102,7 @@ function fillSimulation(){
   $('simRecipe').append(o);
  }
  $('simRecipe').value=sim.recipeId;
+ $('simRecipeMode').value=sim.recipeMode||'fixed';
  const container=$('simIngredientFields');container.replaceChildren();
  for(const [key,name] of Object.entries(PokeMaster.ingredients)){
   const label=document.createElement('label');label.className='field';
@@ -141,7 +142,7 @@ function readSimulation(){
   teams[key]=values;
  }
  if(state.sleepIds.length!==5)throw Error('ボックスタブで睡眠パーティ5匹を指定してください。');
- return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,bagCapacity:data.simBagCapacity,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,initialIngredients,magnetIngredients};
+ return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,bagCapacity:data.simBagCapacity,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,recipeMode:$('simRecipeMode').value,initialIngredients,magnetIngredients};
 }
 $('fillAllRosters').addEventListener('click',()=>{
  if(state.sleepIds.length!==5){toast('先にボックスタブで睡眠用5匹を選択してください。');setTab('box');return;}
@@ -167,6 +168,15 @@ $('runSim').addEventListener('click',()=>{
   for(const [label,value] of stats){const cell=document.createElement('div');cell.className='sim-stat';const a=document.createElement('small');a.textContent=label;const b=document.createElement('strong');b.textContent=yen(value);cell.append(a,b);breakdown.append(cell);}
   $('simDaily').replaceChildren();
   for(const day of result.days){const row=document.createElement('div');row.className='sim-day';const total=day.berries+day.cooking+day.skills;const left=document.createElement('span');left.textContent='第'+day.day+'日';const right=document.createElement('strong');right.textContent=yen(total);row.append(left,right);$('simDaily').append(row);}
+  $('simMealSummary').textContent='成立した料理 '+result.meals.length+' / 21食（料理エナジー '+yen(result.cooking)+'）。余剰食材・大成功は未計上。';
+  $('simMeals').replaceChildren();
+  if(!result.meals.length)$('simMeals').textContent='成立したレシピなし／未計上';
+  for(const meal of result.meals){
+   const row=document.createElement('div');row.className='sim-day';
+   const label=document.createElement('span');label.textContent='第'+meal.day+'日 '+meal.meal+'：'+meal.name+'（'+meal.count+'個）';
+   const score=document.createElement('strong');score.textContent=yen(meal.energy);
+   row.append(label,score);$('simMeals').append(row);
+  }
   $('simIngredients').replaceChildren();
   const entries=Object.entries(result.ingredients).sort((a,b)=>b[1]-a[1]);
   for(const [key,value] of entries){const row=document.createElement('div');row.className='sim-day';const name=document.createElement('span');const viaSkill=result.skillIngredients[key]||0;name.textContent=(PokeMaster.ingredients[key]||key)+(viaSkill>0?'（スキル由来 '+viaSkill.toFixed(1)+'個を含む）':'');const count=document.createElement('strong');count.textContent=value.toFixed(1)+' 個';row.append(name,count);$('simIngredients').append(row);}
