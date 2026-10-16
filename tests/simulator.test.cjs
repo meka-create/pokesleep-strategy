@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const base=path.join(__dirname,'../src');
 const context=vm.createContext({module:{exports:{}},globalThis:{}});
-for(const name of ['master.js','simulator.js'])vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),context,{filename:name});
+for(const name of ['master.js','recipes.js','simulator.js'])vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),context,{filename:name});
 const sim=context.globalThis.PokeSimulator;
 const master=context.globalThis.PokeMaster;
 const raichu=master.species.find(s=>s.name==='ライチュウ');
@@ -111,4 +111,25 @@ test('7.5-hour default sleep score is not silently assumed to be 100',()=>{
  const a=input(),b=input();a.options.sleepScore=88;b.options.sleepScore=100;
  a.options.initialEnergy=0;b.options.initialEnergy=0;
  assert.ok(sim.simulate(a).berries<=sim.simulate(b).berries);
+});
+
+test('all 78 recipes have valid keys, positive ingredients and level70 factor',()=>{
+ assert.equal(sim.RECIPES.length,78);
+ assert.deepEqual(sim.RECIPES.reduce((x,r)=>(x[r.type]=(x[r.type]||0)+1,x),{}),{curry:25,salad:26,dessert:27});
+ for(const r of sim.RECIPES){
+  assert.equal(r.strength70,Math.round(r.baseStrength*3.58));
+  for(const [key,count] of Object.entries(r.requirements)){
+   assert.ok(master.ingredients[key]);assert.ok(Number.isInteger(count)&&count>0);
+  }
+ }
+});
+test('high-end recipe cannot cook without enough pot and stock',()=>{
+ const a=input();a.options.recipeId=sim.RECIPES.find(r=>r.name==='とびはねるカレーうどん').id;
+ a.options.potSize=100;a.options.initialIngredients={ginger:100,mushroom:100,herb:100,sausage:100};
+ assert.equal(sim.simulate(a).cooking,0);
+ a.options.potSize=120;
+ assert.ok(sim.simulate(a).cooking>0);
+});
+test('legacy recipe ids remain stable after full catalog upgrade',()=>{
+ for(const id of ['apple_curry','white_stew','apple_salad','bean_salad','apple_juice'])assert.ok(sim.RECIPES.some(x=>x.id===id));
 });
