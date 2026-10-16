@@ -181,3 +181,50 @@ test('exclusion does not disable ordinary direct-strength skill calculations',()
  assert.ok(result.skills>0);
  assert.ok(result.skillTriggers>0);
 });
+
+test('ingredient magnet without unlocked pool is not credited as recipe stock',()=>{
+ const a=input();a.options.recipeId='';
+ a.box.forEach(p=>p.pokemon='フシギバナ');
+ const result=sim.simulate(a);
+ assert.ok(result.unassignedMagnet>0);
+ assert.equal(Object.keys(result.skillIngredients).length,0);
+ assert.ok(result.warnings.some(v=>v.includes('抽選候補が未設定')));
+});
+test('ingredient magnet distributes only across the user-declared unlocked pool',()=>{
+ const a=input();a.options.recipeId='';a.options.magnetIngredients=['apple','milk'];
+ a.box.forEach(p=>p.pokemon='フシギバナ');
+ const result=sim.simulate(a);
+ assert.ok(result.skillIngredients.apple>0);
+ assert.ok(result.skillIngredients.milk>0);
+ assert.equal(result.unassignedMagnet,0);
+ assert.equal(Object.keys(result.skillIngredients).length,2);
+ assert.ok(Math.abs(result.skillIngredients.apple-result.skillIngredients.milk)<1e-6);
+});
+test('base random ingredient part of Present and Plus is counted, not conditional extras',()=>{
+ for(const name of ['デリバード','プラスル']){
+  const a=input();a.options.recipeId='';a.options.magnetIngredients=['milk'];
+  a.box.forEach(p=>p.pokemon=name);
+  const r=sim.simulate(a);
+  assert.ok((r.skillIngredients.milk||0)>0,name);
+  assert.ok(r.warnings.some(v=>v.includes('プレゼント')||v.includes('プラス')));
+ }
+});
+test('cooking power bonus stacks to 200 and weekend doubles only permanent capacity',()=>{
+ assert.equal(sim.effectivePotCapacity(21,0,0,false),21);
+ assert.equal(sim.effectivePotCapacity(21,10,0,true),47);
+ assert.equal(sim.effectivePotCapacity(21,10,6,true),78);
+ assert.equal(sim.effectivePotCapacity(57,1000,0,false),257);
+ assert.equal(sim.effectivePotCapacity(57,10,6,false),124);
+});
+test('magnet ingredient pool rejects duplicate or unknown ingredients',()=>{
+ const a=input();a.options.magnetIngredients=['apple','apple'];
+ assert.throws(()=>sim.simulate(a),/抽選対象/);
+ a.options.magnetIngredients=['phantom'];assert.throws(()=>sim.simulate(a),/抽選対象/);
+});
+test('cooking power-up affects pot stock but not direct energy strength',()=>{
+ const a=input();a.options.recipeId='';a.box.forEach(p=>p.pokemon='コイル');
+ const r=sim.simulate(a);
+ assert.equal(r.skills,0);
+ assert.ok(r.potBonus>0);
+ assert.ok(r.warnings.some(v=>v.includes('暫定')));
+});
