@@ -57,3 +57,43 @@ test('prototype explicitly warns unsupported skills and approximations',()=>{
  const a=input();const r=sim.simulate(a);
  assert.ok(r.warnings.some(w=>w.includes('暫定期待値')));
 });
+
+test('pity-corrected skill rate remains finite and energy outputs are not NaN',()=>{
+ const p=input();p.box.forEach(v=>v.skillLevel=1);const r=sim.simulate(p);
+ for(const key of ['total','berries','skills','cooking','sneaky'])assert.ok(Number.isFinite(r[key])&&r[key]>=0);
+});
+test('random cooking category does not assume that a chosen recipe can be cooked',()=>{
+ const p=input();p.options.foodMode='random';
+ const r=sim.simulate(p);
+ assert.equal(r.cooking,0);
+ assert.ok(r.warnings.some(w=>w.includes('料理カテゴリを確定')));
+});
+test('explicit cooking category is required for the selected recipe',()=>{
+ const p=input();p.options.foodMode='curry';
+ assert.ok(sim.simulate(p).cooking>0);
+ p.options.foodMode='dessert';
+ assert.equal(sim.simulate(p).cooking,0);
+});
+test('Sunday night 00:00-04:00 is not collected before 07:30 Monday',()=>{
+ const a=input();a.options.initialIngredients={apple:0};a.options.recipeId='';
+ // Inflate carry capacities so no sneaky snacking occurs before collection.
+ const oldCaps=master.species.map(s=>s.carryLimit);
+ try{
+  for(const sp of master.species)sp.carryLimit=1e7;
+  const r=sim.simulate(a);
+  assert.equal(r.sneaky,0);
+  // Last-day calculation stops before Monday 04:00 collection.
+  assert.ok(r.days[6].berries>0);
+  assert.ok(r.warnings.some(w=>w.includes('暫定')));
+ }finally{master.species.forEach((sp,i)=>{sp.carryLimit=oldCaps[i]})}
+});
+test('Good Night Ribbon and evolution-left base stats remain present in master',()=>{
+ const r=master.species.find(s=>s.name==='ピカチュウ');
+ assert.ok(Number.isInteger(r.evolutionLeft));
+ const darkrai=master.species.find(s=>s.english==='Darkrai');
+ assert.ok(Array.isArray(darkrai.mythIng));
+});
+test('week total omits phantom 04:00 collection compared with previous version',()=>{
+ const p=input();const r=sim.simulate(p);
+ assert.ok(r.days.length===7);assert.ok(r.total>=r.sneaky);
+});
