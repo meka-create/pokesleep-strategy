@@ -35,7 +35,11 @@ function signature(p,sp,team,camp,warnings){
  const ingFactor=natureFactor(p.nature,['Modest','Mild','Rash','Quiet'],['Impish','Jolly','Adamant','Careful']);
  const skillFactor=natureFactor(p.nature,['Calm','Gentle','Careful','Sassy'],['Lax','Naive','Naughty','Rash']);
  const ingRate=clamp(sp.ingRate/100*ingFactor*(1+.18*count('食材確率アップS')+.36*count('食材確率アップM')),0,1);
- const skillRate=clamp(sp.skillRate/100*skillFactor*(1+.18*count('スキル確率アップS')+.36*count('スキル確率アップM')),0,1);
+ const rawSkillRate=clamp(sp.skillRate/100*skillFactor*(1+.18*count('スキル確率アップS')+.36*count('スキル確率アップM')),0,1);
+ // Long-run skill pity correction from PokemonIv.calculateSkillRateWithPityProc.
+ // Proc scheduling and inventory constraints remain approximate.
+ const pity=(sp.specialty==='Skills'||sp.specialty==='All')?Math.ceil(142000/sp.frequency):78;
+ const skillRate=rawSkillRate===0?0:clamp(rawSkillRate/(1-Math.pow(1-rawSkillRate,pity+1)),0,1);
  const berryPerHelp=(sp.specialty==='Berries'||sp.specialty==='All'?2:1)+count('きのみの数S');
  const ribbon=(p.sleepHours>=2000?8:p.sleepHours>=1000?6:p.sleepHours>=500?3:p.sleepHours>=200?1:0);
  const cap=(sp.carryLimit||10)+5*(sp.evolutionCount||0)+ribbon+count('最大所持数アップS')*6+count('最大所持数アップM')*12+count('最大所持数アップL')*18;
@@ -159,7 +163,7 @@ function simulate(input){
   daySummaries.push({day:d+1,berries:status.berries-before.berries,cooking:status.cooking-before.cooking,skills:status.skills-before.skills});
  }
  for(const s of warningsSkills)warnings.add('未対応のメインスキル（エナジー寄与未計上）：'+s);
- warnings.add('暫定期待値モデルです。初期げんき一律設定・所持上限・スキルストックは簡易計算であり、ゲーム内の厳密値とは一致しません。');
+ warnings.add('暫定期待値モデルです。初期げんき一律、期待値での所持上限・スキルストック・ピティ補正を使用しています。ゲーム内の厳密値とは一致しません。');
  if(recipe)warnings.add('料理マスターは代表5品のみ。料理は選択レシピの成立時のみ、最大Lv70・大成功なしで計上します。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,inventory,days:daySummaries,warnings:[...warnings],models:members.size};
 }
