@@ -344,7 +344,7 @@ test('extra ingredients are charged only at base energy without Lv70 multiplier'
  const r=sim.simulate(a),first=r.meals[0];
  assert.equal(first.count,20);
  assert.equal(first.extraEnergy,13*342);
- assert.ok(Math.abs(first.energy-(sim.RECIPES.find(x=>x.id==='apple_curry').strength70+first.extraEnergy)*(1+a.options.fieldBonus/100))<1e-5);
+ assert.equal(first.energy,Math.floor((sim.RECIPES.find(x=>x.id==='apple_curry').strength70+first.extraEnergy)*(1+a.options.fieldBonus/100)+1e-9));
 });
 test('great-success expected energy uses baseline weekday 10% and Sunday 30%',()=>{
  const a=input();a.options.recipeMode='fixed';a.options.recipeId='apple_curry';
@@ -353,7 +353,7 @@ test('great-success expected energy uses baseline weekday 10% and Sunday 30%',()
  assert.ok(r.meals.length>0);
  for(const row of r.meals)assert.ok(Math.abs(row.successProbability-(row.day===7?.3:.1))<1e-10);
  const weekday=r.meals.find(x=>x.day<7);assert.ok(weekday);
- assert.ok(Math.abs(weekday.energy-sim.RECIPES.find(x=>x.id==='apple_curry').strength70*(1+a.options.fieldBonus/100)*1.1)<1e-6);
+ assert.ok(Math.abs(weekday.energy-(weekday.normalEnergy*.9+weekday.extraTastyEnergy*.1))<1e-6);
 });
 test('Tasty Chance adds probability in expected mode and remains uncredited when disabled',()=>{
  const a=input();a.options.recipeMode='fixed';a.options.recipeId='apple_curry';
@@ -702,4 +702,35 @@ test('sleep recovery is confined to sleeping team; inactive boxed Pokemon do not
  }
  assert.equal(r.days.length,7);
  assert.ok(r.total>0);
+});
+
+test('normal meals floor each final result, not float-valued strength',()=>{
+ const m=sim.calculateMealEnergy(2678,1,50,0,0);
+ assert.equal(m.normal,4018);
+ assert.equal(m.extraTasty,8037);
+ assert.equal(m.expected,4018);
+});
+test('Extra Tasty expectation interpolates separately rounded game outcomes',()=>{
+ const m=sim.calculateMealEnergy(2678,1,50,.1,0);
+ assert.ok(Math.abs(m.expected-(4018*.9+8037*.1))<1e-8);
+ const sunday=sim.calculateMealEnergy(2678,1,50,.3,6);
+ assert.equal(sunday.extraTasty,12055);
+ assert.ok(Math.abs(sunday.expected-(4018*.7+12055*.3))<1e-8);
+});
+test('game rounding and fractional great success reconcile to seven-day cooking total',()=>{
+ const a=input();a.options.recipeMode='best';a.options.successMode='expected';
+ a.options.initialIngredients={apple:150,milk:150};
+ const r=sim.simulate(a);
+ assert.ok(r.meals.length>0);
+ for(const m of r.meals){
+  assert.equal(Number.isInteger(m.normalEnergy),true);
+  assert.equal(Number.isInteger(m.extraTastyEnergy),true);
+  assert.ok(Math.abs(m.energy-(m.normalEnergy*(1-m.successProbability)+m.extraTastyEnergy*m.successProbability))<1e-7);
+ }
+ assert.ok(Math.abs(r.meals.reduce((n,m)=>n+m.energy,0)-r.cooking)<1e-7);
+});
+test('invalid inputs cannot bypass per-meal energy calculation guard',()=>{
+ assert.throws(()=>sim.calculateMealEnergy(100,1,50,1.2,0),/不正/);
+ assert.throws(()=>sim.calculateMealEnergy(100,-1,50,0,0),/不正/);
+ assert.throws(()=>sim.calculateMealEnergy(100,0,50,0,7),/不正/);
 });
