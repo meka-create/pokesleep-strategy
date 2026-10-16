@@ -110,12 +110,12 @@ function simulate(input){
    pocket.set(id,{used:0,berries:0,ingredients:{},skill:0});
   }
  }
- function help(teamIds,hours,camp){
+ function help(teamIds,hours,camp,estimatedEnergy){
   const group=teamIds.map(id=>members.get(id)).filter(Boolean).map(x=>x.p);
   for(const id of teamIds){
    const pair=members.get(id);if(!pair)continue;
    const x=signature(pair.p,pair.sp,group,camp,warnings),bag=pocket.get(id);
-   const e=energy.get(id),helps=(hours*3600/x.interval)/energySpeed(e);
+   const e=estimatedEnergy?.get(id)??energy.get(id),helps=(hours*3600/x.interval)/energySpeed(e);
    let remaining=helps,space=Math.max(0,x.carry-bag.used);
    const averageIngredientItems=x.ingSlots.length?x.ingSlots.reduce((a,b)=>a+b.count,0)/x.ingSlots.length:0;
    const itemPerHelp=(1-x.ingRate)*x.berryPerHelp+x.ingRate*averageIngredientItems;
@@ -131,8 +131,10 @@ function simulate(input){
   }
  }
  function tickActive(ids,minutes,camp,awake){
+  const mid=new Map();
+  for(const id of ids)mid.set(id,clamp(energy.get(id)-(awake?minutes/20:0),0,150));
+  help(ids,minutes/60,camp,mid);
   for(const id of ids)if(awake)energy.set(id,clamp(energy.get(id)-minutes/10,0,150));
-  help(ids,minutes/60,camp);
  }
  function cook(){if(!dishesAllowed)return 0;const needed=Object.entries(recipe.requirements);const count=needed.reduce((a,[k,v])=>a+v,0);
    if(count>pot*(opts.camp?1.5:1))return 0;
