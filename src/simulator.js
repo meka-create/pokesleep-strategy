@@ -10,6 +10,42 @@ const FAVORITES={'シアンの砂浜':['water','fairy','flying'],'トープ洞�
 const SKILL_STRENGTH={'Charge Strength S':[400,569,785,1083,1496,2066,3212],'Charge Strength M':[880,1251,1726,2383,3290,4546,6858],'Charge Strength M (Bad Dreams)':[2640,3753,5178,7149,9870,13638,18515],'Charge Strength S (Random)':[500,711.5,981.5,1354,1870,2582.5,4015]};
 const HEAL_ALL=[5,7,9,11,15,18],HEAL_SELF=[12,16,21,27,34,43];
 const STOCKPILE_LONG_RUN=[644.3,915.95,1263.97,1745.19,2408.59,3327.75,4834.38];
+// Spit Up rewards for 0..10 stockpiles, source: wiki.pokesleep.com stockpilechargestrengths.
+const STOCKPILE_REWARDS=[
+ [600,1020,1500,2040,2640,3300,4020,4920,6480,8880,12120],
+ [853,1450,2132,2900,3753,4691,5715,6995,9213,12625,17231],
+ [1177,2001,2943,4002,5179,6474,7886,9652,12712,17420,23776],
+ [1625,2763,4063,5526,7151,8939,10889,13327,17552,24052,32827],
+ [2243,3813,5607,7626,9869,12336,15028,18393,24225,33197,45309],
+ [3099,5268,7747,10536,13635,17044,20763,25412,33469,45865,62600],
+ [4502,7653,11255,15307,19809,24761,30163,36916,46370,59876,82386]
+];
+function emptyStockpile(){return [1,0,0,0,0,0,0,0,0,0,0];}
+function stockpileStep(state,level){
+ const next=new Array(11).fill(0),rewards=STOCKPILE_REWARDS[clamp(level-1,0,6)];
+ let earned=0;
+ for(let k=0;k<=10;k++){
+  const p=state[k],spit=k===10?1:.25;
+  earned+=p*spit*rewards[k];
+  next[0]+=p*spit;
+  if(k<10)next[k+1]+=p*(1-spit);
+ }
+ return {state:next,earned};
+}
+// A fractional expected activation is interpolated as a Bernoulli activation.
+// This tracks undistributed stack probabilities, not just steady-state averages.
+function advanceStockpile(state,expectedTriggers,level){
+ if(!Number.isFinite(expectedTriggers)||expectedTriggers<0)throw Error('たくわえる発動回数が不正です。');
+ let current=state.slice(),earned=0;
+ let whole=Math.floor(expectedTriggers),fraction=expectedTriggers-whole;
+ for(let n=0;n<whole;n++){const v=stockpileStep(current,level);current=v.state;earned+=v.earned;}
+ if(fraction>1e-12){
+  const v=stockpileStep(current,level);
+  earned+=fraction*v.earned;
+  current=current.map((x,i)=>(1-fraction)*x+fraction*v.state[i]);
+ }
+ return {state:current,earned};
+}
 const LUNAR_HEAL=[3,4,5,7,9,11];
 const LUNAR_BERRIES=[
  [[5,1],[7,1],[9,1],[12,1],[14,2]],
@@ -223,6 +259,14 @@ function simulate(input){
  if(opts.map==='シアンの砂浜EX'||opts.map==='ワカクサ本島EX')warnings.add('EXフィールド固有の補正には未対応です。');
  if(opts.eventEffects)warnings.add('イベント補正メモはSTEP5まで計算に反映しません。');
  const warningsSkills=new Set(),warningsSkillsExcluded=new Set();
+ // Every stockpile user starts at zero on Monday; team substitutions reset it.
+ const stockpileStates=new Map();
+ function resetStockpileLeaving(oldTeam,newTeam){
+  const retained=new Set(newTeam);
+  for(const id of oldTeam){
+   if(!retained.has(id))stockpileStates.delete(id);
+  }
+ }
  const magnetPool=opts.magnetIngredients??[];
  if(!Array.isArray(magnetPool)||new Set(magnetPool).size!==magnetPool.length||
     magnetPool.some(k=>!Object.prototype.hasOwnProperty.call(Master.ingredients,k)))throw Error('食材ゲットSの抽選対象が不正です。');
@@ -268,8 +312,11 @@ function simulate(input){
    const triggers=excluded?0:bag.skill;
    if(excluded)warningsSkillsExcluded.add(actual);
    else if(actual==='Charge Strength S (Stockpile)'){
-    status.skills+=triggers*STOCKPILE_LONG_RUN[clamp(pair.p.skillLevel-1,0,6)]*(1+bonus/100);
-    warnings.add('たくわえるは75%蓄積・25%放出の長期期待値です。蓄積状態・交代時消去・週末の未放出は未再現です。');
+    const current=stockpileStates.get(id)||emptyStockpile();
+    const update=advanceStockpile(current,triggers,pair.p.skillLevel);
+    stockpileStates.set(id,update.state);
+    status.skills+=update.earned*(1+bonus/100);
+    warnings.add('たくわえるは蓄積0回から開始し、交代時リセット・週末未放出を反映した状態確率モデルです。25%放出は実測推定、発動回数と抽選は期待値近似です。');
    }
    else if(actual==='Berry Zone (Psystrike)'){
     status.skills+=triggers*PSYSTRIKE_STRENGTH[clamp(pair.p.skillLevel-1,0,5)]*(1+bonus/100);
@@ -475,12 +522,18 @@ function simulate(input){
   let current=null;
   for(let t=7.5;t<24-1e-9;t+=.25){
     const key=t<12?'morning':t<18?'noon':'evening',ids=teams[key];
-    if(current!==key){if(current)collect(teams[current]);current=key;collect(ids);if([7.5,12,18].includes(t))cook(d,t===7.5?'朝':t===12?'昼':'夜',ids);}
+    if(current!==key){
+      if(current)collect(teams[current]);
+      resetStockpileLeaving(current?teams[current]:d===0?[]:teams.sleep,ids);
+      current=key;collect(ids);
+      if([7.5,12,18].includes(t))cook(d,t===7.5?'朝':t===12?'昼':'夜',ids);
+    }
     const sinceWake=(t-7.5)*60;
     if(Math.abs(sinceWake/tapMinutes-Math.round(sinceWake/tapMinutes))<1e-6 &&t>7.5)collect(ids);
     tickActive(ids,15,!!opts.camp,true);
   }
   collect(teams.evening);
+  resetStockpileLeaving(teams.evening,teams.sleep);
   // No interaction from 00:00 until 07:30. Sunday -> Monday only 00:00-04:00 counts for this week.
   const sleepHours=d===6?4:7.5;
   for(let h=0;h<sleepHours-1e-9;h+=.25)help(teams.sleep,.25,!!opts.camp);
@@ -515,7 +568,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_LONG_RUN,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_LONG_RUN,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
