@@ -10,6 +10,15 @@ const FAVORITES={'シアンの砂浜':['water','fairy','flying'],'トープ洞�
 const SKILL_STRENGTH={'Charge Strength S':[400,569,785,1083,1496,2066,3212],'Charge Strength M':[880,1251,1726,2383,3290,4546,6858],'Charge Strength S (Random)':[500,711.5,981.5,1354,1870,2582.5,4015]};
 const HEAL_ALL=[5,7,9,11,15,18],HEAL_SELF=[12,16,21,27,34,43];
 const TASTY_CHANCE=[4,5,6,7,8,10];
+const DRAW_AMOUNTS=[5,6,8,11,13,16,18];
+const DRAW_POOLS={
+ 27:['potato','corn','pumpkin'],28:['potato','corn','pumpkin'],
+ 198:['mushroom','sausage','soy','coffee'],430:['mushroom','sausage','soy','coffee'],
+ 303:['potato','oil','tomato','corn'],
+ 557:['potato','oil','avocado'],558:['potato','oil','avocado'],
+ 701:['herb','ginger','sausage'],
+ 742:['honey','oil','corn'],743:['honey','oil','corn']
+};
 const CHEER_HEAL={
  'Energizing Cheer S':[12,15,20,25,33,44],
  'Energizing Cheer S (Nuzzle)':[9,12,16,20,27,35]
@@ -230,6 +239,18 @@ function simulate(input){
    else if(actual==='Tasty Chance S'){
     if(successMode==='expected')successBonus=clamp(successBonus+triggers*TASTY_CHANCE[clamp(pair.p.skillLevel-1,0,5)]/100,0,.7);
     else warnings.add('料理チャンスSは大成功期待値OFFのため計上していません。');
+   }
+   else if(actual==='Ingredient Draw S'||actual==='Ingredient Draw S (Super Luck)'||actual==='Ingredient Draw S (Hyper Cutter)'){
+    const pool=DRAW_POOLS[pair.sp.id],chance=actual==='Ingredient Draw S (Super Luck)'?.86:1;
+    if(!pool)warnings.add('食材セレクトの種族別抽選候補がマスターにありません：'+pair.p.pokemon);
+    else{
+     const produced=triggers*DRAW_AMOUNTS[clamp(pair.p.skillLevel-1,0,6)]*chance;
+     const available=bagCapacity?Math.min(produced,Math.max(0,bagCapacity-bagUsed())):produced;
+     for(const key of pool)addInventory(key,available/pool.length,true);
+    }
+    if(actual==='Ingredient Draw S (Super Luck)')warnings.add('きょううんは食材当選率86%の期待値を使用。ゆめのかけら報酬は対象外です。');
+    if(actual==='Ingredient Draw S (Hyper Cutter)')warnings.add('かいりきバサミの条件付き追加食材は未計上です。');
+    warnings.add('食材セレクトの抽選は種族ごとの候補へ均等配分した期待値近似で、実際の1種類抽選・所持数を再現しません。');
    }
    else if(INGREDIENT_MAGNET[actual]){
     const produced=triggers*INGREDIENT_MAGNET[actual][clamp(pair.p.skillLevel-1,0,6)];
