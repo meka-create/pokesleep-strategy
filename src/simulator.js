@@ -10,13 +10,7 @@ const FAVORITES={'シアンの砂浜':['water','fairy','flying'],'トープ洞�
 const SKILL_STRENGTH={'Charge Strength S':[400,569,785,1083,1496,2066,3212],'Charge Strength M':[880,1251,1726,2383,3290,4546,6858],'Charge Strength S (Random)':[500,711.5,981.5,1354,1870,2582.5,4015]};
 const HEAL_ALL=[5,7,9,11,15,18],HEAL_SELF=[12,16,21,27,34,43];
 const RECOVERY_UP=['Bold','Impish','Lax','Relaxed'],RECOVERY_DOWN=['Hasty','Lonely','Gentle','Mild'];
-const RECIPES=[
- {id:'apple_curry',type:'curry',name:'とくせんリンゴカレー',requirements:{apple:7},strength70:2678},
- {id:'white_stew',type:'curry',name:'たんじゅんホワイトシチュー',requirements:{milk:7},strength70:2914},
- {id:'apple_salad',type:'salad',name:'とくせんリンゴサラダ',requirements:{apple:8},strength70:3061},
- {id:'bean_salad',type:'salad',name:'マメハムサラダ',requirements:{sausage:8},strength70:3501},
- {id:'apple_juice',type:'dessert',name:'とくせんリンゴジュース',requirements:{apple:8},strength70:3061}
-];
+const RECIPES=root.PokeRecipes||[];
 function clamp(x,l,h){return Math.max(l,Math.min(h,x));}
 function roundup(x){return Math.ceil(x-1e-9);}
 function nums(x){return Number.isFinite(Number(x))?Number(x):0;}
@@ -89,6 +83,7 @@ function simulate(input){
  else if(opts.foodMode!=='random'&&opts.foodMode!==recipe.type)warnings.add('レシピと料理カテゴリが一致しません。料理エナジーを計上していません。');
  if(opts.foodMode==='random')warnings.add('ランダム料理カテゴリは未確定です。選択レシピの成立時のみ試算し、ランダム期待値ではありません。');
  const dishesAllowed=recipe&&opts.foodMode===recipe.type;
+ if(recipe)warnings.add('食材の期待個数は端数を含む近似です。実際に揃った食材数や料理回数とは異なります。');
  if(recipe&&opts.foodMode==='random')warnings.add('料理カテゴリを確定するまで料理のエナジーは計上しません。');
  if(opts.map==='シアンの砂浜EX'||opts.map==='ワカクサ本島EX')warnings.add('EXフィールド固有の補正には未対応です。');
  if(opts.eventEffects)warnings.add('イベント補正メモはSTEP5まで計算に反映しません。');
@@ -176,7 +171,7 @@ function simulate(input){
  }
  for(const s of warningsSkills)warnings.add('未対応のメインスキル（エナジー寄与未計上）：'+s);
  warnings.add('暫定期待値モデルです。げんき・所持上限・スキルストック・ピティ補正は近似であり、ゲーム内の厳密値とは一致しません。食材バッグの総容量制限・前週からの所持品持ち越しは未対応です。');
- if(recipe)warnings.add('料理マスターは代表5品のみ。料理は選択レシピの成立時のみ、最大Lv70・大成功なしで計上します。');
+ if(recipe)warnings.add('料理はLv70の選択レシピのみ、成立した場合に計上します。追加食材・代替料理・大成功は未対応です。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,inventory,days:daySummaries,warnings:[...warnings],models:members.size};
 }
 const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed};
