@@ -93,7 +93,16 @@ function chooseRecipe({mode='fixed',preferredId='',foodMode,inventory,potCapacit
   ||a.id.localeCompare(b.id))[0]||null;
 }
 function mealRecovery(energy){
- return energy>=80?1:energy>=60?2:energy>=40?3:energy>=20?4:5;
+ if(energy>=150)return 0;
+ if(energy>=81)return 1;
+ if(energy>=71)return 2;
+ if(energy>=61)return 3;
+ if(energy>=51)return 4;
+ if(energy>=41)return 5;
+ if(energy>=31)return 6;
+ if(energy>=21)return 7;
+ if(energy>=11)return 8;
+ return 9;
 }
 function berryUnit(type,lv,favorites,fieldBonus){const b0=BERRY[type];const raw=Math.max(b0+lv-1,Math.round(Math.pow(1.025,lv-1)*b0));return roundup(roundup(raw*(1+fieldBonus/100))*(favorites.includes(type)?2:1));}
 function simulate(input){
