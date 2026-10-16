@@ -70,7 +70,9 @@
   <label class="field"><span>食材バッグ容量（0＝未指定）</span><input id="simBagCapacity" type="number" min="0" max="10000" step="1" value="0"></label>
   <label class="field"><span>睡眠スコア <small>7時間30分なら目安88点</small></span><input id="simSleepScore" type="number" min="0" max="100" value="88"></label>
   <label class="field"><span>初期げんき（全員共通）</span><input id="simInitialEnergy" type="number" min="0" max="150" value="100"></label>
-  <label class="field wide"><span>試算するレシピ（全78品・レベル70）</span><select id="simRecipe"><option value="">料理は計算しない</option></select></label>
+  <label class="field wide"><span>料理の選び方</span><select id="simRecipeMode"><option value="fixed">指定したレシピだけ作る（従来どおり）</option><option value="fallback">指定レシピを優先し、材料不足なら代替</option><option value="best">各食事で作れる最高エナジーレシピを選ぶ</option></select></label>
+  <label class="field wide"><span>優先・固定レシピ（全78品・レベル70）</span><select id="simRecipe"><option value="">レシピ未選択</option></select></label>
+  <p class="small muted">「最高エナジー」はその食事時点の選択です。7日間全体の料理最適化やゲーム内の「おまかせ料理」ではありません。料理カテゴリがランダムの場合は計上しません。</p>
  </div>
  <details class="card sim-inventory">
   <summary>初期食材の個数を入力する（全19種類・任意）</summary>
@@ -91,6 +93,7 @@
   <h3 id="simTotal">—</h3>
   <div id="simBreakdown" class="sim-breakdown"></div>
   <div class="section-heading minor"><h3>日別の概算</h3></div><div id="simDaily"></div>
+  <div class="section-heading minor"><h3>料理履歴・食材消費</h3></div><p id="simMealSummary" class="small muted"></p><div id="simMeals"></div>
   <div class="section-heading minor"><h3>得られた食材（期待個数）</h3></div><div id="simIngredients"></div>
   <div class="section-heading minor"><h3>計算上の注意・未対応</h3></div><div id="simWarnings" class="sim-warnings"></div>
  </div>
