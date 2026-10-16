@@ -370,3 +370,42 @@ test('legacy recipe simulator keeps extras and success OFF absent explicit flags
  const a=input();const r=sim.simulate(a);
  assert.ok(r.meals.every(m=>!m.extraEnergy&&m.successProbability===0));
 });
+
+test('Energizing Cheer recipient weights prioritize lowest energy while summing to one',()=>{
+ const ids=['a','b','c','d','e'];
+ const w=sim.cheerWeights(ids,new Map(ids.map((id,i)=>[id,i===0?5:60])));
+ assert.ok(Math.abs(w.get('a')-.76)<1e-9);
+ for(const id of ids.slice(1))assert.ok(Math.abs(w.get(id)-.06)<1e-9);
+ assert.ok(Math.abs([...w.values()].reduce((a,b)=>a+b,0)-1)<1e-9);
+});
+test('tied low energy Cheer recipients split low-weight probability equally',()=>{
+ const ids=['a','b','c','d','e'],w=sim.cheerWeights(ids,new Map([['a',4],['b',4],['c',60],['d',60],['e',60]]));
+ assert.ok(Math.abs(w.get('a')-.41)<1e-9);
+ assert.ok(Math.abs(w.get('b')-.41)<1e-9);
+});
+test('Energizing Cheer and Nuzzle contribute healing expectations without direct skill energy',()=>{
+ for(const sk of ['Energizing Cheer S','Energizing Cheer S (Nuzzle)']){
+  const sp=master.species.find(s=>s.skill===sk);assert.ok(sp);
+  const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=6;});
+  a.options.initialEnergy=15;a.options.sleepScore=40;
+  const r=sim.simulate(a);
+  assert.ok(r.berries>0);
+  assert.equal(r.skills,0,'healing alone is not direct energy');
+  assert.ok(r.warnings.some(x=>x.includes('げんきエールの回復対象')));
+  if(sk.includes('Nuzzle'))assert.ok(r.warnings.some(x=>x.includes('発動可能ボーナス')));
+ }
+});
+test('representative box for each registered species does not result in nonfinite simulation values',()=>{
+ // Smoke test the 249-species snapshot without assuming unsupported main skills work.
+ for(const sp of master.species){
+  const first=(sp.mythIng||sp.ings||[]).find(x=>x.c1>0);
+  if(!first)continue;
+  const a=input();a.box.forEach(p=>{
+   p.pokemon=sp.name;p.skillLevel=1;p.level=20;
+   p.ingredients=[master.ingredients[first.name],'',''];p.subskills=['','','','',''];
+  });
+  a.options.recipeId='';a.options.initialIngredients={};a.options.magnetIngredients=[];
+  const r=sim.simulate(a);
+  for(const x of ['berries','cooking','skills','total','sneaky'])assert.ok(Number.isFinite(r[x]),sp.name+' '+x);
+ }
+});
