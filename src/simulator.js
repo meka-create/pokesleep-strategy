@@ -179,6 +179,12 @@ function cheerWeights(teamIds,energy){
  const lowest=teamIds.filter(id=>(energy.get(id)??0)<=minimum+1e-9);
  return new Map(teamIds.map(id=>[id,.3/teamIds.length+((energy.get(id)??0)<=minimum+1e-9?.7/lowest.length:0)]));
 }
+function recoverFromSleep(current,score,natureRecovery,teamRecoveryBonus,selfHasRecoveryBonus){
+ const limit=selfHasRecoveryBonus?105:100;
+ const amount=Math.max(0,Math.round(score*natureRecovery*(1+.14*teamRecoveryBonus)));
+ // A sleep result must never reduce energy already above the sleep-recovery cap.
+ return clamp(Math.max(current,Math.min(limit,current+amount)),0,150);
+}
 function mealRecovery(energy){
  if(energy>=150)return 0;
  if(energy>=81)return 1;
@@ -519,7 +525,7 @@ function simulate(input){
    potBonus=0;
    return value;
  }
- const daySummaries=[];
+ const daySummaries=[],nightEnergy=[];
  
  for(let d=0;d<7;d++){
   const before={berries:status.berries,cooking:status.cooking,skills:status.skills,sneaky:status.sneaky};
@@ -539,18 +545,23 @@ function simulate(input){
   collect(teams.evening);
   resetStockpileLeaving(teams.evening,teams.sleep);
   // No interaction from 00:00 until 07:30. Sunday -> Monday only 00:00-04:00 counts for this week.
+  // Helpers DO lose Energy while asleep: -1 Energy per 10 minutes, as when awake.
   const sleepHours=d===6?4:7.5;
-  for(let h=0;h<sleepHours-1e-9;h+=.25)help(teams.sleep,.25,!!opts.camp);
-  // Sleep recovery occurs only after a full sleep, including the final day for continuation; no box recovery.
+  const beforeSleep=Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]));
+  for(let h=0;h<sleepHours-1e-9;h+=.25)tickActive(teams.sleep,15,!!opts.camp,true);
+  const beforeRecovery=Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]));
+  // Recovery happens at the next 07:30 research/collection, not while asleep.
+  // Only the fixed sleeping five recover. The user's box 5% recovery is intentionally excluded.
   if(d<6){
    const recoverBonuses=teams.sleep.filter(id=>activeSkills(byId.get(id)).includes('げんき回復ボーナス')).length;
    for(const id of teams.sleep){
     const p=byId.get(id),f=natureFactor(p.nature,RECOVERY_UP,RECOVERY_DOWN);
-    const restore=Math.min(150,Math.round(score)*f*(1+.14*recoverBonuses));
-    energy.set(id,clamp(energy.get(id)+restore,0,150));
+    const selfHasBonus=activeSkills(p).includes('げんき回復ボーナス');
+    energy.set(id,recoverFromSleep(energy.get(id),score,f,recoverBonuses,selfHasBonus));
    }
    collect(teams.sleep);
   }
+  nightEnergy.push({day:d+1,hours:sleepHours,beforeSleep,beforeRecovery,afterRecovery:Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]))});
   // The next Monday 04:00 is a field reset, NOT an interaction.
   // Do not credit the still-carried berries/ingredients or skill stock to the old week.
   daySummaries.push({day:d+1,berries:status.berries-before.berries,cooking:status.cooking-before.cooking,skills:status.skills-before.skills});
@@ -577,9 +588,9 @@ function simulate(input){
  if(successMode==='none')warnings.add('料理の大成功はOFFです。料理チャンスSの寄与も未計上です。');
  else warnings.add('大成功は平日10%・日曜30%の推定確率と料理チャンスSの期待値近似です。大成功時のスキル蓄積リセットや結果のばらつきは簡略化しています。');
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
- return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
+ return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
