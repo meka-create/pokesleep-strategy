@@ -41,6 +41,7 @@ $('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?
 $('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();storage.allowRecovery();const saved=save();fillEvent();$('searchPokemon').value='';renderBox();fillSimulation();$('simResult').hidden=true;notifySave(saved,'端末内の保存情報を消去しました。');});
 const rosterKeys=['morning','noon','evening'];
 const ingredientEditors=Object.create(null);
+const magnetEditors=Object.create(null);
 function renderSimulator(){
  if(!window.PokeSimulator)return;
  for(const key of rosterKeys){
@@ -109,6 +110,15 @@ function fillSimulation(){
   input.value=sim.initialIngredients[key]||0;input.setAttribute('aria-label',name+' の初期在庫数');
   label.append(span,input);container.append(label);ingredientEditors[key]=input;
  }
+ const magnetContainer=$('simMagnetFields');magnetContainer.replaceChildren();
+ const discovered=new Set(sim.magnetIngredients||[]);
+ for(const [key,name] of Object.entries(PokeMaster.ingredients)){
+  const label=document.createElement('label');label.className='field sim-magnet-choice';
+  const input=document.createElement('input');input.type='checkbox';input.checked=discovered.has(key);
+  input.setAttribute('aria-label',name+' を食材ゲット候補に含める');
+  const span=document.createElement('span');span.textContent=name;
+  label.append(input,span);magnetContainer.append(label);magnetEditors[key]=input;
+ }
  renderSimulator();
 }
 function readSimulation(){
@@ -124,13 +134,14 @@ function readSimulation(){
   if(raw===''||!Number.isInteger(v)||v<0||v>10000)throw Error((PokeMaster.ingredients[key]||key)+' の在庫数を確認してください。');
   if(v!==0)initialIngredients[key]=v;
  }
+ const magnetIngredients=Object.entries(magnetEditors).filter(([key,input])=>input.checked).map(([key])=>key);
  const teams={};for(const key of rosterKeys){
   const values=Array.from(document.querySelector('[data-roster="'+key+'"]').querySelectorAll('select')).map(x=>x.value);
   if(values.length!==5||values.some(v=>!v)||new Set(values).size!==5)throw Error('朝・昼・夜のすべての枠に異なる5匹を指定してください。');
   teams[key]=values;
  }
  if(state.sleepIds.length!==5)throw Error('ボックスタブで睡眠パーティ5匹を指定してください。');
- return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,bagCapacity:data.simBagCapacity,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,initialIngredients};
+ return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,bagCapacity:data.simBagCapacity,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,initialIngredients,magnetIngredients};
 }
 $('fillAllRosters').addEventListener('click',()=>{
  if(state.sleepIds.length!==5){toast('先にボックスタブで睡眠用5匹を選択してください。');setTab('box');return;}
@@ -158,7 +169,7 @@ $('runSim').addEventListener('click',()=>{
   for(const day of result.days){const row=document.createElement('div');row.className='sim-day';const total=day.berries+day.cooking+day.skills;const left=document.createElement('span');left.textContent='第'+day.day+'日';const right=document.createElement('strong');right.textContent=yen(total);row.append(left,right);$('simDaily').append(row);}
   $('simIngredients').replaceChildren();
   const entries=Object.entries(result.ingredients).sort((a,b)=>b[1]-a[1]);
-  for(const [key,value] of entries){const row=document.createElement('div');row.className='sim-day';const name=document.createElement('span');name.textContent=PokeMaster.ingredients[key]||key;const count=document.createElement('strong');count.textContent=value.toFixed(1)+' 個';row.append(name,count);$('simIngredients').append(row);}
+  for(const [key,value] of entries){const row=document.createElement('div');row.className='sim-day';const name=document.createElement('span');const viaSkill=result.skillIngredients[key]||0;name.textContent=(PokeMaster.ingredients[key]||key)+(viaSkill>0?'（スキル由来 '+viaSkill.toFixed(1)+'個を含む）':'');const count=document.createElement('strong');count.textContent=value.toFixed(1)+' 個';row.append(name,count);$('simIngredients').append(row);}
   if(!entries.length)$('simIngredients').textContent='食材獲得なし／未計上';
   const note=$('simWarnings');note.replaceChildren();for(const warning of result.warnings){const p=document.createElement('p');p.textContent=warning;note.append(p);}
   $('simResult').hidden=false;
