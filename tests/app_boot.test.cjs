@@ -99,3 +99,17 @@ test('auto dish choice survives save and creates meal trace in real UI wiring',(
  assert.ok(app.items.get('simMeals').children.length>0);
  assert.match(app.items.get('simMealSummary').textContent,/成立した料理/);
 });
+
+test('optional extra food and great-success settings persist with meal trace',()=>{
+ const app=boot();
+ app.callbacks.get('fillAllRosters:click')();
+ app.items.get('simRecipeMode').value='best';
+ app.items.get('simExtraMode').value='fill';
+ app.items.get('simSuccessMode').value='expected';
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(saved.simulation.extraMode,'fill');
+ assert.equal(saved.simulation.successMode,'expected');
+ assert.equal(app.items.get('simResult').hidden,false);
+});
