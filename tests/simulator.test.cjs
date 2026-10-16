@@ -231,3 +231,16 @@ test('cooking power-up affects pot stock but not direct energy strength',()=>{
  assert.ok(r.potBonus>0);
  assert.ok(r.warnings.some(v=>v.includes('暫定')));
 });
+
+test('pot expansion enables a weekday recipe unreachable with the same permanent pot alone',()=>{
+ const setup=name=>{
+  const a=input();a.box.forEach(p=>{p.pokemon=name;p.skillLevel=7;p.subskills=['スキル確率アップM','','','',''];});
+  a.options.recipeId='curry_18';a.options.potSize=57;
+  a.options.initialIngredients={herb:250,sausage:250,corn:250,ginger:250};
+  return sim.simulate(a);
+ };
+ const coil=setup('コイル'),ordinary=setup('ライチュウ');
+ assert.ok(coil.days.slice(0,6).some(d=>d.cooking>0),'pot skill should enable weekday recipe');
+ assert.equal(ordinary.days.slice(0,6).reduce((sum,d)=>sum+d.cooking,0),0);
+ assert.ok(coil.cooking>ordinary.cooking);
+});
