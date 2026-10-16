@@ -28,7 +28,10 @@ function signature(p,sp,team,camp,warnings){
  const speedNature=(function(){const f=natureFactor(p.nature,['Lonely','Adamant','Naughty','Brave'],['Bold','Timid','Calm','Modest']);return f===1.2?.9:f===.8?1.075:1;})();
  let helpingBonus=team.reduce((n,q)=>n+Number(activeSkills(q).includes('おてつだいボーナス')),0);
  const speed=.01*clamp(7*count('おてつだいスピードS')+14*count('おてつだいスピードM')+5*helpingBonus,0,35);
- const base=sp.frequency*(1-(p.level-1)*.002)*speedNature*(1-speed);
+ const ribbonTier=p.sleepHours>=2000?4:p.sleepHours>=1000?3:p.sleepHours>=500?2:p.sleepHours>=200?1:0;
+ const ribbonSpeed=sp.evolutionLeft===2?(ribbonTier>=4?.75:ribbonTier>=2?.89:1):sp.evolutionLeft===1?(ribbonTier>=4?.88:ribbonTier>=2?.95:1):1;
+ const speedProduct=((501-p.level)/500)*speedNature*ribbonSpeed*(1-speed);
+ const base=sp.frequency*(Math.trunc(speedProduct*10000)/10000);
  const ingFactor=natureFactor(p.nature,['Modest','Mild','Rash','Quiet'],['Impish','Jolly','Adamant','Careful']);
  const skillFactor=natureFactor(p.nature,['Calm','Gentle','Careful','Sassy'],['Lax','Naive','Naughty','Rash']);
  const ingRate=clamp(sp.ingRate/100*ingFactor*(1+.18*count('食材確率アップS')+.36*count('食材確率アップM')),0,1);
@@ -40,7 +43,7 @@ function signature(p,sp,team,camp,warnings){
  const ingSlots=[];
  for(let j=0;j<slots;j++){
    const key=Object.keys(Master.ingredients).find(k=>Master.ingredients[k]===p.ingredients[j]);
-   const def=sp.ings.filter(Boolean).find(i=>i.name===key&&i['c'+(j+1)]>0);
+   const def=(sp.mythIng||sp.ings).filter(Boolean).find(i=>i.name===key&&i['c'+(j+1)]>0);
    if(!def){warnings.add('食材設定を種族マスターと照合できない個体があります。該当食材の生産は未計上です。');continue;}
    ingSlots.push({key,count:def['c'+(j+1)]});
  }
@@ -80,7 +83,10 @@ function simulate(input){
  if(!recipe)warnings.add('レシピ未選択：料理エナジーを計上していません。');
  else if(opts.foodMode!=='random'&&opts.foodMode!==recipe.type)warnings.add('レシピと料理カテゴリが一致しません。料理エナジーを計上していません。');
  if(opts.foodMode==='random')warnings.add('ランダム料理カテゴリは未確定です。選択レシピの成立時のみ試算し、ランダム期待値ではありません。');
- const dishesAllowed=recipe&&(opts.foodMode==='random'||opts.foodMode===recipe.type);
+ const dishesAllowed=recipe&&opts.foodMode===recipe.type;
+ if(recipe&&opts.foodMode==='random')warnings.add('料理カテゴリを確定するまで料理のエナジーは計上しません。');
+ if(opts.map==='シアンの砂浜EX'||opts.map==='ワカクサ本島EX')warnings.add('EXフィールド固有の補正には未対応です。');
+ if(opts.eventEffects)warnings.add('イベント補正メモはSTEP5まで計算に反映しません。');
  const warningsSkills=new Set();
  function collect(teamIds){
   for(const id of teamIds){
@@ -93,7 +99,7 @@ function simulate(input){
    if(SKILL_STRENGTH[actual]){const levels=SKILL_STRENGTH[actual];status.skills+=triggers*levels[clamp(pair.p.skillLevel-1,0,levels.length-1)]*(1+bonus/100);}
    else if(actual==='Energy for Everyone S'){const r=HEAL_ALL[clamp(pair.p.skillLevel-1,0,HEAL_ALL.length-1)];for(const who of teamIds)energy.set(who,clamp(energy.get(who)+r*triggers,0,150));}
    else if(actual==='Charge Energy S'){energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers,0,150));}
-   else if(triggers>0&&actual)warningsSkills.add(actual);
+   else if(actual)warningsSkills.add(actual);
    status.skillCount+=triggers;
    pocket.set(id,{used:0,berries:0,ingredients:{},skill:0});
   }
@@ -104,7 +110,6 @@ function simulate(input){
    const pair=members.get(id);if(!pair)continue;
    const x=signature(pair.p,pair.sp,group,camp,warnings),bag=pocket.get(id);
    const e=energy.get(id),helps=(hours*3600/x.interval)/energySpeed(e);
-   const ingExpected=helps*x.ingRate;
    let remaining=helps,space=Math.max(0,x.carry-bag.used);
    const averageIngredientItems=x.ingSlots.length?x.ingSlots.reduce((a,b)=>a+b.count,0)/x.ingSlots.length:0;
    const itemPerHelp=(1-x.ingRate)*x.berryPerHelp+x.ingRate*averageIngredientItems;
@@ -132,7 +137,7 @@ function simulate(input){
    return value;
  }
  const daySummaries=[];
- const activeTimes=[7.5,12,18,24];
+ 
  for(let d=0;d<7;d++){
   const before={berries:status.berries,cooking:status.cooking,skills:status.skills,sneaky:status.sneaky};
   let current=null;
@@ -149,7 +154,8 @@ function simulate(input){
   for(let h=0;h<sleepHours-1e-9;h+=.25)help(teams.sleep,.25,!!opts.camp);
   // Sleep recovery occurs only after a full sleep, including the final day for continuation; no box recovery.
   if(d<6){for(const id of teams.sleep){const p=byId.get(id);const f=natureFactor(p.nature,['Bold','Impish','Lax','Relaxed'],['Hasty','Lonely','Gentle','Mild']);energy.set(id,clamp(energy.get(id)+score*f,0,150));}collect(teams.sleep);}
-  else collect(teams.sleep);
+  // The next Monday 04:00 is a field reset, NOT an interaction.
+  // Do not credit the still-carried berries/ingredients or skill stock to the old week.
   daySummaries.push({day:d+1,berries:status.berries-before.berries,cooking:status.cooking-before.cooking,skills:status.skills-before.skills});
  }
  for(const s of warningsSkills)warnings.add('未対応のメインスキル（エナジー寄与未計上）：'+s);
