@@ -461,3 +461,77 @@ test('Moonlight and Berry Juice base healing are simulated with explicit conditi
   assert.ok(!r.warnings.some(w=>w.includes('未対応のメインスキル')&&w.includes(skill)));
  }
 });
+
+test('Lunar Blessing level/species berry table matches upstream sample values',()=>{
+ assert.deepEqual([...sim.lunarBerryCounts(1,1)],[5,1]);
+ assert.deepEqual([...sim.lunarBerryCounts(1,5)],[14,2]);
+ assert.deepEqual([...sim.lunarBerryCounts(3,3)],[18,2]);
+ assert.deepEqual([...sim.lunarBerryCounts(6,5)],[32,9]);
+});
+test('Draco Meteor table applies Lati-twins bonus to self berries only',()=>{
+ assert.deepEqual([...sim.dracoBerryCounts(1,1,false)],[12,1]);
+ assert.deepEqual([...sim.dracoBerryCounts(1,1,true)],[14,1]);
+ assert.deepEqual([...sim.dracoBerryCounts(5,5,true)],[62,5]);
+ assert.deepEqual([...sim.dracoBerryCounts(6,5,true)],[68,5]);
+});
+test('Draco Meteor produces team berries from the current five members',()=>{
+ const sp=master.species.find(s=>s.skill==='Berry Burst (Draco Meteor)');assert.ok(sp);
+ const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=6;});
+ const r=sim.simulate(a);
+ assert.ok(r.berries>0);
+ assert.ok(r.warnings.some(w=>w.includes('りゅうせいぐん')));
+ assert.ok(!r.warnings.some(w=>w.includes('未対応のメインスキル')&&w.includes('Draco Meteor')));
+});
+test('Psystrike direct energy works without claiming to reproduce the berry zone',()=>{
+ const sp=master.species.find(s=>s.skill==='Berry Zone (Psystrike)');assert.ok(sp);
+ const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=6;});
+ const r=sim.simulate(a);
+ assert.ok(r.skills>0);
+ assert.ok(r.warnings.some(w=>w.includes('マゴのみゾーン強化')));
+});
+test('Stockpile uses explicit long run energy rather than instant full-spit bonus',()=>{
+ const sp=master.species.find(s=>s.skill==='Charge Strength S (Stockpile)');assert.ok(sp);
+ const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=6;});
+ const r=sim.simulate(a);
+ assert.ok(r.skills>0);
+ assert.ok(r.warnings.some(w=>w.includes('長期期待値')));
+});
+test('Lunar Blessing contributes expected berry energy and team healing',()=>{
+ const sp=master.species.find(s=>s.skill==='Energy for Everyone S (Lunar Blessing)');assert.ok(sp);
+ const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=6;});
+ const r=sim.simulate(a);
+ assert.ok(r.berries>0);
+ assert.ok(r.warnings.some(w=>w.includes('みかづきのいのり')));
+ assert.equal(r.skills,0);
+});
+test('Extra Helpful S grants expected help yield without recursive skill procs',()=>{
+ const sp=master.species.find(s=>s.skill==='Extra Helpful S');assert.ok(sp);
+ const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=7;});
+ const r=sim.simulate(a);
+ assert.ok(r.berries>0);
+ assert.ok(r.warnings.some(w=>w.includes('おてつだいサポートS')));
+ assert.equal(r.skills,0);
+});
+test('Helper Boost respects multi-species parameter and produces finite week strength',()=>{
+ const sp=master.species.find(s=>s.skill==='Helper Boost');assert.ok(sp);
+ const a=input();a.box.forEach((p,i)=>{p.pokemon=i===0?sp.name:'ライチュウ';p.skillLevel=6;});
+ const r=sim.simulate(a);
+ assert.ok(r.berries>0&&Number.isFinite(r.total));
+ assert.ok(r.warnings.some(w=>w.includes('おてつだいブースト')));
+});
+test('Heal Pulse restores energy with explicit note for omitted additional helps',()=>{
+ const sp=master.species.find(s=>s.skill==='Energizing Cheer S (Heal Pulse)');assert.ok(sp);
+ const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=6;});
+ const r=sim.simulate(a);
+ assert.ok(Number.isFinite(r.total));
+ assert.ok(r.warnings.some(w=>w.includes('いやしのはどうの追加おてつだい')));
+});
+test('Seven user-excluded main skills remain excluded after additional branches',()=>{
+ for(const skill of [...sim.EXCLUDED_MAIN_SKILLS]){
+  const sp=master.species.find(s=>s.skill===skill);assert.ok(sp);
+  const a=input();a.box.forEach(p=>p.pokemon=sp.name);
+  const r=sim.simulate(a);
+  assert.equal(r.skills,0);
+  assert.ok(r.warnings.some(w=>w.includes('指定により計算対象外')));
+ }
+});
