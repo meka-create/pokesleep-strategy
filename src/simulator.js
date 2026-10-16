@@ -154,6 +154,19 @@ function effectivePotCapacity(base,skillBonus,day,camp){
  const weekend=day===6?2:1;
  return Math.round((base*weekend+clamp(skillBonus,0,200))*(camp?1.5:1));
 }
+/* The game rounds the final Strength of each dish down separately for
+   normal and Extra Tasty outcomes. Do not multiply an unrounded meal
+   by an averaged success multiplier. Event modifiers are not modeled. */
+function calculateMealEnergy(recipeStrength,extraStrength,fieldBonus,probability,day){
+ if(![recipeStrength,extraStrength,fieldBonus,probability,day].every(Number.isFinite)||
+   recipeStrength<0||extraStrength<0||fieldBonus<0||fieldBonus>100||
+   probability<0||probability>1||!Number.isInteger(day)||day<0||day>6)
+  throw Error('料理エナジー計算の入力が不正です。');
+ const beforeRounding=(recipeStrength+extraStrength)*(1+fieldBonus/100);
+ const normal=Math.floor(beforeRounding+1e-9);
+ const extraTasty=Math.floor(beforeRounding*(day===6?3:2)+1e-9);
+ return {normal,extraTasty,expected:normal*(1-probability)+extraTasty*probability};
+}
 // Greedy per-meal planner, not a global weekly optimizer and not in-game random auto-cook.
 function chooseRecipe({mode='fixed',preferredId='',foodMode,inventory,potCapacity}){
  if(!['fixed','fallback','best'].includes(mode))throw Error('料理選択モードが不正です。');
@@ -512,11 +525,12 @@ function simulate(input){
      extraIngredients[key]=count;extraCount+=count;extraEnergy+=count*ING[key];
     }
    }
-   const baseEnergy=(chosen.strength70+extraEnergy)*(1+bonus/100);
    const greatChance=successMode==='expected'?clamp((day===6?.3:.1)+successBonus,0,1):0;
-   const value=baseEnergy*(1+greatChance*(day===6?2:1));
+   const mealEnergy=calculateMealEnergy(chosen.strength70,extraEnergy,bonus,greatChance,day);
+   const value=mealEnergy.expected;
    status.cooking+=value;
    status.meals.push({day:day+1,meal,recipeId:chosen.id,name:chosen.name,energy:value,
+     normalEnergy:mealEnergy.normal,extraTastyEnergy:mealEnergy.extraTasty,
      count:mandatoryCount+extraCount,mandatoryCount,extraIngredients,extraEnergy,successProbability:greatChance,
      potCapacity:capacity,usedPotBonus:potBonus});
    if(successMode==='expected')successBonus*=1-greatChance;
@@ -590,7 +604,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
