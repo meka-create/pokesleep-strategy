@@ -51,7 +51,12 @@
     <section id="panel-simulate" class="panel" role="tabpanel" hidden>
  <div class="section-heading"><div><div class="eyebrow">WEEKLY SIMULATOR</div><h3>7日間エナジー試算</h3></div><span class="outline-tag">STEP 2 暫定</span></div>
  <div class="note"><strong>現在は編成の自動提案ではありません。</strong> 朝・昼・夜の5匹を手動指定し、ゲームマスターの基礎値を使った概算を確認します。未対応スキル・イベント効果・レシピは自動的に捏造しません。イベント固有効果はSTEP 5で対応します。</div>
- <div class="section-heading minor"><h3>時間帯ごとのチーム</h3></div>
+ <div class="section-heading minor"><h3>時間帯ごとのチーム（各5匹）</h3></div>
+ <div class="card sim-setup">
+  <p>最初は、STEP 1で決めた<strong>睡眠用の5匹を朝・昼・夜に一括コピー</strong>できます。その後、各枠をタップして1匹ずつ変更してください。</p>
+  <button id="fillAllRosters" type="button" class="secondary full">睡眠用5匹を朝・昼・夜へ一括セット</button>
+  <p id="simRosterStatus" class="small warn" role="status">編成を確認しています。</p>
+ </div>
  <div class="card sim-rosters" id="simRosters">
   <div class="sim-roster"><h4>朝 7:30～12:00</h4><div class="sim-slots" data-roster="morning"></div><button class="secondary sim-copy" data-copy-from="sleep" data-copy-to="morning">睡眠パーティを朝にコピー</button></div>
   <div class="sim-roster"><h4>昼 12:00～18:00</h4><div class="sim-slots" data-roster="noon"></div><button class="secondary sim-copy" data-copy-from="morning" data-copy-to="noon">朝の編成をコピー</button></div>
@@ -70,7 +75,7 @@
   <label class="field"><span>初期マメミート（個）</span><input id="simSausage" type="number" min="0" max="10000" value="0"></label>
  </div>
  <div class="small muted sim-conditions">マップ・料理カテゴリ・キャンプチケット設定は「イベント」タブの第1週設定を使います。週切替の月曜4:00～7:30は獲得ゼロとして扱います。</div>
- <button class="primary full" id="runSim">7日間を試算する</button>
+ <button class="primary full" id="runSim" disabled>7日間を試算する</button>
  <div id="simError" class="error" role="alert" hidden></div>
  <div id="simResult" class="card sim-result" hidden aria-live="polite">
   <div class="eyebrow">REFERENCE RESULT / 暫定概算</div>
