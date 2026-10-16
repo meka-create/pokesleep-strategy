@@ -1,4 +1,4 @@
-# STEP 2 実装状況（2026-10-16）
+# STEP 2 実装状況・起動不具合修正（2026-10-16）
 
 ## 実装対象
 - pokesleep-toolの現行 `src/data/pokemon.json` と日本語辞書から249種の基礎マスターを抽出。
@@ -33,11 +33,21 @@
   - https://game8.jp/pokemonsleep/546433
   - https://game8.jp/pokemonsleep/546451
 
+## v0.2.1 ホットフィックス
+ユーザー実機で「朝・昼・夜の5匹を指定できない／結果が表示されない」障害が発生。
+- 根本原因：`src/app.js` の STEP2 機能関数とイベント登録処理が誤って `save()` の catch ブロック内に挿入され、起動時 `ReferenceError: fillSimulation is not defined`。
+- 修正：関数とイベント登録をトップレベルの初期化領域へ移動。5枠の選択値を欠番込みで保存し、選択欄が詰まらないよう修正。
+- 追加：睡眠パーティ5匹を朝・昼・夜に一括セット、未入力枠の表示、入力完成前の試算ボタン無効化。
+- 再検証：ブラウザDOM互換モックでアプリの起動、全15選択欄の生成、一括セット、計算結果7日分の画面表示、4枠目選択位置の保持を確認。
+- `tests/app_boot.test.cjs` で上記の起動・操作を再発防止テスト化。GitHub上の `index.html` と `dist/index.html` はSHA一致。
+- Android Chromeでのv0.2.1再確認、GitHub Actionsの実行結果は未確認。
+
 ## テストと検証
 - `tests/import.test.cjs`：STEP1のCSV・バックアップ互換性（14件）。
 - `tests/simulator.test.cjs`：ポケモンマスター、きのみ式、7日内訳、キャンプ効果、料理材料、チーム重複、不明種、ランダムマップ等（10件）。
+- `tests/app_boot.test.cjs`：起動エラー回帰、一括セットからの計算結果表示、固定枠の保持（2件）。
 - `.github/workflows/check.yml`：`npm run check` とビルド結果一致検査。
-- Android ChromeのSTEP2画面はユーザー実機確認待ち。
+- Android Chromeでv0.2.0の起動不能をユーザーが確認。修正版v0.2.1の実機検証は未完了。
 
 ## 現在の判定
 STEP2の**暫定計算エンジン・入力画面は実装済み**。上記未対応項目があるため、ゲーム内完全再現や最終精度達成の判定は出していない。ユーザーの厳密監査を受ける前にSTEP3へ進まない。
