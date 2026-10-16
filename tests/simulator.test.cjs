@@ -156,3 +156,28 @@ test('bag cap reduces collected ingredients compared with unlimited bag',()=>{
  const small=sim.simulate(a),full=sim.simulate(b);
  assert.ok(small.ingredients.apple<full.ingredients.apple);
 });
+
+test('all seven user-excluded main skills make zero contribution to energy and skill triggers',()=>{
+ const expected=[
+  'Metronome','Skill Copy (Mimic)','Skill Copy (Transform)','Versatile',
+  'Dream Shard Magnet S','Dream Shard Magnet S (Random)','Dream Shard Magnet S (Aura Sphere)'
+ ];
+ assert.deepEqual([...sim.EXCLUDED_MAIN_SKILLS],expected);
+ for(const skill of expected){
+  const species=master.species.find(s=>s.skill===skill);
+  assert.ok(species,'No test species for '+skill);
+  const a=input();
+  a.box.forEach(p=>{p.pokemon=species.name;p.mainSkill='エナジーチャージM';});
+  const result=sim.simulate(a);
+  assert.equal(result.skills,0,skill+' direct energy must not count');
+  assert.equal(result.skillTriggers,0,skill+' skill triggers must not count');
+  assert.ok(result.berries>0,skill+' must still produce ordinary berries');
+  assert.ok(result.warnings.some(w=>w.includes('計算対象外のメインスキル')),skill+' exclusion should be transparent');
+  assert.ok(!result.warnings.some(w=>w.includes('未対応のメインスキル')&&w.includes(skill)),skill+' is intentionally out-of-scope');
+ }
+});
+test('exclusion does not disable ordinary direct-strength skill calculations',()=>{
+ const a=input(),result=sim.simulate(a);
+ assert.ok(result.skills>0);
+ assert.ok(result.skillTriggers>0);
+});
