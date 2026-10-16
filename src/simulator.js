@@ -77,7 +77,15 @@ function simulate(input){
   }
  }
  if([...members.values()].every(x=>!x))throw Error('マスターに一致するポケモンがいません。');
- const inventory={...opts.initialIngredients};for(const k of Object.keys(inventory)){const v=nums(inventory[k]);if(!Number.isInteger(v)||v<0||v>10000)throw Error('初期食材数が不正です。');inventory[k]=v;}
+ const inventory={...opts.initialIngredients};for(const k of Object.keys(inventory)){
+   const v=nums(inventory[k]);if(!Number.isInteger(v)||v<0||v>10000||!Object.prototype.hasOwnProperty.call(Master.ingredients,k))throw Error('初期食材数が不正です。');
+   inventory[k]=v;
+ }
+ const bagCapacity=nums(opts.bagCapacity??0);
+ if(!Number.isInteger(bagCapacity)||bagCapacity<0||bagCapacity>10000)throw Error('食材バッグ容量が不正です。');
+ const bagUsed=()=>Object.values(inventory).reduce((sum,n)=>sum+n,0);
+ if(bagCapacity&&bagUsed()>bagCapacity)throw Error('初期食材の合計が食材バッグ容量を超えています。');
+ if(!bagCapacity)warnings.add('食材バッグ容量が未設定です。満杯時の食材回収制限は考慮していません。');
  const recipe=RECIPES.find(r=>r.id===opts.recipeId);
  if(!recipe)warnings.add('レシピ未選択：料理エナジーを計上していません。');
  else if(opts.foodMode!=='random'&&opts.foodMode!==recipe.type)warnings.add('レシピと料理カテゴリが一致しません。料理エナジーを計上していません。');
@@ -94,7 +102,13 @@ function simulate(input){
    const bag=pocket.get(id);
    const strength=berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
    status.berries+=bag.berries*strength;
-   for(const [key,v] of Object.entries(bag.ingredients)){inventory[key]=(inventory[key]||0)+v;status.ingredients[key]=(status.ingredients[key]||0)+v;}
+   const remainingInPocket={};let uncollected=0;
+   for(const [key,v] of Object.entries(bag.ingredients)){
+    const capacity=bagCapacity?Math.max(0,bagCapacity-bagUsed()):v;
+    const accepted=Math.max(0,Math.min(v,capacity));
+    if(accepted){inventory[key]=(inventory[key]||0)+accepted;status.ingredients[key]=(status.ingredients[key]||0)+accepted;}
+    if(v-accepted>1e-9){remainingInPocket[key]=v-accepted;uncollected+=v-accepted;}
+   }
    let triggers=bag.skill;const skill=pair.sp.skill,actual=pair.sp.skill==='Versatile'?(Master.species.find(z=>z.skillName===pair.p.mainSkill)||{}).skill:skill;
    if(SKILL_STRENGTH[actual]){const levels=SKILL_STRENGTH[actual];status.skills+=triggers*levels[clamp(pair.p.skillLevel-1,0,levels.length-1)]*(1+bonus/100);}
    else if(actual==='Energy for Everyone S'){const r=HEAL_ALL[clamp(pair.p.skillLevel-1,0,HEAL_ALL.length-1)];
@@ -102,7 +116,7 @@ function simulate(input){
    else if(actual==='Charge Energy S'){const f=natureFactor(pair.p.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers*f,0,150));}
    else if(actual)warningsSkills.add(actual);
    status.skillCount+=triggers;
-   pocket.set(id,{used:0,berries:0,ingredients:{},skill:0});
+   pocket.set(id,{used:uncollected,berries:0,ingredients:remainingInPocket,skill:0});
   }
  }
  function help(teamIds,hours,camp,estimatedEnergy){
@@ -172,6 +186,7 @@ function simulate(input){
  for(const s of warningsSkills)warnings.add('未対応のメインスキル（エナジー寄与未計上）：'+s);
  warnings.add('暫定期待値モデルです。げんき・所持上限・スキルストック・ピティ補正は近似であり、ゲーム内の厳密値とは一致しません。食材バッグの総容量制限・前週からの所持品持ち越しは未対応です。');
  if(recipe)warnings.add('料理はLv70の選択レシピのみ、成立した場合に計上します。追加食材・代替料理・大成功は未対応です。');
+ if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,inventory,days:daySummaries,warnings:[...warnings],models:members.size};
 }
 const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed};
