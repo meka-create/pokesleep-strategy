@@ -28,6 +28,12 @@ const DRACO_BERRIES=[
  [[48,3],[50,4],[55,4],[55,5],[58,5]]
 ];
 const PSYSTRIKE_STRENGTH=[1408,2002,2762,3813,5264,7274];
+const EXTRA_HELP=[6,7,8,9,10,11,12];
+const HELPER_BOOST=[
+ [2,2,3,4,6], [3,3,4,5,7], [3,3,5,6,8],
+ [4,4,6,7,9], [4,5,7,8,10], [5,6,8,9,11]
+];
+const HEAL_PULSE_HELP=[1,2,2,3,4,4];
 const TASTY_CHANCE=[4,5,6,7,8,10];
 const DRAW_AMOUNTS=[5,6,8,11,13,16,18];
 const DRAW_POOLS={
@@ -181,8 +187,12 @@ function simulate(input){
  const warnings=new Set();
  if(!favorite.length)warnings.add('このフィールドの好みのきのみは未確定です。好みボーナスを計上していません。');
  const species=new Map(Master.species.map(s=>[s.name,s]));
- const members=new Map(), energy=new Map(),pocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,meals:[],consumedIngredients:{}};
- for(const p of input.box){energy.set(p.id,initialEnergy);pocket.set(p.id,{used:0,berries:0,ingredients:{},skill:0});}
+ const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,meals:[],consumedIngredients:{}};
+ for(const p of input.box){
+  energy.set(p.id,initialEnergy);
+  pocket.set(p.id,{used:0,berries:0,ingredients:{},skill:0});
+  extraPocket.set(p.id,{used:0,berries:0,ingredients:{},skill:0});
+ }
  for(const key of periods)for(const id of teams[key]){
   if(!members.has(id)){
    const p=byId.get(id),sp=species.get(p.pokemon);
@@ -229,18 +239,29 @@ function simulate(input){
   return accepted;
  }
  function collect(teamIds){
+  const granted=new Map();
+  const giveHelps=(who,count)=>{
+   if(!members.get(who)||count<=0)return;
+   granted.set(who,(granted.get(who)||0)+count);
+   status.extraHelps+=count;
+  };
   for(const id of teamIds){
    const pair=members.get(id);if(!pair)continue;
-   const bag=pocket.get(id);
+   const bag=pocket.get(id),extraBag=extraPocket.get(id);
    const strength=berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
-   status.berries+=bag.berries*strength;
-   const remainingInPocket={};let uncollected=0;
-   for(const [key,v] of Object.entries(bag.ingredients)){
-    const capacity=bagCapacity?Math.max(0,bagCapacity-bagUsed()):v;
-    const accepted=Math.max(0,Math.min(v,capacity));
-    if(accepted){inventory[key]=(inventory[key]||0)+accepted;status.ingredients[key]=(status.ingredients[key]||0)+accepted;}
-    if(v-accepted>1e-9){remainingInPocket[key]=v-accepted;uncollected+=v-accepted;}
-   }
+   status.berries+=(bag.berries+extraBag.berries)*strength;
+   const receiveFood=(src)=>{
+    const retained={};let retainedCount=0;
+    for(const [key,v] of Object.entries(src.ingredients)){
+     const capacity=bagCapacity?Math.max(0,bagCapacity-bagUsed()):v;
+     const accepted=Math.max(0,Math.min(v,capacity));
+     if(accepted){inventory[key]=(inventory[key]||0)+accepted;status.ingredients[key]=(status.ingredients[key]||0)+accepted;}
+     if(v-accepted>1e-9){retained[key]=v-accepted;retainedCount+=v-accepted;}
+    }
+    return {retained,retainedCount};
+   };
+   const standardFood=receiveFood(bag),extraFood=receiveFood(extraBag);
+   const remainingInPocket=standardFood.retained,uncollected=standardFood.retainedCount;
    const actual=pair.sp.skill;
    const excluded=EXCLUDED_MAIN_SKILLS.has(actual);
    const triggers=excluded?0:bag.skill;
@@ -278,6 +299,28 @@ function simulate(input){
      }
      warnings.add('ナイトメアはあくタイプ以外のチームメンバーのげんき-12／発動を期待値で反映しています。');
     }
+   }
+   else if(actual==='Extra Helpful S'){
+    const helps=triggers*EXTRA_HELP[clamp(pair.p.skillLevel-1,0,6)];
+    for(const who of teamIds)giveHelps(who,helps/teamIds.length);
+    warnings.add('おてつだいサポートSは対象1匹のランダム抽選を5匹への均等期待値で近似します。');
+   }
+   else if(actual==='Helper Boost'){
+    const speciesCount=teamSpeciesCount(teamIds,members,id);
+    const n=HELPER_BOOST[clamp(pair.p.skillLevel-1,0,5)][clamp(speciesCount-1,0,4)];
+    for(const who of teamIds)giveHelps(who,triggers*n);
+    warnings.add('おてつだいブーストは同タイプの異なる種族数と全員の追加おてつだいを反映した期待値です。');
+   }
+   else if(actual==='Energizing Cheer S (Heal Pulse)'){
+    const lvl=clamp(pair.p.skillLevel-1,0,5),heal=CHEER_HEAL[actual][lvl];
+    const bonusHelp=teamHasLatiTwins(teamIds,members)?(lvl<2?1:lvl<5?2:3):0;
+    const helps=triggers*(HEAL_PULSE_HELP[lvl]+bonusHelp);
+    for(const who of teamIds){
+     const recipient=byId.get(who),factor=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);
+     energy.set(who,clamp(energy.get(who)+triggers*heal*2/teamIds.length*factor,0,150));
+     giveHelps(who,helps*2/teamIds.length);
+    }
+    warnings.add('いやしのはどうは回復・追加おてつだいを対象2匹への均等期待値で近似しています。');
    }
    else if(actual==='Energy for Everyone S (Lunar Blessing)'){
     const level=clamp(pair.p.skillLevel-1,0,5),r=LUNAR_HEAL[level];
@@ -371,7 +414,9 @@ function simulate(input){
    else if(actual)warningsSkills.add(actual);
    status.skillCount+=triggers;
    pocket.set(id,{used:uncollected,berries:0,ingredients:remainingInPocket,skill:0});
+   extraPocket.set(id,{used:extraFood.retainedCount,berries:0,ingredients:extraFood.retained,skill:0});
   }
+  if(granted.size)help(teamIds,0,!!opts.camp,undefined,granted);
  }
  function grantExtraHelps(teamIds,targetId,helps){
   // No secondary skill proc. The extra production remains in the Pokemon pocket
@@ -390,13 +435,14 @@ function simulate(input){
   const sneakyEnergy=overflow*x.berryPerHelp*berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
   status.berries+=sneakyEnergy;status.sneaky+=sneakyEnergy;
  }
- function help(teamIds,hours,camp,estimatedEnergy){
+ function help(teamIds,hours,camp,estimatedEnergy,forcedHelps){
   const group=teamIds.map(id=>members.get(id)).filter(Boolean).map(x=>x.p);
   for(const id of teamIds){
    const pair=members.get(id);if(!pair)continue;
-   const x=signature(pair.p,pair.sp,group,camp,warnings),bag=pocket.get(id);
-   const e=estimatedEnergy?.get(id)??energy.get(id),helps=(hours*3600/x.interval)/energySpeed(e);
-   let remaining=helps,space=Math.max(0,x.carry-bag.used);
+   const x=signature(pair.p,pair.sp,group,camp,warnings),bag=forcedHelps?extraPocket.get(id):pocket.get(id);
+   const e=estimatedEnergy?.get(id)??energy.get(id);
+   const helps=forcedHelps?(forcedHelps.get(id)||0):(hours*3600/x.interval)/energySpeed(e);
+   let remaining=helps,space=Math.max(0,(forcedHelps?999:x.carry)-bag.used);
    const averageIngredientItems=x.ingSlots.length?x.ingSlots.reduce((a,b)=>a+b.count,0)/x.ingSlots.length:0;
    const itemPerHelp=(1-x.ingRate)*x.berryPerHelp+x.ingRate*averageIngredientItems;
    const fits=Math.min(remaining,itemPerHelp>0?space/itemPerHelp:0);
@@ -404,10 +450,13 @@ function simulate(input){
    bag.berries+=fits*(1-x.ingRate)*x.berryPerHelp;
    for(const s of x.ingSlots){bag.ingredients[s.key]=(bag.ingredients[s.key]||0)+fits*x.ingRate*s.count/x.ingSlots.length;}
    bag.used+=fits*itemPerHelp;
-   const sneaky=overflow*x.berryPerHelp;
-   const strength=berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
-   status.berries+=sneaky*strength;status.sneaky+=sneaky*strength;
-   bag.skill=EXCLUDED_MAIN_SKILLS.has(pair.sp.skill)?0:Math.min(x.stockMax,bag.skill+fits*x.skillRate);
+   if(!forcedHelps){
+    const sneaky=overflow*x.berryPerHelp;
+    const strength=berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
+    status.berries+=sneaky*strength;status.sneaky+=sneaky*strength;
+    bag.skill=EXCLUDED_MAIN_SKILLS.has(pair.sp.skill)?0:Math.min(x.stockMax,bag.skill+fits*x.skillRate);
+   }
+   else if(overflow>0)warnings.add('追加おてつだいの別所持上限999に達し、あふれた追加分は計上していません。');
   }
  }
  function tickActive(ids,minutes,camp,awake){
@@ -489,13 +538,13 @@ function simulate(input){
  })[s]).join('、')+'。これらのスキル効果は評価せず、通常のおてつだい・きのみ・食材は計算します。');
  if(status.unassignedMagnet>0)warnings.add('食材ゲット系スキルで抽選候補が未設定のため、ランダム食材の期待'+status.unassignedMagnet.toFixed(1)+'個は料理材料に計上していません。発見済み食材を選択してください。');
  if(Object.keys(status.skillIngredients).length)warnings.add('食材ゲット系の抽選は選択した発見済み食材に均等配分した期待値近似です。実際の抽選単位・食材の偏りは未再現です。');
- warnings.add('暫定期待値モデルです。げんき・所持上限・スキルストック・ピティ補正は近似であり、ゲーム内の厳密値とは一致しません。前週からの所持品持ち越しは未対応です。');
+ warnings.add('暫定期待値モデルです。げんき・所持上限・スキルストック・ピティ補正・追加おてつだい別枠999は近似であり、ゲーム内の厳密値とは一致しません。前週からの所持品持ち越しは未対応です。');
  if(extraMode==='none')warnings.add('追加食材はOFFです。鍋の余剰容量による食材エナジーは未計上です。');
  else warnings.add('追加食材は高エナジー食材から鍋を埋める短期近似です。翌食・翌週の食材温存やレシピの自動切替は考慮しません。');
  if(successMode==='none')warnings.add('料理の大成功はOFFです。料理チャンスSの寄与も未計上です。');
  else warnings.add('大成功は平日10%・日曜30%の推定確率と料理チャンスSの期待値近似です。大成功時のスキル蓄積リセットや結果のばらつきは簡略化しています。');
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
- return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
+ return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
 }
 const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,lunarBerryCounts,dracoBerryCounts,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
