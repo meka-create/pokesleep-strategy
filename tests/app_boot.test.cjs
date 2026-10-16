@@ -45,6 +45,7 @@ test('STEP2 browser startup and one-tap team setup produce results',()=>{
  assert.equal(app.items.get('simResult').hidden,false);
  assert.match(app.items.get('simTotal').textContent,/エナジー/);
  assert.equal(app.items.get('simDaily').children.length,7);
+ assert.equal(app.items.get('simNightEnergy').children.length,7);
 });
 test('fixed slots do not collapse when selecting the fourth slot first',()=>{
  const app=boot(),holder=app.rosters.morning;
