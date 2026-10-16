@@ -277,7 +277,7 @@ test('meal traces and consumption reconcile to exact configured recipe costs',()
   assert.ok(meal.count<=meal.potCapacity);
   for(const [k,v] of Object.entries(rec.requirements))consume[k]=(consume[k]||0)+v;
  }
- assert.deepEqual(r.consumedIngredients,consume);
+ assert.deepEqual(Object.entries(r.consumedIngredients).sort(),Object.entries(consume).sort());
  for(const v of Object.values(r.inventory))assert.ok(v>=-1e-5);
 });
 test('automatic cooking is confined to the configured weekly cuisine',()=>{
