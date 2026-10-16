@@ -72,6 +72,8 @@
   <label class="field"><span>初期げんき（全員共通）</span><input id="simInitialEnergy" type="number" min="0" max="150" value="100"></label>
   <label class="field wide"><span>料理の選び方</span><select id="simRecipeMode"><option value="fixed">指定したレシピだけ作る（従来どおり）</option><option value="fallback">指定レシピを優先し、材料不足なら代替</option><option value="best">各食事で作れる最高エナジーレシピを選ぶ</option></select></label>
   <label class="field wide"><span>優先・固定レシピ（全78品・レベル70）</span><select id="simRecipe"><option value="">レシピ未選択</option></select></label>
+  <label class="field wide"><span>追加食材の投入</span><select id="simExtraMode"><option value="none">なし（従来どおり）</option><option value="fill">高エナジー食材から鍋の空きを埋める</option></select></label>
+  <label class="field wide"><span>料理大成功の期待値</span><select id="simSuccessMode"><option value="none">計上しない（従来どおり）</option><option value="expected">基本大成功率・料理チャンスSを期待値計算</option></select></label>
   <p class="small muted">「最高エナジー」はその食事時点の選択です。7日間全体の料理最適化やゲーム内の「おまかせ料理」ではありません。料理カテゴリがランダムの場合は計上しません。</p>
  </div>
  <details class="card sim-inventory">
