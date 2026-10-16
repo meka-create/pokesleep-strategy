@@ -137,7 +137,7 @@ function simulate(input){
  if(recipeMode==='fixed'&&!recipe)warnings.add('レシピ未選択：料理エナジーを計上していません。');
  if(recipeMode==='fallback'&&!recipe)throw Error('代替料理モードでは優先するレシピを選んでください。');
  if(recipeMode!=='best'&&recipe&&opts.foodMode!=='random'&&opts.foodMode!==recipe.type)warnings.add('レシピと料理カテゴリが一致しません。料理エナジーを計上していません。');
- if(opts.foodMode==='random')warnings.add('ランダム料理カテゴリは未確定です。料理エナジーは計上せず、カテゴリ確定後に試算してください。');
+ if(opts.foodMode==='random')warnings.add('ランダム料理カテゴリは未確定です。料理カテゴリを確定するまで料理エナジーは計上しません。');
  if(recipeMode!=='fixed')warnings.add('料理の自動選択は各食事時点のLv70レシピエナジー最大を選ぶ近似です。翌日の食材確保や週間総エナジーを見越した最適化ではありません。');
  warnings.add('食材の期待個数は端数を含む近似です。実際に揃った食材数や料理回数とは異なります。');
  if(opts.map==='シアンの砂浜EX'||opts.map==='ワカクサ本島EX')warnings.add('EXフィールド固有の補正には未対応です。');
