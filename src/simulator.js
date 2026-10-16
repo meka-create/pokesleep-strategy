@@ -197,7 +197,7 @@ function simulate(input){
  function cook(day){if(!dishesAllowed)return 0;const needed=Object.entries(recipe.requirements);const count=needed.reduce((a,[k,v])=>a+v,0);
    // The temporary skill bonus persists if no meal is cooked and is spent at the next actual meal.
    const sunday=day===6?2:1;
-   const effectivePot=Math.ceil((pot+potBonus)*sunday*(opts.camp?1.5:1));
+   const effectivePot=Math.round((pot*sunday+potBonus)*(opts.camp?1.5:1));
    if(count>effectivePot)return 0;
    if(needed.some(([k,v])=>(inventory[k]||0)+1e-6<v))return 0;
    for(const [k,v] of needed)inventory[k]-=v;
