@@ -670,3 +670,36 @@ test('Stockpile empty team switch never fabricates a payout',()=>{
  assert.equal(result.earned,0);
  assert.deepEqual([...result.state],[...state]);
 });
+
+test('sleep recovery uses normal cap 100, self recovery-bonus cap 105, never cap 150',()=>{
+ assert.equal(sim.recoverFromSleep(40,100,1,0,false),100);
+ assert.equal(sim.recoverFromSleep(40,100,1,1,true),105);
+ assert.equal(sim.recoverFromSleep(40,100,1,1,false),100);
+ assert.equal(sim.recoverFromSleep(100,100,1,0,false),100);
+ assert.equal(sim.recoverFromSleep(140,100,1,0,false),140,'sleep should not reduce a preexisting over-cap value');
+ assert.equal(sim.recoverFromSleep(20,0,1,5,true),20);
+});
+test('sleeping helpers continue to lose Energy while producing during the idle night',()=>{
+ const a=input();a.options.initialEnergy=150;a.options.sleepScore=0;
+ a.options.recipeId='';a.options.recipeMode='fixed';a.options.initialIngredients={};
+ const r=sim.simulate(a);
+ assert.equal(r.nightEnergy.length,7);
+ assert.equal(r.nightEnergy[0].hours,7.5);
+ for(const id of a.teams.sleep){
+  const first=r.nightEnergy[0];
+  const expected=Math.max(0,first.beforeSleep[id]-45);
+  assert.ok(Math.abs(first.beforeRecovery[id]-expected)<1e-6,'nighttime 7.5h must drain 45 Energy');
+  assert.equal(first.afterRecovery[id],first.beforeRecovery[id],'sleep score zero restores nothing');
+ }
+ assert.equal(r.nightEnergy[6].hours,4);
+ for(const id of a.teams.sleep)assert.ok(r.nightEnergy[6].beforeRecovery[id]<=r.nightEnergy[6].beforeSleep[id]);
+});
+test('sleep recovery is confined to sleeping team; inactive boxed Pokemon do not gain 5%',()=>{
+ const a=input();a.options.initialEnergy=0;a.options.sleepScore=100;
+ const r=sim.simulate(a);
+ for(const day of r.nightEnergy.slice(0,6)){
+  for(const id of a.teams.sleep)assert.ok(day.afterRecovery[id]<=100+1e-9);
+ }
+ assert.equal(r.days.length,7);
+ assert.ok(r.total>0);
+});
