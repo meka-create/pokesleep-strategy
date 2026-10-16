@@ -777,3 +777,31 @@ test('sleep simulation applies 0.88 nature recovery while not giving boxed helpe
   assert.equal(next,reference);
  }
 });
+
+test('inventory base caps respect post-v2.9 evolution normalization and negative upstream sentinel',()=>{
+ const cases=[
+  ['ピカチュウ',22],
+  ['ライチュウ',31],
+  ['フシギバナ',27],
+  ['プクリン',32],
+  ['イーブイ',12],
+  ['タマザラシ',9],
+  ['デデンネ',19],
+  ['ピカチュウ (ホリデー)',20]
+ ];
+ for(const [name,expected] of cases){
+  const sp=master.species.find(s=>s.name===name);
+  assert.ok(sp,'missing species '+name);
+  assert.equal(sim.baseCarryCapacity(sp),expected,name);
+ }
+ for(const sp of master.species){
+  assert.ok(sim.baseCarryCapacity(sp)>=sp.carryLimit,
+   'unknown evolution count must not remove carrying space: '+sp.name);
+ }
+});
+test('good-camp inventory rounds fractional capacity up instead of keeping noninteger slots',()=>{
+ // Reference 1.2x inventory bonus, rounded up; slot counts are whole numbers.
+ const sp=master.species.find(s=>s.name==='ライチュウ');
+ assert.equal(Math.ceil(sim.baseCarryCapacity(sp)*1.2),38);
+ assert.equal(sim.baseCarryCapacity(sp),31);
+});
