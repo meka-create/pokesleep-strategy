@@ -28,7 +28,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.11</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.12</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -432,7 +432,21 @@ function nums(x){return Number.isFinite(Number(x))?Number(x):0;}
 function natureFactor(jp,up,down){const en=Object.keys(Master.natures).find(k=>Master.natures[k]===jp)||'';
  return up.includes(en)?1.2:down.includes(en)?.8:1;
 }
+// Energy-recovery-down natures use 0.88, not the 0.80 chance modifier.
+// Source: nitoyon/pokesleep-tool src/util/Nature.ts#energyRecoveryFactor.
+function recoveryNatureFactor(jp){
+ const en=Object.keys(Master.natures).find(k=>Master.natures[k]===jp)||'';
+ return RECOVERY_UP.includes(en)?1.2:RECOVERY_DOWN.includes(en)?.88:1;
+}
 function activeSkills(p){return p.subskills.filter((_,i)=>p.level>=[10,25,50,70,80][i]).map(s=>s||'');}
+// Upstream evolutionCount=-1 means "no stage metadata", NOT minus one evolution.
+// Normal Pikachu is a legacy exception (Pichu -> Pikachu): carryLimit 17 -> 22.
+// Costumed Pikachu forms do not inherit that extra five.
+function baseCarryCapacity(sp){
+ const stages=Number.isInteger(sp.evolutionCount)?Math.max(0,sp.evolutionCount):0;
+ const pikachuBonus=sp.name==='ピカチュウ'&&sp.english==='Pikachu'?5:0;
+ return (sp.carryLimit||10)+5*stages+pikachuBonus;
+}
 function signature(p,sp,team,camp,warnings){
  const sub=activeSkills(p),count=s=>sub.includes(s)?1:0;
  const speedNature=(function(){const f=natureFactor(p.nature,['Lonely','Adamant','Naughty','Brave'],['Bold','Timid','Calm','Modest']);return f===1.2?.9:f===.8?1.075:1;})();
@@ -452,7 +466,7 @@ function signature(p,sp,team,camp,warnings){
  const skillRate=rawSkillRate===0?0:clamp(rawSkillRate/(1-Math.pow(1-rawSkillRate,pity+1)),0,1);
  const berryPerHelp=(sp.specialty==='Berries'||sp.specialty==='All'?2:1)+count('きのみの数S');
  const ribbon=(p.sleepHours>=2000?8:p.sleepHours>=1000?6:p.sleepHours>=500?3:p.sleepHours>=200?1:0);
- const cap=(sp.carryLimit||10)+5*(sp.evolutionCount||0)+ribbon+count('最大所持数アップS')*6+count('最大所持数アップM')*12+count('最大所持数アップL')*18;
+ const cap=baseCarryCapacity(sp)+ribbon+count('最大所持数アップS')*6+count('最大所持数アップM')*12+count('最大所持数アップL')*18;
  const slots=p.level>=60?3:p.level>=30?2:1;
  const ingSlots=[];
  for(let j=0;j<slots;j++){
@@ -462,7 +476,7 @@ function signature(p,sp,team,camp,warnings){
    ingSlots.push({key,count:def['c'+(j+1)]});
  }
  const skill=sp.skill;
- return {p,sp,interval:Math.max(150,base/(camp?1.2:1)),ingRate,skillRate,berryPerHelp,carry:cap*(camp?1.2:1),ingSlots,skill,stockMax:sp.specialty==='Skills'?2:1};
+ return {p,sp,interval:Math.max(150,base/(camp?1.2:1)),ingRate,skillRate,berryPerHelp,carry:camp?Math.ceil(cap*1.2):cap,ingSlots,skill,stockMax:sp.specialty==='Skills'?2:1};
 }
 function energySpeed(e){return e>80?.45:e>60?.52:e>40?.58:e>1?.66:1;}
 function effectivePotCapacity(base,skillBonus,day,camp){
@@ -687,7 +701,7 @@ function simulate(input){
     const bonusHelp=teamHasLatiTwins(teamIds,members)?(lvl<2?1:lvl<5?2:3):0;
     const helps=triggers*(HEAL_PULSE_HELP[lvl]+bonusHelp);
     for(const who of teamIds){
-     const recipient=byId.get(who),factor=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);
+     const recipient=byId.get(who),factor=recoveryNatureFactor(recipient.nature);
      energy.set(who,clamp(energy.get(who)+triggers*heal*2/teamIds.length*factor,0,150));
      giveHelps(who,helps*2/teamIds.length);
     }
@@ -703,21 +717,21 @@ function simulate(input){
     }
     status.berries+=triggers*berryEnergy;
     for(const who of teamIds){
-     const recipient=byId.get(who),f=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);
+     const recipient=byId.get(who),f=recoveryNatureFactor(recipient.nature);
      energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));
     }
     warnings.add('みかづきのいのりの回復ときのみは種族数を基に期待値計算しています。発動タイミング・丸めは簡易モデルです。');
    }
    else if(actual==='Energy for Everyone S'||actual==='Energy for Everyone S (Berry Juice)'){const r=HEAL_ALL[clamp(pair.p.skillLevel-1,0,HEAL_ALL.length-1)];
-     for(const who of teamIds){const recipient=byId.get(who);const f=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));}
+     for(const who of teamIds){const recipient=byId.get(who);const f=recoveryNatureFactor(recipient.nature);energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));}
      if(actual==='Energy for Everyone S (Berry Juice)')warnings.add('きのみジュースの追加獲得はアイテム不使用方針によりエナジーに換算しません。');}
-   else if(actual==='Charge Energy S'||actual==='Charge Energy S (Moonlight)'){const f=natureFactor(pair.p.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers*f,0,150));
+   else if(actual==='Charge Energy S'||actual==='Charge Energy S (Moonlight)'){const f=recoveryNatureFactor(pair.p.nature);energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers*f,0,150));
     if(actual==='Charge Energy S (Moonlight)')warnings.add('つきのひかりの追加でチーム1匹を回復する効果は未計上です。');}
    else if(CHEER_HEAL[actual]){
     const heal=CHEER_HEAL[actual][clamp(pair.p.skillLevel-1,0,5)];
     const weights=cheerWeights(teamIds,energy);
     for(const who of teamIds){
-     const recipient=byId.get(who),rate=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);
+     const recipient=byId.get(who),rate=recoveryNatureFactor(recipient.nature);
      energy.set(who,clamp(energy.get(who)+heal*triggers*(weights.get(who)||0)*rate,0,150));
     }
     warnings.add('げんきエールの回復対象は最低げんき優先70%／残り均等30%の仮定です。実際の抽選確率は確定していません。');
@@ -884,7 +898,7 @@ function simulate(input){
   if(d<6){
    const recoverBonuses=teams.sleep.filter(id=>activeSkills(byId.get(id)).includes('げんき回復ボーナス')).length;
    for(const id of teams.sleep){
-    const p=byId.get(id),f=natureFactor(p.nature,RECOVERY_UP,RECOVERY_DOWN);
+    const p=byId.get(id),f=recoveryNatureFactor(p.nature);
     const selfHasBonus=activeSkills(p).includes('げんき回復ボーナス');
     energy.set(id,recoverFromSleep(energy.get(id),score,f,recoverBonuses,selfHasBonus));
    }
@@ -919,7 +933,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
