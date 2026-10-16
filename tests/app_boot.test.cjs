@@ -25,7 +25,7 @@ function boot(){
  const ctx={document,localStorage,confirm:()=>true,alert:()=>{},URL,Blob,setTimeout:()=>1,clearTimeout(){}};
  ctx.globalThis=ctx;ctx.window=ctx;
  vm.createContext(ctx);
- for(const name of ['csv.js','storage.js','master.js','simulator.js','app.js'])
+ for(const name of ['csv.js','storage.js','master.js','recipes.js','simulator.js','app.js'])
   vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),ctx,{filename:name});
  return {ctx,items,rosters,callbacks,data};
 }
@@ -36,6 +36,8 @@ test('STEP2 browser startup and one-tap team setup produce results',()=>{
  app.callbacks.get('fillAllRosters:click')();
  assert.equal(app.items.get('runSim').disabled,false);
  app.items.get('simRecipe').value='apple_curry';
+ assert.equal(app.items.get('simRecipe').children.length,79);
+ assert.equal(app.items.get('simIngredientFields').children.length,19);
  app.callbacks.get('runSim:click')();
  assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
  assert.equal(app.items.get('simResult').hidden,false);
@@ -49,4 +51,15 @@ test('fixed slots do not collapse when selecting the fourth slot first',()=>{
  app.callbacks.get(selectors[3].id+':change')();
  const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
  assert.deepEqual(saved.simulation.teams.morning,['','','','i3','']);
+});
+
+test('all 19 ingredient input values survive simulation save and restore',()=>{
+ const app=boot();
+ app.callbacks.get('fillAllRosters:click')();
+ const label=app.items.get('simIngredientFields').children[3];
+ label.children[1].value='45';
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(Object.values(saved.simulation.initialIngredients).includes(45),true);
 });
