@@ -1,15 +1,16 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light"><meta name="robots" content="noindex,nofollow"><title>ポケスリ作戦室 | STEP 1</title>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light"><meta name="robots" content="noindex,nofollow"><title>ポケスリ作戦室 | STEP 2</title>
 <!-- BUILD_CSS -->
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 1</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2</div></header>
   <main>
-    <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>まずはイベント条件と手持ちのポケモンを登録します。編成の自動計算は次のステップで順次追加します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
+    <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
     <nav class="tabs" role="tablist" aria-label="機能切り替え">
       <button class="tab active" data-tab="event" role="tab" aria-selected="true">イベント</button>
       <button class="tab" data-tab="box" role="tab" aria-selected="false">ボックス <span id="boxCountTab" class="tab-counter">0</span></button>
+      <button class="tab" data-tab="simulate" role="tab" aria-selected="false">試算</button>
       <button class="tab" data-tab="settings" role="tab" aria-selected="false">設定・保存</button>
     </nav>
     <div id="toast" class="toast" aria-live="polite" hidden></div>
@@ -47,14 +48,47 @@
       <label class="field search"><span>名前・種族で検索</span><input id="searchPokemon" type="search" placeholder="例：サーナイト"></label>
       <div id="pokemonList" class="pokemon-list"></div><div id="boxMore" class="muted small" hidden></div>
     </section>
-    <section id="panel-settings" class="panel" role="tabpanel" hidden>
+    <section id="panel-simulate" class="panel" role="tabpanel" hidden>
+ <div class="section-heading"><div><div class="eyebrow">WEEKLY SIMULATOR</div><h3>7日間エナジー試算</h3></div><span class="outline-tag">STEP 2 暫定</span></div>
+ <div class="note"><strong>現在は編成の自動提案ではありません。</strong> 朝・昼・夜の5匹を手動指定し、ゲームマスターの基礎値を使った概算を確認します。未対応スキル・イベント効果・レシピは自動的に捏造しません。イベント固有効果はSTEP 5で対応します。</div>
+ <div class="section-heading minor"><h3>時間帯ごとのチーム</h3></div>
+ <div class="card sim-rosters" id="simRosters">
+  <div class="sim-roster"><h4>朝 7:30～12:00</h4><div class="sim-slots" data-roster="morning"></div><button class="secondary sim-copy" data-copy-from="sleep" data-copy-to="morning">睡眠パーティを朝にコピー</button></div>
+  <div class="sim-roster"><h4>昼 12:00～18:00</h4><div class="sim-slots" data-roster="noon"></div><button class="secondary sim-copy" data-copy-from="morning" data-copy-to="noon">朝の編成をコピー</button></div>
+  <div class="sim-roster"><h4>夜 18:00～0:00</h4><div class="sim-slots" data-roster="evening"></div><button class="secondary sim-copy" data-copy-from="noon" data-copy-to="evening">昼の編成をコピー</button></div>
+ </div>
+ <div class="section-heading minor"><h3>計算条件</h3></div>
+ <div class="card form-grid">
+  <label class="field"><span>フィールドボーナス（％）</span><input id="simFieldBonus" type="number" min="0" max="100" step="1" value="0"></label>
+  <label class="field"><span>回収間隔（分）</span><select id="simTap"><option value="120">120分</option><option value="150">150分</option><option value="180">180分</option></select></label>
+  <label class="field"><span>鍋容量</span><input id="simPot" type="number" min="7" max="300" step="1" value="57"></label>
+  <label class="field"><span>睡眠スコア</span><input id="simSleepScore" type="number" min="0" max="100" value="100"></label>
+  <label class="field"><span>初期げんき（全員共通）</span><input id="simInitialEnergy" type="number" min="0" max="150" value="100"></label>
+  <label class="field wide"><span>試算するレシピ（代表5品のみ）</span><select id="simRecipe"><option value="">料理は計算しない</option></select></label>
+  <label class="field"><span>初期リンゴ（個）</span><input id="simApple" type="number" min="0" max="10000" value="0"></label>
+  <label class="field"><span>初期ミルク（個）</span><input id="simMilk" type="number" min="0" max="10000" value="0"></label>
+  <label class="field"><span>初期マメミート（個）</span><input id="simSausage" type="number" min="0" max="10000" value="0"></label>
+ </div>
+ <div class="small muted sim-conditions">マップ・料理カテゴリ・キャンプチケット設定は「イベント」タブの第1週設定を使います。週切替の月曜4:00～7:30は獲得ゼロとして扱います。</div>
+ <button class="primary full" id="runSim">7日間を試算する</button>
+ <div id="simError" class="error" role="alert" hidden></div>
+ <div id="simResult" class="card sim-result" hidden aria-live="polite">
+  <div class="eyebrow">REFERENCE RESULT / 暫定概算</div>
+  <h3 id="simTotal">—</h3>
+  <div id="simBreakdown" class="sim-breakdown"></div>
+  <div class="section-heading minor"><h3>日別の概算</h3></div><div id="simDaily"></div>
+  <div class="section-heading minor"><h3>得られた食材（期待個数）</h3></div><div id="simIngredients"></div>
+  <div class="section-heading minor"><h3>計算上の注意・未対応</h3></div><div id="simWarnings" class="sim-warnings"></div>
+ </div>
+</section>
+<section id="panel-settings" class="panel" role="tabpanel" hidden>
       <div class="section-heading"><div><div class="eyebrow">LOCAL DATA</div><h3>設定・バックアップ</h3></div></div>
       <div class="card info-card"><h4>個人データの保存先</h4><p>ポケモン情報やイベント条件は、現在のブラウザ内に保存します。外部サーバーへ送信しません。</p><p id="storageNotice" class="small"></p></div>
       <div class="card action-stack"><button class="secondary" id="downloadBackup">データをJSONでバックアップ</button><label class="secondary file-button" for="backupFile">バックアップJSONから復元<input id="backupFile" type="file" accept=".json,application/json"></label><button class="danger-ghost" id="clearData">すべてのローカルデータを消去</button></div>
       <div class="note">バックアップファイルには手持ちポケモンの情報が含まれます。第三者に共有しないでください。</div>
-      <div class="section-heading minor"><h3>開発ステータス</h3></div><div class="card roadmap"><div class="done">✓ STEP 1　CSVと基本設定</div><div>STEP 2　エナジー計算エンジン</div><div>STEP 3　朝・昼・夜の自動編成</div><div>STEP 4　イベント前週の食材準備</div><div>STEP 5　イベント条件・2週間対応</div><div>STEP 6　自動更新・正式運用</div></div>
+      <div class="section-heading minor"><h3>開発ステータス</h3></div><div class="card roadmap"><div class="done">✓ STEP 1　CSVと基本設定</div><div class="done">✓ STEP 2　暫定エナジー計算</div><div>STEP 3　朝・昼・夜の自動編成</div><div>STEP 4　イベント前週の食材準備</div><div>STEP 5　イベント条件・2週間対応</div><div>STEP 6　自動更新・正式運用</div></div>
     </section>
-  </main><footer>個人用プロトタイプ · STEP 1　/　計算・自動編成は未実装</footer>
+  </main><footer>個人用プロトタイプ · STEP 2　/　概算試験版・自動編成は未実装</footer>
 </div>
 <!-- BUILD_LIBS -->
 <!-- BUILD_APP -->
