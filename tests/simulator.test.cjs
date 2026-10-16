@@ -409,3 +409,38 @@ test('representative box for each registered species does not result in nonfinit
   for(const x of ['berries','cooking','skills','total','sneaky'])assert.ok(Number.isFinite(r[x]),sp.name+' '+x);
  }
 });
+
+test('Ingredient Draw and variants use each species own fixed ingredient pool',()=>{
+ const valid={
+  'Ingredient Draw S':new Set(['potato','corn','pumpkin']),
+  'Ingredient Draw S (Super Luck)':new Set(['mushroom','sausage','soy','coffee']),
+  'Ingredient Draw S (Hyper Cutter)':new Set(['potato','oil','tomato','corn'])
+ };
+ for(const skill of Object.keys(valid)){
+  const sp=master.species.find(x=>x.skill===skill);assert.ok(sp);
+  const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=7;});
+  a.options.recipeId='';a.options.initialIngredients={};a.options.magnetIngredients=[];
+  const r=sim.simulate(a);
+  assert.ok(Object.keys(r.skillIngredients).length>0,skill);
+  for(const key of Object.keys(r.skillIngredients))assert.ok(valid[skill].has(key),skill+' incorrect ingredient '+key);
+ }
+});
+test('Bulk Up provides ingredient value and Tasty Chance bonus only if enabled',()=>{
+ const sp=master.species.find(p=>p.skill==='Cooking Assist S (Bulk Up)');assert.ok(sp);
+ const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=7;});
+ a.options.magnetIngredients=['milk','apple'];a.options.recipeMode='best';a.options.initialIngredients={apple:100,milk:100};
+ a.options.successMode='expected';const r=sim.simulate(a);
+ assert.ok(r.skillIngredients.milk>0);
+ assert.ok(r.meals.some(m=>m.successProbability>(m.day===7?.3:.1)));
+ a.options.successMode='none';const without=sim.simulate(a);
+ assert.ok(without.meals.every(m=>m.successProbability===0));
+ assert.ok(without.warnings.some(w=>w.includes('ビルドアップ')));
+});
+test('Bad Dreams direct strength and Dark-only energy penalty are distinct from excluded shard skills',()=>{
+ const sp=master.species.find(x=>x.skill==='Charge Strength M (Bad Dreams)');assert.ok(sp);
+ const a=input();a.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=7;});
+ const r=sim.simulate(a);
+ assert.ok(r.skills>0);
+ assert.ok(r.warnings.some(x=>x.includes('ナイトメア')));
+ assert.ok(!r.warnings.some(x=>x.includes('未対応のメインスキル')&&x.includes('Bad Dreams')));
+});
