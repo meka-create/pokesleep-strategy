@@ -97,3 +97,18 @@ test('week total omits phantom 04:00 collection compared with previous version',
  const p=input();const r=sim.simulate(p);
  assert.ok(r.days.length===7);assert.ok(r.total>=r.sneaky);
 });
+
+test('sleep recovery bonus improves weekly daytime production at low sleep score',()=>{
+ const base=input(),extra=input();
+ base.options.sleepScore=50;extra.options.sleepScore=50;
+ base.options.initialEnergy=30;extra.options.initialEnergy=30;
+ extra.box.forEach(p=>p.subskills[1]='げんき回復ボーナス');
+ const b=sim.simulate(base),e=sim.simulate(extra);
+ assert.ok(e.berries>b.berries,'sleep energy recovery bonus should improve berry yield');
+});
+test('7.5-hour default sleep score is not silently assumed to be 100',()=>{
+ const oldDefault=50;
+ const a=input(),b=input();a.options.sleepScore=88;b.options.sleepScore=100;
+ a.options.initialEnergy=0;b.options.initialEnergy=0;
+ assert.ok(sim.simulate(a).berries<=sim.simulate(b).berries);
+});
