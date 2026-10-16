@@ -9,6 +9,7 @@ const BERRY=Master.berry, ING=Master.strength;
 const FAVORITES={'シアンの砂浜':['water','fairy','flying'],'トープ洞窟':['ground','fire','rock'],'ウノハナ雪原':['ice','normal','dark'],'ラピスラズリ湖畔':['grass','psychic','fighting'],'ゴールド旧発電所':['electric','ghost','steel'],'アンバー渓谷':['poison','bug','dragon']};
 const SKILL_STRENGTH={'Charge Strength S':[400,569,785,1083,1496,2066,3212],'Charge Strength M':[880,1251,1726,2383,3290,4546,6858],'Charge Strength S (Random)':[500,711.5,981.5,1354,1870,2582.5,4015]};
 const HEAL_ALL=[5,7,9,11,15,18],HEAL_SELF=[12,16,21,27,34,43];
+const RECOVERY_UP=['Bold','Impish','Lax','Relaxed'],RECOVERY_DOWN=['Hasty','Lonely','Gentle','Mild'];
 const RECIPES=[
  {id:'apple_curry',type:'curry',name:'とくせんリンゴカレー',requirements:{apple:7},strength70:2678},
  {id:'white_stew',type:'curry',name:'たんじゅんホワイトシチュー',requirements:{milk:7},strength70:2914},
@@ -101,8 +102,9 @@ function simulate(input){
    for(const [key,v] of Object.entries(bag.ingredients)){inventory[key]=(inventory[key]||0)+v;status.ingredients[key]=(status.ingredients[key]||0)+v;}
    let triggers=bag.skill;const skill=pair.sp.skill,actual=pair.sp.skill==='Versatile'?(Master.species.find(z=>z.skillName===pair.p.mainSkill)||{}).skill:skill;
    if(SKILL_STRENGTH[actual]){const levels=SKILL_STRENGTH[actual];status.skills+=triggers*levels[clamp(pair.p.skillLevel-1,0,levels.length-1)]*(1+bonus/100);}
-   else if(actual==='Energy for Everyone S'){const r=HEAL_ALL[clamp(pair.p.skillLevel-1,0,HEAL_ALL.length-1)];for(const who of teamIds)energy.set(who,clamp(energy.get(who)+r*triggers,0,150));}
-   else if(actual==='Charge Energy S'){energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers,0,150));}
+   else if(actual==='Energy for Everyone S'){const r=HEAL_ALL[clamp(pair.p.skillLevel-1,0,HEAL_ALL.length-1)];
+     for(const who of teamIds){const recipient=byId.get(who);const f=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));}}
+   else if(actual==='Charge Energy S'){const f=natureFactor(pair.p.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers*f,0,150));}
    else if(actual)warningsSkills.add(actual);
    status.skillCount+=triggers;
    pocket.set(id,{used:0,berries:0,ingredients:{},skill:0});
@@ -157,13 +159,21 @@ function simulate(input){
   const sleepHours=d===6?4:7.5;
   for(let h=0;h<sleepHours-1e-9;h+=.25)help(teams.sleep,.25,!!opts.camp);
   // Sleep recovery occurs only after a full sleep, including the final day for continuation; no box recovery.
-  if(d<6){for(const id of teams.sleep){const p=byId.get(id);const f=natureFactor(p.nature,['Bold','Impish','Lax','Relaxed'],['Hasty','Lonely','Gentle','Mild']);energy.set(id,clamp(energy.get(id)+score*f,0,150));}collect(teams.sleep);}
+  if(d<6){
+   const recoverBonuses=teams.sleep.filter(id=>activeSkills(byId.get(id)).includes('げんき回復ボーナス')).length;
+   for(const id of teams.sleep){
+    const p=byId.get(id),f=natureFactor(p.nature,RECOVERY_UP,RECOVERY_DOWN);
+    const restore=Math.min(150,Math.round(score)*f*(1+.14*recoverBonuses));
+    energy.set(id,clamp(energy.get(id)+restore,0,150));
+   }
+   collect(teams.sleep);
+  }
   // The next Monday 04:00 is a field reset, NOT an interaction.
   // Do not credit the still-carried berries/ingredients or skill stock to the old week.
   daySummaries.push({day:d+1,berries:status.berries-before.berries,cooking:status.cooking-before.cooking,skills:status.skills-before.skills});
  }
  for(const s of warningsSkills)warnings.add('未対応のメインスキル（エナジー寄与未計上）：'+s);
- warnings.add('暫定期待値モデルです。初期げんき一律、期待値での所持上限・スキルストック・ピティ補正を使用しています。ゲーム内の厳密値とは一致しません。');
+ warnings.add('暫定期待値モデルです。げんき・所持上限・スキルストック・ピティ補正は近似であり、ゲーム内の厳密値とは一致しません。食材バッグの総容量制限・前週からの所持品持ち越しは未対応です。');
  if(recipe)warnings.add('料理マスターは代表5品のみ。料理は選択レシピの成立時のみ、最大Lv70・大成功なしで計上します。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,inventory,days:daySummaries,warnings:[...warnings],models:members.size};
 }
