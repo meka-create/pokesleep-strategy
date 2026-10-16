@@ -9,6 +9,25 @@ const BERRY=Master.berry, ING=Master.strength;
 const FAVORITES={'シアンの砂浜':['water','fairy','flying'],'トープ洞窟':['ground','fire','rock'],'ウノハナ雪原':['ice','normal','dark'],'ラピスラズリ湖畔':['grass','psychic','fighting'],'ゴールド旧発電所':['electric','ghost','steel'],'アンバー渓谷':['poison','bug','dragon']};
 const SKILL_STRENGTH={'Charge Strength S':[400,569,785,1083,1496,2066,3212],'Charge Strength M':[880,1251,1726,2383,3290,4546,6858],'Charge Strength M (Bad Dreams)':[2640,3753,5178,7149,9870,13638,18515],'Charge Strength S (Random)':[500,711.5,981.5,1354,1870,2582.5,4015]};
 const HEAL_ALL=[5,7,9,11,15,18],HEAL_SELF=[12,16,21,27,34,43];
+const STOCKPILE_LONG_RUN=[659.45,937.49,1293.68,1786.21,2465.22,3405.99,4948.04];
+const LUNAR_HEAL=[3,4,5,7,9,11];
+const LUNAR_BERRIES=[
+ [[5,1],[7,1],[9,1],[12,1],[14,2]],
+ [[9,1],[12,1],[15,1],[16,2],[19,3]],
+ [[13,1],[17,1],[18,2],[20,3],[24,4]],
+ [[17,1],[19,2],[25,2],[28,3],[29,5]],
+ [[21,1],[24,2],[27,3],[28,5],[30,7]],
+ [[25,1],[29,2],[30,4],[31,6],[32,9]]
+];
+const DRACO_BERRIES=[
+ [[12,1],[14,1],[18,1],[18,2],[20,2]],
+ [[21,1],[24,1],[29,1],[30,2],[33,2]],
+ [[29,1],[29,2],[35,2],[37,3],[41,3]],
+ [[38,1],[39,2],[42,3],[45,4],[49,4]],
+ [[43,2],[44,3],[48,4],[49,5],[53,5]],
+ [[48,3],[50,4],[55,4],[55,5],[58,5]]
+];
+const PSYSTRIKE_STRENGTH=[1408,2002,2762,3813,5264,7274];
 const TASTY_CHANCE=[4,5,6,7,8,10];
 const DRAW_AMOUNTS=[5,6,8,11,13,16,18];
 const DRAW_POOLS={
@@ -130,6 +149,17 @@ function mealRecovery(energy){
  if(energy>=11)return 8;
  return 9;
 }
+function teamSpeciesCount(ids,members){return new Set(ids.map(id=>members.get(id)?.sp?.id).filter(x=>x!==undefined)).size;}
+function teamHasLatiTwins(ids,members){
+ const a=ids.map(id=>members.get(id)?.sp?.english);
+ return a.includes('Latios')&&a.includes('Latias');
+}
+function lunarBerryCounts(level,species){return LUNAR_BERRIES[clamp(level-1,0,5)][clamp(species-1,0,4)];}
+function dracoBerryCounts(level,species,twins){
+ const [self,others]=DRACO_BERRIES[clamp(level-1,0,5)][clamp(species-1,0,4)];
+ const bonus=twins?(level<5?level*2:level===5?9:10):0;
+ return [self+bonus,others];
+}
 function berryUnit(type,lv,favorites,fieldBonus){const b0=BERRY[type];const raw=Math.max(b0+lv-1,Math.round(Math.pow(1.025,lv-1)*b0));return roundup(roundup(raw*(1+fieldBonus/100))*(favorites.includes(type)?2:1));}
 function simulate(input){
  if(!input||!Array.isArray(input.box))throw Error('ボックスがありません。');
@@ -211,6 +241,14 @@ function simulate(input){
    const excluded=EXCLUDED_MAIN_SKILLS.has(actual);
    const triggers=excluded?0:bag.skill;
    if(excluded)warningsSkillsExcluded.add(actual);
+   else if(actual==='Charge Strength S (Stockpile)'){
+    status.skills+=triggers*STOCKPILE_LONG_RUN[clamp(pair.p.skillLevel-1,0,6)]*(1+bonus/100);
+    warnings.add('たくわえるは75%蓄積・25%放出の長期期待値です。蓄積状態・交代時消去・週末の未放出は未再現です。');
+   }
+   else if(actual==='Berry Zone (Psystrike)'){
+    status.skills+=triggers*PSYSTRIKE_STRENGTH[clamp(pair.p.skillLevel-1,0,5)]*(1+bonus/100);
+    warnings.add('サイコブレイクのマゴのみゾーン強化（発動ごと+0.6～2.0%）は未計上です。直接エナジーのみ反映しました。');
+   }
    else if(SKILL_STRENGTH[actual]){
     const levels=SKILL_STRENGTH[actual];
     status.skills+=triggers*levels[clamp(pair.p.skillLevel-1,0,levels.length-1)]*(1+bonus/100);
@@ -221,6 +259,21 @@ function simulate(input){
      }
      warnings.add('ナイトメアはあくタイプ以外のチームメンバーのげんき-12／発動を期待値で反映しています。');
     }
+   }
+   else if(actual==='Energy for Everyone S (Lunar Blessing)'){
+    const level=clamp(pair.p.skillLevel-1,0,5),r=LUNAR_HEAL[level];
+    const speciesCount=teamSpeciesCount(teamIds,members),counts=lunarBerryCounts(level+1,speciesCount);
+    let berryEnergy=counts[0]*berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
+    for(const who of teamIds){
+     const target=members.get(who);if(!target||who===id)continue;
+     berryEnergy+=counts[1]*berryUnit(target.sp.type,target.p.level,favorite,bonus);
+    }
+    status.berries+=triggers*berryEnergy;
+    for(const who of teamIds){
+     const recipient=byId.get(who),f=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);
+     energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));
+    }
+    warnings.add('みかづきのいのりの回復ときのみは種族数を基に期待値計算しています。発動タイミング・丸めは簡易モデルです。');
    }
    else if(actual==='Energy for Everyone S'||actual==='Energy for Everyone S (Berry Juice)'){const r=HEAL_ALL[clamp(pair.p.skillLevel-1,0,HEAL_ALL.length-1)];
      for(const who of teamIds){const recipient=byId.get(who);const f=natureFactor(recipient.nature,RECOVERY_UP,RECOVERY_DOWN);energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));}
@@ -236,6 +289,17 @@ function simulate(input){
     }
     warnings.add('げんきエールの回復対象は最低げんき優先70%／残り均等30%の仮定です。実際の抽選確率は確定していません。');
     if(actual==='Energizing Cheer S (Nuzzle)')warnings.add('ほっぺすりすりのスキル発動可能ボーナスは未計上です。');
+   }
+   else if(actual==='Berry Burst (Draco Meteor)'){
+    const speciesCount=teamSpeciesCount(teamIds,members);
+    const [own,others]=dracoBerryCounts(pair.p.skillLevel,speciesCount,teamHasLatiTwins(teamIds,members));
+    let energyGain=own*berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
+    for(const who of teamIds){
+     const target=members.get(who);if(!target||who===id)continue;
+     energyGain+=others*berryUnit(target.sp.type,target.p.level,favorite,bonus);
+    }
+    status.berries+=triggers*energyGain;
+    warnings.add('りゅうせいぐんは編成種族数とラティアス／ラティオス同時編成のボーナスを簡易期待値で計算しています。');
    }
    else if(BERRY_BURST[actual]){
     const burst=BERRY_BURST[actual],level=clamp(pair.p.skillLevel-1,0,burst.self.length-1);
@@ -396,7 +460,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,lunarBerryCounts,dracoBerryCounts,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
