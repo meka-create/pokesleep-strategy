@@ -126,9 +126,12 @@ test('all 78 recipes have valid keys, positive ingredients and level70 factor',(
 test('high-end recipe cannot cook without enough pot and stock',()=>{
  const a=input();a.options.recipeId=sim.RECIPES.find(r=>r.name==='とびはねるカレーうどん').id;
  a.options.potSize=100;a.options.initialIngredients={ginger:100,mushroom:100,herb:100,sausage:100};
- assert.equal(sim.simulate(a).cooking,0);
+ const sundayOnly=sim.simulate(a);
+ assert.equal(sundayOnly.days.slice(0,6).reduce((n,d)=>n+d.cooking,0),0,'Only Sunday doubles the permanent pot');
+ assert.ok(sundayOnly.days[6].cooking>0,'Sunday capacity permits this large recipe');
  a.options.potSize=120;
- assert.ok(sim.simulate(a).cooking>0);
+ const allDays=sim.simulate(a);
+ assert.ok(allDays.days.slice(0,6).some(d=>d.cooking>0),'Large base pot permits weekday recipes');
 });
 test('legacy recipe ids remain stable after full catalog upgrade',()=>{
  for(const id of ['apple_curry','white_stew','apple_salad','bean_salad','apple_juice'])assert.ok(sim.RECIPES.some(x=>x.id===id));
