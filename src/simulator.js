@@ -267,21 +267,6 @@ function simulate(input){
    const excluded=EXCLUDED_MAIN_SKILLS.has(actual);
    const triggers=excluded?0:bag.skill;
    if(excluded)warningsSkillsExcluded.add(actual);
-   else if(actual==='Extra Helpful S'){
-    const value=[6,7,8,9,10,11,12][clamp(pair.p.skillLevel-1,0,6)]*triggers/teamIds.length;
-    for(const who of teamIds)grantExtraHelps(teamIds,who,value);
-    warnings.add('おてつだいサポートSは対象1匹を均等抽選する近似です。追加おてつだいによるスキル再発動は計上しません。');
-   }
-   else if(actual==='Helper Boost'){
-    const speciesCount=clamp(teamSpeciesCount(teamIds,members),1,5);
-    const amounts=[
-     [2,3,3,4,4,5],[2,3,3,4,5,6],[3,4,5,6,7,8],
-     [4,5,6,7,8,9],[6,7,8,9,10,11]
-    ];
-    const amount=amounts[speciesCount-1][clamp(pair.p.skillLevel-1,0,5)]*triggers;
-    for(const who of teamIds)grantExtraHelps(teamIds,who,amount);
-    warnings.add('おてつだいブーストは編成種族数ごとの追加おてつだいを期待値計算します。追加スキル抽選・所持数処理は簡略化しています。');
-   }
    else if(actual==='Charge Strength S (Stockpile)'){
     status.skills+=triggers*STOCKPILE_LONG_RUN[clamp(pair.p.skillLevel-1,0,6)]*(1+bonus/100);
     warnings.add('たくわえるは75%蓄積・25%放出の長期期待値です。蓄積状態・交代時消去・週末の未放出は未再現です。');
@@ -418,23 +403,6 @@ function simulate(input){
    extraPocket.set(id,{used:extraFood.retainedCount,berries:0,ingredients:extraFood.retained,skill:0});
   }
   if(granted.size)help(teamIds,0,!!opts.camp,undefined,granted);
- }
- function grantExtraHelps(teamIds,targetId,helps){
-  // No secondary skill proc. The extra production remains in the Pokemon pocket
-  // until the next actual user collection; a full pocket causes sneaky snacking.
-  if(helps<=0)return;
-  const pair=members.get(targetId);if(!pair)return;
-  const group=teamIds.map(id=>members.get(id)).filter(Boolean).map(x=>x.p);
-  const x=signature(pair.p,pair.sp,group,!!opts.camp,warnings),bag=pocket.get(targetId);
-  const avg=x.ingSlots.length?x.ingSlots.reduce((n,a)=>n+a.count,0)/x.ingSlots.length:0;
-  const volume=(1-x.ingRate)*x.berryPerHelp+x.ingRate*avg;
-  const fitted=Math.min(helps,volume?Math.max(0,x.carry-bag.used)/volume:0);
-  const overflow=Math.max(0,helps-fitted);
-  bag.berries+=fitted*(1-x.ingRate)*x.berryPerHelp;
-  for(const ing of x.ingSlots)bag.ingredients[ing.key]=(bag.ingredients[ing.key]||0)+fitted*x.ingRate*ing.count/x.ingSlots.length;
-  bag.used+=fitted*volume;
-  const sneakyEnergy=overflow*x.berryPerHelp*berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
-  status.berries+=sneakyEnergy;status.sneaky+=sneakyEnergy;
  }
  function help(teamIds,hours,camp,estimatedEnergy,forcedHelps){
   const group=teamIds.map(id=>members.get(id)).filter(Boolean).map(x=>x.p);
