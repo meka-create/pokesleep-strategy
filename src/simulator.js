@@ -9,7 +9,6 @@ const BERRY=Master.berry, ING=Master.strength;
 const FAVORITES={'シアンの砂浜':['water','fairy','flying'],'トープ洞窟':['ground','fire','rock'],'ウノハナ雪原':['ice','normal','dark'],'ラピスラズリ湖畔':['grass','psychic','fighting'],'ゴールド旧発電所':['electric','ghost','steel'],'アンバー渓谷':['poison','bug','dragon']};
 const SKILL_STRENGTH={'Charge Strength S':[400,569,785,1083,1496,2066,3212],'Charge Strength M':[880,1251,1726,2383,3290,4546,6858],'Charge Strength M (Bad Dreams)':[2640,3753,5178,7149,9870,13638,18515],'Charge Strength S (Random)':[500,711.5,981.5,1354,1870,2582.5,4015]};
 const HEAL_ALL=[5,7,9,11,15,18],HEAL_SELF=[12,16,21,27,34,43];
-const STOCKPILE_LONG_RUN=[644.3,915.95,1263.97,1745.19,2408.59,3327.75,4834.38];
 // Spit Up rewards for 0..10 stockpiles, source: wiki.pokesleep.com stockpilechargestrengths.
 const STOCKPILE_REWARDS=[
  [600,1020,1500,2040,2640,3300,4020,4920,6480,8880,12120],
@@ -580,7 +579,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_LONG_RUN,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,effectivePotCapacity,chooseRecipe,mealRecovery,cheerWeights,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
