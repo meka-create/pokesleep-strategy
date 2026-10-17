@@ -763,7 +763,7 @@ test('energy-recovery nature modifiers match pokesleep-tool 1.20 and 0.88, not p
  assert.equal(sim.recoveryNatureFactor('おとなしい'),.88);
  assert.equal(sim.recoveryNatureFactor('がんばりや'),1);
  // Reference: upstream src/util/Nature.ts, energyRecoveryFactor.
- assert.equal(sim.recoverFromSleep(0,80,sim.recoveryNatureFactor('さみしがり'),0,false),70);
+ assert.equal(sim.recoverFromSleep(0,80,sim.recoveryNatureFactor('さみしがり'),0,false),71,'pokesleep-tool Energy wake event ceils 80 * 0.88 = 70.4 to 71');
  assert.equal(sim.recoverFromSleep(0,80,sim.recoveryNatureFactor('ずぶとい'),0,false),96);
 });
 test('sleep simulation applies 0.88 nature recovery while not giving boxed helpers 5 percent',()=>{
