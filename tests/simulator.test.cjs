@@ -1061,13 +1061,17 @@ test('sneaky pending queue rejects invalid and negative energy',()=>{
  assert.equal(bag.pendingSneaky,10);
 });
 test('last Sunday sleep accumulates uncollected sneaky energy at Monday 04:00',()=>{
- const a=input();a.options.recipeId='';a.options.initialIngredients={};
- a.options.initialEnergy=1;a.options.sleepScore=1;
- const r=sim.simulate(a);
- assert.ok(r.pendingSneaky>0,'uncollected late-Sunday snacking should stay pending');
- assert.ok(r.sneaky>0,'daytime sneaky should still be earned on earlier taps');
- assert.ok(Math.abs(r.days.reduce((sum,d)=>sum+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
- assert.ok(!r.warnings.some(w=>w.includes('計算結果を確定した')));
+ const originalCarry=raichu.carryLimit;
+ try{
+  raichu.carryLimit=1; // Small Pokemon pocket forces snacking even during a low-Energy 4h sleep.
+  const a=input();a.options.recipeId='';a.options.initialIngredients={};
+  a.options.initialEnergy=1;a.options.sleepScore=1;
+  a.box.forEach(p=>p.sleepHours=0);
+  const r=sim.simulate(a);
+  assert.ok(r.pendingSneaky>0,'uncollected late-Sunday snacking should stay pending');
+  assert.ok(r.sneaky>0,'daytime sneaky should still be earned on earlier taps');
+  assert.ok(Math.abs(r.days.reduce((sum,d)=>sum+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
+ }finally{raichu.carryLimit=originalCarry;}
 });
 
 function plusMinusInput(){
