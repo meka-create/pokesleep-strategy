@@ -229,6 +229,7 @@ function integerFoodPocketTransitions(joint,completed,capacity,berryCount,ingred
   throw Error('食材所持数の結合分布入力が不正です。');
  const width=capacity+1,choices=slots.length?slots:[{key:null,count:0}];
  let mass=0,distribution=new Map(joint),berry=0,sneaky=0,eligible=0;
+ const initialOccupied=new Map();
  const foods={};
  for(const [k,p] of distribution){
   const occupied=Math.floor(k/width),food=k%width;
@@ -236,6 +237,7 @@ function integerFoodPocketTransitions(joint,completed,capacity,berryCount,ingred
     !Number.isFinite(p)||p<0)
    throw Error('食材所持数の結合確率状態が不正です。');
   mass+=p;
+  initialOccupied.set(occupied,(initialOccupied.get(occupied)||0)+p);
  }
  if(Math.abs(mass-1)>1e-8)throw Error('食材所持数の結合確率質量が不正です。');
  for(let i=0;i<completed;i++){
@@ -272,8 +274,11 @@ function integerFoodPocketTransitions(joint,completed,capacity,berryCount,ingred
   occupation.set(count,(occupation.get(count)||0)+p);
  }
  const used=Array.from(occupation,([n,p])=>n*p).reduce((a,b)=>a+b,0);
+ // Skill stock needs the within-batch distribution of eligible roll counts;
+ // its probabilities depend on occupied slots, not the food/berry split.
+ const marginal=integerPocketTransitions(initialOccupied,completed,capacity,berryCount,ingredientRate,slots);
  return {occupation,foodJoint:distribution,used,berries:berry,
-   sneaky,ingredients:foods,eligible};
+   sneaky,ingredients:foods,eligible,eligibleDistribution:marginal.eligibleDistribution};
 }
 // Conditional on an *integer* number of free shared-bag slots, remove up to
 // that many food items after all berries have been picked up. The retained
