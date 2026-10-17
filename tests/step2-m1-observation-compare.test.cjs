@@ -51,6 +51,42 @@ test('complete simulator input can be compared against a single observation with
  assert.equal(r.accuracyGate,'HOLD');
  assert.equal(r.rankOrAccuracyValidated,false);
  assert.equal(r.provenance.screenshotReviewed,false);
- assert.equal(r.confounders.length,4);
+ assert.equal(r.confounders.length,5);
+ assert.ok(r.confounders.some(x=>x.includes('04:00')));
  assert.ok(r.model.total>0);
+});
+
+test('observation verification flags must be boolean, never truthy strings',()=>{
+ const t={schema:'step2-m1-weekly-observation-v1',
+  week:{mondayDate:'2026-10-19',field:'ゴールド旧発電所'},
+  provenance:{source:'in_game_weekly_summary',noUnmodeledEvents:'false'},
+  input:{box:[],teams:{},options:{map:'ゴールド旧発電所'}},
+  observed:{total:0,berryAndStrengthSkill:0,cooking:0}};
+ assert.throws(()=>compareSingleWeek(t),/確認フラグ/);
+});
+test('a contradictory game summary is always confounded even if user checked every flag',()=>{
+ const ids=['a','b','c','d','e'];
+ const p=id=>({id,pokemon:'ライチュウ',nickname:id,level:1,skillLevel:1,
+  ingredients:['とくせんリンゴ','',''],subskills:['','','','',''],nature:'まじめ',sleepHours:0,shiny:false});
+ const flags={source:'in_game_weekly_summary',noUnmodeledEvents:true,
+  sameCollectionSchedule:true,noUntrackedItems:true,startStrengthVerified:true,weekBoundaryReconciled:true};
+ const input={box:ids.map(p),teams:{morning:ids,noon:ids,evening:ids,sleep:ids},
+  options:{map:'ゴールド旧発電所',fieldBonus:0,tapMinutes:150,potSize:57,
+   sleepScore:80,initialEnergy:100,foodMode:'curry',recipeMode:'fixed',recipeId:'',
+   initialIngredients:{},bagCapacity:0,camp:false,extraMode:'none',successMode:'none'}};
+ const base={schema:'step2-m1-weekly-observation-v1',week:{mondayDate:'2026-10-19',field:'ゴールド旧発電所'},
+  provenance:flags,input,observed:{total:10,berryAndStrengthSkill:10,cooking:0}};
+ const ok=compareSingleWeek(base);
+ assert.equal(ok.status,'UNCALIBRATED_OBSERVATION');
+ assert.equal(ok.accuracyGate,'HOLD');
+ assert.equal(ok.rankOrAccuracyValidated,false);
+ const bad=compareSingleWeek({...base,observed:{total:11,berryAndStrengthSkill:10,cooking:0}});
+ assert.equal(bad.status,'CONFOUNDED_OBSERVATION');
+ assert.equal(bad.weeklySummaryBucketsReconcile,false);
+ assert.ok(bad.confounders.some(x=>x.includes('合計が一致しません')));
+ assert.equal(bad.accuracyGate,'HOLD');
+ const {weekBoundaryReconciled,...legacyFlags}=flags;
+ const legacy=compareSingleWeek({...base,provenance:legacyFlags});
+ assert.equal(legacy.status,'CONFOUNDED_OBSERVATION');
+ assert.ok(legacy.confounders.some(x=>x.includes('04:00')));
 });

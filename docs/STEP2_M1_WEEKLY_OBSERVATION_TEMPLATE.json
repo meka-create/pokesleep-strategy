@@ -10,7 +10,8 @@
     "noUnmodeledEvents": false,
     "sameCollectionSchedule": false,
     "noUntrackedItems": false,
-    "startStrengthVerified": false
+    "startStrengthVerified": false,
+    "weekBoundaryReconciled": false
   },
   "input": null,
   "observed": {

@@ -57,6 +57,15 @@ function compareSingleWeek(report){
  if(!provenance||provenance.source!=='in_game_weekly_summary'||
    !input||!input.options||!input.teams||!Array.isArray(input.box))
   throw Error('ゲーム内の週まとめ出典と同週の手動編成設定が必要です。');
+ // Non-boolean strings such as "false" must never count as verified evidence.
+ const confirmationKeys=['noUnmodeledEvents','sameCollectionSchedule','noUntrackedItems',
+  'startStrengthVerified','weekBoundaryReconciled'];
+ for(const key of confirmationKeys){
+  if(Object.prototype.hasOwnProperty.call(provenance,key)&&typeof provenance[key]!=='boolean')
+   throw Error('観測条件の確認フラグは真偽値で指定してください: '+key);
+ }
+ if(typeof week.field!=='string'||!week.field.trim())
+  throw Error('観測フィールドを指定してください。');
  if(week.field!==input.options.map)
   throw Error('観測フィールドとシミュレーター設定が一致しません。');
  const predicted=sim.simulate(input);
@@ -65,14 +74,21 @@ function compareSingleWeek(report){
   !provenance.noUnmodeledEvents?'イベント・EX等の未対応追加効果が除外されたことを確認できません。':null,
   !provenance.sameCollectionSchedule?'実際の回収・食事・編成交代時刻と本モデルのスケジュールが同じか未確認です。':null,
   !provenance.noUntrackedItems?'ホイッスル等のアイテムによる増加が除外されたことを確認できません。':null,
-  !provenance.startStrengthVerified?'月曜07:30の試算開始時点のエナジー差分を確認できません。':null
+  !provenance.startStrengthVerified?'月曜07:30の試算開始時点のエナジー差分を確認できません。':null,
+  !provenance.weekBoundaryReconciled?'実ゲームの月曜04:00開始とモデルの月曜07:30開始の3時間30分の差を照合できません。':null,
+  !bucket.weeklySummaryBucketsReconcile?'実ゲームの週まとめ総エナジーと、きのみ欄＋料理欄の合計が一致しません。':null
  ].filter(Boolean);
+ // A meal that relies on expected (not guaranteed) future ingredients is
+ // not comparable to a deterministic observed meal count without extra evidence.
+ const modelLimitations=predicted.estimatedMeals>0?[
+  'モデルは'+predicted.estimatedMeals+'食の料理成立を不確実な食材生産期待値から計上しています。実際の成立率は未検証です。'
+ ]:[];
  return {
   schema:report.schema,week:{mondayDate:week.mondayDate,field:week.field},
   provenance:{source:provenance.source,screenshotReviewed:false,rawSingleWeek:true},
   ...bucket,
-  status:unexplained.length?'CONFOUNDED_OBSERVATION':'UNCALIBRATED_OBSERVATION',
-  confounders:unexplained,
+  status:unexplained.length||modelLimitations.length?'CONFOUNDED_OBSERVATION':'UNCALIBRATED_OBSERVATION',
+  confounders:unexplained,modelLimitations,
   accuracyGate:'HOLD',step3:'NOT_STARTED',
   notes:'ユーザー報告の1週間まとめを数値比較するだけで、画像確認・再現実験・期待値精度合格は行いません。'
  };
