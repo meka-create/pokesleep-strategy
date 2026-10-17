@@ -28,7 +28,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.27</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.28</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -310,6 +310,133 @@ root.PokeStorage=api;
 <script>
 /* Verified recipe ingredients and level-zero energy: wikiwiki.jp/poke_sleep, 2026-09-15. Level 70: +258% per pokesleep-tool/PokemonStrength.ts. */
 (function(root){'use strict';const recipes=[{"id":"apple_curry","type":"curry","name":"とくせんリンゴカレー","baseStrength":748,"strength70":2678,"requirements":{"apple":7}},{"id":"curry_02","type":"curry","name":"あぶりテールカレー","baseStrength":7483,"strength70":26789,"requirements":{"tail":8,"herb":25}},{"id":"curry_03","type":"curry","name":"サンパワートマトカレー","baseStrength":2078,"strength70":7439,"requirements":{"tomato":10,"herb":5}},{"id":"curry_04","type":"curry","name":"ぜったいねむりバターカレー","baseStrength":9010,"strength70":32256,"requirements":{"potato":18,"tomato":15,"cacao":12,"milk":10}},{"id":"curry_05","type":"curry","name":"からくちネギもりカレー","baseStrength":5900,"strength70":21122,"requirements":{"leek":14,"ginger":10,"herb":8}},{"id":"curry_06","type":"curry","name":"キノコのほうしカレー","baseStrength":4162,"strength70":14900,"requirements":{"mushroom":14,"potato":9}},{"id":"curry_07","type":"curry","name":"おやこあいカレー","baseStrength":4523,"strength70":16192,"requirements":{"honey":12,"apple":11,"egg":8,"potato":4}},{"id":"curry_08","type":"curry","name":"満腹チーズバーグカレー","baseStrength":1910,"strength70":6838,"requirements":{"milk":8,"sausage":8}},{"id":"curry_09","type":"curry","name":"ほっこりホワイトシチュー","baseStrength":3181,"strength70":11388,"requirements":{"milk":10,"potato":8,"mushroom":4}},{"id":"white_stew","type":"curry","name":"たんじゅんホワイトシチュー","baseStrength":814,"strength70":2914,"requirements":{"milk":7}},{"id":"curry_11","type":"curry","name":"マメバーグカレー","baseStrength":856,"strength70":3064,"requirements":{"sausage":7}},{"id":"curry_12","type":"curry","name":"ベイビィハニーカレー","baseStrength":839,"strength70":3004,"requirements":{"honey":7}},{"id":"curry_13","type":"curry","name":"ニンジャカレー","baseStrength":9445,"strength70":33813,"requirements":{"soy":24,"sausage":9,"leek":12,"mushroom":5}},{"id":"curry_14","type":"curry","name":"ひでりカツレツカレー","baseStrength":1942,"strength70":6952,"requirements":{"sausage":10,"oil":5}},{"id":"curry_15","type":"curry","name":"とけるオムカレー","baseStrength":2150,"strength70":7697,"requirements":{"egg":10,"tomato":6}},{"id":"curry_16","type":"curry","name":"ビルドアップマメカレー","baseStrength":3372,"strength70":12072,"requirements":{"soy":12,"sausage":6,"herb":4,"egg":4}},{"id":"curry_17","type":"curry","name":"じゅうなんコーンシチュー","baseStrength":4670,"strength70":16719,"requirements":{"corn":14,"milk":8,"potato":8}},{"id":"curry_18","type":"curry","name":"れんごくコーンキーマカレー","baseStrength":13690,"strength70":49010,"requirements":{"herb":27,"sausage":24,"corn":14,"ginger":12}},{"id":"curry_19","type":"curry","name":"ピヨピヨパンチ辛口カレー","baseStrength":5702,"strength70":20413,"requirements":{"coffee":11,"herb":11,"honey":11}},{"id":"curry_20","type":"curry","name":"めざめるパワーシチュー","baseStrength":19061,"strength70":68238,"requirements":{"soy":28,"tomato":25,"mushroom":23,"coffee":16}},{"id":"curry_21","type":"curry","name":"いあいぎりすき焼きカレー","baseStrength":20655,"strength70":73945,"requirements":{"leek":27,"sausage":26,"honey":26,"egg":22}},{"id":"curry_22","type":"curry","name":"なりきりバケッチャシチュー","baseStrength":15621,"strength70":55923,"requirements":{"pumpkin":10,"sausage":16,"potato":18,"mushroom":25}},{"id":"curry_23","type":"curry","name":"しんりょくアボカドグラタン","baseStrength":24802,"strength70":88791,"requirements":{"avocado":22,"potato":20,"milk":41,"oil":32}},{"id":"curry_24","type":"curry","name":"ワカクサカレーパン","baseStrength":10945,"strength70":39183,"requirements":{"ginger":20,"herb":20,"soy":8,"oil":15}},{"id":"curry_25","type":"curry","name":"とびはねるカレーうどん","baseStrength":25539,"strength70":91430,"requirements":{"ginger":39,"mushroom":31,"herb":22,"sausage":20}},{"id":"salad_26","type":"salad","name":"ヤドンテールのペッパーサラダ","baseStrength":8169,"strength70":29245,"requirements":{"tail":10,"herb":10,"oil":15}},{"id":"salad_27","type":"salad","name":"キノコのほうしサラダ","baseStrength":5859,"strength70":20975,"requirements":{"mushroom":17,"tomato":8,"oil":8}},{"id":"salad_28","type":"salad","name":"ゆきかきシーザーサラダ","baseStrength":1898,"strength70":6795,"requirements":{"milk":10,"sausage":6}},{"id":"salad_29","type":"salad","name":"くいしんぼうポテトサラダ","baseStrength":5040,"strength70":18043,"requirements":{"potato":14,"egg":9,"sausage":7,"apple":6}},{"id":"salad_30","type":"salad","name":"うるおいとうふサラダ","baseStrength":3113,"strength70":11145,"requirements":{"soy":15,"tomato":9}},{"id":"salad_31","type":"salad","name":"ばかぢからワイルドサラダ","baseStrength":3046,"strength70":10905,"requirements":{"sausage":9,"ginger":6,"egg":5,"potato":3}},{"id":"bean_salad","type":"salad","name":"マメハムサラダ","baseStrength":978,"strength70":3501,"requirements":{"sausage":8}},{"id":"salad_33","type":"salad","name":"あんみんトマトサラダ","baseStrength":1045,"strength70":3741,"requirements":{"tomato":8}},{"id":"salad_34","type":"salad","name":"モーモーカプレーゼ","baseStrength":2942,"strength70":10532,"requirements":{"milk":12,"tomato":6,"oil":5}},{"id":"salad_35","type":"salad","name":"ムラっけチョコミートサラダ","baseStrength":3665,"strength70":13121,"requirements":{"cacao":14,"sausage":9}},{"id":"salad_36","type":"salad","name":"オーバーヒートサラダ","baseStrength":5225,"strength70":18706,"requirements":{"herb":17,"ginger":10,"tomato":8}},{"id":"apple_salad","type":"salad","name":"とくせんリンゴサラダ","baseStrength":855,"strength70":3061,"requirements":{"apple":8}},{"id":"salad_38","type":"salad","name":"めんえきねぎサラダ","baseStrength":2845,"strength70":10185,"requirements":{"leek":10,"ginger":5}},{"id":"salad_39","type":"salad","name":"メロメロりんごのチーズサラダ","baseStrength":2655,"strength70":9505,"requirements":{"apple":15,"milk":5,"oil":3}},{"id":"salad_40","type":"salad","name":"ニンジャサラダ","baseStrength":11659,"strength70":41739,"requirements":{"leek":15,"soy":19,"mushroom":12,"ginger":11}},{"id":"salad_41","type":"salad","name":"ねっぷうとうふサラダ","baseStrength":2114,"strength70":7568,"requirements":{"soy":10,"herb":6}},{"id":"salad_42","type":"salad","name":"ワカクササラダ","baseStrength":11393,"strength70":40787,"requirements":{"oil":22,"corn":17,"tomato":14,"potato":9}},{"id":"salad_43","type":"salad","name":"めいそうスイートサラダ","baseStrength":7675,"strength70":27477,"requirements":{"apple":21,"honey":16,"corn":12}},{"id":"salad_44","type":"salad","name":"みだれづきコーンサラダ","baseStrength":2785,"strength70":9970,"requirements":{"corn":9,"oil":8}},{"id":"salad_45","type":"salad","name":"クロスチョップドサラダ","baseStrength":8755,"strength70":31343,"requirements":{"egg":20,"sausage":15,"corn":11,"tomato":10}},{"id":"salad_46","type":"salad","name":"まけんきコーヒーサラダ","baseStrength":20218,"strength70":72380,"requirements":{"coffee":28,"sausage":28,"oil":22,"potato":22}},{"id":"salad_47","type":"salad","name":"はなふぶきミモザサラダ","baseStrength":11881,"strength70":42534,"requirements":{"egg":25,"oil":17,"potato":15,"sausage":12}},{"id":"salad_48","type":"salad","name":"りんごさんヨーグルトサラダ","baseStrength":19293,"strength70":69069,"requirements":{"egg":35,"apple":28,"tomato":23,"milk":18}},{"id":"salad_49","type":"salad","name":"くだけるアボカドサラダ","baseStrength":7125,"strength70":25508,"requirements":{"avocado":14,"soy":18,"oil":10}},{"id":"salad_50","type":"salad","name":"じならしワカモレチップス","baseStrength":25162,"strength70":90080,"requirements":{"avocado":28,"corn":25,"herb":30,"soy":22}},{"id":"salad_51","type":"salad","name":"ごろごろねっとうサラダ","baseStrength":25356,"strength70":90774,"requirements":{"pumpkin":20,"potato":30,"corn":18,"mushroom":27}},{"id":"dessert_52","type":"dessert","name":"じゅくせいスイートポテト","baseStrength":1907,"strength70":6827,"requirements":{"potato":9,"milk":5}},{"id":"dessert_53","type":"dessert","name":"ふくつのジンジャークッキー","baseStrength":4921,"strength70":17617,"requirements":{"honey":14,"ginger":12,"cacao":5,"egg":4}},{"id":"apple_juice","type":"dessert","name":"とくせんリンゴジュース","baseStrength":855,"strength70":3061,"requirements":{"apple":8}},{"id":"dessert_55","type":"dessert","name":"クラフトサイコソーダ","baseStrength":1079,"strength70":3863,"requirements":{"honey":9}},{"id":"dessert_56","type":"dessert","name":"ひのこのジンジャーティー","baseStrength":1913,"strength70":6849,"requirements":{"ginger":9,"apple":7}},{"id":"dessert_57","type":"dessert","name":"プリンのプリンアラモード","baseStrength":7594,"strength70":27187,"requirements":{"honey":20,"egg":15,"milk":10,"apple":10}},{"id":"dessert_58","type":"dessert","name":"あくまのキッスフルーツオレ","baseStrength":4734,"strength70":16948,"requirements":{"apple":11,"milk":9,"honey":7,"cacao":8}},{"id":"dessert_59","type":"dessert","name":"ねがいごとアップルパイ","baseStrength":1748,"strength70":6258,"requirements":{"apple":12,"milk":4}},{"id":"dessert_60","type":"dessert","name":"ネロリのデトックスティー","baseStrength":5065,"strength70":18133,"requirements":{"ginger":11,"apple":15,"mushroom":9}},{"id":"dessert_61","type":"dessert","name":"あまいかおりチョコケーキ","baseStrength":3378,"strength70":12093,"requirements":{"honey":9,"cacao":8,"milk":7}},{"id":"dessert_62","type":"dessert","name":"モーモーホットミルク","baseStrength":814,"strength70":2914,"requirements":{"milk":7}},{"id":"dessert_63","type":"dessert","name":"かるわざソイケーキ","baseStrength":1924,"strength70":6888,"requirements":{"egg":8,"soy":7}},{"id":"dessert_64","type":"dessert","name":"はりきりプロテインスムージー","baseStrength":3263,"strength70":11682,"requirements":{"soy":15,"cacao":8}},{"id":"dessert_65","type":"dessert","name":"マイペースやさいジュース","baseStrength":1924,"strength70":6888,"requirements":{"tomato":9,"apple":7}},{"id":"dessert_66","type":"dessert","name":"おおきいマラサダ","baseStrength":3015,"strength70":10794,"requirements":{"oil":10,"milk":7,"honey":6}},{"id":"dessert_67","type":"dessert","name":"ちからもちソイドーナッツ","baseStrength":5547,"strength70":19858,"requirements":{"oil":12,"soy":16,"cacao":7}},{"id":"dessert_68","type":"dessert","name":"だいばくはつポップコーン","baseStrength":6048,"strength70":21652,"requirements":{"corn":15,"oil":14,"milk":7}},{"id":"dessert_69","type":"dessert","name":"おちゃかいコーンスコーン","baseStrength":10925,"strength70":39112,"requirements":{"apple":20,"ginger":20,"corn":18,"milk":9}},{"id":"dessert_70","type":"dessert","name":"はなびらのまいチョコタルト","baseStrength":3314,"strength70":11864,"requirements":{"cacao":11,"apple":11}},{"id":"dessert_71","type":"dessert","name":"フラワーギフトマカロン","baseStrength":13834,"strength70":49526,"requirements":{"cacao":25,"egg":25,"honey":17,"milk":10}},{"id":"dessert_72","type":"dessert","name":"はやおきコーヒーゼリー","baseStrength":6793,"strength70":24319,"requirements":{"coffee":16,"milk":14,"honey":12}},{"id":"dessert_73","type":"dessert","name":"スパークスパイスコーラ","baseStrength":17494,"strength70":62629,"requirements":{"apple":35,"ginger":20,"leek":20,"coffee":12}},{"id":"dessert_74","type":"dessert","name":"かたやぶりコーンティラミス","baseStrength":7125,"strength70":25508,"requirements":{"coffee":14,"corn":14,"milk":12}},{"id":"dessert_75","type":"dessert","name":"ドオーのエクレア","baseStrength":20885,"strength70":74768,"requirements":{"cacao":30,"milk":26,"coffee":24,"honey":22}},{"id":"dessert_76","type":"dessert","name":"ドキドキこわいかおパンケーキ","baseStrength":24354,"strength70":87187,"requirements":{"pumpkin":18,"egg":24,"honey":32,"tomato":29}},{"id":"dessert_77","type":"dessert","name":"グラスミキサースムージー","baseStrength":8165,"strength70":29231,"requirements":{"avocado":18,"tomato":16,"milk":14}},{"id":"dessert_78","type":"dessert","name":"みつあつめチョコワッフル","baseStrength":25484,"strength70":91233,"requirements":{"honey":38,"corn":28,"oil":28,"cacao":21}}];if(typeof module!=='undefined'&&module.exports)module.exports=recipes;root.PokeRecipes=recipes;})(typeof globalThis!=='undefined'?globalThis:this);
+
+</script>
+<script>
+/* STEP 2: exact bounded integer ingredient bag kernel.
+ * This module operates on explicitly supplied finite joint distributions.
+ * It does NOT infer a distribution from fractional expected quantities.
+ * Weekly simulation remains approximate until upstream help/pocket/skill
+ * correlations are available without assumptions.
+ */
+(function(root){
+'use strict';
+const names=new Set(Object.keys(root.PokeMaster.ingredients));
+const LIMIT=4096,MAX=10000;
+function objectStock(stock){
+ if(!stock||typeof stock!=='object'||Array.isArray(stock)||
+   Object.prototype.toString.call(stock)!=='[object Object]')
+  throw Error('整数食材在庫の形式が不正です。');
+ const out={};
+ for(const [key,n] of Object.entries(stock)){
+  if(!names.has(key)||!Number.isSafeInteger(n)||n<0||n>MAX)
+   throw Error('整数食材在庫の種類・個数が不正です。');
+  if(n>0)out[key]=n;
+ }
+ return Object.fromEntries(Object.entries(out).sort(([a],[b])=>a.localeCompare(b)));
+}
+function bagKey(stock){return JSON.stringify(objectStock(stock));}
+function validateBound(capacity,maxStates){
+ if(!Number.isSafeInteger(capacity)||capacity<0||capacity>MAX||
+   !Number.isSafeInteger(maxStates)||maxStates<1||maxStates>LIMIT)
+  throw Error('整数食材バッグの容量・分岐上限が不正です。');
+}
+function readBag(dist,capacity,maxStates=LIMIT){
+ validateBound(capacity,maxStates);
+ if(Object.prototype.toString.call(dist)!=='[object Map]'||
+   dist.size===0||dist.size>maxStates)
+  throw Error('整数食材バッグの確率状態が不正です。');
+ let mass=0;
+ const items=[];
+ for(const [key,p] of dist){
+  if(typeof key!=='string'||!Number.isFinite(p)||p<0||p>1)
+   throw Error('整数食材バッグの分岐が不正です。');
+  let parsed;
+  try{parsed=JSON.parse(key);}catch{throw Error('整数食材バッグの状態キーが不正です。');}
+  const stock=objectStock(parsed);
+  if(bagKey(stock)!==key)throw Error('整数食材バッグの状態キーが正規化されていません。');
+  const total=Object.values(stock).reduce((a,b)=>a+b,0);
+  if(capacity>0&&total>capacity)throw Error('整数食材バッグが容量を超過しています。');
+  mass+=p;
+  if(p>0)items.push({stock,p,total});
+ }
+ if(Math.abs(mass-1)>1e-8)throw Error('整数食材バッグの確率質量が不正です。');
+ return items;
+}
+function add(next,stock,p,maxStates){
+ if(p===0)return;
+ const key=bagKey(stock);
+ next.set(key,(next.get(key)||0)+p);
+ if(next.size>maxStates)
+  throw Error('整数食材バッグの分岐が上限を超えました。近似に切り替えず停止します。');
+}
+function certainIngredientBag(stock,capacity=0){
+ validateBound(capacity,LIMIT);
+ const normalized=objectStock(stock);
+ if(capacity&&Object.values(normalized).reduce((a,b)=>a+b,0)>capacity)
+  throw Error('初期食材がバッグ容量を超えています。');
+ return new Map([[bagKey(normalized),1]]);
+}
+/* A stochastic outcome is one integer ingredient species and count, or no
+ * ingredient at all. Outcomes are EXPLICIT and mutually exclusive; they
+ * must not be constructed from independent per-type expected counts.
+ * e.g. [{ingredient:'apple',count:3,probability:.5},
+ *       {ingredient:null,count:0,probability:.5}].
+ */
+function addIngredientOutcomes(dist,outcomes,capacity=0,maxStates=LIMIT){
+ const items=readBag(dist,capacity,maxStates);
+ if(!Array.isArray(outcomes)||outcomes.length===0)
+  throw Error('食材抽選分岐が指定されていません。');
+ let mass=0;
+ for(const o of outcomes){
+  if(!o||typeof o!=='object'||!Number.isFinite(o.probability)||
+     o.probability<0||o.probability>1||!Number.isSafeInteger(o.count)||
+     o.count<0||o.count>MAX||
+     !(o.ingredient==null&&o.count===0||names.has(o.ingredient)&&o.count>0))
+   throw Error('食材抽選分岐の形式が不正です。');
+  mass+=o.probability;
+ }
+ if(Math.abs(mass-1)>1e-8)throw Error('食材抽選分岐の確率質量が不正です。');
+ const next=new Map();let expectedAdded=0,expectedRejected=0;
+ for(const {stock,p,total} of items){
+  for(const o of outcomes){
+   if(o.probability===0)continue;
+   const free=capacity?capacity-total:o.count;
+   const received=Math.min(o.count,free),rejected=o.count-received;
+   const result={...stock};
+   if(received>0)result[o.ingredient]=(result[o.ingredient]||0)+received;
+   add(next,result,p*o.probability,maxStates);
+   expectedAdded+=p*o.probability*received;
+   expectedRejected+=p*o.probability*rejected;
+  }
+ }
+ return {distribution:next,expectedAdded,expectedRejected};
+}
+/* Given a finite JOINT inventory distribution, consume a specified
+ * recipe only on worlds where ALL ingredient requirements are present.
+ * On failure preserve the world's entire inventory (no phantom costs).
+ * Cooking Energy on success may be computed by callers as P * energy.
+ */
+function evaluateRecipeOutcomes(dist,requirements,capacity=0,maxStates=LIMIT){
+ const items=readBag(dist,capacity,maxStates),needed=objectStock(requirements);
+ let successProbability=0;const next=new Map(),expectedConsumed={};
+ for(const {stock,p} of items){
+  const canCook=Object.entries(needed).every(([key,n])=>(stock[key]||0)>=n);
+  if(!canCook){add(next,stock,p,maxStates);continue;}
+  successProbability+=p;
+  const left={...stock};
+  for(const [key,n] of Object.entries(needed)){
+   left[key]-=n;
+   expectedConsumed[key]=(expectedConsumed[key]||0)+p*n;
+  }
+  add(next,left,p,maxStates);
+ }
+ return {successProbability,expectedConsumed,distribution:next};
+}
+root.PokeIngredientDistribution=Object.freeze({
+ certainIngredientBag,addIngredientOutcomes,evaluateRecipeOutcomes
+});
+})(typeof globalThis!=='undefined'?globalThis:this);
 
 </script>
 <script>

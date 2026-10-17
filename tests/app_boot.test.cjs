@@ -25,7 +25,7 @@ function boot(){
  const ctx={document,localStorage,confirm:()=>true,alert:()=>{},URL,Blob,setTimeout:()=>1,clearTimeout(){}};
  ctx.globalThis=ctx;ctx.window=ctx;
  vm.createContext(ctx);
- for(const name of ['csv.js','storage.js','master.js','recipes.js','simulator.js','app.js'])
+ for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','app.js'])
   vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),ctx,{filename:name});
  return {ctx,items,rosters,callbacks,data};
 }
@@ -44,6 +44,7 @@ test('STEP2 browser startup and one-tap team setup produce results',()=>{
  assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
  assert.equal(app.items.get('simResult').hidden,false);
  assert.match(app.items.get('simTotal').textContent,/エナジー/);
+ assert.equal(typeof app.ctx.PokeIngredientDistribution.evaluateRecipeOutcomes,'function');
  assert.equal(app.items.get('simDaily').children.length,7);
  assert.equal(app.items.get('simNightEnergy').children.length,7);
 });
