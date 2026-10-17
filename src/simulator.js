@@ -41,6 +41,61 @@ function advanceSkillStock(state,expectedHelps,rate,cap){
  return probs;
 }
 function expectedSkillStock(state){return state.reduce((total,p,i)=>total+p*i,0);}
+// Finite-horizon joint probability model for main-skill stock and consecutive failed
+// help rolls. A full stock does not consume further main-skill rolls; picking up
+// the ready skill clears stock but preserves the number of previous failures.
+// This explicitly replaces applying the stationary pity-corrected average at every help.
+function emptySkillProcState(threshold,cap){
+ if(!Number.isInteger(threshold)||threshold<1||threshold>10000||![1,2].includes(cap))
+  throw Error('スキル天井・ストック上限の入力が不正です。');
+ const dist=new Array((cap+1)*threshold).fill(0);
+ dist[0]=1;
+ return {threshold,cap,dist};
+}
+function validateSkillProcState(state){
+ if(!state||!Number.isInteger(state.threshold)||state.threshold<1||
+  ![1,2].includes(state.cap)||!Array.isArray(state.dist)||
+  state.dist.length!==(state.cap+1)*state.threshold||
+  state.dist.some(p=>!Number.isFinite(p)||p<0))
+  throw Error('スキル発動確率状態の入力が不正です。');
+}
+function advanceSkillProcState(state,expectedHelps,rate){
+ validateSkillProcState(state);
+ if(!Number.isFinite(expectedHelps)||expectedHelps<0||
+  !Number.isFinite(rate)||rate<0||rate>1)
+  throw Error('スキル発動回数・抽選率が不正です。');
+ const {threshold,cap}=state;
+ let dist=state.dist.slice();
+ const oneHelp=(helpChance)=>{
+  const next=new Array(dist.length).fill(0);
+  for(let stock=0;stock<=cap;stock++)for(let misses=0;misses<threshold;misses++){
+   const idx=stock*threshold+misses,prob=dist[idx];if(prob===0)continue;
+   // Do not roll while full, and do not create a skill from a truly 0% raw rate.
+   if(stock===cap||rate===0){next[idx]+=prob;continue;}
+   next[idx]+=prob*(1-helpChance);
+   const roll=prob*helpChance,success=misses===threshold-1?1:rate;
+   next[Math.min(cap,stock+1)*threshold]+=roll*success;
+   if(misses<threshold-1)next[idx+1]+=roll*(1-success);
+  }
+  dist=next;
+ };
+ const whole=Math.floor(expectedHelps),frac=expectedHelps-whole;
+ for(let i=0;i<whole;i++)oneHelp(1);
+ if(frac>1e-12)oneHelp(frac);
+ return {threshold,cap,dist};
+}
+function skillProcMarginal(state){
+ validateSkillProcState(state);
+ return Array.from({length:state.cap+1},(_,stock)=>
+  state.dist.slice(stock*state.threshold,(stock+1)*state.threshold).reduce((a,b)=>a+b,0));
+}
+function clearSkillProcStock(state){
+ validateSkillProcState(state);
+ const {threshold,cap}=state,dist=new Array((cap+1)*threshold).fill(0);
+ for(let misses=0;misses<threshold;misses++)
+  for(let stock=0;stock<=cap;stock++)dist[misses]+=state.dist[stock*threshold+misses];
+ return {threshold,cap,dist};
+}
 function emptyPocket(){return {used:0,berries:0,ingredients:{},skillState:[1,0,0]};}
 function clearDepartingPockets(oldTeam,newTeam,pocket,extraPocket){
  const retained=new Set(newTeam);
@@ -198,10 +253,10 @@ function signature(p,sp,team,camp,warnings){
  const skillFactor=natureFactor(p.nature,['Calm','Gentle','Careful','Sassy'],['Lax','Naive','Naughty','Rash']);
  const ingRate=clamp(sp.ingRate/100*ingFactor*(1+.18*count('食材確率アップS')+.36*count('食材確率アップM')),0,1);
  const rawSkillRate=clamp(sp.skillRate/100*skillFactor*(1+.18*count('スキル確率アップS')+.36*count('スキル確率アップM')),0,1);
- // Long-run skill pity correction from PokemonIv.calculateSkillRateWithPityProc.
- // Proc scheduling and inventory constraints remain approximate.
+ // Source: nitoyon/pokesleep-tool PokemonIv.pityProcHelpCount; the exact
+ // threshold can differ slightly in other community estimates.
  const pity=(sp.specialty==='Skills'||sp.specialty==='All')?Math.ceil(142000/sp.frequency):78;
- const skillRate=rawSkillRate===0?0:clamp(rawSkillRate/(1-Math.pow(1-rawSkillRate,pity+1)),0,1);
+ const skillRate=rawSkillRate;
  const berryPerHelp=(sp.specialty==='Berries'||sp.specialty==='All'?2:1)+count('きのみの数S');
  const ribbon=(p.sleepHours>=2000?8:p.sleepHours>=1000?6:p.sleepHours>=500?3:p.sleepHours>=200?1:0);
  const cap=baseCarryCapacity(sp)+ribbon+count('最大所持数アップS')*6+count('最大所持数アップM')*12+count('最大所持数アップL')*18;
@@ -214,7 +269,7 @@ function signature(p,sp,team,camp,warnings){
    ingSlots.push({key,count:def['c'+(j+1)]});
  }
  const skill=sp.skill;
- return {p,sp,interval:Math.max(150,base/(camp?1.2:1)),ingRate,skillRate,berryPerHelp,carry:camp?Math.ceil(cap*1.2):cap,ingSlots,skill,stockMax:(sp.specialty==='Skills'||sp.specialty==='All')?2:1};
+ return {p,sp,interval:Math.max(150,base/(camp?1.2:1)),ingRate,skillRate,berryPerHelp,carry:camp?Math.ceil(cap*1.2):cap,ingSlots,skill,pity,stockMax:(sp.specialty==='Skills'||sp.specialty==='All')?2:1};
 }
 function energySpeed(e){return e>80?.45:e>60?.52:e>40?.58:e>1?.66:1;}
 function effectivePotCapacity(base,skillBonus,day,camp){
@@ -344,12 +399,24 @@ function simulate(input){
  if(opts.map==='シアンの砂浜EX'||opts.map==='ワカクサ本島EX')warnings.add('EXフィールド固有の補正には未対応です。');
  if(opts.eventEffects)warnings.add('イベント補正メモはSTEP5まで計算に反映しません。');
  const warningsSkills=new Set(),warningsSkillsExcluded=new Set();
+ // Tracks skill roll history across collection and team swaps, unlike the
+ // ready-to-fire skill stock which is removed when team composition changes.
+ const skillProcStates=new Map();
  // Every stockpile user starts at zero on Monday; team substitutions reset it.
  const stockpileStates=new Map();
  function resetStockpileLeaving(oldTeam,newTeam){
   // Outgoing team is collected before switching; any blocked carry is lost.
   clearDepartingPockets(oldTeam,newTeam,pocket,extraPocket);
   const retained=new Set(newTeam);
+  const changed=oldTeam.length>0&&(oldTeam.length!==newTeam.length||
+     oldTeam.some(id=>!retained.has(id)));
+  if(changed)for(const id of new Set([...oldTeam,...newTeam])){
+   const state=skillProcStates.get(id);
+   if(state)skillProcStates.set(id,clearSkillProcStock(state));
+   // The game clears pending ready skills for the entire affected team,
+   // including retained members. Failed-roll progress is not discarded.
+   if(pocket.has(id))pocket.get(id).skillState=[1,0,0];
+  }
   for(const id of oldTeam){
    if(!retained.has(id)&&stockpileStates.has(id)){
     const probs=stockpileStates.get(id);
@@ -401,7 +468,8 @@ function simulate(input){
    const remainingInPocket=standardFood.retained,uncollected=standardFood.retainedCount;
    const actual=pair.sp.skill;
    const excluded=EXCLUDED_MAIN_SKILLS.has(actual);
-   const triggers=excluded?0:expectedSkillStock(bag.skillState);
+   const triggerState=skillProcStates.get(id);
+   const triggers=excluded?0:triggerState?expectedSkillStock(skillProcMarginal(triggerState)):0;
    if(excluded)warningsSkillsExcluded.add(actual);
    else if(actual==='Charge Strength S (Stockpile)'){
     const current=stockpileStates.get(id)||emptyStockpile();
@@ -555,6 +623,7 @@ function simulate(input){
    }
    else if(actual)warningsSkills.add(actual);
    status.skillCount+=triggers;
+   if(triggerState)skillProcStates.set(id,clearSkillProcStock(triggerState));
    pocket.set(id,{used:uncollected,berries:0,ingredients:remainingInPocket,skillState:[1,0,0]});
    extraPocket.set(id,{used:extraFood.retainedCount,berries:0,ingredients:extraFood.retained,skillState:[1,0,0]});
   }
@@ -579,8 +648,12 @@ function simulate(input){
     const sneaky=overflow*x.berryPerHelp;
     const strength=berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
     status.berries+=sneaky*strength;status.sneaky+=sneaky*strength;
-    if(!EXCLUDED_MAIN_SKILLS.has(pair.sp.skill))
-     bag.skillState=advanceSkillStock(bag.skillState,fits,x.skillRate,x.stockMax);
+    if(!EXCLUDED_MAIN_SKILLS.has(pair.sp.skill)){
+     const previous=skillProcStates.get(id)||emptySkillProcState(x.pity,x.stockMax);
+     const updated=advanceSkillProcState(previous,fits,x.skillRate);
+     skillProcStates.set(id,updated);
+     bag.skillState=skillProcMarginal(updated);
+    }
    }
    else if(overflow>0)warnings.add('追加おてつだいの別所持上限999に達し、あふれた追加分は計上していません。');
   }
@@ -683,7 +756,7 @@ function simulate(input){
  })[s]).join('、')+'。これらのスキル効果は評価せず、通常のおてつだい・きのみ・食材は計算します。');
  if(status.unassignedMagnet>0)warnings.add('食材ゲット系スキルで抽選候補が未設定のため、ランダム食材の期待'+status.unassignedMagnet.toFixed(1)+'個は料理材料に計上していません。発見済み食材を選択してください。');
  if(Object.keys(status.skillIngredients).length)warnings.add('食材ゲット系の抽選は選択した発見済み食材に均等配分した期待値近似です。実際の抽選単位・食材の偏りは未再現です。');
- warnings.add('暫定期待値モデルです。スキルストックは上限1／2回の確率分布で計算していますが、ピティ補正・発動時刻・げんき・所持上限・追加おてつだい別枠999は近似です。前週からの所持品持ち越しは未対応です。');
+ warnings.add('暫定期待値モデルです。スキル抽選は連続不発回数と上限1／2回ストックの同時確率分布で計算しています。天井78回／種族別142000秒換算を採用していますが、おてつだい端数・5回クールタイム・発動時刻・編成時の追加抽選・げんき・所持上限は近似です。前週からの所持品持ち越しは未対応です。');
  if(extraMode==='none')warnings.add('追加食材はOFFです。鍋の余剰容量による食材エナジーは未計上です。');
  else warnings.add('追加食材は高エナジー食材から鍋を埋める短期近似です。翌食・翌週の食材温存やレシピの自動切替は考慮しません。');
  if(successMode==='none')warnings.add('料理の大成功はOFFです。料理チャンスSの寄与も未計上です。');
@@ -691,7 +764,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
