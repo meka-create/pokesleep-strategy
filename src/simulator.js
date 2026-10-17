@@ -96,6 +96,19 @@ function clearSkillProcStock(state){
   for(let stock=0;stock<=cap;stock++)dist[misses]+=state.dist[stock*threshold+misses];
  return {threshold,cap,dist};
 }
+function clearPartySkillStocks(oldTeam,newTeam,skillProcStates,pocket){
+ const retained=new Set(newTeam);
+ const changed=oldTeam.length>0&&(oldTeam.length!==newTeam.length||
+  oldTeam.some(id=>!retained.has(id)));
+ if(!changed)return false;
+ // Swapping one helper invalidates queued skills for the whole roster.
+ for(const id of new Set([...oldTeam,...newTeam])){
+  const state=skillProcStates.get(id);
+  if(state)skillProcStates.set(id,clearSkillProcStock(state));
+  if(pocket.has(id))pocket.get(id).skillState=[1,0,0];
+ }
+ return true;
+}
 function emptyPocket(){return {used:0,berries:0,ingredients:{},skillState:[1,0,0]};}
 function clearDepartingPockets(oldTeam,newTeam,pocket,extraPocket){
  const retained=new Set(newTeam);
@@ -255,7 +268,7 @@ function signature(p,sp,team,camp,warnings){
  const rawSkillRate=clamp(sp.skillRate/100*skillFactor*(1+.18*count('スキル確率アップS')+.36*count('スキル確率アップM')),0,1);
  // Source: nitoyon/pokesleep-tool PokemonIv.pityProcHelpCount; the exact
  // threshold can differ slightly in other community estimates.
- const pity=(sp.specialty==='Skills'||sp.specialty==='All')?Math.ceil(142000/sp.frequency):78;
+ const pity=(sp.specialty==='Skills'||sp.specialty==='All')&&sp.frequency>0?Math.ceil(142000/sp.frequency):78;
  const skillRate=rawSkillRate;
  const berryPerHelp=(sp.specialty==='Berries'||sp.specialty==='All'?2:1)+count('きのみの数S');
  const ribbon=(p.sleepHours>=2000?8:p.sleepHours>=1000?6:p.sleepHours>=500?3:p.sleepHours>=200?1:0);
@@ -407,16 +420,8 @@ function simulate(input){
  function resetStockpileLeaving(oldTeam,newTeam){
   // Outgoing team is collected before switching; any blocked carry is lost.
   clearDepartingPockets(oldTeam,newTeam,pocket,extraPocket);
+  clearPartySkillStocks(oldTeam,newTeam,skillProcStates,pocket);
   const retained=new Set(newTeam);
-  const changed=oldTeam.length>0&&(oldTeam.length!==newTeam.length||
-     oldTeam.some(id=>!retained.has(id)));
-  if(changed)for(const id of new Set([...oldTeam,...newTeam])){
-   const state=skillProcStates.get(id);
-   if(state)skillProcStates.set(id,clearSkillProcStock(state));
-   // The game clears pending ready skills for the entire affected team,
-   // including retained members. Failed-roll progress is not discarded.
-   if(pocket.has(id))pocket.get(id).skillState=[1,0,0];
-  }
   for(const id of oldTeam){
    if(!retained.has(id)&&stockpileStates.has(id)){
     const probs=stockpileStates.get(id);
@@ -764,7 +769,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
