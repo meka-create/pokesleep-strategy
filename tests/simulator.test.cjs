@@ -836,6 +836,63 @@ test('departing helpers lose both ordinary and bonus uncollected carry',()=>{
  assert.equal(sim.expectedSkillStock(ordinary.get('depart').skillState),0);
  assert.equal(ordinary.get('stays'),stayBag);
 });
+
+function plusMinusInput(){
+ const a=input();
+ a.box[0].pokemon='プラスル';
+ a.box[0].ingredients=['めざましコーヒー','ふといながねぎ','モーモーミルク'];
+ a.box[1].pokemon='マイナン';
+ a.box[1].ingredients=['あまいミツ','とくせんエッグ','モーモーミルク'];
+ a.options.recipeId='';
+ a.options.initialIngredients={};
+ a.options.initialEnergy=25;
+ a.options.sleepScore=30;
+ return a;
+}
+test('Plus skill first-ingredient tables match source values at levels 1, 3 and 7',()=>{
+ const plusle=master.species.find(s=>s.name==='プラスル');
+ const tox=master.species.find(s=>s.name==='ストリンダー (ハイ)');
+ assert.deepEqual(JSON.parse(JSON.stringify(sim.plusExtraIngredient(plusle,1))),{key:'coffee',count:6});
+ assert.deepEqual(JSON.parse(JSON.stringify(sim.plusExtraIngredient(plusle,7))),{key:'coffee',count:12});
+ assert.deepEqual(JSON.parse(JSON.stringify(sim.plusExtraIngredient(tox,3))),{key:'milk',count:9});
+ assert.deepEqual(JSON.parse(JSON.stringify(sim.plusExtraIngredient(tox,7))),{key:'milk',count:14});
+});
+test('conditional partner must be another present Plus or Minus, not the triggering helper',()=>{
+ const p=master.species.find(s=>s.name==='プラスル'),m=master.species.find(s=>s.name==='マイナン');
+ const members=new Map([['p',{sp:p}],['m',{sp:m}],['r',{sp:raichu}]]);
+ assert.equal(sim.hasPlusMinusPartner(['p','r'],members,'p'),false);
+ assert.equal(sim.hasPlusMinusPartner(['p','m'],members,'p'),true);
+ assert.equal(sim.hasPlusMinusPartner(['p','m'],members,'m'),true);
+ assert.equal(sim.hasPlusMinusPartner(['r','m'],members,'m'),false);
+});
+test('Plus secondary coffee is actually collected with partner but not while alone',()=>{
+ const withPartner=plusMinusInput(),alone=plusMinusInput();
+ alone.box[1].pokemon='ライチュウ';
+ const yes=sim.simulate(withPartner),no=sim.simulate(alone);
+ assert.ok(yes.conditionalPlusIngredients>0);
+ assert.equal(no.conditionalPlusIngredients,0);
+ assert.ok(yes.skillIngredients.coffee>0);
+ assert.equal(no.skillIngredients.coffee||0,0);
+ assert.ok(yes.warnings.some(w=>w.includes('プラスの追加食材')));
+});
+test('Minus secondary healing operates with partner and respects nature/energy caps',()=>{
+ assert.equal(sim.uniformExpectedHeal(140,35,1,5),142);
+ assert.equal(sim.uniformExpectedHeal(20,10,1,5),22);
+ assert.equal(sim.uniformExpectedHeal(150,10,1,5),150);
+ const paired=plusMinusInput(),solo=plusMinusInput();
+ solo.box[0].pokemon='ライチュウ';
+ const yes=sim.simulate(paired),no=sim.simulate(solo);
+ assert.ok(yes.conditionalMinusRecovery>0);
+ assert.equal(no.conditionalMinusRecovery,0);
+ assert.ok(yes.warnings.some(w=>w.includes('マイナスの追加げんき')));
+});
+test('Plus additional ingredient cannot bypass an already-full ingredient bag',()=>{
+ const a=plusMinusInput();a.options.bagCapacity=5;a.options.initialIngredients={apple:5};
+ const r=sim.simulate(a);
+ assert.equal(r.conditionalPlusIngredients,0);
+ assert.ok(Object.values(r.inventory).reduce((sum,v)=>sum+v,0)<=5+1e-8);
+});
+
 test('good-camp inventory rounds fractional capacity up instead of keeping noninteger slots',()=>{
  // Reference 1.2x inventory bonus, rounded up; slot counts are whole numbers.
  const sp=master.species.find(s=>s.name==='ライチュウ');
