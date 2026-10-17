@@ -97,6 +97,28 @@ function advanceSkillProcState(state,expectedHelps,rate){
  if(frac>1e-12)oneHelp(frac);
  return {threshold,cap,dist};
 }
+// Apply the nonlinear pity/stock transition per possible integer help count.
+// Pocket and pity histories across different 15-minute batches remain marginal.
+function advanceSkillProcStateByHelpCounts(state,helpCounts,rate){
+ validateSkillProcState(state);
+ if(Object.prototype.toString.call(helpCounts)!=='[object Map]'||
+    !Number.isFinite(rate)||rate<0||rate>1)
+  throw Error('抽選可能回数の分布が不正です。');
+ let mass=0;
+ for(const [count,p] of helpCounts){
+  if(!Number.isInteger(count)||count<0||!Number.isFinite(p)||p<0)
+   throw Error('抽選可能回数の分布が不正です。');
+  mass+=p;
+ }
+ if(Math.abs(mass-1)>1e-8)throw Error('抽選可能回数の確率質量が不正です。');
+ const dist=new Array(state.dist.length).fill(0);
+ for(const [count,p] of helpCounts){
+  if(p===0)continue;
+  const branch=advanceSkillProcState(state,count,rate);
+  for(let k=0;k<dist.length;k++)dist[k]+=p*branch.dist[k];
+ }
+ return {threshold:state.threshold,cap:state.cap,dist};
+}
 function skillProcMarginal(state){
  validateSkillProcState(state);
  return Array.from({length:state.cap+1},(_,stock)=>
@@ -143,38 +165,55 @@ function integerPocketTransitions(occupation,completed,capacity,berryCount,ingre
   !Array.isArray(slots)||slots.some(s=>!Number.isInteger(s.count)||s.count<1||
      typeof s.key!=='string'||!s.key))
   throw Error('整数所持数の遷移入力が不正です。');
- let dist=new Map(occupation),berry=0,sneaky=0,eligible=0;
- const foods={};
- const choices=slots.length?slots:[{key:null,count:0}];
+ // Keep occupied slots and the integer eligible-roll COUNT jointly during
+ // this batch; taking the mean before applying a stock cap is not equivalent.
+ const width=completed+1;
+ let joint=new Map(),mass=0;
+ for(const [count,p] of occupation){
+  if(!Number.isInteger(count)||count<0||count>capacity||
+     !Number.isFinite(p)||p<0)throw Error('整数所持数の確率状態が不正です。');
+  mass+=p;
+  if(p>0)joint.set(count*width,p);
+ }
+ if(Math.abs(mass-1)>1e-8)throw Error('整数所持数の確率質量が不正です。');
+ let berry=0,sneaky=0,eligible=0;
+ const foods={},choices=slots.length?slots:[{key:null,count:0}];
  for(let help=0;help<completed;help++){
-  const next=new Map(),add=(k,prob)=>next.set(k,(next.get(k)||0)+prob);
-  for(const [count,p] of dist){
-   if(!Number.isInteger(count)||count<0||count>capacity||
-      !Number.isFinite(p)||p<0)throw Error('整数所持数の確率状態が不正です。');
-   if(!p)continue;
+  const next=new Map();
+  const add=(count,rolls,prob)=>{
+   if(prob<=0)return;
+   const key=count*width+rolls;
+   next.set(key,(next.get(key)||0)+prob);
+  };
+  for(const [key,p] of joint){
+   const count=Math.floor(key/width),rolls=key%width;
    if(count===capacity){
-    add(capacity,p);
+    add(capacity,rolls,p);
     sneaky+=p*berryCount;
     continue;
    }
    eligible+=p;
    const free=capacity-count;
    const bChance=p*(1-ingredientRate),keptB=Math.min(berryCount,free);
-   if(bChance>0)add(count+keptB,bChance);
+   add(count+keptB,rolls+1,bChance);
    berry+=bChance*keptB;
    sneaky+=bChance*(berryCount-keptB);
    for(const slot of choices){
-    const q=p*ingredientRate/choices.length;
-    const retained=Math.min(slot.count,free);
-    if(q>0)add(count+retained,q);
-    if(slot.key&&retained>0)
-     foods[slot.key]=(foods[slot.key]||0)+q*retained;
+    const q=p*ingredientRate/choices.length,retained=Math.min(slot.count,free);
+    add(count+retained,rolls+1,q);
+    if(slot.key&&retained>0)foods[slot.key]=(foods[slot.key]||0)+q*retained;
    }
   }
-  dist=next;
+  joint=next;
+ }
+ const dist=new Map(),eligibleDistribution=new Map();
+ for(const [key,p] of joint){
+  const count=Math.floor(key/width),rolls=key%width;
+  dist.set(count,(dist.get(count)||0)+p);
+  eligibleDistribution.set(rolls,(eligibleDistribution.get(rolls)||0)+p);
  }
  const used=Array.from(dist,([n,p])=>n*p).reduce((a,b)=>a+b,0);
- return {occupation:dist,used,berries:berry,sneaky,ingredients:foods,eligible};
+ return {occupation:dist,used,berries:berry,sneaky,ingredients:foods,eligible,eligibleDistribution};
 }
 // When the GLOBAL ingredient bag prevents collecting all foods, joint
 // item-composition probabilities are not available. Reconstruct only the
@@ -814,7 +853,7 @@ function simulate(input){
      status.skillEligibleHelps+=outcome.eligible;
      if(outcome.eligible>0){
       const previous=skillProcStates.get(id)||emptySkillProcState(x.pity,x.stockMax);
-      skillProcStates.set(id,advanceSkillProcState(previous,outcome.eligible,x.skillRate));
+      skillProcStates.set(id,advanceSkillProcStateByHelpCounts(previous,outcome.eligibleDistribution,x.skillRate));
      }
      const updated=skillProcStates.get(id)||emptySkillProcState(x.pity,x.stockMax);
      bag.skillState=skillProcMarginal(updated);
@@ -951,7 +990,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
