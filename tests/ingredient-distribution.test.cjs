@@ -132,3 +132,92 @@ test('probabilities remain normalized through multiple capped additions and reci
  assert.ok(after.successProbability>=0&&after.successProbability<=1);
  assert.ok(after.expectedConsumed.apple>=0&&after.expectedConsumed.apple<=3);
 });
+
+
+test('exact recipe sequence consumes 21 meals from definite stock, without fractional inventory',()=>{
+ const d=certainIngredientBag({apple:147},147);
+ const steps=Array.from({length:21},()=>({requirements:{apple:7},energyIfCooked:100}));
+ const r=ctx.globalThis.PokeIngredientDistribution.evaluateRecipeSequence(d,steps,147);
+ assert.equal(r.meals.length,21);
+ assert.equal(r.expectedMealCount,21);
+ assert.equal(r.expectedCooking,2100);
+ assert.equal(r.expectedConsumed.apple,147);
+ assert.deepEqual(rows(r.distribution),[[{},1]]);
+});
+test('correlated initial outcomes give two possible meals, not three independent expected meals',()=>{
+ const first=addIngredientOutcomes(certainIngredientBag({}),[
+  {ingredient:'apple',count:14,probability:.5},
+  {ingredient:null,count:0,probability:.5}
+ ],20).distribution;
+ const meals=[{requirements:{apple:7},energyIfCooked:100},
+  {requirements:{apple:7},energyIfCooked:200},
+  {requirements:{apple:7},energyIfCooked:300}];
+ const r=ctx.globalThis.PokeIngredientDistribution.evaluateRecipeSequence(first,meals,20);
+ assert.deepEqual(r.meals.map(m=>m.successProbability),[.5,.5,0]);
+ assert.equal(r.expectedCooking,150);
+ assert.equal(r.expectedMealCount,1);
+ assert.equal(r.expectedConsumed.apple,7);
+ assert.deepEqual(rows(r.distribution),[[{},1]]);
+});
+test('separate between-meal draws allow independent conditional opportunities',()=>{
+ const draw=[{ingredient:'apple',count:7,probability:.5},
+  {ingredient:null,count:0,probability:.5}];
+ const r=ctx.globalThis.PokeIngredientDistribution.evaluateRecipeSequence(certainIngredientBag({}),[
+  {draws:[draw],requirements:{apple:7},energyIfCooked:100},
+  {draws:[draw],requirements:{apple:7},energyIfCooked:100}
+ ],10);
+ assert.deepEqual(r.meals.map(m=>m.successProbability),[.5,.5]);
+ assert.equal(r.expectedCooking,100);
+ assert.equal(r.expectedMealCount,1);
+ assert.equal(r.expectedConsumed.apple,7);
+});
+test('a failed earlier dish preserves every ingredient for a later different recipe',()=>{
+ const r=ctx.globalThis.PokeIngredientDistribution.evaluateRecipeSequence(certainIngredientBag({milk:7}),[
+  {requirements:{apple:7},energyIfCooked:999},
+  {requirements:{milk:7},energyIfCooked:30}
+ ],20);
+ assert.deepEqual(r.meals.map(m=>m.successProbability),[0,1]);
+ assert.equal(r.expectedCooking,30);
+ assert.equal(r.expectedConsumed.milk,7);
+ assert.deepEqual(rows(r.distribution),[[{},1]]);
+});
+test('compound evidence from multiple individually declared draws is retained through 21 meals',()=>{
+ const a={ingredient:'apple',count:1,probability:1};
+ const meals=Array.from({length:21},()=>({draws:[[a]],requirements:{apple:1},energyIfCooked:10}));
+ const r=ctx.globalThis.PokeIngredientDistribution.evaluateRecipeSequence(certainIngredientBag({}),meals,1);
+ assert.equal(r.expectedCooking,210);
+ assert.equal(r.expectedMealCount,21);
+ assert.equal(total(r.distribution),1);
+});
+test('each pre-meal draw respects global bag cap before testing recipe feasibility',()=>{
+ const r=ctx.globalThis.PokeIngredientDistribution.evaluateRecipeSequence(certainIngredientBag({apple:4},5),[
+  {draws:[[{ingredient:'apple',count:7,probability:1}]],requirements:{apple:5},energyIfCooked:40},
+  {requirements:{apple:5},energyIfCooked:40}
+ ],5);
+ assert.deepEqual(r.meals.map(m=>m.successProbability),[1,0]);
+ assert.equal(r.expectedCooking,40);
+ assert.deepEqual(rows(r.distribution),[[{},1]]);
+});
+test('empty recipe sequence does not modify the starting distribution',()=>{
+ const d=certainIngredientBag({apple:3},10);
+ const r=ctx.globalThis.PokeIngredientDistribution.evaluateRecipeSequence(d,[],10);
+ assert.equal(r.expectedCooking,0);
+ assert.equal(r.expectedMealCount,0);
+ assert.deepEqual(rows(r.distribution),rows(d));
+});
+test('bounded two-week 42-meal horizon remains deterministic with supplied stock',()=>{
+ const steps=Array.from({length:42},()=>({requirements:{apple:7},energyIfCooked:10}));
+ const d=certainIngredientBag({apple:294},294);
+ const r=ctx.globalThis.PokeIngredientDistribution.evaluateRecipeSequence(d,steps,294);
+ assert.equal(r.meals.length,42);
+ assert.equal(r.expectedMealCount,42);
+ assert.equal(r.expectedCooking,420);
+});
+test('invalid future meal and 43rd step must fail rather than yield fabricated cooking Energy',()=>{
+ const api=ctx.globalThis.PokeIngredientDistribution.evaluateRecipeSequence;
+ const d=certainIngredientBag({});
+ assert.throws(()=>api(d,[{requirements:{apple:1},energyIfCooked:NaN}]),/不正/);
+ assert.throws(()=>api(d,[{requirements:{apple:1},energyIfCooked:-1}]),/不正/);
+ assert.throws(()=>api(d,Array.from({length:43},()=>({requirements:{},energyIfCooked:0}))),/不正/);
+ assert.throws(()=>api(d,[{draws:[[{ingredient:'apple',count:1,probability:.3}]],requirements:{apple:1},energyIfCooked:100}]),/確率質量/);
+});
