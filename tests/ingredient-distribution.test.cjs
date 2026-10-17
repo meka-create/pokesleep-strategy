@@ -62,7 +62,7 @@ test('stochastic no-food outcome makes the empty branch fail while preserving it
   {ingredient:null,count:0,probability:.8},
   {ingredient:'apple',count:7,probability:.2}
  ],10);
- assert.equal(out.expectedAdded,1.4);
+ assert.ok(Math.abs(out.expectedAdded-1.4)<1e-12);
  const result=evaluateRecipeOutcomes(out.distribution,{apple:7},10);
  assert.ok(Math.abs(result.successProbability-.2)<1e-12);
  assert.equal(total(result.distribution),1);
