@@ -1,0 +1,21 @@
+{
+  "schema": "step2-m1-weekly-observation-v1",
+  "week": {
+    "mondayDate": "YYYY-MM-DD",
+    "field": "ここに実際のフィールドを記載"
+  },
+  "provenance": {
+    "source": "in_game_weekly_summary",
+    "screenshotReference": "週まとめのスクリーンショットを別途保管（必須ではないが推奨）",
+    "noUnmodeledEvents": false,
+    "sameCollectionSchedule": false,
+    "noUntrackedItems": false,
+    "startStrengthVerified": false
+  },
+  "input": null,
+  "observed": {
+    "total": null,
+    "berryAndStrengthSkill": null,
+    "cooking": null
+  }
+}
