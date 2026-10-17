@@ -184,14 +184,19 @@ $('runSim').addEventListener('click',()=>{
     :before+' → '+low+' → '+after;
    row.append(left,right);$('simNightEnergy').append(row);
   }
-  $('simMealSummary').textContent='成立した料理 '+result.meals.length+' / 21食（料理エナジー '+yen(result.cooking)+'）。'
+  $('simMealSummary').textContent='期待値モデルで料理を計上 '+result.meals.length+' / 21食（初期食材の確定在庫だけで必須材料を満たす計画 '+result.initialCoveredMeals+'食／生産期待値に依存 '+result.estimatedMeals+'食、料理エナジー '+yen(result.cooking)+'）。'
    +'追加食材：'+(sim.extraMode==='fill'?'期待値で計上':'OFF')+'／大成功：'+(sim.successMode==='expected'?'推定期待値で計上':'OFF')+'。'
    +(result.extraHelps>0?' 追加おてつだい '+result.extraHelps.toFixed(1)+'回（期待値、獲得きのみ・食材へ反映）。':'');
   $('simMeals').replaceChildren();
   if(!result.meals.length)$('simMeals').textContent='成立したレシピなし／未計上';
   for(const meal of result.meals){
    const row=document.createElement('div');row.className='sim-day';
-   const label=document.createElement('span');label.textContent='第'+meal.day+'日 '+meal.meal+'：'+meal.name+'（'+meal.count+'個'+(meal.extraEnergy?'／追加分+'+yen(meal.extraEnergy):'')+(meal.successProbability?'／大成功推定'+Math.round(meal.successProbability*100)+'%':'')+'）';
+   const label=document.createElement('span');label.textContent='第'+meal.day+'日 '+meal.meal+'：'+meal.name+
+    '（必須材料：'+(meal.initialCovered?'入力した初期食材で充足':'生産期待値に依存')+
+    (meal.expectedMandatoryUnits>1e-9?'／確定在庫不足 '+meal.expectedMandatoryUnits.toFixed(1)+'個':'')+
+    '／合計'+meal.count+'個'+(meal.extraEnergy?'／追加分+'+yen(meal.extraEnergy):'')+
+    (meal.expectedExtraUnits>1e-9?'／追加食材も期待値に依存':'')+
+    (meal.successProbability?'／大成功推定'+Math.round(meal.successProbability*100)+'%':'')+'）';
    const score=document.createElement('strong');score.textContent=yen(meal.energy);
    row.append(label,score);$('simMeals').append(row);
   }

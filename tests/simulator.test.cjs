@@ -1485,3 +1485,69 @@ test('non-food main skills remain activatable with a full global food bag',()=>{
  assert.ok(r.skillTriggers>0,'Raichu charge-strength skills should still fire');
  assert.ok(r.skills>0);
 });
+
+
+test('meal provenance only credits user-entered initial ingredients as deterministic',()=>{
+ const x=input();x.options.recipeMode='fixed';x.options.recipeId='apple_curry';
+ x.options.initialIngredients={apple:150};x.options.extraMode='none';
+ const r=sim.simulate(x);
+ assert.equal(r.meals.length,21);
+ assert.equal(r.estimatedMeals,0);
+ assert.equal(r.initialCoveredMeals,21);
+ assert.ok(r.meals.every(m=>m.initialCovered&&m.expectedMandatoryUnits===0));
+ assert.equal(r.meals.reduce((n,m)=>n+m.energy,0),r.cooking);
+});
+test('ingredients only from stochastic helps never become guaranteed recipe stock',()=>{
+ const x=input();x.options.initialIngredients={};x.options.recipeMode='fixed';x.options.recipeId='apple_curry';
+ const r=sim.simulate(x);
+ assert.ok(r.meals.length>0,'sample species must eventually produce apples');
+ assert.equal(r.initialCoveredMeals,0);
+ assert.equal(r.estimatedMeals,r.meals.length);
+ assert.ok(r.meals.every(m=>m.initialCovered===false&&m.expectedMandatoryUnits>0));
+ assert.ok(r.warnings.some(w=>w.includes('実際のレシピ成立確率')));
+});
+test('partially covered ingredients quantify only the initial-stock shortfall',()=>{
+ const x=input();x.options.initialIngredients={apple:6};x.options.recipeId='apple_curry';
+ const r=sim.simulate(x);
+ assert.ok(r.meals.length>0);
+ const first=r.meals[0];
+ assert.equal(first.initialCovered,false);
+ assert.equal(first.expectedMandatoryUnits,1);
+ assert.equal(r.initialCoveredMeals+r.estimatedMeals,r.meals.length);
+});
+test('cooking preserves deterministic-stock provenance through weekly consumption',()=>{
+ const x=input();x.options.initialIngredients={apple:14};x.options.recipeId='apple_curry';
+ const r=sim.simulate(x);
+ assert.ok(r.meals.length>2);
+ assert.equal(r.initialCoveredMeals,2);
+ assert.equal(r.meals[0].initialCovered,true);
+ assert.equal(r.meals[1].initialCovered,true);
+ assert.equal(r.meals[2].initialCovered,false);
+ assert.equal(r.estimatedMeals,r.meals.length-2);
+});
+test('uncertain optional pot-fill food does not make mandatory recipe ingredients uncertain',()=>{
+ const x=input();x.options.initialIngredients={apple:150};x.options.recipeId='apple_curry';
+ x.options.extraMode='fill';x.options.potSize=57;
+ const r=sim.simulate(x);
+ assert.ok(r.meals.length>0);
+ for(const meal of r.meals){
+  assert.ok(meal.expectedExtraUnits>=0&&Number.isFinite(meal.expectedExtraUnits));
+  assert.ok(meal.expectedMandatoryUnits>=0&&meal.expectedMandatoryUnits<=meal.mandatoryCount);
+ }
+ assert.equal(r.estimatedMeals+r.initialCoveredMeals,r.meals.length);
+});
+test('no recipe mode or mismatched cuisine yields no invented meal provenance',()=>{
+ const x=input();x.options.recipeMode='fixed';x.options.recipeId='';
+ const r=sim.simulate(x);
+ assert.equal(r.meals.length,0);
+ assert.equal(r.estimatedMeals,0);
+ assert.equal(r.initialCoveredMeals,0);
+});
+test('expected-meal labeling does not change accounting or 7-day energy',()=>{
+ const x=input();x.options.recipeMode='best';x.options.recipeId='';
+ const r=sim.simulate(x);
+ assert.ok(Math.abs(r.meals.reduce((sum,m)=>sum+m.energy,0)-r.cooking)<1e-7);
+ assert.ok(Math.abs(r.days.reduce((sum,d)=>sum+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
+ assert.equal(r.initialCoveredMeals+r.estimatedMeals,r.meals.length);
+ assert.ok(r.meals.every(m=>Number.isFinite(m.expectedMandatoryUnits)&&Number.isFinite(m.expectedExtraUnits)));
+});
