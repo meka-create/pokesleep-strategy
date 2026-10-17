@@ -118,7 +118,41 @@ function evaluateRecipeOutcomes(dist,requirements,capacity=0,maxStates=LIMIT){
  }
  return {successProbability,expectedConsumed,distribution:next};
 }
+/* Exact finite meal sequence, GIVEN an explicitly specified distribution.
+ * An optional draws array holds independent stochastic EVENTS between meals;
+ * each event's outcomes are mutually exclusive. No correlations with other
+ * game systems are guessed. energyIfCooked must be supplied by the caller
+ * and can already include that meal's known great-success expectation.
+ * A failed recipe consumes no food and earns no meal Energy.
+ */
+function evaluateRecipeSequence(initial,steps,capacity=0,maxStates=LIMIT){
+ readBag(initial,capacity,maxStates);
+ if(!Array.isArray(steps)||steps.length>42)
+  throw Error('連続料理試算の食事数が不正です。');
+ let current=new Map(initial),expectedCooking=0,expectedMealCount=0;
+ const meals=[],expectedConsumed={};
+ for(const step of steps){
+  if(!step||typeof step!=='object'||Array.isArray(step)||
+     !Number.isFinite(step.energyIfCooked)||step.energyIfCooked<0||
+     step.energyIfCooked>1e12||
+     (step.draws!=null&&!Array.isArray(step.draws)))
+   throw Error('連続料理試算の食事入力が不正です。');
+  const draws=step.draws||[];
+  for(const outcomes of draws)
+   current=addIngredientOutcomes(current,outcomes,capacity,maxStates).distribution;
+  const result=evaluateRecipeOutcomes(current,step.requirements,capacity,maxStates);
+  current=result.distribution;
+  const expectedEnergy=result.successProbability*step.energyIfCooked;
+  expectedCooking+=expectedEnergy;
+  expectedMealCount+=result.successProbability;
+  for(const [key,value] of Object.entries(result.expectedConsumed))
+   expectedConsumed[key]=(expectedConsumed[key]||0)+value;
+  meals.push({successProbability:result.successProbability,
+    expectedEnergy,expectedConsumed:result.expectedConsumed});
+ }
+ return {meals,expectedCooking,expectedMealCount,expectedConsumed,distribution:current};
+}
 root.PokeIngredientDistribution=Object.freeze({
- certainIngredientBag,addIngredientOutcomes,evaluateRecipeOutcomes
+ certainIngredientBag,addIngredientOutcomes,evaluateRecipeOutcomes,evaluateRecipeSequence
 });
 })(typeof globalThis!=='undefined'?globalThis:this);
