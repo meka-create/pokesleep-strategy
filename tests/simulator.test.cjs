@@ -58,7 +58,7 @@ test('prototype explicitly warns unsupported skills and approximations',()=>{
  assert.ok(r.warnings.some(w=>w.includes('暫定期待値')));
 });
 
-test('pity-corrected skill rate remains finite and energy outputs are not NaN',()=>{
+test('joint pity skill state remains finite and energy outputs are not NaN',()=>{
  const p=input();p.box.forEach(v=>v.skillLevel=1);const r=sim.simulate(p);
  for(const key of ['total','berries','skills','cooking','sneaky'])assert.ok(Number.isFinite(r[key])&&r[key]>=0);
 });
