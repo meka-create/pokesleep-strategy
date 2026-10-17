@@ -799,6 +799,43 @@ test('inventory base caps respect post-v2.9 evolution normalization and negative
    'unknown evolution count must not remove carrying space: '+sp.name);
  }
 });
+test('one-stock skill banking uses probability of at least one proc, not capped average',()=>{
+ const dist=sim.advanceSkillStock([1,0],2,.5,1);
+ assert.deepEqual(Array.from(dist),[.25,.75]);
+ assert.equal(sim.expectedSkillStock(dist),.75);
+ assert.notEqual(sim.expectedSkillStock(dist),Math.min(1,2*.5));
+});
+test('two-stock skill banking tracks both independent rolls',()=>{
+ const dist=sim.advanceSkillStock([1,0,0],2,.5,2);
+ assert.deepEqual(Array.from(dist),[.25,.5,.25]);
+ assert.equal(sim.expectedSkillStock(dist),1);
+});
+test('fractional help and multiple ticks preserve stock probabilities',()=>{
+ const a=sim.advanceSkillStock([1,0,0],.5,.4,2);
+ assert.ok(Math.abs(a[0]-.8)<1e-12&&Math.abs(a[1]-.2)<1e-12);
+ let dist=[1,0,0];
+ for(let i=0;i<30;i++)dist=sim.advanceSkillStock(dist,.25,.5,2);
+ assert.ok(Math.abs(dist.reduce((sum,p)=>sum+p,0)-1)<1e-10);
+ assert.ok(dist.every(p=>p>=0&&p<=1));
+ assert.ok(sim.expectedSkillStock(dist)<=2);
+});
+test('skill banking rejects nonfinite probabilities and impossible caps',()=>{
+ assert.throws(()=>sim.advanceSkillStock([1,0],1,-.1,1),/不正/);
+ assert.throws(()=>sim.advanceSkillStock([1,0],-1,.1,1),/不正/);
+ assert.throws(()=>sim.advanceSkillStock([1,0],1,.1,3),/不正/);
+});
+test('departing helpers lose both ordinary and bonus uncollected carry',()=>{
+ const ordinary=new Map([['depart',{used:8,berries:4,ingredients:{apple:4},skillState:[0,1,0]}],
+   ['stays',{used:3,berries:2,ingredients:{apple:1},skillState:[.5,.5,0]}]]);
+ const extra=new Map([['depart',{used:3,berries:2,ingredients:{apple:1},skillState:[1,0,0]}],
+   ['stays',{used:0,berries:0,ingredients:{},skillState:[1,0,0]}]]);
+ const stayBag=ordinary.get('stays');
+ sim.clearDepartingPockets(['depart','stays'],['stays','new'],ordinary,extra);
+ assert.equal(ordinary.get('depart').used,0);
+ assert.equal(extra.get('depart').used,0);
+ assert.equal(sim.expectedSkillStock(ordinary.get('depart').skillState),0);
+ assert.equal(ordinary.get('stays'),stayBag);
+});
 test('good-camp inventory rounds fractional capacity up instead of keeping noninteger slots',()=>{
  // Reference 1.2x inventory bonus, rounded up; slot counts are whole numbers.
  const sp=master.species.find(s=>s.name==='ライチュウ');
