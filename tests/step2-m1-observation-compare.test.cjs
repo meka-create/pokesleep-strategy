@@ -85,7 +85,8 @@ test('a contradictory game summary is always confounded even if user checked eve
  assert.equal(bad.weeklySummaryBucketsReconcile,false);
  assert.ok(bad.confounders.some(x=>x.includes('合計が一致しません')));
  assert.equal(bad.accuracyGate,'HOLD');
- const legacy=compareSingleWeek({...base,provenance:{...flags,weekBoundaryReconciled:undefined}});
+ const {weekBoundaryReconciled,...legacyFlags}=flags;
+ const legacy=compareSingleWeek({...base,provenance:legacyFlags});
  assert.equal(legacy.status,'CONFOUNDED_OBSERVATION');
  assert.ok(legacy.confounders.some(x=>x.includes('04:00')));
 });
