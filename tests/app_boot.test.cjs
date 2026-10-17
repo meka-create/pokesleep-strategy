@@ -100,6 +100,7 @@ test('auto dish choice survives save and creates meal trace in real UI wiring',(
  assert.ok(app.items.get('simMeals').children.length>0);
  assert.match(app.items.get('simMealSummary').textContent,/期待値モデルで料理を計上/);
  assert.match(app.items.get('simMealSummary').textContent,/生産期待値に依存/);
+ assert.match(app.items.get('simMealSummary').textContent,/不確実な生産由来の食材を使う料理/);
  assert.ok(app.items.get('simMeals').children.some(x=>x.children[0].textContent.includes('必須材料：')));
 });
 
