@@ -1035,13 +1035,39 @@ test('ordinary production and skill counters reconcile on a 7-day run',()=>{
  assert.ok(r.skillEligibleHelps<=r.skillHelpCompletions+1e-8);
  assert.ok(r.skillTriggers<=r.skillEligibleHelps+1e-8);
 });
-test('full inventory prevents extra skill eligible helps without stopping sneaky',()=>{
+test('full ingredient bag does not block skill rolls from a Pokemon pocket',()=>{
  const a=input();a.options.bagCapacity=1;a.options.initialIngredients={apple:1};a.options.recipeId='';
  const r=sim.simulate(a);
  assert.ok(r.skillHelpCompletions>0);
- assert.equal(r.skillEligibleHelps,0);
- assert.equal(r.skillTriggers,0);
+ assert.ok(r.skillEligibleHelps>0);
+ assert.ok(r.skillTriggers>0);
  assert.ok(r.sneaky>0);
+});
+
+
+test('sneaky berries are pending before a collection and credited exactly once after',()=>{
+ const bag={pendingSneaky:0};
+ sim.queueSneakyEnergy(bag,150);
+ sim.queueSneakyEnergy(bag,25);
+ assert.equal(bag.pendingSneaky,175);
+ assert.equal(sim.releaseSneakyEnergy(bag),175);
+ assert.equal(bag.pendingSneaky,0);
+ assert.equal(sim.releaseSneakyEnergy(bag),0);
+});
+test('sneaky pending queue rejects invalid and negative energy',()=>{
+ const bag={pendingSneaky:10};
+ assert.throws(()=>sim.queueSneakyEnergy(bag,-1),/不正/);
+ assert.throws(()=>sim.queueSneakyEnergy(bag,Infinity),/不正/);
+ assert.equal(bag.pendingSneaky,10);
+});
+test('last Sunday sleep accumulates uncollected sneaky energy at Monday 04:00',()=>{
+ const a=input();a.options.recipeId='';a.options.initialIngredients={};
+ a.options.initialEnergy=1;a.options.sleepScore=1;
+ const r=sim.simulate(a);
+ assert.ok(r.pendingSneaky>0,'uncollected late-Sunday snacking should stay pending');
+ assert.ok(r.sneaky>0,'daytime sneaky should still be earned on earlier taps');
+ assert.ok(Math.abs(r.days.reduce((sum,d)=>sum+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
+ assert.ok(!r.warnings.some(w=>w.includes('計算結果を確定した')));
 });
 
 function plusMinusInput(){
