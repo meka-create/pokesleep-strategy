@@ -27,3 +27,16 @@ test('fixed and rotating controlled cases do not claim real-game mixed accuracy'
  assert.equal(r.cases[0].bySpecies.p5.completedHelps,0);
  assert.equal(r.cases[0].bySpecies.p6.completedHelps,0);
 });
+
+
+test('fixed controlled M1 benchmark snapshot preserves CI provenance without claiming game verification',()=>{
+ const reference=require('../docs/STEP2_M1_MIXED_BERRY_BASELINE_20261018.json');
+ assert.equal(reference.ciProvenance.runId,39046365517);
+ assert.equal(reference.ciProvenance.verifiedTestCount,246);
+ assert.equal(reference.ciProvenance.verifiedFailureCount,0);
+ assert.equal(reference.cases.length,2);
+ assert.deepEqual(reference.cases.map(c=>c.expected),[78671,95830]);
+ assert.ok(reference.cases.every(c=>c.absoluteDifference===0));
+ assert.equal(reference.actualGameWeeklyValidated,false);
+ assert.equal(reference.fullStochasticTeamComparisonValidated,false);
+});
