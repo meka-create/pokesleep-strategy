@@ -1310,3 +1310,51 @@ test('good-camp inventory rounds fractional capacity up instead of keeping nonin
  assert.equal(Math.ceil(sim.baseCarryCapacity(sp)*1.2),38);
  assert.equal(sim.baseCarryCapacity(sp),31);
 });
+
+
+test('eligible skill-help count retains non-adjacent saturated-pocket probability branches',()=>{
+ const out=sim.integerPocketTransitions(new Map([[0,1]]),4,4,1,.5,[{key:'apple',count:4}]);
+ const d=Array.from(out.eligibleDistribution,([count,p])=>[count,p]).sort((a,b)=>a[0]-b[0]);
+ assert.deepEqual(JSON.parse(JSON.stringify(d)),[[1,.5],[2,.25],[3,.125],[4,.125]]);
+ assert.ok(Math.abs(out.eligible-1.875)<1e-12);
+ assert.ok(Math.abs(d.reduce((sum,[n,p])=>sum+n*p,0)-out.eligible)<1e-12);
+});
+test('finite skill stock cap averages over eligible-help counts before transition',()=>{
+ const out=sim.integerPocketTransitions(new Map([[0,1]]),4,4,1,.5,[{key:'apple',count:4}]);
+ const base=sim.emptySkillProcState(78,2);
+ const exact=sim.skillProcMarginal(sim.advanceSkillProcStateByHelpCounts(base,out.eligibleDistribution,1));
+ const meanOnly=sim.skillProcMarginal(sim.advanceSkillProcState(base,out.eligible,1));
+ assert.deepEqual(JSON.parse(JSON.stringify(exact)),[0,.5,.5]);
+ assert.ok(Math.abs(sim.expectedSkillStock(exact)-1.5)<1e-12);
+ assert.ok(Math.abs(sim.expectedSkillStock(meanOnly)-1.875)<1e-12);
+});
+test('full pocket offers no skill lottery during later complete helps',()=>{
+ const out=sim.integerPocketTransitions(new Map([[0,1]]),25,1,2,0,[]);
+ assert.deepEqual(JSON.parse(JSON.stringify(Array.from(out.eligibleDistribution))),[[1,1]]);
+ const next=sim.skillProcMarginal(sim.advanceSkillProcStateByHelpCounts(sim.emptySkillProcState(78,2),out.eligibleDistribution,1));
+ assert.deepEqual(JSON.parse(JSON.stringify(next)),[0,1,0]);
+ assert.equal(out.sneaky,1+24*2);
+});
+test('count mixture propagates pity threshold separately in each integer branch',()=>{
+ const before=sim.emptySkillProcState(2,2);
+ const y=sim.advanceSkillProcStateByHelpCounts(before,new Map([[1,.5],[2,.5]]),.2);
+ const a=sim.advanceSkillProcState(before,1,.2),b=sim.advanceSkillProcState(before,2,.2);
+ for(let i=0;i<y.dist.length;i++)
+  assert.ok(Math.abs(y.dist[i]-(a.dist[i]+b.dist[i])/2)<1e-12);
+});
+test('help-count and pocket-mass validation refuses fabricated probability states',()=>{
+ assert.throws(()=>sim.integerPocketTransitions(new Map([[0,.4]]),1,4,2,.5,[{key:'apple',count:3}]),/確率質量/);
+ assert.throws(()=>sim.integerPocketTransitions(new Map([[0,1.1]]),1,4,2,0,[]),/確率質量/);
+ const state=sim.emptySkillProcState(5,2);
+ assert.throws(()=>sim.advanceSkillProcStateByHelpCounts(state,new Map([[0,.8]]),.3),/確率質量/);
+ assert.throws(()=>sim.advanceSkillProcStateByHelpCounts(state,new Map([[-1,1]]),.3),/不正/);
+ assert.throws(()=>sim.advanceSkillProcStateByHelpCounts(state,new Map([[0,1]]),1.2),/不正/);
+});
+test('weekly count integration preserves Energy components and eligible-help bounds',()=>{
+ const x=input();x.options.initialIngredients={};x.options.recipeId='';
+ const r=sim.simulate(x);
+ assert.ok(Number.isFinite(r.total)&&r.total>=0);
+ assert.ok(r.skillEligibleHelps<=r.skillHelpCompletions+1e-8);
+ assert.ok(r.skillTriggers<=r.skillEligibleHelps+1e-8);
+ assert.ok(Math.abs(r.days.reduce((sum,d)=>sum+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
+});
