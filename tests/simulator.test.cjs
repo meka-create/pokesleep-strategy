@@ -1358,3 +1358,75 @@ test('weekly count integration preserves Energy components and eligible-help bou
  assert.ok(r.skillTriggers<=r.skillEligibleHelps+1e-8);
  assert.ok(Math.abs(r.days.reduce((sum,d)=>sum+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
 });
+
+
+test('full shared bag retains exact bimodal integer food carry rather than reconstructing its mean',()=>{
+ const a=sim.integerFoodPocketTransitions(new Map([[0,1]]),1,3,2,.5,[{key:'apple',count:3}]);
+ assert.deepEqual(JSON.parse(JSON.stringify([...a.foodJoint].sort((x,y)=>x[0]-y[0]))),[[8,.5],[15,.5]]);
+ assert.equal(a.used,2.5);
+ assert.equal(a.berries,1);
+ assert.equal(a.ingredients.apple,1.5);
+ assert.equal(a.eligible,1);
+ const collected=sim.collectIntegerFoodPocket(a.foodJoint,3,0);
+ assert.equal(collected.accepted,0);
+ assert.equal(collected.remaining,1.5);
+ assert.deepEqual(JSON.parse(JSON.stringify([...collected.occupation].sort((x,y)=>x[0]-y[0]))),[[0,.5],[3,.5]]);
+ const next=sim.integerFoodPocketTransitions(collected.foodJoint,1,3,2,.5,[{key:'apple',count:3}]);
+ assert.ok(Math.abs(next.eligible-.5)<1e-12);
+ assert.equal(sim.integerPocketTransitions(sim.expectedPocketOccupation(1.5,3),1,3,2,.5,[{key:'apple',count:3}]).eligible,1);
+});
+test('one free global food slot clips each actual branch before averaging, not the expected quantity',()=>{
+ const a=sim.integerFoodPocketTransitions(new Map([[0,1]]),1,3,2,.5,[{key:'apple',count:3}]);
+ const collected=sim.collectIntegerFoodPocket(a.foodJoint,3,1);
+ assert.ok(Math.abs(collected.accepted-.5)<1e-12);
+ assert.ok(Math.abs(collected.remaining-1)<1e-12);
+ assert.deepEqual(JSON.parse(JSON.stringify([...collected.occupation].sort((x,y)=>x[0]-y[0]))),[[0,.5],[2,.5]]);
+ assert.ok(Math.abs(collected.accepted+collected.remaining-a.ingredients.apple)<1e-12);
+});
+test('zero food outcome leaves no carry even when berries previously occupied the pocket',()=>{
+ const x=sim.integerFoodPocketTransitions(new Map([[0,1]]),1,3,2,0,[{key:'apple',count:3}]);
+ const after=sim.collectIntegerFoodPocket(x.foodJoint,3,0);
+ assert.equal(after.remaining,0);
+ assert.deepEqual(JSON.parse(JSON.stringify([...after.occupation])),[[0,1]]);
+ assert.equal(x.berries,2);
+});
+test('joint food distribution aggregates different food species without inventing food identity',()=>{
+ const x=sim.integerFoodPocketTransitions(new Map([[0,1]]),1,4,1,.8,[{key:'apple',count:3},{key:'coffee',count:2}]);
+ assert.ok(Math.abs(x.ingredients.apple-1.2)<1e-12);
+ assert.ok(Math.abs(x.ingredients.coffee-.8)<1e-12);
+ const after=sim.collectIntegerFoodPocket(x.foodJoint,4,1);
+ // 40% apple3 => 2 retained; 40% coffee2 => 1 retained.
+ assert.ok(Math.abs(after.remaining-1.2)<1e-12);
+ assert.ok(Math.abs(after.accepted-.8)<1e-12);
+ const mass=[...after.occupation.values()].reduce((a,b)=>a+b,0);
+ assert.ok(Math.abs(mass-1)<1e-12);
+});
+test('joint ingredient model preserves v0.2.23 skill eligible roll distribution',()=>{
+ const params=[3,4,1,.5,[{key:'apple',count:4}]];
+ const a=sim.integerFoodPocketTransitions(new Map([[0,1]]),...params);
+ const b=sim.integerPocketTransitions(new Map([[0,1]]),...params);
+ assert.deepEqual(JSON.parse(JSON.stringify([...a.occupation])),JSON.parse(JSON.stringify([...b.occupation])));
+ assert.deepEqual(JSON.parse(JSON.stringify([...a.eligibleDistribution])),JSON.parse(JSON.stringify([...b.eligibleDistribution])));
+ assert.ok(Math.abs(a.sneaky-b.sneaky)<1e-12);
+ assert.ok(Math.abs(a.used-b.used)<1e-12);
+});
+test('invalid joint distribution or noninteger global room cannot be silently treated as exact',()=>{
+ assert.throws(()=>sim.integerFoodPocketTransitions(new Map([[0,.5]]),1,4,2,.2,[{key:'apple',count:1}]),/確率質量/);
+ assert.throws(()=>sim.integerFoodPocketTransitions(new Map([[8,1]]),1,3,2,.5,[{key:'apple',count:1}]),/不正/);
+ assert.throws(()=>sim.collectIntegerFoodPocket(new Map([[0,.6]]),4,0),/確率質量/);
+ assert.throws(()=>sim.collectIntegerFoodPocket(new Map([[0,1]]),4,.5),/不正/);
+});
+test('weekly full-bag simulation uses tracked food retention with bounded skill eligibility',()=>{
+ const x=input();x.options.recipeId='';x.options.initialIngredients={apple:1};x.options.bagCapacity=1;
+ const r=sim.simulate(x);
+ assert.ok(r.exactFoodCarryCollections>0);
+ assert.ok(r.skillEligibleHelps<=r.skillHelpCompletions+1e-8);
+ assert.ok(r.skillTriggers<=r.skillEligibleHelps+1e-8);
+ assert.ok(Object.values(r.inventory).reduce((sum,n)=>sum+n,0)<=1+1e-8);
+ assert.ok(Math.abs(r.days.reduce((sum,d)=>sum+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
+});
+test('unrestricted global bag avoids expensive full-bag joint tracking',()=>{
+ const x=input();x.options.recipeId='';x.options.initialIngredients={};
+ const r=sim.simulate(x);
+ assert.equal(r.exactFoodCarryCollections,0);
+});
