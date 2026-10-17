@@ -326,6 +326,27 @@ function weightedHelpMinutes(startEnergy,minutes){
  }
  return result;
 }
+// Ten-minute Energy decrements with a carried countdown. The former
+// continuous-decrease integrator remains available for regression comparison.
+function advanceEnergyTimer(startEnergy,phase,minutes){
+ if(![startEnergy,phase,minutes].every(Number.isFinite)||
+  startEnergy<0||startEnergy>150||phase<0||phase>=10||minutes<0)
+  throw Error('げんき減少タイマーの入力が不正です。');
+ let energy=startEnergy,timer=phase,left=minutes,workMinutes=0;
+ while(left>1e-9){
+  const slice=Math.min(left,10-timer);
+  workMinutes+=slice/energySpeed(energy);
+  left-=slice;timer+=slice;
+  if(timer>=10-1e-9){energy=Math.max(0,energy-1);timer=0;}
+ }
+ return {energy,phase:timer,workMinutes};
+}
+function applyEnergyRecovery(energies,decayTimers,id,nextEnergy){
+ if(!Number.isFinite(nextEnergy)||nextEnergy<0||nextEnergy>150||
+   !energies.has(id))throw Error('げんき回復イベントの入力が不正です。');
+ if(nextEnergy>energies.get(id)+1e-10)decayTimers.set(id,0);
+ energies.set(id,nextEnergy);
+}
 function effectivePotCapacity(base,skillBonus,day,camp){
  const weekend=day===6?2:1;
  return Math.round((base*weekend+clamp(skillBonus,0,200))*(camp?1.5:1));
@@ -455,13 +476,14 @@ function simulate(input){
  const warningsSkills=new Set(),warningsSkillsExcluded=new Set();
  // Tracks skill roll history across collection and team swaps, unlike the
  // ready-to-fire skill stock which is removed when team composition changes.
- const skillProcStates=new Map(),helpProgress=new Map();
+ const skillProcStates=new Map(),helpProgress=new Map(),energyDecayTimers=new Map();
  // Every stockpile user starts at zero on Monday; team substitutions reset it.
  const stockpileStates=new Map();
  function resetStockpileLeaving(oldTeam,newTeam){
   // Outgoing team is collected before switching; any blocked carry is lost.
   clearDepartingPockets(oldTeam,newTeam,pocket,extraPocket);
   clearDepartingHelpProgress(oldTeam,newTeam,helpProgress);
+  clearDepartingHelpProgress(oldTeam,newTeam,energyDecayTimers);
   clearPartySkillStocks(oldTeam,newTeam,skillProcStates,pocket);
   const retained=new Set(newTeam);
   for(const id of oldTeam){
@@ -560,7 +582,7 @@ function simulate(input){
     const helps=triggers*(HEAL_PULSE_HELP[lvl]+bonusHelp);
     for(const who of teamIds){
      const recipient=byId.get(who),factor=recoveryNatureFactor(recipient.nature);
-     energy.set(who,clamp(energy.get(who)+triggers*heal*2/teamIds.length*factor,0,150));
+     applyEnergyRecovery(energy,energyDecayTimers,who,clamp(energy.get(who)+triggers*heal*2/teamIds.length*factor,0,150));
      giveHelps(who,helps*2/teamIds.length);
     }
     warnings.add('いやしのはどうは回復・追加おてつだいを対象2匹への均等期待値で近似しています。');
@@ -576,21 +598,21 @@ function simulate(input){
     status.berries+=triggers*berryEnergy;
     for(const who of teamIds){
      const recipient=byId.get(who),f=recoveryNatureFactor(recipient.nature);
-     energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));
+     applyEnergyRecovery(energy,energyDecayTimers,who,clamp(energy.get(who)+r*triggers*f,0,150));
     }
     warnings.add('みかづきのいのりの回復ときのみは種族数を基に期待値計算しています。発動タイミング・丸めは簡易モデルです。');
    }
    else if(actual==='Energy for Everyone S'||actual==='Energy for Everyone S (Berry Juice)'){const r=HEAL_ALL[clamp(pair.p.skillLevel-1,0,HEAL_ALL.length-1)];
-     for(const who of teamIds){const recipient=byId.get(who);const f=recoveryNatureFactor(recipient.nature);energy.set(who,clamp(energy.get(who)+r*triggers*f,0,150));}
+     for(const who of teamIds){const recipient=byId.get(who);const f=recoveryNatureFactor(recipient.nature);applyEnergyRecovery(energy,energyDecayTimers,who,clamp(energy.get(who)+r*triggers*f,0,150));}
      if(actual==='Energy for Everyone S (Berry Juice)')warnings.add('きのみジュースの追加獲得はアイテム不使用方針によりエナジーに換算しません。');}
-   else if(actual==='Charge Energy S'||actual==='Charge Energy S (Moonlight)'){const f=recoveryNatureFactor(pair.p.nature);energy.set(id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers*f,0,150));
+   else if(actual==='Charge Energy S'||actual==='Charge Energy S (Moonlight)'){const f=recoveryNatureFactor(pair.p.nature);applyEnergyRecovery(energy,energyDecayTimers,id,clamp(energy.get(id)+HEAL_SELF[clamp(pair.p.skillLevel-1,0,HEAL_SELF.length-1)]*triggers*f,0,150));
     if(actual==='Charge Energy S (Moonlight)')warnings.add('つきのひかりの追加でチーム1匹を回復する効果は未計上です。');}
    else if(CHEER_HEAL[actual]){
     const heal=CHEER_HEAL[actual][clamp(pair.p.skillLevel-1,0,5)];
     const weights=cheerWeights(teamIds,energy);
     for(const who of teamIds){
      const recipient=byId.get(who),rate=recoveryNatureFactor(recipient.nature);
-     energy.set(who,clamp(energy.get(who)+heal*triggers*(weights.get(who)||0)*rate,0,150));
+     applyEnergyRecovery(energy,energyDecayTimers,who,clamp(energy.get(who)+heal*triggers*(weights.get(who)||0)*rate,0,150));
     }
     warnings.add('げんきエールの回復対象は最低げんき優先70%／残り均等30%の仮定です。実際の抽選確率は確定していません。');
     if(actual==='Energizing Cheer S (Nuzzle)')warnings.add('ほっぺすりすりのスキル発動可能ボーナスは未計上です。');
@@ -665,7 +687,7 @@ function simulate(input){
       const receiver=byId.get(who),prior=energy.get(who);
       const amount=heal*recoveryNatureFactor(receiver.nature);
       const next=uniformExpectedHeal(prior,amount,triggers,teamIds.length);
-      energy.set(who,next);
+      applyEnergyRecovery(energy,energyDecayTimers,who,next);
       status.conditionalMinusRecovery+=next-prior;
      }
      warnings.add('マイナスの追加げんき回復は他のプラス／マイナスと同時編成時、5匹均等抽選の期待値として反映しています。');
@@ -723,13 +745,19 @@ function simulate(input){
   }
  }
  function tickActive(ids,minutes,camp,awake){
-  const workFactors=new Map();
+  const workFactors=new Map(),nextStates=new Map();
   for(const id of ids){
-   const e=energy.get(id);
-   workFactors.set(id,awake?weightedHelpMinutes(e,minutes)/minutes:1/energySpeed(e));
+   const prior=energy.get(id),phase=energyDecayTimers.get(id)||0;
+   const next=awake?advanceEnergyTimer(prior,phase,minutes):
+    {energy:prior,phase,workMinutes:minutes/energySpeed(prior)};
+   nextStates.set(id,next);
+   workFactors.set(id,next.workMinutes/minutes);
   }
   help(ids,minutes/60,camp,workFactors);
-  for(const id of ids)if(awake)energy.set(id,clamp(energy.get(id)-minutes/10,0,150));
+  for(const id of ids){
+   energy.set(id,nextStates.get(id).energy);
+   energyDecayTimers.set(id,nextStates.get(id).phase);
+  }
  }
  function cook(day,meal,teamIds){
    const capacity=effectivePotCapacity(pot,potBonus,day,!!opts.camp);
@@ -762,7 +790,7 @@ function simulate(input){
      potCapacity:capacity,usedPotBonus:potBonus});
    if(successMode==='expected')successBonus*=1-greatChance;
    // Cooking restores a small amount of energy to the current on-field party.
-   for(const id of teamIds)energy.set(id,clamp(energy.get(id)+mealRecovery(energy.get(id)),0,150));
+   for(const id of teamIds)applyEnergyRecovery(energy,energyDecayTimers,id,clamp(energy.get(id)+mealRecovery(energy.get(id)),0,150));
    potBonus=0;
    return value;
  }
@@ -798,7 +826,7 @@ function simulate(input){
    for(const id of teams.sleep){
     const p=byId.get(id),f=recoveryNatureFactor(p.nature);
     const selfHasBonus=activeSkills(p).includes('げんき回復ボーナス');
-    energy.set(id,recoverFromSleep(energy.get(id),score,f,recoverBonuses,selfHasBonus));
+    applyEnergyRecovery(energy,energyDecayTimers,id,recoverFromSleep(energy.get(id),score,f,recoverBonuses,selfHasBonus));
    }
    collect(teams.sleep);
   }
@@ -826,7 +854,7 @@ function simulate(input){
  })[s]).join('、')+'。これらのスキル効果は評価せず、通常のおてつだい・きのみ・食材は計算します。');
  if(status.unassignedMagnet>0)warnings.add('食材ゲット系スキルで抽選候補が未設定のため、ランダム食材の期待'+status.unassignedMagnet.toFixed(1)+'個は料理材料に計上していません。発見済み食材を選択してください。');
  if(Object.keys(status.skillIngredients).length)warnings.add('食材ゲット系の抽選は選択した発見済み食材に均等配分した期待値近似です。実際の抽選単位・食材の偏りは未再現です。');
- warnings.add('暫定期待値モデルです。通常のおてつだいは15分ごとの進捗を合算し、整数回完了した時だけきのみ・食材・スキル抽選を計上します。いつのまに育成は次の回収操作時に計上し、翌月曜04:00の未回収分は前週へ加算しません。げんき80/60/40/1の速度帯を区間内で積分。ただし食材抽選結果・最大所持数の境界・実スキル発動秒・編成時のキュー生成は近似です。旧5回クールタイム説は固定適用しません。前週からの所持品持ち越しは未対応です。');
+ warnings.add('暫定期待値モデルです。通常のおてつだいは15分ごとの進捗を合算し、整数回完了した時だけきのみ・食材・スキル抽選を計上します。いつのまに育成は次の回収操作時に計上し、翌月曜04:00の未回収分は前週へ加算しません。げんきは10分ごとに1減るタイマーを持ち越し、回復時に減少タイマーをリセットします。速度は各10分区間のげんきに基づきます。ただし回復スキルの実発動秒・ランダム対象・最大所持数の境界・編成時のキュー生成は近似です。旧5回クールタイム説は固定適用しません。前週からの所持品持ち越しは未対応です。');
  if(extraMode==='none')warnings.add('追加食材はOFFです。鍋の余剰容量による食材エナジーは未計上です。');
  else warnings.add('追加食材は高エナジー食材から鍋を埋める短期近似です。翌食・翌週の食材温存やレシピの自動切替は考慮しません。');
  if(successMode==='none')warnings.add('料理の大成功はOFFです。料理チャンスSの寄与も未計上です。');
@@ -834,7 +862,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
