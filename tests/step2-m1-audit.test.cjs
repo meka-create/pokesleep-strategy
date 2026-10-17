@@ -60,3 +60,15 @@ test('CI-sourced v0.2.30 numeric baseline is archived with honest evidence grade
   .every(x=>x.reference!==null&&Math.abs(x.simulated-x.reference)<1e-7));
  assert.ok(snapshot.rankingComparisons.every(x=>x.externalRankingValidated===false));
 });
+
+
+test('M2 comparison command reports zero model change on unchanged v0.2.30 and never calls it accuracy improvement',()=>{
+ const {compare}=require('../scripts/step2-m1-compare.cjs');
+ const diff=compare(report);
+ assert.equal(diff.purpose,'MODEL_CHANGE_DETECTION_ONLY');
+ assert.equal(diff.matrix.length,14);
+ assert.ok(diff.matrix.every(row=>row.modelChange===0));
+ assert.equal(diff.rankingComparisons.length,5);
+ assert.ok(diff.rankingComparisons.every(row=>!row.changedModelLeader&&!row.independentRankingValidated));
+ assert.match(diff.note,/not imply improved game accuracy/);
+});
