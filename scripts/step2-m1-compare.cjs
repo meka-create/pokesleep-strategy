@@ -4,8 +4,7 @@
 // closer to Pokémon Sleep. Independently validated outcomes are a separate gate.
 const baseline=require('../docs/STEP2_M1_BASELINE_V0230_20261017.json');
 const {buildReport}=require('./step2-m1-audit.cjs');
-function compare(){
- const current=buildReport();
+function compare(current=buildReport()){
  const oldRows=new Map(baseline.matrix.map(x=>[x.id,x]));
  const matrix=current.matrix.map(row=>{
   const old=oldRows.get(row.id);
