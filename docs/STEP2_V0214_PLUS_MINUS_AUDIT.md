@@ -11,7 +11,7 @@
 
 ## 検証
 - `tests/simulator.test.cjs` の追加5件：プラス第1食材とLv別表、パートナー存在条件、プラス食材の実シミュレーション、マイナス回復の実シミュレーション、バッグ満杯時の追加制限。
-- Node.js 22の `npm run check` と生成HTML一致、GitHub Actionsは実行結果を確認して判定。
+- 実際のNode.js 22 GitHub Actionsの2系統のPRチェックで **123/123件PASS、失敗0件**、`npm run check` によるビルドと `index.html` / `dist/index.html` の一致・コミットとの差分なしを確認。
 - 未完了：対象抽選の確率分布、成功時の整数食材数と追加食材の順序・バッグ満杯時のスキル保持、スキル発動時刻、実測との差分評価、Android Chrome実機。
 
 ## 効果量資料
