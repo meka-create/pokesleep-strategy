@@ -1098,9 +1098,9 @@ test('boundary crossing at Energy 80.5 uses ten minutes at fast speed',()=>{
  assert.ok(Math.abs(r.workMinutes-(10/.45+5/.52))<1e-10);
  assert.ok(Math.abs(r.workMinutes-sim.weightedHelpMinutes(80.5,15))>.5);
 });
-test('decay at Energy 1 advances into zero-energy speed band on tick',()=>{
- const r=sim.advanceEnergyTimer(1,0,15);
- assert.equal(r.energy,0);
+test('decay across Energy 1.0 threshold enters the slowest speed band',()=>{
+ const r=sim.advanceEnergyTimer(1.5,0,15);
+ assert.equal(r.energy,.5);
  assert.equal(r.phase,5);
  assert.ok(Math.abs(r.workMinutes-(10/.66+5))<1e-10);
 });
