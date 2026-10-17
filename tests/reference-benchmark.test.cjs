@@ -124,3 +124,68 @@ test('independent 1-minute energy clock gives exactly the same collected 7-day b
   assert.ok(actual.skillHelpCompletions>=expected.completed*5);
  }finally{Object.assign(species,original)}
 });
+
+
+/**
+ * Fully separate one-minute oracle with overnight wake events. This reference
+ * intentionally does not call Energy APIs from the production simulator.
+ * Use an integer minute clock, a continuous partial-help queue, and explicit
+ * sleep recovery after each of the first six 7.5h sleeps.
+ */
+function oracleWeekWithRecovery(start,score){
+ let energy=start,energyTimer=0,helpProgress=0,creditedHelps=0;
+ const work=minutes=>{
+  for(let m=0;m<minutes;m++){
+   helpProgress+=60/(2200*oracleSpeed(energy));
+   const finished=Math.floor(helpProgress+1e-11);
+   creditedHelps+=finished;
+   helpProgress-=finished;
+   energyTimer++;
+   if(energyTimer===10){
+    energy=Math.max(0,energy-1);
+    energyTimer=0;
+   }
+  }
+ };
+ for(let day=0;day<7;day++){
+  work(990); // Daily 07:30-24:00 with 3 simulated collections.
+  if(day<6){
+   work(450); // 00:00-07:30, recovered and collected at real morning interaction.
+   const after=Math.max(energy,Math.ceil(Math.min(100,energy+Math.round(score))));
+   if(after>energy)energyTimer=0;
+   energy=after;
+  }
+  // Last Sunday 00:00-Monday 04:00 is deliberately not collected.
+ }
+ return {creditedHelps,energy,helpProgress,energyTimer};
+}
+test('independent 1-minute seven-day reference matches multiple sleep, initial energy, field and favorite choices',()=>{
+ const species=master.species.find(x=>x.name==='ライチュウ');
+ const original={frequency:species.frequency,ingRate:species.ingRate,skillRate:species.skillRate,carryLimit:species.carryLimit};
+ try{
+  species.frequency=2200;species.ingRate=0;species.skillRate=0;species.carryLimit=10000000;
+  const scenarios=[
+   {start:100,score:0,map:'ワカクサ本島',fieldBonus:0},
+   {start:15,score:80,map:'ワカクサ本島',fieldBonus:0},
+   {start:60,score:50,map:'ゴールド旧発電所',fieldBonus:50},
+   {start:150,score:100,map:'シアンの砂浜',fieldBonus:75},
+   {start:1,score:20,map:'ゴールド旧発電所',fieldBonus:100}
+  ];
+  for(const row of scenarios){
+   const input=isolatedNoSkillScenario();
+   Object.assign(input.options,{initialEnergy:row.start,sleepScore:row.score,map:row.map,fieldBonus:row.fieldBonus});
+   const expected=oracleWeekWithRecovery(row.start,row.score);
+   const favorite=row.map==='ゴールド旧発電所';
+   const reference=expected.creditedHelps*5*2*oracleBerry('electric',1,row.fieldBonus,favorite);
+   const got=engine.simulate(input);
+   assert.equal(got.total,reference,'weekly mismatch '+JSON.stringify(row)+' completed='+expected.creditedHelps);
+   assert.equal(got.berries,reference);
+   assert.equal(got.cooking,0);
+   assert.equal(got.skills,0);
+   assert.equal(got.sneaky,0);
+   assert.equal(got.pendingSneaky,0);
+   assert.equal(got.days.length,7);
+   assert.ok(got.skillHelpCompletions>=expected.creditedHelps*5);
+  }
+ }finally{Object.assign(species,original)}
+});
