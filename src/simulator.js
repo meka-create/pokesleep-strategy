@@ -391,20 +391,26 @@ function cheerWeights(teamIds,energy){
 }
 function recoverFromSleep(current,score,natureRecovery,teamRecoveryBonus,selfHasRecoveryBonus){
  const limit=selfHasRecoveryBonus?105:100;
- const amount=Math.max(0,Math.round(score*natureRecovery*(1+.14*teamRecoveryBonus)));
- // A sleep result must never reduce energy already above the sleep-recovery cap.
- return clamp(Math.max(current,Math.min(limit,current+amount)),0,150);
+ // Reference: pokesleep-tool Energy.calculateEnergyForEvents (wake).
+ // First multiply the rounded sleep score by recovery modifiers; only then
+ // ceil the resulting energy. Do not pre-round the recovery *amount*.
+ const amount=Math.max(0,Math.round(score)*natureRecovery*(1+.14*teamRecoveryBonus));
+ // Preserve user-specified invariant: sleep must not lower already-high Energy.
+ if(amount===0)return clamp(current,0,150);
+ return clamp(Math.max(current,Math.ceil(Math.min(limit,current+amount))),0,150);
 }
 function mealRecovery(energy){
+ // Same strict > boundary as pokesleep-tool Energy.getEnergyRecoveryForCook.
+ // Expected-value Energy can be fractional, so >=81 is NOT equivalent to >80.
  if(energy>=150)return 0;
- if(energy>=81)return 1;
- if(energy>=71)return 2;
- if(energy>=61)return 3;
- if(energy>=51)return 4;
- if(energy>=41)return 5;
- if(energy>=31)return 6;
- if(energy>=21)return 7;
- if(energy>=11)return 8;
+ if(energy>80)return 1;
+ if(energy>70)return 2;
+ if(energy>60)return 3;
+ if(energy>50)return 4;
+ if(energy>40)return 5;
+ if(energy>30)return 6;
+ if(energy>20)return 7;
+ if(energy>10)return 8;
  return 9;
 }
 function helperBoostCount(level,species){return HELPER_BOOST[clamp(level-1,0,5)][clamp(species-1,0,4)];}
