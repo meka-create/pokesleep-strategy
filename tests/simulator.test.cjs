@@ -1220,6 +1220,34 @@ test('long weekly simulation with constrained integer pocket keeps eligible help
  assert.equal(result.days.length,7);
 });
 
+
+test('Minus one guaranteed random heal matches uniform target selection and 150 cap',()=>{
+ assert.equal(sim.uniformExpectedHealFromStock(149,8,[0,1],5),149.2);
+ assert.equal(sim.uniformExpectedHealFromStock(140,8,[0,1],5),141.6);
+});
+test('Minus two activations account for a recipient selected twice near Energy cap',()=>{
+ const got=sim.uniformExpectedHealFromStock(140,8,[0,0,1],5);
+ assert.ok(Math.abs(got-142.96)<1e-12);
+ assert.ok(Math.abs(got-sim.uniformExpectedHeal(140,8,2,5))>.2);
+});
+test('Minus finite ready-stock mixture averages capped recovery after each branch',()=>{
+ const got=sim.uniformExpectedHealFromStock(140,8,[.2,.3,.5],5);
+ assert.ok(Math.abs(got-141.96)<1e-12);
+ assert.equal(sim.uniformExpectedHealFromStock(150,20,[0,0,1],5),150);
+});
+test('Minus stock expectation recovers exactly without a cap and with one possible target',()=>{
+ const d=[.1,.6,.3],expectedCount=.6+2*.3;
+ assert.ok(Math.abs(sim.uniformExpectedHealFromStock(70,10,d,5)-(70+expectedCount*10/5))<1e-12);
+ assert.equal(sim.uniformExpectedHealFromStock(100,8,[0,0,1],1),116);
+});
+test('Minus stock probability validation catches malformed distributions and energy',()=>{
+ assert.throws(()=>sim.uniformExpectedHealFromStock(140,8,[.2,.8,.2],5),/不正/);
+ assert.throws(()=>sim.uniformExpectedHealFromStock(140,8,[0,0,1],0),/不正/);
+ assert.throws(()=>sim.uniformExpectedHealFromStock(140,-1,[0,0,1],5),/不正/);
+ assert.throws(()=>sim.uniformExpectedHealFromStock(151,8,[0,0,1],5),/不正/);
+ assert.throws(()=>sim.uniformExpectedHealFromStock(140,8,[0,0,0,1],5),/不正/);
+});
+
 function plusMinusInput(){
  const a=input();
  a.box[0].pokemon='プラスル';
