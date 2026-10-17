@@ -24,7 +24,8 @@
 1. テンプレートを別名で保存する。実測した月曜日を `week.mondayDate: "YYYY-MM-DD"`（有効な月曜日）で指定。
 2. 週まとめの3値を `observed.total`、`observed.berryAndStrengthSkill`（**ゲーム画面の「きのみでのエナジー」の数値をそのまま**）、`observed.cooking` に記入。
 3. `input` はポケスリ作戦室エンジンの7日シミュレーション入力形式 `{box,teams,options}`。ボックスのJSONバックアップをそのまま代入すれば必ず動くという意味ではない。必要なら別途変換する。
-4. `week.field` と `input.options.map` を一致させる。観測条件を確かめられた場合にだけ `provenance.noUnmodeledEvents`、`sameCollectionSchedule`、`noUntrackedItems`、`startStrengthVerified` を `true` にする。確認不能なら**falseのまま**。
+4. `week.field` と `input.options.map` を一致させる。確認済み項目のみ `provenance.noUnmodeledEvents`、`sameCollectionSchedule`、`noUntrackedItems`、`startStrengthVerified`、`weekBoundaryReconciled` を**JSONの真偽値** `true` にする。未確認は `false`（古いテンプレートでキーが欠けた場合も未確認）。文字列の `"false"` / `"true"` は入力エラーにする。
+   - `weekBoundaryReconciled` は実ゲームの**月曜04:00〜07:30**の取得・操作・エナジーと、本モデルの**月曜07:30開始**の対象区間差を、同じ週の比較でどう扱うか個別に照合できた場合のみ `true`。単に同じ月曜の日付を指定しただけでは `true` にしない。
 5. `npm run m1:observe -- path/to/filled-real-week.json` を実行。総エナジー・「きのみ+スキル」・料理の**観測値−モデル値**と、未確認条件をJSONで出力する。
 
 **これは入力した実測値の真偽を自動検証する仕組みではない。** 1週間は確率変動が大きいため、実際の観測値と期待値の差分が出ても、即座にP0・P1・誤差率・編成順位の確定判定は行わない。連続した同条件の測定や、独立参照実装などと合わせて次段階で評価する。
