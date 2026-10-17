@@ -153,7 +153,7 @@ test('correlated initial outcomes give two possible meals, not three independent
   {requirements:{apple:7},energyIfCooked:200},
   {requirements:{apple:7},energyIfCooked:300}];
  const r=ctx.globalThis.PokeIngredientDistribution.evaluateRecipeSequence(first,meals,20);
- assert.deepEqual(r.meals.map(m=>m.successProbability),[.5,.5,0]);
+ assert.deepEqual(Array.from(r.meals,m=>m.successProbability),[.5,.5,0]);
  assert.equal(r.expectedCooking,150);
  assert.equal(r.expectedMealCount,1);
  assert.equal(r.expectedConsumed.apple,7);
@@ -166,7 +166,7 @@ test('separate between-meal draws allow independent conditional opportunities',(
   {draws:[draw],requirements:{apple:7},energyIfCooked:100},
   {draws:[draw],requirements:{apple:7},energyIfCooked:100}
  ],10);
- assert.deepEqual(r.meals.map(m=>m.successProbability),[.5,.5]);
+ assert.deepEqual(Array.from(r.meals,m=>m.successProbability),[.5,.5]);
  assert.equal(r.expectedCooking,100);
  assert.equal(r.expectedMealCount,1);
  assert.equal(r.expectedConsumed.apple,7);
@@ -176,7 +176,7 @@ test('a failed earlier dish preserves every ingredient for a later different rec
   {requirements:{apple:7},energyIfCooked:999},
   {requirements:{milk:7},energyIfCooked:30}
  ],20);
- assert.deepEqual(r.meals.map(m=>m.successProbability),[0,1]);
+ assert.deepEqual(Array.from(r.meals,m=>m.successProbability),[0,1]);
  assert.equal(r.expectedCooking,30);
  assert.equal(r.expectedConsumed.milk,7);
  assert.deepEqual(rows(r.distribution),[[{},1]]);
@@ -194,7 +194,7 @@ test('each pre-meal draw respects global bag cap before testing recipe feasibili
   {draws:[[{ingredient:'apple',count:7,probability:1}]],requirements:{apple:5},energyIfCooked:40},
   {requirements:{apple:5},energyIfCooked:40}
  ],5);
- assert.deepEqual(r.meals.map(m=>m.successProbability),[1,0]);
+ assert.deepEqual(Array.from(r.meals,m=>m.successProbability),[1,0]);
  assert.equal(r.expectedCooking,40);
  assert.deepEqual(rows(r.distribution),[[{},1]]);
 });
