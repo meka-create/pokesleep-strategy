@@ -136,7 +136,7 @@ function releaseSneakyEnergy(bag){
 // berry outcome or ONE of the unlocked ingredient-slot outcomes. A full
 // inventory generates sneaky berries and does not create skill opportunities.
 function integerPocketTransitions(occupation,completed,capacity,berryCount,ingredientRate,slots){
- if(!(occupation instanceof Map)||!Number.isInteger(completed)||completed<0||
+ if(Object.prototype.toString.call(occupation)!=='[object Map]'||!Number.isInteger(completed)||completed<0||
   !Number.isInteger(capacity)||capacity<1||
   !Number.isInteger(berryCount)||berryCount<1||
   !Number.isFinite(ingredientRate)||ingredientRate<0||ingredientRate>1||
