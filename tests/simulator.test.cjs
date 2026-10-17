@@ -1430,3 +1430,58 @@ test('unrestricted global bag avoids expensive full-bag joint tracking',()=>{
  const r=sim.simulate(x);
  assert.equal(r.exactFoodCarryCollections,0);
 });
+
+
+test('full shared ingredient bag blocks all supported food-producing main skill families',()=>{
+ const names=['Ingredient Magnet S','Ingredient Magnet S (Plus)','Ingredient Magnet S (Present)',
+  'Cooking Assist S (Bulk Up)','Ingredient Draw S','Ingredient Draw S (Super Luck)','Ingredient Draw S (Hyper Cutter)'];
+ for(const name of names){
+  assert.equal(sim.blockedIngredientSkill(name,10,10),true,name);
+  assert.equal(sim.blockedIngredientSkill(name,10,11),true,name);
+  assert.equal(sim.blockedIngredientSkill(name,10,9),false,name);
+ }
+});
+test('full ingredient bag does not block regular energy, healing, or excluded skills',()=>{
+ for(const name of ['Charge Strength S','Energy for Everyone S','Cooking Power-Up S','Metronome','Extra Helpful S']){
+  assert.equal(sim.blockedIngredientSkill(name,1,1),false,name);
+ }
+});
+test('unbounded ingredient storage never blocks ready food skills',()=>{
+ for(const name of ['Ingredient Magnet S','Cooking Assist S (Bulk Up)','Ingredient Draw S']){
+  assert.equal(sim.blockedIngredientSkill(name,0,0),false);
+  assert.equal(sim.blockedIngredientSkill(name,10,9.9),false);
+ }
+});
+test('invalid bag-cap and used item counts are not interpreted as a full bag',()=>{
+ assert.throws(()=>sim.blockedIngredientSkill('Ingredient Magnet S',-1,0),/不正/);
+ assert.throws(()=>sim.blockedIngredientSkill('Ingredient Magnet S',10,-1),/不正/);
+ assert.throws(()=>sim.blockedIngredientSkill('Ingredient Magnet S',10,NaN),/不正/);
+});
+test('five ingredient magnet helpers keep ready skills and report zero actual activation while bag stays full',()=>{
+ const a=input();
+ for(const p of a.box){p.pokemon='フシギダネ';p.ingredients=['あまいミツ','あまいミツ','あまいミツ'];}
+ a.options.bagCapacity=1;a.options.initialIngredients={apple:1};a.options.recipeId='';
+ const r=sim.simulate(a);
+ assert.equal(r.skillTriggers,0);
+ assert.equal(r.skillIngredients.apple||0,0);
+ assert.ok(r.skillEligibleHelps>0);
+ assert.ok(r.warnings.some(w=>w.includes('待機スキル')));
+});
+test('ingredient magnet triggers after cooking makes free room in a formerly full bag',()=>{
+ const a=input();
+ for(const p of a.box){p.pokemon='フシギダネ';p.ingredients=['あまいミツ','あまいミツ','あまいミツ'];}
+ a.options.initialIngredients={apple:150};a.options.bagCapacity=150;
+ a.options.magnetIngredients=['apple'];
+ a.options.recipeId='apple_curry';a.options.recipeMode='fixed';
+ const r=sim.simulate(a);
+ assert.ok(r.meals.length>0);
+ assert.ok(r.skillTriggers>0,'queued magnet must fire after a meal opens bag space');
+ assert.ok(r.skillIngredients.apple>0);
+});
+test('non-food main skills remain activatable with a full global food bag',()=>{
+ const a=input();
+ a.options.initialIngredients={apple:1};a.options.bagCapacity=1;a.options.recipeId='';
+ const r=sim.simulate(a);
+ assert.ok(r.skillTriggers>0,'Raichu charge-strength skills should still fire');
+ assert.ok(r.skills>0);
+});
