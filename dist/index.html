@@ -475,13 +475,13 @@ function integerPocketTransitions(occupation,completed,capacity,berryCount,ingre
    eligible+=p;
    const free=capacity-count;
    const bChance=p*(1-ingredientRate),keptB=Math.min(berryCount,free);
-   add(count+keptB,bChance);
+   if(bChance>0)add(count+keptB,bChance);
    berry+=bChance*keptB;
    sneaky+=bChance*(berryCount-keptB);
    for(const slot of choices){
     const q=p*ingredientRate/choices.length;
     const retained=Math.min(slot.count,free);
-    add(count+retained,q);
+    if(q>0)add(count+retained,q);
     if(slot.key&&retained>0)
      foods[slot.key]=(foods[slot.key]||0)+q*retained;
    }
