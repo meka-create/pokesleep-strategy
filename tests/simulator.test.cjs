@@ -1144,14 +1144,14 @@ test('one berry help with two berries and one free slot preserves one and sneaky
  assert.equal(s.berries,1);
  assert.equal(s.sneaky,1);
  assert.equal(s.eligible,1);
- assert.deepEqual(Array.from(s.occupation),[[1,1]]);
+ assert.deepEqual(Array.from(s.occupation, ([count,prob])=>[count,prob]),[[1,1]]);
 });
 test('full pocket makes the next complete help sneaky with no skill lottery',()=>{
  const s=sim.integerPocketTransitions(new Map([[0,1]]),2,1,2,0,[]);
  assert.equal(s.berries,1);
  assert.equal(s.sneaky,3);
  assert.equal(s.eligible,1);
- assert.deepEqual(Array.from(s.occupation),[[1,1]]);
+ assert.deepEqual(Array.from(s.occupation, ([count,prob])=>[count,prob]),[[1,1]]);
 });
 test('separate berry and food outcomes preserve exact occupancy branch probabilities',()=>{
  const a=sim.integerPocketTransitions(new Map([[0,1]]),1,3,2,.5,[{key:'apple',count:3}]);
@@ -1160,13 +1160,13 @@ test('separate berry and food outcomes preserve exact occupancy branch probabili
  assert.equal(a.ingredients.apple,1.5);
  assert.equal(a.sneaky,0);
  assert.equal(a.used,2.5);
- assert.deepEqual(Array.from(a.occupation),[[2,.5],[3,.5]]);
+ assert.deepEqual(Array.from(a.occupation, ([count,prob])=>[count,prob]),[[2,.5],[3,.5]]);
  const b=sim.integerPocketTransitions(a.occupation,1,3,2,.5,[{key:'apple',count:3}]);
  assert.ok(Math.abs(b.eligible-.5)<1e-12);
  assert.ok(Math.abs(b.berries-.25)<1e-12);
  assert.ok(Math.abs(b.ingredients.apple-.25)<1e-12);
  assert.ok(Math.abs(b.sneaky-1.25)<1e-12);
- assert.deepEqual(Array.from(b.occupation),[[3,1]]);
+ assert.deepEqual(Array.from(b.occupation, ([count,prob])=>[count,prob]),[[3,1]]);
 });
 test('ingredient rolls exceeding remaining space keep only the integer remainder',()=>{
  const s=sim.integerPocketTransitions(new Map([[2,1]]),1,3,2,1,[{key:'apple',count:4}]);
@@ -1187,7 +1187,7 @@ test('multiple ingredient slots are equally weighted per ingredient help',()=>{
 });
 test('expected retained carry converts to a two-point integer distribution without bias',()=>{
  const a=sim.expectedPocketOccupation(2.75,10);
- assert.deepEqual(Array.from(a),[[2,.25],[3,.75]]);
+ assert.deepEqual(Array.from(a, ([count,prob])=>[count,prob]),[[2,.25],[3,.75]]);
  const b=sim.integerPocketTransitions(a,1,3,2,0,[]);
  assert.ok(Math.abs(b.eligible-.25)<1e-12);
  assert.ok(Math.abs(b.sneaky-1.75)<1e-12);
