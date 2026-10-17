@@ -335,7 +335,7 @@ const STOCKPILE_REWARDS=[
  [4502,7653,11255,15307,19809,24761,30163,36916,46370,59876,82386]
 ];
 // Finite probability distribution: E[min(rolls,cap)] != min(E[rolls],cap).
-// Pity-adjusted long-run proc rate remains an explicit approximation.
+// Legacy stock-only helper retained for earlier regression tests; simulation now uses the joint pity-state model.
 function advanceSkillStock(state,expectedHelps,rate,cap){
  if(!Number.isFinite(expectedHelps)||expectedHelps<0||
     !Number.isFinite(rate)||rate<0||rate>1||![1,2].includes(cap)||
