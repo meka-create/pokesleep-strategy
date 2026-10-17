@@ -909,6 +909,80 @@ test('joint skill model validates limits and never gives 0-percent skills pity t
  assert.deepEqual(Array.from(sim.skillProcMarginal(never)),[1,0]);
 });
 
+
+test('four quarter-help buckets give precisely one real skill roll',()=>{
+ let phase=0,state=sim.emptySkillProcState(12,1);
+ for(let i=0;i<4;i++){
+  const next=sim.completeHelpProgress(phase,.25);
+  phase=next.phase;
+  assert.equal(next.completed,i===3?1:0);
+  state=sim.advanceSkillProcState(state,next.completed,.5);
+  if(i<3)assert.equal(sim.skillProcMarginal(state)[1],0);
+ }
+ assert.equal(phase,0);
+ assert.equal(sim.skillProcMarginal(state)[1],.5);
+ // Old quarter-Bernoulli approximation would produce 1-(1-0.125)^4.
+ assert.ok(Math.abs((1-(1-.125)**4)-.5)>.08);
+});
+test('sub-help intervals cannot trigger even a guaranteed skill before completion',()=>{
+ let phase=0,state=sim.emptySkillProcState(1,1);
+ for(let i=0;i<9;i++){
+  const x=sim.completeHelpProgress(phase,.1);
+  phase=x.phase;state=sim.advanceSkillProcState(state,x.completed,.03);
+  assert.equal(sim.expectedSkillStock(sim.skillProcMarginal(state)),0);
+ }
+ const last=sim.completeHelpProgress(phase,.1);
+ assert.equal(last.completed,1);
+ state=sim.advanceSkillProcState(state,last.completed,.03);
+ assert.equal(sim.expectedSkillStock(sim.skillProcMarginal(state)),1);
+});
+test('pity horizon advances after three completed helps, not twelve partial ones',()=>{
+ let phase=0,state=sim.emptySkillProcState(3,1);
+ let total=0;
+ for(let i=0;i<12;i++){
+  const x=sim.completeHelpProgress(phase,.25);
+  phase=x.phase;total+=x.completed;
+  state=sim.advanceSkillProcState(state,x.completed,.03);
+ }
+ assert.equal(total,3);
+ assert.equal(sim.skillProcMarginal(state)[1],1);
+});
+test('sub-help remainder carries across arbitrary 15-minute intervals without drift',()=>{
+ let phase=0,completed=0;
+ for(let i=0;i<239;i++){
+  const result=sim.completeHelpProgress(phase,.42);
+  phase=result.phase;completed+=result.completed;
+ }
+ assert.equal(completed,100);
+ assert.ok(Math.abs(phase-.38)<1e-9);
+ assert.ok(Math.abs(completed+phase-239*.42)<1e-8);
+ const two=sim.completeHelpProgress(.75,2.5);
+ assert.equal(two.completed,3);
+ assert.equal(two.phase,.25);
+});
+test('departing helper loses incomplete help phase while retained helper keeps it',()=>{
+ const phases=new Map([['depart',.8],['stay',.6],['other',.9]]);
+ sim.clearDepartingHelpProgress(['depart','stay'],['stay','new'],phases);
+ assert.equal(phases.has('depart'),false);
+ assert.equal(phases.get('stay'),.6);
+ assert.equal(phases.get('other'),.9);
+ sim.clearDepartingHelpProgress(['stay'],['stay'],phases);
+ assert.equal(phases.get('stay'),.6);
+});
+test('complete-help progress guards negative and nonfinite inputs',()=>{
+ assert.throws(()=>sim.completeHelpProgress(-.01,.2),/不正/);
+ assert.throws(()=>sim.completeHelpProgress(1,.2),/不正/);
+ assert.throws(()=>sim.completeHelpProgress(.2,-.1),/不正/);
+ assert.throws(()=>sim.completeHelpProgress(.2,Infinity),/不正/);
+});
+test('integrated 7-day simulation exposes integral skill-help completion count',()=>{
+ const r=sim.simulate(input());
+ assert.ok(Number.isInteger(r.skillHelpCompletions));
+ assert.ok(r.skillHelpCompletions>0);
+ assert.ok(r.skillTriggers<=r.skillHelpCompletions);
+ assert.equal(r.days.length,7);
+});
+
 function plusMinusInput(){
  const a=input();
  a.box[0].pokemon='プラスル';
