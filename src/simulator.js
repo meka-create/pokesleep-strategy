@@ -292,6 +292,28 @@ function uniformExpectedHeal(current,amount,triggers,teamSize){
   current<0||current>150||amount<0||triggers<0)throw Error('ランダム回復期待値の入力が不正です。');
  return clamp(current+Math.min(amount,150-current)*triggers/teamSize,0,150);
 }
+// Exact cap-aware recovery expectation over ready-stock 0/1/2 probability.
+// Each Minus activation independently chooses one of the five party members.
+// Compute the capped energy of each binomial recipient count BEFORE averaging.
+function uniformExpectedHealFromStock(current,amount,stockProbabilities,teamSize){
+ if(![current,amount,teamSize].every(Number.isFinite)||current<0||current>150||
+  amount<0||!Number.isInteger(teamSize)||teamSize<1||
+  !Array.isArray(stockProbabilities)||!([2,3].includes(stockProbabilities.length))||
+  stockProbabilities.some(p=>!Number.isFinite(p)||p<0)||
+  Math.abs(stockProbabilities.reduce((a,b)=>a+b,0)-1)>1e-8)
+  throw Error('確率ストック回復期待値の入力が不正です。');
+ const chance=1/teamSize,remaining=150-current;
+ let gain=0;
+ for(let count=0;count<stockProbabilities.length;count++){
+  const mass=stockProbabilities[count];if(mass===0)continue;
+  for(let hit=0;hit<=count;hit++){
+   const choose=count===2&&hit===1?2:1;
+   const p=choose*Math.pow(chance,hit)*Math.pow(1-chance,count-hit);
+   gain+=mass*p*Math.min(remaining,hit*amount);
+  }
+ }
+ return clamp(current+gain,0,150);
+}
 const RECOVERY_UP=['Bold','Impish','Lax','Relaxed'],RECOVERY_DOWN=['Hasty','Lonely','Gentle','Mild'];
 const RECIPES=root.PokeRecipes||[];
 const BERRY_BURST={
@@ -747,11 +769,12 @@ function simulate(input){
      for(const who of teamIds){
       const receiver=byId.get(who),prior=energy.get(who);
       const amount=heal*recoveryNatureFactor(receiver.nature);
-      const next=uniformExpectedHeal(prior,amount,triggers,teamIds.length);
+      const next=uniformExpectedHealFromStock(prior,amount,
+        triggerState?skillProcMarginal(triggerState):[1,0],teamIds.length);
       applyEnergyRecovery(energy,energyDecayTimers,who,next);
       status.conditionalMinusRecovery+=next-prior;
      }
-     warnings.add('マイナスの追加げんき回復は他のプラス／マイナスと同時編成時、5匹均等抽選の期待値として反映しています。');
+     warnings.add('マイナスの追加げんき回復は他のプラス／マイナス同時編成時、ストック0/1/2回とランダム対象の重複、げんき150上限を考慮した期待値として反映しています。');
     }
    }
    else if(actual)warningsSkills.add(actual);
@@ -928,7 +951,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
