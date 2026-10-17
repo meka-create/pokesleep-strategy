@@ -1137,6 +1137,89 @@ test('seven-day energy event integration keeps weekly totals and finite counts',
  assert.ok(Math.abs(r.days.reduce((v,d)=>v+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
 });
 
+
+test('one berry help with two berries and one free slot preserves one and sneaky-feeds one',()=>{
+ const s=sim.integerPocketTransitions(new Map([[0,1]]),1,1,2,0,[]);
+ assert.equal(s.used,1);
+ assert.equal(s.berries,1);
+ assert.equal(s.sneaky,1);
+ assert.equal(s.eligible,1);
+ assert.deepEqual(Array.from(s.occupation, ([count,prob])=>[count,prob]),[[1,1]]);
+});
+test('full pocket makes the next complete help sneaky with no skill lottery',()=>{
+ const s=sim.integerPocketTransitions(new Map([[0,1]]),2,1,2,0,[]);
+ assert.equal(s.berries,1);
+ assert.equal(s.sneaky,3);
+ assert.equal(s.eligible,1);
+ assert.deepEqual(Array.from(s.occupation, ([count,prob])=>[count,prob]),[[1,1]]);
+});
+test('separate berry and food outcomes preserve exact occupancy branch probabilities',()=>{
+ const a=sim.integerPocketTransitions(new Map([[0,1]]),1,3,2,.5,[{key:'apple',count:3}]);
+ assert.equal(a.eligible,1);
+ assert.equal(a.berries,1);
+ assert.equal(a.ingredients.apple,1.5);
+ assert.equal(a.sneaky,0);
+ assert.equal(a.used,2.5);
+ assert.deepEqual(Array.from(a.occupation, ([count,prob])=>[count,prob]),[[2,.5],[3,.5]]);
+ const b=sim.integerPocketTransitions(a.occupation,1,3,2,.5,[{key:'apple',count:3}]);
+ assert.ok(Math.abs(b.eligible-.5)<1e-12);
+ assert.ok(Math.abs(b.berries-.25)<1e-12);
+ assert.ok(Math.abs(b.ingredients.apple-.25)<1e-12);
+ assert.ok(Math.abs(b.sneaky-1.25)<1e-12);
+ assert.deepEqual(Array.from(b.occupation, ([count,prob])=>[count,prob]),[[3,1]]);
+});
+test('ingredient rolls exceeding remaining space keep only the integer remainder',()=>{
+ const s=sim.integerPocketTransitions(new Map([[2,1]]),1,3,2,1,[{key:'apple',count:4}]);
+ assert.equal(s.ingredients.apple,1);
+ assert.equal(s.berries,0);
+ assert.equal(s.sneaky,0);
+ assert.equal(s.used,3);
+ assert.equal(s.eligible,1);
+});
+test('multiple ingredient slots are equally weighted per ingredient help',()=>{
+ const s=sim.integerPocketTransitions(new Map([[0,1]]),1,6,1,.6,[
+  {key:'apple',count:2},{key:'coffee',count:4}
+ ]);
+ assert.ok(Math.abs(s.ingredients.apple-.6)<1e-12);
+ assert.ok(Math.abs(s.ingredients.coffee-1.2)<1e-12);
+ assert.ok(Math.abs(s.berries-.4)<1e-12);
+ assert.ok(Math.abs(s.used-2.2)<1e-12);
+});
+test('expected retained carry converts to a two-point integer distribution without bias',()=>{
+ const a=sim.expectedPocketOccupation(2.75,10);
+ assert.deepEqual(Array.from(a, ([count,prob])=>[count,prob]),[[2,.25],[3,.75]]);
+ const b=sim.integerPocketTransitions(a,1,3,2,0,[]);
+ assert.ok(Math.abs(b.eligible-.25)<1e-12);
+ assert.ok(Math.abs(b.sneaky-1.75)<1e-12);
+});
+test('integer carry transitions validate probability and cap inputs',()=>{
+ assert.throws(()=>sim.integerPocketTransitions(new Map([[0,1]]),1,0,2,0,[]),/不正/);
+ assert.throws(()=>sim.integerPocketTransitions(new Map([[0,1]]),.5,5,2,0,[]),/不正/);
+ assert.throws(()=>sim.integerPocketTransitions(new Map([[0,1]]),1,5,2,1.2,[]),/不正/);
+ assert.throws(()=>sim.integerPocketTransitions(new Map([[6,1]]),1,5,2,.5,[]),/不正/);
+ assert.throws(()=>sim.expectedPocketOccupation(-1,5),/不正/);
+});
+test('stochastic carry keeps mass and energy accounting over multiple full-pocket helps',()=>{
+ const p=sim.integerPocketTransitions(new Map([[0,1]]),20,7,2,.25,[{key:'apple',count:3},{key:'coffee',count:2}]);
+ const mass=Array.from(p.occupation.values()).reduce((a,b)=>a+b,0);
+ assert.ok(Math.abs(mass-1)<1e-10);
+ assert.ok(Math.abs(p.used-(p.berries+Object.values(p.ingredients).reduce((a,b)=>a+b,0)))<1e-10);
+ assert.ok(p.eligible>=1&&p.eligible<20);
+ assert.ok(p.sneaky>0);
+ assert.ok(p.used<=7);
+});
+test('long weekly simulation with constrained integer pocket keeps eligible help count bounded',()=>{
+ const p=input();
+ p.box.forEach(x=>{x.subskills=['','','','',''];x.sleepHours=0;});
+ p.options.recipeId='';
+ const result=sim.simulate(p);
+ assert.ok(result.skillHelpCompletions>=result.skillEligibleHelps);
+ assert.ok(result.skillEligibleHelps>0);
+ assert.ok(result.pendingSneaky>=0);
+ assert.ok(result.sneaky>=0);
+ assert.equal(result.days.length,7);
+});
+
 function plusMinusInput(){
  const a=input();
  a.box[0].pokemon='プラスル';
