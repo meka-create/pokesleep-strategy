@@ -97,6 +97,49 @@ function addIngredientOutcomes(dist,outcomes,capacity=0,maxStates=LIMIT){
  }
  return {distribution:next,expectedAdded,expectedRejected};
 }
+/* Correlated COMPOUND ingredient drops (e.g. one skill yielding multiple
+ * kinds). One outcome contains an ORDERED list of integer deliveries.
+ * Outcomes are mutually exclusive; never multiply ingredient marginal rates.
+ * When the global bag fills during delivery, the caller-provided item order
+ * determines which kind remains. Without a verified game delivery order,
+ * a caller MUST NOT apply this helper to a partial-capacity game event.
+ */
+function addCompoundIngredientOutcomes(dist,outcomes,capacity=0,maxStates=LIMIT){
+ const items=readBag(dist,capacity,maxStates);
+ if(!Array.isArray(outcomes)||outcomes.length===0)
+  throw Error('複数食材抽選分岐が指定されていません。');
+ let mass=0;
+ for(const o of outcomes){
+  if(!o||!Number.isFinite(o.probability)||o.probability<0||
+     o.probability>1||!Array.isArray(o.items)||o.items.length>50)
+   throw Error('複数食材抽選の形式が不正です。');
+  for(const item of o.items){
+   if(!item||!names.has(item.ingredient)||!Number.isSafeInteger(item.count)||
+      item.count<1||item.count>MAX)
+    throw Error('複数食材抽選の食材種類・個数が不正です。');
+  }
+  mass+=o.probability;
+ }
+ if(Math.abs(mass-1)>1e-8)throw Error('複数食材抽選の確率質量が不正です。');
+ let expectedAdded=0,expectedRejected=0;
+ const next=new Map();
+ for(const {stock,p,total} of items){
+  for(const o of outcomes){
+   if(o.probability===0)continue;
+   const after={...stock},w=p*o.probability;
+   let free=capacity?capacity-total:Infinity;
+   for(const item of o.items){
+    const added=Math.min(item.count,free);
+    free-=added;
+    after[item.ingredient]=(after[item.ingredient]||0)+added;
+    expectedAdded+=w*added;
+    expectedRejected+=w*(item.count-added);
+   }
+   add(next,after,w,maxStates);
+  }
+ }
+ return {distribution:next,expectedAdded,expectedRejected};
+}
 /* Given a finite JOINT inventory distribution, consume a specified
  * recipe only on worlds where ALL ingredient requirements are present.
  * On failure preserve the world's entire inventory (no phantom costs).
@@ -153,6 +196,6 @@ function evaluateRecipeSequence(initial,steps,capacity=0,maxStates=LIMIT){
  return {meals,expectedCooking,expectedMealCount,expectedConsumed,distribution:current};
 }
 root.PokeIngredientDistribution=Object.freeze({
- certainIngredientBag,addIngredientOutcomes,evaluateRecipeOutcomes,evaluateRecipeSequence
+ certainIngredientBag,addIngredientOutcomes,addCompoundIngredientOutcomes,evaluateRecipeOutcomes,evaluateRecipeSequence
 });
 })(typeof globalThis!=='undefined'?globalThis:this);
