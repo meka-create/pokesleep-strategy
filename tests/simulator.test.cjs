@@ -983,6 +983,97 @@ test('integrated 7-day simulation exposes integral skill-help completion count',
  assert.equal(r.days.length,7);
 });
 
+
+test('energy integration is constant within a single speed band',()=>{
+ assert.ok(Math.abs(sim.weightedHelpMinutes(100,15)-15/.45)<1e-10);
+ assert.ok(Math.abs(sim.weightedHelpMinutes(70,15)-15/.52)<1e-10);
+ assert.ok(Math.abs(sim.weightedHelpMinutes(50,15)-15/.58)<1e-10);
+ assert.ok(Math.abs(sim.weightedHelpMinutes(20,15)-15/.66)<1e-10);
+ assert.equal(sim.weightedHelpMinutes(0,15),15);
+ assert.equal(sim.weightedHelpMinutes(90,0),0);
+});
+test('crossing 80-energy threshold is time-weighted, not midpoint-only',()=>{
+ const weighted=sim.weightedHelpMinutes(80.5,15);
+ const expected=5/.45+10/.52;
+ assert.ok(Math.abs(weighted-expected)<1e-10);
+ assert.ok(weighted>15/.52&&weighted<15/.45);
+});
+test('crossing 1-energy threshold accounts for the slowest range',()=>{
+ const expected=5/.66+10/1;
+ assert.ok(Math.abs(sim.weightedHelpMinutes(1.5,15)-expected)<1e-10);
+ assert.equal(sim.weightedHelpMinutes(1,15),15);
+});
+test('energy speed integral is additive across multiple adjacent time slices',()=>{
+ const whole=sim.weightedHelpMinutes(81,30);
+ const part=sim.weightedHelpMinutes(81,15)+sim.weightedHelpMinutes(79.5,15);
+ assert.ok(Math.abs(whole-part)<1e-10);
+});
+test('energy speed integral rejects invalid initial energy and time',()=>{
+ assert.throws(()=>sim.weightedHelpMinutes(151,15),/不正/);
+ assert.throws(()=>sim.weightedHelpMinutes(-.1,15),/不正/);
+ assert.throws(()=>sim.weightedHelpMinutes(100,-1),/不正/);
+ assert.throws(()=>sim.weightedHelpMinutes(NaN,15),/不正/);
+});
+test('sub-help contributions can no longer credit imaginary berries before help completion',()=>{
+ const prevFrequency=raichu.frequency,prevSkill=raichu.skillRate;
+ try{
+  raichu.frequency=100000000;raichu.skillRate=0;
+  const a=input();a.options.initialIngredients={};a.options.recipeId='';
+  const r=sim.simulate(a);
+  assert.equal(r.skillHelpCompletions,0);
+  assert.equal(r.berries,0);
+  assert.equal(r.sneaky,0);
+  assert.equal(r.skillTriggers,0);
+ }finally{raichu.frequency=prevFrequency;raichu.skillRate=prevSkill;}
+});
+test('ordinary production and skill counters reconcile on a 7-day run',()=>{
+ const a=input();a.options.initialIngredients={};a.options.recipeId='';
+ const r=sim.simulate(a);
+ assert.ok(Number.isInteger(r.skillHelpCompletions));
+ assert.ok(r.skillHelpCompletions>0);
+ assert.ok(r.skillEligibleHelps>=0);
+ assert.ok(r.skillEligibleHelps<=r.skillHelpCompletions+1e-8);
+ assert.ok(r.skillTriggers<=r.skillEligibleHelps+1e-8);
+});
+test('full ingredient bag does not block skill rolls from a Pokemon pocket',()=>{
+ const a=input();a.options.bagCapacity=1;a.options.initialIngredients={apple:1};a.options.recipeId='';
+ const r=sim.simulate(a);
+ assert.ok(r.skillHelpCompletions>0);
+ assert.ok(r.skillEligibleHelps>0);
+ assert.ok(r.skillTriggers>0);
+ assert.ok(r.sneaky>0);
+});
+
+
+test('sneaky berries are pending before a collection and credited exactly once after',()=>{
+ const bag={pendingSneaky:0};
+ sim.queueSneakyEnergy(bag,150);
+ sim.queueSneakyEnergy(bag,25);
+ assert.equal(bag.pendingSneaky,175);
+ assert.equal(sim.releaseSneakyEnergy(bag),175);
+ assert.equal(bag.pendingSneaky,0);
+ assert.equal(sim.releaseSneakyEnergy(bag),0);
+});
+test('sneaky pending queue rejects invalid and negative energy',()=>{
+ const bag={pendingSneaky:10};
+ assert.throws(()=>sim.queueSneakyEnergy(bag,-1),/不正/);
+ assert.throws(()=>sim.queueSneakyEnergy(bag,Infinity),/不正/);
+ assert.equal(bag.pendingSneaky,10);
+});
+test('last Sunday sleep accumulates uncollected sneaky energy at Monday 04:00',()=>{
+ const originalCarry=raichu.carryLimit;
+ try{
+  raichu.carryLimit=1; // Small Pokemon pocket forces snacking even during a low-Energy 4h sleep.
+  const a=input();a.options.recipeId='';a.options.initialIngredients={};
+  a.options.initialEnergy=1;a.options.sleepScore=1;
+  a.box.forEach(p=>p.sleepHours=0);
+  const r=sim.simulate(a);
+  assert.ok(r.pendingSneaky>0,'uncollected late-Sunday snacking should stay pending');
+  assert.ok(r.sneaky>0,'daytime sneaky should still be earned on earlier taps');
+  assert.ok(Math.abs(r.days.reduce((sum,d)=>sum+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
+ }finally{raichu.carryLimit=originalCarry;}
+});
+
 function plusMinusInput(){
  const a=input();
  a.box[0].pokemon='プラスル';
