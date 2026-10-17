@@ -403,6 +403,18 @@ const POT_BOOST={
  'Cooking Power-Up S':[7,10,12,17,22,27,31],
  'Cooking Power-Up S (Minus)':[5,7,9,12,16,20,24]
 };
+// Ingredient-producing skills cannot activate when the GLOBAL ingredient bag
+// is full. Their ready stock stays queued until an actual successful tap.
+// Special non-ingredient skills and regular berry pickups are not blocked.
+const DRAW_FOOD_SKILLS=new Set([
+ 'Ingredient Draw S','Ingredient Draw S (Super Luck)','Ingredient Draw S (Hyper Cutter)'
+]);
+function blockedIngredientSkill(skill,capacity,used){
+ if(!Number.isFinite(capacity)||capacity<0||
+    !Number.isFinite(used)||used<0)throw Error('食材バッグ満杯判定の入力が不正です。');
+ return capacity>0&&used>=capacity-1e-9&&
+   (Object.prototype.hasOwnProperty.call(INGREDIENT_MAGNET,skill)||DRAW_FOOD_SKILLS.has(skill));
+}
 // Plus/Minus activate their secondary effects only when ANOTHER party member
 // has Plus or Minus. Official in-game skill description (2026-10).
 const PLUS_MINUS_SKILLS=new Set(['Ingredient Magnet S (Plus)','Cooking Power-Up S (Minus)']);
@@ -775,8 +787,13 @@ function simulate(input){
    const remainingInPocket=standardFood.retained,uncollected=standardFood.retainedCount;
    const actual=pair.sp.skill;
    const excluded=EXCLUDED_MAIN_SKILLS.has(actual);
+   const blockedByFoodBag=blockedIngredientSkill(actual,bagCapacity,bagUsed());
    const triggerState=skillProcStates.get(id);
-   const triggers=excluded?0:triggerState?expectedSkillStock(skillProcMarginal(triggerState)):0;
+   // A full global bag rejects food-producing skills without consuming the
+   // ready stock or resetting pity/skill history.
+   const triggers=excluded||blockedByFoodBag?0:triggerState?expectedSkillStock(skillProcMarginal(triggerState)):0;
+   if(blockedByFoodBag&&triggerState&&expectedSkillStock(skillProcMarginal(triggerState))>0)
+    warnings.add('食材バッグ満杯時の食材獲得スキルは発動できません。待機スキルは回収しても保持し、空きができた後の次回操作まで保留します。');
    if(excluded)warningsSkillsExcluded.add(actual);
    else if(actual==='Charge Strength S (Stockpile)'){
     const current=stockpileStates.get(id)||emptyStockpile();
@@ -931,8 +948,9 @@ function simulate(input){
    }
    else if(actual)warningsSkills.add(actual);
    status.skillCount+=triggers;
-   if(triggerState)skillProcStates.set(id,clearSkillProcStock(triggerState));
-   pocket.set(id,{used:uncollected,berries:0,ingredients:remainingInPocket,skillState:[1,0,0],pendingSneaky:0,
+   if(triggerState&&!blockedByFoodBag)skillProcStates.set(id,clearSkillProcStock(triggerState));
+   pocket.set(id,{used:uncollected,berries:0,ingredients:remainingInPocket,
+     skillState:blockedByFoodBag&&triggerState?skillProcMarginal(triggerState):[1,0,0],pendingSneaky:0,
      occupation:exactFood?exactFood.occupation:expectedPocketOccupation(uncollected,signature(pair.p,pair.sp,teamIds.map(i=>members.get(i)).filter(Boolean).map(x=>x.p),!!opts.camp,warnings).carry),
      foodJoint:exactFood?exactFood.foodJoint:undefined});
    extraPocket.set(id,{used:extraFood.retainedCount,berries:0,ingredients:extraFood.retained,skillState:[1,0,0]});
@@ -1111,10 +1129,11 @@ function simulate(input){
  else warnings.add('追加食材は高エナジー食材から鍋を埋める短期近似です。翌食・翌週の食材温存やレシピの自動切替は考慮しません。');
  if(successMode==='none')warnings.add('料理の大成功はOFFです。料理チャンスSの寄与も未計上です。');
  else warnings.add('大成功は平日10%・日曜30%の推定確率と料理チャンスSの期待値近似です。大成功時のスキル蓄積リセットや結果のばらつきは簡略化しています。');
+ if(bagCapacity)warnings.add('食材獲得系メインスキルはバッグが満杯の間は不発動として待機ストックを保持し、次の空きがある回収時に発動します。料理チャンス上限など食材以外の発動停止条件は未再現です。');
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他の個体との相関・条件外は期待値近似です。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
