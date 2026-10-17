@@ -58,7 +58,7 @@ test('prototype explicitly warns unsupported skills and approximations',()=>{
  assert.ok(r.warnings.some(w=>w.includes('暫定期待値')));
 });
 
-test('pity-corrected skill rate remains finite and energy outputs are not NaN',()=>{
+test('joint pity skill state remains finite and energy outputs are not NaN',()=>{
  const p=input();p.box.forEach(v=>v.skillLevel=1);const r=sim.simulate(p);
  for(const key of ['total','berries','skills','cooking','sneaky'])assert.ok(Number.isFinite(r[key])&&r[key]>=0);
 });
@@ -835,6 +835,78 @@ test('departing helpers lose both ordinary and bonus uncollected carry',()=>{
  assert.equal(extra.get('depart').used,0);
  assert.equal(sim.expectedSkillStock(ordinary.get('depart').skillState),0);
  assert.equal(ordinary.get('stays'),stayBag);
+});
+
+
+test('finite pity guarantees a roll on the threshold-th consecutive qualifying help',()=>{
+ const base=sim.emptySkillProcState(3,1);
+ const one=sim.advanceSkillProcState(base,1,.2);
+ assert.ok(Math.abs(sim.skillProcMarginal(one)[1]-.2)<1e-12);
+ const two=sim.advanceSkillProcState(base,2,.2);
+ assert.ok(Math.abs(sim.skillProcMarginal(two)[1]-.36)<1e-12);
+ const third=sim.advanceSkillProcState(base,3,.2);
+ assert.ok(Math.abs(sim.skillProcMarginal(third)[1]-1)<1e-12);
+});
+test('empty stock on collection keeps failed-roll history, not just average rate',()=>{
+ const state=sim.advanceSkillProcState(sim.emptySkillProcState(3,1),2,.2);
+ const cleared=sim.clearSkillProcStock(state);
+ assert.equal(sim.skillProcMarginal(cleared)[1],0);
+ // 64% already missed twice; 36% had rolled a success and restart at zero.
+ const next=sim.advanceSkillProcState(cleared,1,.2);
+ assert.ok(Math.abs(sim.skillProcMarginal(next)[1]-(.64+.36*.2))<1e-12);
+});
+test('pity counter and stock are jointly tracked rather than independently averaged',()=>{
+ const state=sim.advanceSkillProcState(sim.emptySkillProcState(3,2),3,.2);
+ const marginal=sim.skillProcMarginal(state);
+ assert.ok(marginal[2]>0&&marginal[1]>0);
+ assert.ok(Math.abs(marginal.reduce((a,b)=>a+b,0)-1)<1e-12);
+ const cleared=sim.clearSkillProcStock(state);
+ const recurred=sim.advanceSkillProcState(cleared,1,.2);
+ assert.ok(sim.skillProcMarginal(recurred)[1]>0);
+});
+test('full stock pauses pity rolls until collection, then fresh helps can trigger',()=>{
+ let state=sim.advanceSkillProcState(sim.emptySkillProcState(4,2),2,1);
+ assert.deepEqual(Array.from(sim.skillProcMarginal(state)),[0,0,1]);
+ const frozen=sim.advanceSkillProcState(state,25,.8);
+ assert.deepEqual(Array.from(frozen.dist),Array.from(state.dist));
+ state=sim.clearSkillProcStock(frozen);
+ assert.deepEqual(Array.from(sim.skillProcMarginal(state)),[1,0,0]);
+ assert.ok(sim.skillProcMarginal(sim.advanceSkillProcState(state,1,.8))[1]>.7);
+});
+test('fractional helps near pity threshold preserve mass and partial guaranteed chance',()=>{
+ const base=sim.emptySkillProcState(3,1);
+ const two=sim.advanceSkillProcState(base,2,.2);
+ const half=sim.advanceSkillProcState(two,.5,.2);
+ assert.ok(Math.abs(sim.skillProcMarginal(half)[1]-.68)<1e-12);
+ assert.ok(Math.abs(half.dist.reduce((a,b)=>a+b,0)-1)<1e-12);
+ assert.ok(half.dist.every(p=>p>=0&&p<=1));
+});
+test('team substitution invalidates retained helpers stock but preserves pity failures',()=>{
+ const sample=sim.advanceSkillProcState(sim.emptySkillProcState(4,1),2,.5);
+ const joint=new Map([['stays',sample],['depart',sample],['arrives',sample]]);
+ const bags=new Map([['stays',{skillState:[0,1,0]}],['depart',{skillState:[0,1,0]}],['arrives',{skillState:[0,1,0]}]]);
+ assert.equal(sim.clearPartySkillStocks(['stays','depart'],['stays','arrives'],joint,bags),true);
+ for(const id of ['stays','depart','arrives']){
+  assert.deepEqual(Array.from(sim.skillProcMarginal(joint.get(id))),[1,0]);
+  assert.deepEqual(Array.from(bags.get(id).skillState),[1,0,0]);
+  for(let k=0;k<4;k++)
+   assert.ok(Math.abs(joint.get(id).dist[k]-[.75,0,.25,0][k])<1e-12);
+ }
+});
+test('same five-member roster and initial lineup do not cancel stored ready skills',()=>{
+ const original=sim.advanceSkillProcState(sim.emptySkillProcState(4,1),2,.5);
+ const states=new Map([['0',original]]),bags=new Map([['0',{skillState:[.25,.75,0]}]]);
+ assert.equal(sim.clearPartySkillStocks(['0','1'],['1','0'],states,bags),false);
+ assert.equal(sim.clearPartySkillStocks([],['0','1'],states,bags),false);
+ assert.equal(states.get('0'),original);
+});
+test('joint skill model validates limits and never gives 0-percent skills pity triggers',()=>{
+ assert.throws(()=>sim.emptySkillProcState(0,1),/不正/);
+ assert.throws(()=>sim.emptySkillProcState(78,3),/不正/);
+ assert.throws(()=>sim.advanceSkillProcState(sim.emptySkillProcState(78,1),1,1.2),/不正/);
+ assert.throws(()=>sim.advanceSkillProcState(sim.emptySkillProcState(78,1),-1,.1),/不正/);
+ const never=sim.advanceSkillProcState(sim.emptySkillProcState(3,1),30,0);
+ assert.deepEqual(Array.from(sim.skillProcMarginal(never)),[1,0]);
 });
 
 function plusMinusInput(){
