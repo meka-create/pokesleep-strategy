@@ -123,7 +123,7 @@ function buildReport(){
   const r=totals(x),h=oracleSevenDays(15,80);
   return reportRow('D05','deterministic','7-day berry-only, six wake recovery events and favorite field','B',
    r.total,h.helps*5*2*oracleBerry('electric',1,50,true),
-   'B: separate one-minute chronological oracle and wake events'));
+   'B: separate one-minute chronological oracle and wake events');
  }));
  cases.push(withRaichuControlled(()=>{
   const x=simpleInput();Object.assign(x.options,{recipeId:'apple_curry',initialIngredients:{apple:147}});
