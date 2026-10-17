@@ -1,0 +1,139 @@
+{
+  "schema": "step2-m1-controlled-mixed-berry-v1",
+  "step2": "HOLD",
+  "source": "independent one-minute formula with shared master frequency",
+  "grade": "B_CONTROLLED_ONLY",
+  "actualGameWeeklyValidated": false,
+  "fullStochasticTeamComparisonValidated": false,
+  "cases": [
+    {
+      "id": "MB01",
+      "rotates": false,
+      "score": 0,
+      "start": 100,
+      "expected": 78671,
+      "observed": 78671,
+      "absoluteDifference": 0,
+      "bySpecies": {
+        "p0": {
+          "name": "ライチュウ",
+          "completedHelps": 283,
+          "berryPerHelp": 2,
+          "unitStrength": 64,
+          "energy": 36224
+        },
+        "p1": {
+          "name": "フシギバナ",
+          "completedHelps": 222,
+          "berryPerHelp": 1,
+          "unitStrength": 38,
+          "energy": 8436
+        },
+        "p2": {
+          "name": "リザードン",
+          "completedHelps": 260,
+          "berryPerHelp": 1,
+          "unitStrength": 34,
+          "energy": 8840
+        },
+        "p3": {
+          "name": "プクリン",
+          "completedHelps": 227,
+          "berryPerHelp": 1,
+          "unitStrength": 33,
+          "energy": 7491
+        },
+        "p4": {
+          "name": "バクフーン",
+          "completedHelps": 260,
+          "berryPerHelp": 2,
+          "unitStrength": 34,
+          "energy": 17680
+        },
+        "p5": {
+          "name": "トドゼルガ",
+          "completedHelps": 0,
+          "berryPerHelp": 2,
+          "unitStrength": 40,
+          "energy": 0
+        },
+        "p6": {
+          "name": "エーフィ",
+          "completedHelps": 0,
+          "berryPerHelp": 1,
+          "unitStrength": 33,
+          "energy": 0
+        }
+      },
+      "qualification": "B: controlled 7-species, 1-minute independent berry/energy/phase calculation with stochastic ingredients and skills switched off; NOT validated real gameplay"
+    },
+    {
+      "id": "MB02",
+      "rotates": true,
+      "score": 80,
+      "start": 30,
+      "expected": 95830,
+      "observed": 95830,
+      "absoluteDifference": 0,
+      "bySpecies": {
+        "p0": {
+          "name": "ライチュウ",
+          "completedHelps": 353,
+          "berryPerHelp": 2,
+          "unitStrength": 64,
+          "energy": 45184
+        },
+        "p1": {
+          "name": "フシギバナ",
+          "completedHelps": 277,
+          "berryPerHelp": 1,
+          "unitStrength": 38,
+          "energy": 10526
+        },
+        "p2": {
+          "name": "リザードン",
+          "completedHelps": 324,
+          "berryPerHelp": 1,
+          "unitStrength": 34,
+          "energy": 11016
+        },
+        "p3": {
+          "name": "プクリン",
+          "completedHelps": 223,
+          "berryPerHelp": 1,
+          "unitStrength": 33,
+          "energy": 7359
+        },
+        "p4": {
+          "name": "バクフーン",
+          "completedHelps": 196,
+          "berryPerHelp": 2,
+          "unitStrength": 34,
+          "energy": 13328
+        },
+        "p5": {
+          "name": "トドゼルガ",
+          "completedHelps": 52,
+          "berryPerHelp": 2,
+          "unitStrength": 40,
+          "energy": 4160
+        },
+        "p6": {
+          "name": "エーフィ",
+          "completedHelps": 129,
+          "berryPerHelp": 1,
+          "unitStrength": 33,
+          "energy": 4257
+        }
+      },
+      "qualification": "B: controlled 7-species, 1-minute independent berry/energy/phase calculation with stochastic ingredients and skills switched off; NOT validated real gameplay"
+    }
+  ],
+  "ciProvenance": {
+    "source": "GitHub Actions Validate STEP 2",
+    "runId": 39046365517,
+    "verifiedTestCount": 246,
+    "verifiedFailureCount": 0,
+    "baseMainCommit": "68fd795f2b51e116e31b434fadf133e3d4701724"
+  }
+}

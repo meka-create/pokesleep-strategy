@@ -8,7 +8,8 @@
     "test": "node --test tests/*.test.cjs",
     "check": "npm run test && npm run build",
     "m1:audit": "node scripts/step2-m1-audit.cjs",
-    "m1:compare": "node scripts/step2-m1-compare.cjs"
+    "m1:compare": "node scripts/step2-m1-compare.cjs",
+    "m1:mixed-oracle": "node scripts/step2-m1-mixed-berry-oracle.cjs"
   },
   "description": "ポケスリ作戦室 STEP 2 manual seven-day simulator (approximate)"
 }
