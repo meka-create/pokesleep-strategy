@@ -1551,3 +1551,47 @@ test('expected-meal labeling does not change accounting or 7-day energy',()=>{
  assert.equal(r.initialCoveredMeals+r.estimatedMeals,r.meals.length);
  assert.ok(r.meals.every(m=>Number.isFinite(m.expectedMandatoryUnits)&&Number.isFinite(m.expectedExtraUnits)));
 });
+
+
+test('meal Energy source categories reconcile exactly to cooking and weekly total',()=>{
+ const x=input();x.options.recipeMode='best';x.options.recipeId='';
+ const r=sim.simulate(x);
+ assert.ok(Math.abs(r.expectedSourceMealEnergy+r.initialSourceMealEnergy-r.cooking)<1e-7);
+ assert.equal(r.expectedSourceMeals,r.meals.filter(m=>m.expectedSource).length);
+ assert.ok(Math.abs(r.meals.filter(m=>m.expectedSource).reduce((sum,m)=>sum+m.energy,0)-r.expectedSourceMealEnergy)<1e-7);
+ assert.ok(Math.abs(r.days.reduce((n,d)=>n+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
+});
+test('all mandatory ingredients from initial input yields no source-dependent cooking Energy',()=>{
+ const x=input();x.options.initialIngredients={apple:150};x.options.recipeId='apple_curry';
+ const r=sim.simulate(x);
+ assert.equal(r.meals.length,21);
+ assert.equal(r.expectedSourceMeals,0);
+ assert.equal(r.expectedSourceMealEnergy,0);
+ assert.equal(r.initialSourceMealEnergy,r.cooking);
+ assert.ok(r.meals.every(m=>!m.expectedSource));
+});
+test('every dish produced without initial inventory is source-dependent Energy',()=>{
+ const x=input();x.options.initialIngredients={};x.options.recipeId='apple_curry';
+ const r=sim.simulate(x);
+ assert.ok(r.meals.length>0);
+ assert.equal(r.expectedSourceMeals,r.meals.length);
+ assert.equal(r.initialSourceMealEnergy,0);
+ assert.ok(Math.abs(r.expectedSourceMealEnergy-r.cooking)<1e-7);
+});
+test('optional extras supplied by expected production are included in source-dependent classification',()=>{
+ const x=input();x.options.initialIngredients={apple:150};x.options.recipeId='apple_curry';x.options.extraMode='fill';
+ const r=sim.simulate(x);
+ assert.ok(r.meals.length>0);
+ for(const meal of r.meals){
+  assert.equal(meal.expectedSource,meal.expectedMandatoryUnits>1e-9||meal.expectedExtraUnits>1e-9);
+ }
+ assert.ok(Math.abs(r.initialSourceMealEnergy+r.expectedSourceMealEnergy-r.cooking)<1e-7);
+});
+test('without a selected recipe all source-dependent Energy counters remain empty',()=>{
+ const x=input();x.options.recipeMode='fixed';x.options.recipeId='';
+ const r=sim.simulate(x);
+ assert.equal(r.meals.length,0);
+ assert.equal(r.expectedSourceMeals,0);
+ assert.equal(r.expectedSourceMealEnergy,0);
+ assert.equal(r.initialSourceMealEnergy,0);
+});
