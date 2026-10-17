@@ -98,7 +98,9 @@ test('auto dish choice survives save and creates meal trace in real UI wiring',(
  // The sample event is curry: auto must not choose desserts or salads.
  assert.equal(app.items.get('simResult').hidden,false);
  assert.ok(app.items.get('simMeals').children.length>0);
- assert.match(app.items.get('simMealSummary').textContent,/成立した料理/);
+ assert.match(app.items.get('simMealSummary').textContent,/期待値モデルで料理を計上/);
+ assert.match(app.items.get('simMealSummary').textContent,/生産期待値に依存/);
+ assert.ok(app.items.get('simMeals').children.some(x=>x.children[0].textContent.includes('必須材料：')));
 });
 
 test('optional extra food and great-success settings persist with meal trace',()=>{
