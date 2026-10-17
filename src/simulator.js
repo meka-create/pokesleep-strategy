@@ -668,7 +668,7 @@ function simulate(input){
  const warnings=new Set();
  if(!favorite.length)warnings.add('このフィールドの好みのきのみは未確定です。好みボーナスを計上していません。');
  const species=new Map(Master.species.map(s=>[s.name,s]));
- const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,skillHelpCompletions:0,skillEligibleHelps:0,exactFoodCarryCollections:0,meals:[],consumedIngredients:{}};
+ const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,skillHelpCompletions:0,skillEligibleHelps:0,exactFoodCarryCollections:0,meals:[],estimatedMeals:0,initialCoveredMeals:0,consumedIngredients:{}};
  for(const p of input.box){
   energy.set(p.id,initialEnergy);
   pocket.set(p.id,emptyPocket());
@@ -686,6 +686,10 @@ function simulate(input){
    const v=nums(inventory[k]);if(!Number.isInteger(v)||v<0||v>10000||!Object.prototype.hasOwnProperty.call(Master.ingredients,k))throw Error('初期食材数が不正です。');
    inventory[k]=v;
  }
+ // Track only deterministic ingredients entered by the user. Stochastic food
+ // production is NEVER credited here. This is a conservative provenance
+ // audit of the chosen meal sequence, not a recipe-success probability.
+ const initialOnlyStock={...inventory};
  const bagCapacity=nums(opts.bagCapacity??0);
  if(!Number.isInteger(bagCapacity)||bagCapacity<0||bagCapacity>10000)throw Error('食材バッグ容量が不正です。');
  const bagUsed=()=>Object.values(inventory).reduce((sum,n)=>sum+n,0);
@@ -1034,18 +1038,30 @@ function simulate(input){
    const chosen=chooseRecipe({mode:recipeMode,preferredId:opts.recipeId||'',foodMode:opts.foodMode,inventory,potCapacity:capacity});
    if(!chosen)return 0;
    const needed=Object.entries(chosen.requirements);
+   // An expected inventory of 7.5 does not prove that an integer recipe
+   // requiring 7 items is feasible on every sample path. Quantify the
+   // part not covered by remaining user-entered (certain) initial stock.
+   let expectedMandatoryUnits=0;
    for(const [k,v] of needed){
+    const certain=Math.min(v,Math.max(0,initialOnlyStock[k]||0));
+    expectedMandatoryUnits+=v-certain;
+    initialOnlyStock[k]=Math.max(0,(initialOnlyStock[k]||0)-v);
     inventory[k]-=v;
     status.consumedIngredients[k]=(status.consumedIngredients[k]||0)+v;
    }
+   const initialCovered=expectedMandatoryUnits<1e-9;
+   if(initialCovered)status.initialCoveredMeals++;
+   else status.estimatedMeals++;
    const mandatoryCount=needed.reduce((n,[,v])=>n+v,0);
-   const extraIngredients={};let extraEnergy=0,extraCount=0;
+   const extraIngredients={};let extraEnergy=0,extraCount=0,expectedExtraUnits=0;
    if(extraMode==='fill'){
     const candidates=Object.keys(ING).filter(k=>ING[k]>0)
       .sort((a,b)=>ING[b]-ING[a]||a.localeCompare(b));
     for(const key of candidates){
      const count=Math.min(Math.floor(Math.max(0,inventory[key]||0)),capacity-mandatoryCount-extraCount);
      if(count<=0)continue;
+     expectedExtraUnits+=Math.max(0,count-Math.max(0,initialOnlyStock[key]||0));
+     initialOnlyStock[key]=Math.max(0,(initialOnlyStock[key]||0)-count);
      inventory[key]-=count;status.consumedIngredients[key]=(status.consumedIngredients[key]||0)+count;
      extraIngredients[key]=count;extraCount+=count;extraEnergy+=count*ING[key];
     }
@@ -1057,6 +1073,7 @@ function simulate(input){
    status.meals.push({day:day+1,meal,recipeId:chosen.id,name:chosen.name,energy:value,
      normalEnergy:mealEnergy.normal,extraTastyEnergy:mealEnergy.extraTasty,
      count:mandatoryCount+extraCount,mandatoryCount,extraIngredients,extraEnergy,successProbability:greatChance,
+     initialCovered,expectedMandatoryUnits,expectedExtraUnits,
      potCapacity:capacity,usedPotBonus:potBonus});
    if(successMode==='expected')successBonus*=1-greatChance;
    // Cooking restores a small amount of energy to the current on-field party.
@@ -1130,8 +1147,9 @@ function simulate(input){
  if(successMode==='none')warnings.add('料理の大成功はOFFです。料理チャンスSの寄与も未計上です。');
  else warnings.add('大成功は平日10%・日曜30%の推定確率と料理チャンスSの期待値近似です。大成功時のスキル蓄積リセットや結果のばらつきは簡略化しています。');
  if(bagCapacity)warnings.add('食材獲得系メインスキルはバッグが満杯の間は不発動として待機ストックを保持し、次の空きがある回収時に発動します。料理チャンス上限など食材以外の発動停止条件は未再現です。');
+ if(status.estimatedMeals>0)warnings.add('料理'+status.estimatedMeals+'食は、必要食材の一部または全部を不確実な生産期待値に依存して計上しています。実際のレシピ成立確率と未成立時の食材・げんき・エナジー分岐は未計算です。');
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他の個体との相関・条件外は期待値近似です。');
- return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
+ return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
 const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
