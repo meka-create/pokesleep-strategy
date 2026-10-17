@@ -1412,7 +1412,7 @@ test('joint ingredient model preserves v0.2.23 skill eligible roll distribution'
 });
 test('invalid joint distribution or noninteger global room cannot be silently treated as exact',()=>{
  assert.throws(()=>sim.integerFoodPocketTransitions(new Map([[0,.5]]),1,4,2,.2,[{key:'apple',count:1}]),/確率質量/);
- assert.throws(()=>sim.integerFoodPocketTransitions(new Map([[8,1]]),1,3,2,.5,[{key:'apple',count:1}]),/不正/);
+ assert.throws(()=>sim.integerFoodPocketTransitions(new Map([[3,1]]),1,3,2,.5,[{key:'apple',count:1}]),/不正/);
  assert.throws(()=>sim.collectIntegerFoodPocket(new Map([[0,.6]]),4,0),/確率質量/);
  assert.throws(()=>sim.collectIntegerFoodPocket(new Map([[0,1]]),4,.5),/不正/);
 });
