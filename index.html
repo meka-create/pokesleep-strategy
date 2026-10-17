@@ -437,7 +437,16 @@ function clearPartySkillStocks(oldTeam,newTeam,skillProcStates,pocket){
  }
  return true;
 }
-function emptyPocket(){return {used:0,berries:0,ingredients:{},skillState:[1,0,0]};}
+function queueSneakyEnergy(bag,energy){
+ if(!Number.isFinite(energy)||energy<0)throw Error('いつのまに育成の保留値が不正です。');
+ bag.pendingSneaky=(bag.pendingSneaky||0)+energy;
+}
+function releaseSneakyEnergy(bag){
+ const energy=bag.pendingSneaky||0;
+ bag.pendingSneaky=0;
+ return energy;
+}
+function emptyPocket(){return {used:0,berries:0,ingredients:{},skillState:[1,0,0],pendingSneaky:0};}
 function clearDepartingPockets(oldTeam,newTeam,pocket,extraPocket){
  const retained=new Set(newTeam);
  for(const id of oldTeam)if(!retained.has(id)){
@@ -806,7 +815,10 @@ function simulate(input){
    const pair=members.get(id);if(!pair)continue;
    const bag=pocket.get(id),extraBag=extraPocket.get(id);
    const strength=berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
-   status.berries+=(bag.berries+extraBag.berries)*strength;
+   // Sneaky berries are awarded only on the next real interaction.
+   const readySneaky=releaseSneakyEnergy(bag);
+   status.berries+=(bag.berries+extraBag.berries)*strength+readySneaky;
+   status.sneaky+=readySneaky;
    const receiveFood=(src)=>{
     const retained={};let retainedCount=0;
     for(const [key,v] of Object.entries(src.ingredients)){
@@ -977,7 +989,7 @@ function simulate(input){
    else if(actual)warningsSkills.add(actual);
    status.skillCount+=triggers;
    if(triggerState)skillProcStates.set(id,clearSkillProcStock(triggerState));
-   pocket.set(id,{used:uncollected,berries:0,ingredients:remainingInPocket,skillState:[1,0,0]});
+   pocket.set(id,{used:uncollected,berries:0,ingredients:remainingInPocket,skillState:[1,0,0],pendingSneaky:0});
    extraPocket.set(id,{used:extraFood.retainedCount,berries:0,ingredients:extraFood.retained,skillState:[1,0,0]});
   }
   if(granted.size)help(teamIds,0,!!opts.camp,undefined,granted);
@@ -1009,7 +1021,7 @@ function simulate(input){
    if(!forcedHelps){
     const sneaky=overflow*x.berryPerHelp;
     const strength=berryUnit(pair.sp.type,pair.p.level,favorite,bonus);
-    status.berries+=sneaky*strength;status.sneaky+=sneaky*strength;
+    queueSneakyEnergy(bag,sneaky*strength);
     if(!EXCLUDED_MAIN_SKILLS.has(pair.sp.skill)){
      // Bag capacity is an expected-item approximation; at a boundary the
      // eligible share of a completed help can be fractional.
@@ -1110,6 +1122,9 @@ function simulate(input){
   // Do not credit the still-carried berries/ingredients or skill stock to the old week.
   daySummaries.push({day:d+1,berries:status.berries-before.berries,cooking:status.cooking-before.cooking,skills:status.skills-before.skills});
  }
+ // Sunday 00:00-04:00 has no collection: do not add its pending
+ // sneaky energy to the old week. The next real tap will earn it.
+ const pendingSneaky=Array.from(pocket.values()).reduce((n,bag)=>n+(bag.pendingSneaky||0),0);
  const stockpilePending={};
  for(const [id,probabilities] of stockpileStates){
   const pending=probabilities.reduce((sum,p,k)=>sum+p*k,0);
@@ -1126,15 +1141,15 @@ function simulate(input){
  })[s]).join('、')+'。これらのスキル効果は評価せず、通常のおてつだい・きのみ・食材は計算します。');
  if(status.unassignedMagnet>0)warnings.add('食材ゲット系スキルで抽選候補が未設定のため、ランダム食材の期待'+status.unassignedMagnet.toFixed(1)+'個は料理材料に計上していません。発見済み食材を選択してください。');
  if(Object.keys(status.skillIngredients).length)warnings.add('食材ゲット系の抽選は選択した発見済み食材に均等配分した期待値近似です。実際の抽選単位・食材の偏りは未再現です。');
- warnings.add('暫定期待値モデルです。通常のおてつだいは15分ごとの進捗を合算し、整数回完了した時だけきのみ・食材・スキル抽選を計上します。げんき80/60/40/1の速度帯を区間内で積分。ただし食材抽選結果・最大所持数の境界・実スキル発動秒・編成時のキュー生成は近似です。旧5回クールタイム説は固定適用しません。前週からの所持品持ち越しは未対応です。');
+ warnings.add('暫定期待値モデルです。通常のおてつだいは15分ごとの進捗を合算し、整数回完了した時だけきのみ・食材・スキル抽選を計上します。いつのまに育成は次の回収操作時に計上し、翌月曜04:00の未回収分は前週へ加算しません。げんき80/60/40/1の速度帯を区間内で積分。ただし食材抽選結果・最大所持数の境界・実スキル発動秒・編成時のキュー生成は近似です。旧5回クールタイム説は固定適用しません。前週からの所持品持ち越しは未対応です。');
  if(extraMode==='none')warnings.add('追加食材はOFFです。鍋の余剰容量による食材エナジーは未計上です。');
  else warnings.add('追加食材は高エナジー食材から鍋を埋める短期近似です。翌食・翌週の食材温存やレシピの自動切替は考慮しません。');
  if(successMode==='none')warnings.add('料理の大成功はOFFです。料理チャンスSの寄与も未計上です。');
  else warnings.add('大成功は平日10%・日曜30%の推定確率と料理チャンスSの期待値近似です。大成功時のスキル蓄積リセットや結果のばらつきは簡略化しています。');
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
- return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
+ return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,weightedHelpMinutes,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
