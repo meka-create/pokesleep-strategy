@@ -124,6 +124,29 @@ const POT_BOOST={
  'Cooking Power-Up S':[7,10,12,17,22,27,31],
  'Cooking Power-Up S (Minus)':[5,7,9,12,16,20,24]
 };
+// Plus/Minus activate their secondary effects only when ANOTHER party member
+// has Plus or Minus. Official in-game skill description (2026-10).
+const PLUS_MINUS_SKILLS=new Set(['Ingredient Magnet S (Plus)','Cooking Power-Up S (Minus)']);
+const PLUS_EXTRA_FIRST_ING={
+ coffee:[6,7,8,9,10,11,12],
+ milk:[6,7,9,10,12,13,14]
+};
+const MINUS_EXTRA_HEAL=[8,10,13,17,23,30,35];
+function hasPlusMinusPartner(ids,members,self){
+ return ids.some(id=>id!==self&&PLUS_MINUS_SKILLS.has(members.get(id)?.sp?.skill));
+}
+function plusExtraIngredient(sp,level){
+ const first=sp.ings?.find(s=>s.c1>0)?.name;
+ const table=PLUS_EXTRA_FIRST_ING[first];
+ return table?{key:first,count:table[clamp(level-1,0,6)]}:null;
+}
+function uniformExpectedHeal(current,amount,triggers,teamSize){
+ // One random recipient per activation, uniformly across the current five.
+ // Bound the energy of the selected recipient *before* taking its expectation.
+ if(![current,amount,triggers,teamSize].every(Number.isFinite)||teamSize<1||
+  current<0||current>150||amount<0||triggers<0)throw Error('ランダム回復期待値の入力が不正です。');
+ return clamp(current+Math.min(amount,150-current)*triggers/teamSize,0,150);
+}
 const RECOVERY_UP=['Bold','Impish','Lax','Relaxed'],RECOVERY_DOWN=['Hasty','Lonely','Gentle','Mild'];
 const RECIPES=root.PokeRecipes||[];
 const BERRY_BURST={
@@ -286,7 +309,7 @@ function simulate(input){
  const warnings=new Set();
  if(!favorite.length)warnings.add('このフィールドの好みのきのみは未確定です。好みボーナスを計上していません。');
  const species=new Map(Master.species.map(s=>[s.name,s]));
- const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,meals:[],consumedIngredients:{}};
+ const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,meals:[],consumedIngredients:{}};
  for(const p of input.box){
   energy.set(p.id,initialEnergy);
   pocket.set(p.id,emptyPocket());
@@ -499,7 +522,14 @@ function simulate(input){
     if(!magnetPool.length)status.unassignedMagnet+=produced;
     else {const available=bagCapacity?Math.min(produced,Math.max(0,bagCapacity-bagUsed())):produced;
       for(const key of magnetPool)addInventory(key,available/magnetPool.length,true);}
-    if(actual==='Ingredient Magnet S (Plus)')warnings.add('プラスの条件付き追加食材は未計上です（ランダム食材部分のみ）。');
+    if(actual==='Ingredient Magnet S (Plus)'&&hasPlusMinusPartner(teamIds,members,id)){
+     const extra=plusExtraIngredient(pair.sp,pair.p.skillLevel);
+     if(extra){
+      const accepted=addInventory(extra.key,extra.count*triggers,true);
+      status.conditionalPlusIngredients+=accepted;
+      warnings.add('プラスの追加食材は他のプラス／マイナスとの同時編成時に第1枠を加算します。食材バッグ容量・スキル抽選は期待値近似です。');
+     }else warnings.add('プラスの第1枠追加食材をマスターから特定できず、追加分を計上していません：'+pair.sp.name);
+    }
     if(actual==='Ingredient Magnet S (Present)')warnings.add('プレゼントのアメ効果はエナジーに換算しません。');
     if(actual==='Cooking Assist S (Bulk Up)'){
      if(successMode==='expected'){
@@ -511,7 +541,17 @@ function simulate(input){
    }
    else if(POT_BOOST[actual]){
     potBonus=Math.min(200,potBonus+triggers*POT_BOOST[actual][clamp(pair.p.skillLevel-1,0,6)]);
-    if(actual==='Cooking Power-Up S (Minus)')warnings.add('マイナスの条件付きげんき回復効果は未計上です（鍋容量部分のみ）。');
+    if(actual==='Cooking Power-Up S (Minus)'&&hasPlusMinusPartner(teamIds,members,id)){
+     const heal=MINUS_EXTRA_HEAL[clamp(pair.p.skillLevel-1,0,6)];
+     for(const who of teamIds){
+      const receiver=byId.get(who),prior=energy.get(who);
+      const amount=heal*recoveryNatureFactor(receiver.nature);
+      const next=uniformExpectedHeal(prior,amount,triggers,teamIds.length);
+      energy.set(who,next);
+      status.conditionalMinusRecovery+=next-prior;
+     }
+     warnings.add('マイナスの追加げんき回復は他のプラス／マイナスと同時編成時、5匹均等抽選の期待値として反映しています。');
+    }
    }
    else if(actual)warningsSkills.add(actual);
    status.skillCount+=triggers;
@@ -649,9 +689,9 @@ function simulate(input){
  if(successMode==='none')warnings.add('料理の大成功はOFFです。料理チャンスSの寄与も未計上です。');
  else warnings.add('大成功は平日10%・日曜30%の推定確率と料理チャンスSの期待値近似です。大成功時のスキル蓄積リセットや結果のばらつきは簡略化しています。');
  if(bagCapacity)warnings.add('食材バッグ満杯時は回収できない食材をポケモンの所持品に残す期待値近似を使います。');
- return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
+ return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,skillTriggers:status.skillCount,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,clearDepartingPockets,EXCLUDED_MAIN_SKILLS};
+const api={simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
