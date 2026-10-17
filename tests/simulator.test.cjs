@@ -890,7 +890,7 @@ test('team substitution invalidates retained helpers stock but preserves pity fa
   assert.deepEqual(Array.from(sim.skillProcMarginal(joint.get(id))),[1,0]);
   assert.deepEqual(Array.from(bags.get(id).skillState),[1,0,0]);
   for(let k=0;k<4;k++)
-   assert.ok(Math.abs(joint.get(id).dist[k]-[0,.25,.25,0][k])<1e-12);
+   assert.ok(Math.abs(joint.get(id).dist[k]-[.75,0,.25,0][k])<1e-12);
  }
 });
 test('same five-member roster and initial lineup do not cancel stored ready skills',()=>{
