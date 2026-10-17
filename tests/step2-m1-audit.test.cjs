@@ -44,3 +44,19 @@ test('M1 remains PARTIAL until real-game mixed and ranking evidence is obtained'
  assert.equal(report.counts.externallyVerifiedRankingPairs,0);
  assert.ok(report.gate.blockers.length>=3);
 });
+
+
+test('CI-sourced v0.2.30 numeric baseline is archived with honest evidence grades',()=>{
+ const snapshot=require('../docs/STEP2_M1_BASELINE_V0230_20261017.json');
+ assert.equal(snapshot.baselineVersion,'0.2.30');
+ assert.equal(snapshot.counts.matrix,14);
+ assert.equal(snapshot.counts.rankingPairs,5);
+ assert.equal(snapshot.counts.referenceCompared,9);
+ assert.equal(snapshot.counts.unverifiedCases,5);
+ assert.equal(snapshot.counts.externallyVerifiedRankingPairs,0);
+ assert.deepEqual(snapshot.matrix.map(x=>x.id),report.matrix.map(x=>x.id));
+ assert.deepEqual(snapshot.rankingComparisons.map(x=>x.id),report.rankingComparisons.map(x=>x.id));
+ assert.ok(snapshot.matrix.filter(x=>x.disposition==='MATCH_CONTROLLED')
+  .every(x=>x.reference!==null&&Math.abs(x.simulated-x.reference)<1e-7));
+ assert.ok(snapshot.rankingComparisons.every(x=>x.externalRankingValidated===false));
+});
