@@ -15,7 +15,7 @@
 
 ## 検証と未完了
 - `tests/simulator.test.cjs` に5件追加：ストック1回・2回・端数・入力保護・離脱時の所持消去。
-- v0.2.12のNode.js 22 GitHub ActionsとPagesの成功は確認済み。v0.2.13のCI結果は完走後に別途確認する。
+- v0.2.13 PR #1の実際のNode.js 22 Actionsで **118件テストPASS、失敗0件**。`npm run check` によりビルド完走、`index.html` と `dist/index.html` の一致／Git差分なしを2つのCIワークフローで確認（PR時点）。v0.2.12のPagesデプロイも成功確認済み。v0.2.13のPages配信はmain反映後に確認する。
 - 未完了：実測エナジーとの誤差／参照計算器との比較、ピティ・時刻・初期所持・週跨ぎの再現、週間料理最適化、Android Chromeでのv0.2.13実機操作。
 
 ## 参照
@@ -23,4 +23,4 @@
 - https://wikiwiki.jp/poke_sleep/検証/編成入れ替えによるスキル天井リセット
 - https://wiki.pokesleep.com/en/skill-expectation
 
-**判定：計算精度ゲートはHOLD。**
+**判定：v0.2.13のNode.js単体テストと配布HTML再現性はPASS。ゲーム内数値精度ゲートはHOLD。**
