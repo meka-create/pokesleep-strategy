@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node build.mjs",
     "test": "node --test tests/*.test.cjs",
-    "check": "npm run test && npm run build"
+    "check": "npm run test && npm run build",
+    "m1:audit": "node scripts/step2-m1-audit.cjs"
   },
   "description": "ポケスリ作戦室 STEP 2 manual seven-day simulator (approximate)"
 }
