@@ -1074,6 +1074,69 @@ test('last Sunday sleep accumulates uncollected sneaky energy at Monday 04:00',(
  }finally{raichu.carryLimit=originalCarry;}
 });
 
+
+test('ten-minute Energy decay leaves phase five after a 15-minute tick',()=>{
+ const r=sim.advanceEnergyTimer(100,0,15);
+ assert.equal(r.energy,99);
+ assert.equal(r.phase,5);
+ assert.ok(Math.abs(r.workMinutes-15/.45)<1e-10);
+});
+test('energy timer preserves its remainder across adjacent 15-minute ticks',()=>{
+ const a=sim.advanceEnergyTimer(81,0,15);
+ assert.equal(a.energy,80);
+ assert.equal(a.phase,5);
+ const b=sim.advanceEnergyTimer(a.energy,a.phase,15);
+ assert.equal(b.energy,78);
+ assert.equal(b.phase,0);
+ const whole=sim.advanceEnergyTimer(81,0,30);
+ assert.equal(whole.energy,b.energy);
+ assert.ok(Math.abs(whole.workMinutes-a.workMinutes-b.workMinutes)<1e-10);
+});
+test('boundary crossing at Energy 80.5 uses ten minutes at fast speed',()=>{
+ const r=sim.advanceEnergyTimer(80.5,0,15);
+ assert.equal(r.energy,79.5);
+ assert.ok(Math.abs(r.workMinutes-(10/.45+5/.52))<1e-10);
+ assert.ok(Math.abs(r.workMinutes-sim.weightedHelpMinutes(80.5,15))>.5);
+});
+test('decay across Energy 1.0 threshold enters the slowest speed band',()=>{
+ const r=sim.advanceEnergyTimer(1.5,0,15);
+ assert.equal(r.energy,.5);
+ assert.equal(r.phase,5);
+ assert.ok(Math.abs(r.workMinutes-(10/.66+5))<1e-10);
+});
+test('recovery resets the Energy reduction timer only on actual increase',()=>{
+ const energies=new Map([['x',70]]),phases=new Map([['x',7]]);
+ sim.applyEnergyRecovery(energies,phases,'x',70);
+ assert.equal(phases.get('x'),7);
+ sim.applyEnergyRecovery(energies,phases,'x',69);
+ assert.equal(phases.get('x'),7);
+ sim.applyEnergyRecovery(energies,phases,'x',75);
+ assert.equal(phases.get('x'),0);
+ assert.equal(energies.get('x'),75);
+ assert.throws(()=>sim.applyEnergyRecovery(energies,phases,'x',151),/不正/);
+});
+test('energy countdown honors nonzero initial phase and zero-minute duration',()=>{
+ const r=sim.advanceEnergyTimer(60,9,2);
+ assert.equal(r.energy,59);
+ assert.equal(r.phase,1);
+ assert.ok(Math.abs(r.workMinutes-2/.58)<1e-10);
+ assert.deepEqual(JSON.parse(JSON.stringify(sim.advanceEnergyTimer(60,4,0))),{energy:60,phase:4,workMinutes:0});
+});
+test('energy timer invalid inputs fail without fabricating work',()=>{
+ assert.throws(()=>sim.advanceEnergyTimer(-1,0,15),/不正/);
+ assert.throws(()=>sim.advanceEnergyTimer(150,10,15),/不正/);
+ assert.throws(()=>sim.advanceEnergyTimer(80,0,-1),/不正/);
+ assert.throws(()=>sim.advanceEnergyTimer(80,0,NaN),/不正/);
+});
+test('seven-day energy event integration keeps weekly totals and finite counts',()=>{
+ const x=input();x.options.initialEnergy=80.5;x.options.sleepScore=20;
+ const r=sim.simulate(x);
+ assert.ok(Number.isFinite(r.total)&&r.total>=0);
+ assert.ok(Number.isInteger(r.skillHelpCompletions));
+ assert.equal(r.days.length,7);
+ assert.ok(Math.abs(r.days.reduce((v,d)=>v+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
+});
+
 function plusMinusInput(){
  const a=input();
  a.box[0].pokemon='プラスル';
