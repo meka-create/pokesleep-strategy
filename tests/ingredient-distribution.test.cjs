@@ -221,3 +221,92 @@ test('invalid future meal and 43rd step must fail rather than yield fabricated c
  assert.throws(()=>api(d,Array.from({length:43},()=>({requirements:{},energyIfCooked:0}))),/不正/);
  assert.throws(()=>api(d,[{draws:[[{ingredient:'apple',count:1,probability:.3}]],requirements:{apple:1},energyIfCooked:100}]),/確率質量/);
 });
+
+
+test('one compound draw keeps two correlated ingredients in the SAME branch',()=>{
+ const {addCompoundIngredientOutcomes:compound}=ctx.globalThis.PokeIngredientDistribution;
+ const r=compound(certainIngredientBag({}),[
+  {probability:.4,items:[{ingredient:'apple',count:3},{ingredient:'milk',count:2}]},
+  {probability:.6,items:[]}
+ ],20);
+ assert.ok(Math.abs(r.expectedAdded-2)<1e-12);
+ const dish=evaluateRecipeOutcomes(r.distribution,{apple:3,milk:2},20);
+ assert.equal(dish.successProbability,.4);
+ // Independent marginals would incorrectly produce .4*.4=.16.
+ assert.ok(Math.abs(dish.successProbability-.16)>.2);
+});
+test('explicit delivery order matters at bag capacity and is not silently guessed',()=>{
+ const compound=ctx.globalThis.PokeIngredientDistribution.addCompoundIngredientOutcomes;
+ const base=certainIngredientBag({apple:1},4);
+ const first=compound(base,[{probability:1,items:[{ingredient:'apple',count:3},{ingredient:'milk',count:2}]}],4);
+ const second=compound(base,[{probability:1,items:[{ingredient:'milk',count:2},{ingredient:'apple',count:3}]}],4);
+ assert.deepEqual(rows(first.distribution),[[{apple:4},1]]);
+ assert.deepEqual(rows(second.distribution),[[{apple:2,milk:2},1]]);
+ assert.equal(first.expectedAdded,3);assert.equal(second.expectedAdded,3);
+ assert.equal(first.expectedRejected,2);assert.equal(second.expectedRejected,2);
+ assert.equal(evaluateRecipeOutcomes(first.distribution,{milk:2},4).successProbability,0);
+ assert.equal(evaluateRecipeOutcomes(second.distribution,{milk:2},4).successProbability,1);
+});
+test('duplicate same-kind deliveries add to exact integer total',()=>{
+ const compound=ctx.globalThis.PokeIngredientDistribution.addCompoundIngredientOutcomes;
+ const r=compound(certainIngredientBag({}),[
+  {probability:1,items:[{ingredient:'apple',count:2},{ingredient:'apple',count:3}]}
+ ],20);
+ assert.deepEqual(rows(r.distribution),[[{apple:5},1]]);
+});
+test('compound one-kind outcomes match legacy single-ingredient exact distribution',()=>{
+ const compound=ctx.globalThis.PokeIngredientDistribution.addCompoundIngredientOutcomes;
+ const one=addIngredientOutcomes(certainIngredientBag({}),[
+  {ingredient:'apple',count:3,probability:.7},
+  {ingredient:null,count:0,probability:.3}
+ ],6);
+ const both=compound(certainIngredientBag({}),[
+  {probability:.7,items:[{ingredient:'apple',count:3}]},
+  {probability:.3,items:[]}
+ ],6);
+ assert.deepEqual(rows(both.distribution),rows(one.distribution));
+ assert.equal(both.expectedAdded,one.expectedAdded);
+ assert.equal(both.expectedRejected,one.expectedRejected);
+});
+test('correlated compound supply persists through multiple recipes without loss of mass',()=>{
+ const api=ctx.globalThis.PokeIngredientDistribution;
+ const d=api.addCompoundIngredientOutcomes(certainIngredientBag({}),[
+  {probability:.5,items:[{ingredient:'apple',count:14},{ingredient:'milk',count:14}]},
+  {probability:.5,items:[]}
+ ],50).distribution;
+ const r=api.evaluateRecipeSequence(d,[
+  {requirements:{apple:7,milk:7},energyIfCooked:100},
+  {requirements:{apple:7,milk:7},energyIfCooked:100},
+  {requirements:{apple:7,milk:7},energyIfCooked:100}
+ ],50);
+ assert.deepEqual(Array.from(r.meals,m=>m.successProbability),[.5,.5,0]);
+ assert.equal(r.expectedCooking,100);
+ assert.equal(total(r.distribution),1);
+});
+test('compound delivery over a full bag rejects all food and keeps original state',()=>{
+ const c=ctx.globalThis.PokeIngredientDistribution.addCompoundIngredientOutcomes;
+ const r=c(certainIngredientBag({apple:5},5),[{probability:1,items:[
+  {ingredient:'apple',count:3},{ingredient:'milk',count:3}
+ ]}],5);
+ assert.deepEqual(rows(r.distribution),[[{apple:5},1]]);
+ assert.equal(r.expectedAdded,0);
+ assert.equal(r.expectedRejected,6);
+});
+test('invalid compound probability or unknown kinds are rejected',()=>{
+ const c=ctx.globalThis.PokeIngredientDistribution.addCompoundIngredientOutcomes;
+ assert.throws(()=>c(certainIngredientBag({}),[{probability:.6,items:[]}]),/確率質量/);
+ assert.throws(()=>c(certainIngredientBag({}),[{probability:1,items:[{ingredient:'unknown',count:1}]}]),/不正/);
+ assert.throws(()=>c(certainIngredientBag({}),[{probability:1,items:[{ingredient:'apple',count:.5}]}]),/不正/);
+ assert.throws(()=>c(certainIngredientBag({}),[{probability:1,items:[{ingredient:'apple',count:0}]}]),/不正/);
+});
+test('compound outcome branch explosion is a hard error, not mass truncation',()=>{
+ const c=ctx.globalThis.PokeIngredientDistribution.addCompoundIngredientOutcomes;
+ let d=certainIngredientBag({});
+ const outcomes=[
+  {probability:.5,items:[{ingredient:'apple',count:1},{ingredient:'milk',count:1}]},
+  {probability:.5,items:[]}
+ ];
+ d=c(d,outcomes,50,3).distribution;
+ d=c(d,outcomes,50,3).distribution;
+ assert.throws(()=>c(d,outcomes,50,3),/上限/);
+});
