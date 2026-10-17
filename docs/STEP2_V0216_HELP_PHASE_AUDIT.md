@@ -39,7 +39,7 @@
 6. 非有限・負値等の入力拒否
 7. 7日実計算で `skillHelpCompletions` が非負整数かつスキル発動数以上
 
-過去の全スキル除外、CSV・JSON保存、睡眠中無操作、月曜04:00境界、料理、ストック等の回帰も実行。Node.js 22の実際のCIログで検証すること。
+過去の全スキル除外、CSV・JSON保存、睡眠中無操作、月曜04:00境界、料理、ストック等の回帰も実行。**PRのNode.js 22 GitHub Actions 2系統で138/138件PASS、失敗0件**を実ログ確認（Validate STEP 2：run `39017885862`、Validate PokeSleep Strategy：run `39017885845`）。それぞれ生成HTMLビルドおよび生成HTMLのコミット一致検査が成功。
 
 ## 未解決事項
 
