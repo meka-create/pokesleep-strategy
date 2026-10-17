@@ -1,0 +1,363 @@
+{
+  "schema": "step2-m1-benchmark-v1",
+  "baselineVersion": "0.2.30",
+  "masterAsOf": "2026-10-16",
+  "evidenceMeaning": {
+    "A": "independent repeated game observations; none yet",
+    "B": "separate controlled formula/chronological/branch oracle",
+    "C": "internal invariants or simulator output only; NOT accuracy validation"
+  },
+  "counts": {
+    "matrix": 14,
+    "deterministic": 6,
+    "probability": 4,
+    "mixed": 4,
+    "rankingPairs": 5,
+    "referenceCompared": 9,
+    "unverifiedCases": 5,
+    "externallyVerifiedRankingPairs": 0
+  },
+  "matrix": [
+    {
+      "id": "D01",
+      "group": "deterministic",
+      "label": "Berry.ts electric lv50, 25% field, favorite",
+      "evidenceGrade": "B",
+      "referenceSource": "independent-controlled-formula-or-one-minute-oracle",
+      "reference": 210,
+      "simulated": 210,
+      "absoluteDifference": 0,
+      "disposition": "MATCH_CONTROLLED",
+      "triage": "NO_DISCREPANCY_IN_CONTROLLED_CASE",
+      "notes": "B: separate upstream Berry.ts formula"
+    },
+    {
+      "id": "D02",
+      "group": "deterministic",
+      "label": "Cooking floor, strength70 apple curry, 25% bonus",
+      "evidenceGrade": "B",
+      "referenceSource": "independent-controlled-formula-or-one-minute-oracle",
+      "reference": 3347,
+      "simulated": 3347,
+      "absoluteDifference": 0,
+      "disposition": "MATCH_CONTROLLED",
+      "triage": "NO_DISCREPANCY_IN_CONTROLLED_CASE",
+      "notes": "B: independent normal dish rounding"
+    },
+    {
+      "id": "D03",
+      "group": "deterministic",
+      "label": "Sleep wake energy: current19.7 score53, 0.88 recovery + one bonus",
+      "evidenceGrade": "B",
+      "referenceSource": "independent-controlled-formula-or-one-minute-oracle",
+      "reference": 73,
+      "simulated": 73,
+      "absoluteDifference": 0,
+      "disposition": "MATCH_CONTROLLED",
+      "triage": "NO_DISCREPANCY_IN_CONTROLLED_CASE",
+      "notes": "B: separate wake-recovery arithmetic"
+    },
+    {
+      "id": "D04",
+      "group": "deterministic",
+      "label": "7-day berry-only, no sleep recovery, no cooking or skill",
+      "evidenceGrade": "B",
+      "referenceSource": "independent-controlled-formula-or-one-minute-oracle",
+      "reference": 70750,
+      "simulated": 70750,
+      "absoluteDifference": 0,
+      "disposition": "MATCH_CONTROLLED",
+      "triage": "NO_DISCREPANCY_IN_CONTROLLED_CASE",
+      "notes": "B: separate one-minute chronological oracle, 5 Raichu, all ingredient/skill rates zero"
+    },
+    {
+      "id": "D05",
+      "group": "deterministic",
+      "label": "7-day berry-only, six wake recovery events and favorite field",
+      "evidenceGrade": "B",
+      "referenceSource": "independent-controlled-formula-or-one-minute-oracle",
+      "reference": 266760,
+      "simulated": 266760,
+      "absoluteDifference": 0,
+      "disposition": "MATCH_CONTROLLED",
+      "triage": "NO_DISCREPANCY_IN_CONTROLLED_CASE",
+      "notes": "B: separate one-minute chronological oracle and wake events"
+    },
+    {
+      "id": "D06",
+      "group": "deterministic",
+      "label": "21 fixed dishes consumed from certain 147 apples, no food production",
+      "evidenceGrade": "B",
+      "referenceSource": "independent-controlled-formula-or-one-minute-oracle",
+      "reference": 56238,
+      "simulated": 56238,
+      "absoluteDifference": 0,
+      "disposition": "MATCH_CONTROLLED",
+      "triage": "NO_DISCREPANCY_IN_CONTROLLED_CASE",
+      "notes": "B: independent integer recipe stock and energy arithmetic"
+    },
+    {
+      "id": "P01",
+      "group": "probability",
+      "label": "2 eligible helps, independent 25% skill chance, 2-stock cap",
+      "evidenceGrade": "B",
+      "referenceSource": "independent-controlled-formula-or-one-minute-oracle",
+      "reference": 0.5,
+      "simulated": 0.5,
+      "absoluteDifference": 0,
+      "disposition": "MATCH_CONTROLLED",
+      "triage": "NO_DISCREPANCY_IN_CONTROLLED_CASE",
+      "notes": "B: binomial P(stock1)=.375, P(stock2)=.0625; controlled rate, not measured skill rate"
+    },
+    {
+      "id": "P02",
+      "group": "probability",
+      "label": "1 help at 50% berry2 / 50% food3, cap3",
+      "evidenceGrade": "B",
+      "referenceSource": "independent-controlled-formula-or-one-minute-oracle",
+      "reference": 2.5,
+      "simulated": 2.5,
+      "absoluteDifference": 0,
+      "disposition": "MATCH_CONTROLLED",
+      "triage": "NO_DISCREPANCY_IN_CONTROLLED_CASE",
+      "notes": "B: two equally weighted integer branches"
+    },
+    {
+      "id": "P03",
+      "group": "probability",
+      "label": "correlated apple3+milk2 set drop, dish needs both",
+      "evidenceGrade": "B",
+      "referenceSource": "independent-controlled-formula-or-one-minute-oracle",
+      "reference": 0.4,
+      "simulated": 0.4,
+      "absoluteDifference": 0,
+      "disposition": "MATCH_CONTROLLED",
+      "triage": "NO_DISCREPANCY_IN_CONTROLLED_CASE",
+      "notes": "B: 40% one compound branch vs 60% empty; not upstream draw rate"
+    },
+    {
+      "id": "P04",
+      "group": "probability",
+      "label": "full shared bag blocks ingredient-magnet activations",
+      "evidenceGrade": "C",
+      "referenceSource": null,
+      "reference": null,
+      "simulated": 0,
+      "absoluteDifference": null,
+      "disposition": "UNVERIFIED_EXTERNAL",
+      "triage": "PENDING_EVIDENCE",
+      "notes": "C: internal weekly conservation; actual full-bag skill chronology unmeasured"
+    },
+    {
+      "id": "M01",
+      "group": "mixed",
+      "label": "5 Raichu, berry/skill mixed full seven-day run",
+      "evidenceGrade": "C",
+      "referenceSource": null,
+      "reference": null,
+      "simulated": 876103.018363,
+      "absoluteDifference": null,
+      "disposition": "UNVERIFIED_EXTERNAL",
+      "triage": "PENDING_EVIDENCE",
+      "notes": "C: simulation-only, no independent mixed-week reference"
+    },
+    {
+      "id": "M02",
+      "group": "mixed",
+      "label": "ingredient-focused daytime with curry production",
+      "evidenceGrade": "C",
+      "referenceSource": null,
+      "reference": null,
+      "simulated": 784779.809329,
+      "absoluteDifference": null,
+      "disposition": "UNVERIFIED_EXTERNAL",
+      "triage": "PENDING_EVIDENCE",
+      "notes": "C: recipes use expected food quantities, 21-meal success not validated"
+    },
+    {
+      "id": "M03",
+      "group": "mixed",
+      "label": "healer/Raichu mixed team with night-only sleep squad",
+      "evidenceGrade": "C",
+      "referenceSource": null,
+      "reference": null,
+      "simulated": 941650.56107,
+      "absoluteDifference": null,
+      "disposition": "UNVERIFIED_EXTERNAL",
+      "triage": "PENDING_EVIDENCE",
+      "notes": "C: healer activation timing and inter-Pokemon Energy correlations unmeasured"
+    },
+    {
+      "id": "M04",
+      "group": "mixed",
+      "label": "full bag with breakfast/noon/evening substitution and fixed sleep",
+      "evidenceGrade": "C",
+      "referenceSource": null,
+      "reference": null,
+      "simulated": 820331.968096,
+      "absoluteDifference": null,
+      "disposition": "UNVERIFIED_EXTERNAL",
+      "triage": "PENDING_EVIDENCE",
+      "notes": "C: mixed full-bag carry and team-swap correlations not externally validated"
+    }
+  ],
+  "rankingComparisons": [
+    {
+      "id": "R01",
+      "label": "berry-heavy vs single healer",
+      "configurationA": "allBerry",
+      "configurationB": "oneHealer",
+      "scoreA": {
+        "total": 974318.226147,
+        "berries": 752646.445804,
+        "cooking": 70287,
+        "skills": 151384.780344,
+        "meals": 21,
+        "uncertainMeals": 1
+      },
+      "scoreB": {
+        "total": 941650.56107,
+        "berries": 736444.49068,
+        "cooking": 70287,
+        "skills": 134919.07039,
+        "meals": 21,
+        "uncertainMeals": 1
+      },
+      "modelDeltaBminusA": -32667.665077,
+      "modelLeader": "A",
+      "evidenceGrade": "C",
+      "externalRankingValidated": false,
+      "conclusion": "UNVERIFIED_RANKING",
+      "notes": "Same sleep team (r0..r4), same box/config/map/food; differs only in daylight members. No measured or independent mixed-team oracle."
+    },
+    {
+      "id": "R02",
+      "label": "one healer vs two healers",
+      "configurationA": "oneHealer",
+      "configurationB": "twoHealer",
+      "scoreA": {
+        "total": 941650.56107,
+        "berries": 736444.49068,
+        "cooking": 70287,
+        "skills": 134919.07039,
+        "meals": 21,
+        "uncertainMeals": 1
+      },
+      "scoreB": {
+        "total": 986182.408926,
+        "berries": 797824.523911,
+        "cooking": 70287,
+        "skills": 118070.885015,
+        "meals": 21,
+        "uncertainMeals": 1
+      },
+      "modelDeltaBminusA": 44531.847856,
+      "modelLeader": "B",
+      "evidenceGrade": "C",
+      "externalRankingValidated": false,
+      "conclusion": "UNVERIFIED_RANKING",
+      "notes": "Same sleep team (r0..r4), same box/config/map/food; differs only in daylight members. No measured or independent mixed-team oracle."
+    },
+    {
+      "id": "R03",
+      "label": "berry-heavy vs food production",
+      "configurationA": "allBerry",
+      "configurationB": "food",
+      "scoreA": {
+        "total": 974318.226147,
+        "berries": 752646.445804,
+        "cooking": 70287,
+        "skills": 151384.780344,
+        "meals": 21,
+        "uncertainMeals": 1
+      },
+      "scoreB": {
+        "total": 784779.809329,
+        "berries": 622499.226613,
+        "cooking": 70287,
+        "skills": 91993.582716,
+        "meals": 21,
+        "uncertainMeals": 1
+      },
+      "modelDeltaBminusA": -189538.416818,
+      "modelLeader": "A",
+      "evidenceGrade": "C",
+      "externalRankingValidated": false,
+      "conclusion": "UNVERIFIED_RANKING",
+      "notes": "Same sleep team (r0..r4), same box/config/map/food; differs only in daylight members. No measured or independent mixed-team oracle."
+    },
+    {
+      "id": "R04",
+      "label": "food-focused vs food/healer mixed",
+      "configurationA": "food",
+      "configurationB": "mixed",
+      "scoreA": {
+        "total": 784779.809329,
+        "berries": 622499.226613,
+        "cooking": 70287,
+        "skills": 91993.582716,
+        "meals": 21,
+        "uncertainMeals": 1
+      },
+      "scoreB": {
+        "total": 725342.066207,
+        "berries": 576956.006066,
+        "cooking": 70287,
+        "skills": 78099.060141,
+        "meals": 21,
+        "uncertainMeals": 1
+      },
+      "modelDeltaBminusA": -59437.743122,
+      "modelLeader": "A",
+      "evidenceGrade": "C",
+      "externalRankingValidated": false,
+      "conclusion": "UNVERIFIED_RANKING",
+      "notes": "Same sleep team (r0..r4), same box/config/map/food; differs only in daylight members. No measured or independent mixed-team oracle."
+    },
+    {
+      "id": "R05",
+      "label": "static healer vs three-period rotation",
+      "configurationA": "oneHealer",
+      "configurationB": "switching",
+      "scoreA": {
+        "total": 941650.56107,
+        "berries": 736444.49068,
+        "cooking": 70287,
+        "skills": 134919.07039,
+        "meals": 21,
+        "uncertainMeals": 1
+      },
+      "scoreB": {
+        "total": 899625.512146,
+        "berries": 698389.989535,
+        "cooking": 70287,
+        "skills": 130948.52261,
+        "meals": 21,
+        "uncertainMeals": 1
+      },
+      "modelDeltaBminusA": -42025.048924,
+      "modelLeader": "A",
+      "evidenceGrade": "C",
+      "externalRankingValidated": false,
+      "conclusion": "UNVERIFIED_RANKING",
+      "notes": "Same sleep team (r0..r4), same box/config/map/food; differs only in daylight members. No measured or independent mixed-team oracle."
+    }
+  ],
+  "gate": {
+    "step2": "HOLD",
+    "m1": "PARTIAL",
+    "step3": "NOT_STARTED",
+    "blockers": [
+      "four mixed weeks have no external independent reference",
+      "five ranking pairs lack independent ordering validation",
+      "one random-skill case has only model conservation evidence",
+      "no Android Chrome device test or actual-game multiweek measurements"
+    ]
+  },
+  "limitations": [
+    "Model C comparisons are descriptive rankings, not validated optimal teams",
+    "Mock mutation of Raichu rates for controlled oracles is not real-game scenario",
+    "Probability branch inputs are synthetic and not sourced from actual game draws",
+    "Monte Carlo variance and official mixed-skill correlation remain unmeasured"
+  ]
+}
