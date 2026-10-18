@@ -398,7 +398,7 @@ test('Cheer weighted target probabilities independently integrate upstream 65/35
   // 35% uniform group, rather than reusing the tested implementation.
   for(let j=0;j<ids.length;j++){
    const n=energy.filter(x=>x===Math.min(...energy)).length;
-   const p=(j===-1?0:.35/ids.length)+(energy[j]===Math.min(...energy)?.65/n:0);
+   const p=.35/ids.length+(energy[j]===Math.min(...energy)?.65/n:0);
    assert.ok(Math.abs(actual.get(ids[j])-p)<1e-12);
    assert.ok(Math.abs(actual.get(ids[j])-expected[j])<1e-12);
   }
