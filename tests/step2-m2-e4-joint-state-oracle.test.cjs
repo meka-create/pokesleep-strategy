@@ -34,3 +34,17 @@ test('two taps verify nonlinear cap and timer correlations cannot be repaired by
  const rare=report.cases.find(x=>x.id==='rare-timer');
  assert.ok(rare.modelMinusOracle>.8);
 });
+
+test('CI-provenanced complete two-tap state distribution is pinned, not empirical',()=>{
+ const baseline=require('../docs/STEP2_M2_E4_TWO_TAP_JOINT_CI_BASELINE_20261018.json');
+ assert.equal(baseline.ciProvenance.runId,39125089120);
+ assert.equal(baseline.ciProvenance.testsPassed,285);
+ assert.equal(baseline.ciProvenance.testsFailed,0);
+ assert.equal(baseline.evidenceGrade,'B_CONTROLLED_EXHAUSTIVE_JOINT_STATE');
+ assert.equal(baseline.ratesMeasuredInGame,false);
+ assert.equal(baseline.weekErrorQuantified,false);
+ assert.deepEqual(report.cases,baseline.cases);
+ const rare=baseline.cases.find(c=>c.id==='rare-timer');
+ assert.equal(rare.independentMeanEnergy,99.73988394);
+ assert.equal(rare.modelMinusOracle,.98011606);
+});
