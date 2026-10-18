@@ -2,7 +2,11 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const obs=require('../src/observation.js');
 const {compareSingleWeek}=require('../scripts/step2-m1-observation-compare.cjs');
-const PokeSimulator=require('../src/simulator.js');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const ctx=vm.createContext({module:{exports:{}},globalThis:{}});
+for(const name of ['master.js','recipes.js','simulator.js'])
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../src',name),'utf8'),ctx,{filename:name});
+const PokeSimulator=ctx.globalThis.PokeSimulator;
 const monday='2026-10-19',time='2026-10-18T13:00:00.000Z';
 const flags=()=>Object.fromEntries(obs.flags.map(k=>[k,false]));
 const input=()=>{
