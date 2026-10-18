@@ -90,8 +90,10 @@ function jointOracle(){
  const cases=scenarios.map(s=>{
   const dp=finiteStateDynamic(s),brute=exhaustiveSequence(s);
   assert.ok(Math.abs(sumStates(brute)-1)<1e-12);
-  assert.deepEqual([...dp].sort(),[...brute].sort(),
-   s.id+' independent enumerate vs state propagation');
+  assert.deepEqual([...dp.keys()].sort(),[...brute.keys()].sort(),
+   s.id+' terminal states');
+  for(const [key,p] of dp)assert.ok(Math.abs(p-brute.get(key))<1e-12,
+   s.id+' probability '+key);
   const exact=[...dp].reduce((n,[key,p])=>n+Number(key.split(':')[0])*p,0);
   const modeled=collapsed(s),difference=modeled.energy-exact;
   return {id:s.id,initialEnergy:s.energy,initialMinutePhase:s.phase,
