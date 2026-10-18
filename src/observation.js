@@ -86,6 +86,75 @@ function preview(report){
   status:unattributed===0&&unconfirmed.length===0?'UNCALIBRATED_OBSERVATION':'CONFOUNDED_OBSERVATION'};
 }
 
+
+function validateReplayInput(input){
+ const bad=reason=>{throw Error('保存した試算入力が不正です：'+reason);};
+ if(!input||typeof input!=='object'||Array.isArray(input)||
+  !Array.isArray(input.box)||input.box.length<5||input.box.length>10000||
+  !input.teams||typeof input.teams!=='object'||Array.isArray(input.teams))
+  bad('ボックス・編成の形式または件数');
+ const ids=new Set();
+ for(const p of input.box){
+  if(!p||typeof p!=='object'||Array.isArray(p)||
+   typeof p.id!=='string'||!p.id||p.id.length>300||ids.has(p.id))
+   bad('ポケモンの内部IDが欠落・重複しています');
+  if(typeof p.pokemon!=='string'||!p.pokemon||p.pokemon.length>120||
+   !Number.isInteger(p.level)||p.level<1||p.level>100||
+   !Number.isInteger(p.skillLevel)||p.skillLevel<1||p.skillLevel>20)
+   bad('ポケモンの種族・レベル・スキルレベル');
+  ids.add(p.id);
+ }
+ for(const period of ['morning','noon','evening','sleep']){
+  const team=input.teams[period];
+  if(!Array.isArray(team)||team.length!==5||new Set(team).size!==5||
+   team.some(id=>typeof id!=='string'||!ids.has(id)))
+   bad(period+'編成はボックス内の異なる5匹が必要です');
+ }
+ const opts=input.options;
+ if(!opts||typeof opts!=='object'||Array.isArray(opts)||
+  typeof opts.map!=='string'||!opts.map.trim()||opts.map.length>80)
+  bad('フィールド設定');
+ for(const [key,min,max] of [
+  ['fieldBonus',0,100],['tapMinutes',120,180],['potSize',7,300],
+  ['bagCapacity',0,10000],['sleepScore',0,100],['initialEnergy',0,150]]){
+  if(!Number.isInteger(opts[key])||opts[key]<min||opts[key]>max)
+   bad(key+' は画面で許可された整数範囲が必要です');
+ }
+ if(typeof opts.recipeId!=='string'||opts.recipeId.length>80||
+  !['fixed','fallback','best'].includes(opts.recipeMode)||
+  !['none','fill'].includes(opts.extraMode)||
+  !['none','expected'].includes(opts.successMode)||
+  !['random','curry','salad','dessert'].includes(opts.foodMode)||
+  typeof opts.camp!=='boolean'||
+  (opts.eventEffects!==undefined&&(typeof opts.eventEffects!=='string'||opts.eventEffects.length>1000)))
+  bad('料理・イベント設定');
+ const ingredients=root.PokeMaster&&root.PokeMaster.ingredients;
+ const keys=opts.initialIngredients;
+ if(!keys||typeof keys!=='object'||Array.isArray(keys)||!ingredients||
+  Object.keys(keys).length>19)bad('初期食材の形式');
+ for(const [key,count] of Object.entries(keys)){
+  if(!Object.prototype.hasOwnProperty.call(ingredients,key)||
+   !Number.isInteger(count)||count<0||count>10000)
+   bad('初期食材の種類と個数');
+ }
+ const magnet=opts.magnetIngredients??[];
+ if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||
+  magnet.some(key=>typeof key!=='string'||
+   !Object.prototype.hasOwnProperty.call(ingredients,key)))
+  bad('食材抽選対象');
+ return input;
+}
+function validateReplayCapture(capture){
+ if(!capture||typeof capture!=='object'||Array.isArray(capture)||
+  typeof capture.appVersion!=='string'||! /^[0-9]+[.][0-9]+[.][0-9]+$/.test(capture.appVersion)||
+  typeof capture.capturedAt!=='string'||!Number.isFinite(Date.parse(capture.capturedAt))||
+  new Date(capture.capturedAt).toISOString()!==capture.capturedAt||
+  capture.recordingMethod!=='manual_game_summary_input'||
+  capture.screenshotReviewedByApp!==false)
+  throw Error('観測JSONの試算時点のメタデータが不正です。画像はアプリで検証済みとは扱えません。');
+ return capture;
+}
+
 // Replay a saved observation against CURRENT simulator input and model
 // without importing that input into the user's local box or storage.
 // This is a screening tool, never game screenshot verification or rank PASS.
@@ -112,6 +181,8 @@ function reviewImportedReport(report,simulate){
  }
  if(!report.capture||!report.capture.modelAtCapture)
   throw Error('試算時点の記録がないJSONです。v0.2.35以降に保存した観測JSONを選択してください。');
+ validateReplayCapture(report.capture);
+ validateReplayInput(report.input);
  const saved=modelStats(report.capture.modelAtCapture);
  // Treat the uploaded record as untrusted; recompute from the recorded
  // roster rather than treating the sender's model values as authoritative.
@@ -156,7 +227,7 @@ function reviewImportedReport(report,simulate){
   status:confounders.length||modelLimitations.length?'CONFOUNDED_OBSERVATION':'UNCALIBRATED_OBSERVATION'
  };
 }
-const api={schema,flags,validMonday,integerInput,captureSimulation,makeReport,preview,reviewImportedReport};
+const api={schema,flags,validMonday,integerInput,captureSimulation,makeReport,preview,validateReplayInput,validateReplayCapture,reviewImportedReport};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeObservation=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
