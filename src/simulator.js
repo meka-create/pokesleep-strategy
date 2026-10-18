@@ -611,8 +611,8 @@ function chooseRecipe({mode='fixed',preferredId='',foodMode,inventory,potCapacit
 // NOT an independently measured real-game target probability.
 function cheerWeights(teamIds,energy){
  const minimum=Math.min(...teamIds.map(id=>energy.get(id)??0));
- const lowest=teamIds.filter(id=>(energy.get(id)??0)<=minimum+1e-9);
- return new Map(teamIds.map(id=>[id,.35/teamIds.length+((energy.get(id)??0)<=minimum+1e-9?.65/lowest.length:0)]));
+ const lowest=teamIds.filter(id=>(energy.get(id)??0)===minimum);
+ return new Map(teamIds.map(id=>[id,.35/teamIds.length+((energy.get(id)??0)===minimum?.65/lowest.length:0)]));
 }
 function recoverFromSleep(current,score,natureRecovery,teamRecoveryBonus,selfHasRecoveryBonus){
  const limit=selfHasRecoveryBonus?105:100;
