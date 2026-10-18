@@ -1,0 +1,106 @@
+{
+  "schema": "step2-m1-controlled-ranking-ci-baseline-v1",
+  "grade": "B_CONTROLLED_BERRY_ONLY",
+  "step2": "HOLD",
+  "m1": "PARTIAL",
+  "step3": "NOT_STARTED",
+  "actualGameWeeklyValidated": false,
+  "originalStochasticRankingPairsValidated": false,
+  "controls": "Level50 neutral; food and main-skill draw rates artificially 0, huge carry; fixed sleeping Raichu x5; energy30; sleep score80; no meals; Gold Power Plant FB25%",
+  "results": {
+    "allBerry": {
+      "reference": 821100,
+      "simulated": 821100,
+      "difference": 0
+    },
+    "oneHealer": {
+      "reference": 737865,
+      "simulated": 737865,
+      "difference": 0
+    },
+    "twoHealer": {
+      "reference": 657682,
+      "simulated": 657682,
+      "difference": 0
+    },
+    "food": {
+      "reference": 661617,
+      "simulated": 661617,
+      "difference": 0
+    },
+    "mixed": {
+      "reference": 578382,
+      "simulated": 578382,
+      "difference": 0
+    },
+    "switching": {
+      "reference": 721221,
+      "simulated": 721221,
+      "difference": 0
+    }
+  },
+  "pairs": [
+    {
+      "id": "R01",
+      "configurationA": "allBerry",
+      "configurationB": "oneHealer",
+      "referenceDeltaBminusA": -83235,
+      "modelDeltaBminusA": -83235,
+      "referenceLeader": "A",
+      "modelLeader": "A",
+      "controlledOrderingAgrees": true,
+      "originalStochasticRankingValidated": false
+    },
+    {
+      "id": "R02",
+      "configurationA": "oneHealer",
+      "configurationB": "twoHealer",
+      "referenceDeltaBminusA": -80183,
+      "modelDeltaBminusA": -80183,
+      "referenceLeader": "A",
+      "modelLeader": "A",
+      "controlledOrderingAgrees": true,
+      "originalStochasticRankingValidated": false
+    },
+    {
+      "id": "R03",
+      "configurationA": "allBerry",
+      "configurationB": "food",
+      "referenceDeltaBminusA": -159483,
+      "modelDeltaBminusA": -159483,
+      "referenceLeader": "A",
+      "modelLeader": "A",
+      "controlledOrderingAgrees": true,
+      "originalStochasticRankingValidated": false
+    },
+    {
+      "id": "R04",
+      "configurationA": "food",
+      "configurationB": "mixed",
+      "referenceDeltaBminusA": -83235,
+      "modelDeltaBminusA": -83235,
+      "referenceLeader": "A",
+      "modelLeader": "A",
+      "controlledOrderingAgrees": true,
+      "originalStochasticRankingValidated": false
+    },
+    {
+      "id": "R05",
+      "configurationA": "oneHealer",
+      "configurationB": "switching",
+      "referenceDeltaBminusA": -16644,
+      "modelDeltaBminusA": -16644,
+      "referenceLeader": "A",
+      "modelLeader": "A",
+      "controlledOrderingAgrees": true,
+      "originalStochasticRankingValidated": false
+    }
+  ],
+  "ciProvenance": {
+    "source": "GitHub Actions Validate STEP 2",
+    "runId": 39082387457,
+    "testCount": 257,
+    "failed": 0,
+    "headSha": "b995a05cde39224be7b9071cc94af7aa0c8a391c"
+  }
+}
