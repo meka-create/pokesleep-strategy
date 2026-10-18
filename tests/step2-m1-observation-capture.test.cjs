@@ -1,12 +1,13 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const obs=require('../src/observation.js');
+
 const {compareSingleWeek}=require('../scripts/step2-m1-observation-compare.cjs');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const ctx=vm.createContext({module:{exports:{}},globalThis:{}});
-for(const name of ['master.js','recipes.js','simulator.js'])
+for(const name of ['master.js','recipes.js','simulator.js','observation.js'])
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../src',name),'utf8'),ctx,{filename:name});
 const PokeSimulator=ctx.globalThis.PokeSimulator;
+const obs=ctx.globalThis.PokeObservation;
 const monday='2026-10-19',time='2026-10-18T13:00:00.000Z';
 const flags=()=>Object.fromEntries(obs.flags.map(k=>[k,false]));
 const input=()=>{
@@ -43,7 +44,7 @@ test('weekly observation report captures exact run input once and preserves priv
  assert.equal(report.observed.berryAndStrengthSkill,60);
  assert.equal(report.observed.cooking,40);
  const compare=obs.preview(report);
- assert.deepEqual(compare.signedDeltaObservedMinusModel,
+ assert.deepEqual(JSON.parse(JSON.stringify(compare.signedDeltaObservedMinusModel)),
   {total:-75,berryAndStrengthSkill:-65,cooking:-10});
  assert.equal(compare.weeklySummaryBucketsReconcile,true);
  assert.equal(compare.status,'CONFOUNDED_OBSERVATION');
