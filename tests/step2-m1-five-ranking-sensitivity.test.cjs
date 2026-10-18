@@ -45,3 +45,28 @@ test('all-five sensitivity identifies R02 as internally assumption-dependent wit
  assert.equal(r.step2,'HOLD');assert.equal(r.m1,'PARTIAL');
  assert.equal(r.step3,'NOT_STARTED');
 });
+
+test('CI observed only R02 rank flip under this two-factor sweep; other pairs remain UNVERIFIED',()=>{
+ for(const mode of r.cases){
+  assert.deepEqual(mode.changedModelLeaders,['R02']);
+  assert.equal(mode.comparisons.find(x=>x.id==='R02').triage,'P1_PRIORITY_VERIFY_SKILL_EVENTS');
+  for(const other of mode.comparisons.filter(x=>x.id!=='R02')){
+   assert.equal(other.modelLeaderChanges,false);
+   assert.equal(other.externallyValidated,false);
+   assert.equal(other.triage,'UNVERIFIED_GAME_RANK');
+  }
+ }
+});
+test('CI-provenanced five-pair ranks remain an internal model baseline, not accuracy evidence',()=>{
+ const snapshot=require('../docs/STEP2_M1_ALL_FIVE_RANKINGS_CI_BASELINE_20261018.json');
+ assert.equal(snapshot.ciProvenance.runId,39105063029);
+ assert.equal(snapshot.ciProvenance.tests,272);
+ assert.equal(snapshot.ciProvenance.failed,0);
+ assert.equal(snapshot.evidenceGrade,'C_INTERNAL_MODEL_SENSITIVITY');
+ assert.equal(snapshot.actualGameRanksValidated,0);
+ assert.equal(snapshot.measuredSkillRateUncertainty,false);
+ assert.equal(snapshot.probabilitiesOfRankingErrorsEstimated,false);
+ assert.deepEqual(r.cases,snapshot.cases);
+ assert.equal(r.step2,'HOLD');
+ assert.equal(r.step3,'NOT_STARTED');
+});
