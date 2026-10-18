@@ -173,3 +173,35 @@ test('real weekly observation button rejects unverifiable data then saves exact 
  assert.equal(report.observed.berryAndStrengthSkill,600);
  assert.equal(report.observed.cooking,400);
 });
+
+test('import of observed-week JSON replays archived roster without changing current browser storage',async()=>{
+ const app=boot(),blobs=[];
+ app.ctx.URL={createObjectURL(blob){blobs.push(blob);return 'blob:review-test';},revokeObjectURL(){}};
+ app.callbacks.get('fillAllRosters:click')();
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ app.items.get('obsMonday').value='2026-10-19';
+ app.items.get('obsTotal').value='1000';
+ app.items.get('obsBerry').value='600';
+ app.items.get('obsCooking').value='400';
+ app.items.get('obsConfirmedSummary').checked=true;
+ app.callbacks.get('downloadObservation:click')();
+ assert.equal(blobs.length,1);
+ const savedJSON=await blobs[0].text();
+ const savedLocalStorage=app.data.get('pokesleep-event-planner/step1/v1');
+ const inputFile=app.items.get('observationFile');
+ inputFile.files=[{size:savedJSON.length,text:async()=>savedJSON}];
+ await app.callbacks.get('observationFile:change')({target:inputFile});
+ assert.equal(app.items.get('obsImportError').hidden,true,app.items.get('obsImportError').textContent);
+ const visible=app.items.get('obsImportResult').children.map(p=>p.textContent).join('\n');
+ assert.match(visible,/対象週：2026-10-19/);
+ assert.match(visible,/記録時の試算と現行モデル：一致/);
+ assert.match(visible,/実ゲームの単週観測です/);
+ assert.match(visible,/STEP2 HOLD/);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),savedLocalStorage);
+ inputFile.files=[{size:5,text:async()=>'{'}];
+ await app.callbacks.get('observationFile:change')({target:inputFile});
+ assert.equal(app.items.get('obsImportError').hidden,false);
+ assert.equal(app.items.get('obsImportResult').children.length,0);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),savedLocalStorage);
+});
