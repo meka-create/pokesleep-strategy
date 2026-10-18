@@ -255,6 +255,35 @@ $('downloadObservation').addEventListener('click',()=>{
 });
 
 
+$('observationFile').addEventListener('change',async ev=>{
+ const file=ev.target.files?.[0];if(!file)return;
+ const result=$('obsImportResult'),error=$('obsImportError');
+ result.replaceChildren();error.hidden=true;
+ try{
+  if(file.size>8*1024*1024)throw Error('観測JSONが8MBを超えています。');
+  const raw=JSON.parse(await file.text());
+  const replay=PokeObservation.reviewImportedReport(raw,PokeSimulator.simulate);
+  const numeric=n=>Math.round(n).toLocaleString('ja-JP');
+  const signed=n=>(n>0?'+':'')+numeric(n);
+  const add=t=>{const row=document.createElement('p');row.textContent=t;result.append(row);};
+  add('対象週：'+replay.week.mondayDate+'／'+replay.week.field);
+  add('ゲーム実測：'+numeric(replay.observed.total)+'／記録時の試算：'+numeric(replay.capturedModel.total)+
+      '／現行モデルでの再試算：'+numeric(replay.currentModel.total));
+  const d=replay.signedDeltaObservedMinusCurrent;
+  add('ゲーム実測−現行モデル：合計 '+signed(d.total)+
+      '／きのみ＋直接エナジースキル '+signed(d.berryAndStrengthSkill)+
+      '／料理 '+signed(d.cooking));
+  add('記録時の試算と現行モデル：'+(replay.captureComparison.matchesCurrentModel?'一致':'差異あり（要調査）'));
+  if(!replay.weeklySummaryBucketsReconcile)
+   add('要確認：ゲーム週まとめの総計と2欄の合計が一致しません。');
+  for(const problem of replay.confounders)add('要確認：'+problem);
+  for(const limitation of replay.modelLimitations)add('モデルの未検証：'+limitation);
+  add('実ゲームの単週観測です。画像照合・モデル精度・編成順位は未検証（STEP2 HOLD）。');
+ }catch(e){result.replaceChildren();error.textContent=e.message||String(e);error.hidden=false;
+ }finally{ev.target.value='';}
+});
+
+
 $('storageNotice').textContent=storage.getLoadError()|| (storage.available()?'このブラウザ内への保存：利用可能':'この環境は保存が制限されています。必ずJSONバックアップをご利用ください。');
 if(storage.getLoadError()){$('storageNotice').className='small warn';$('criticalNotice').textContent=storage.getLoadError();$('criticalNotice').hidden=false;}
 fillEvent();renderBox();fillSimulation();setTab('event');

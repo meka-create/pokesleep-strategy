@@ -15,7 +15,7 @@ function boot(){
  const tabs=['event','box','simulate','settings'].map(k=>{const x=element('button','tab'+k);x.dataset.tab=k;return x});
  const panels=['event','box','simulate','settings'].map(k=>element('div','panel-'+k));
  const copy=['sleep','morning','noon'].map((from,i)=>{const x=element('button','copy'+i);x.dataset.copyFrom=from;x.dataset.copyTo=['morning','noon','evening'][i];return x});
- const headerVersion=element('span','headerVersion');headerVersion.textContent='STEP 2 · v0.2.35';
+ const headerVersion=element('span','headerVersion');headerVersion.textContent='STEP 2 · v0.2.36';
  const document={getElementById:id=>items.get(id)||element('input',id),querySelectorAll:s=>s==='.tab'?tabs:s==='.panel'?panels:s==='.sim-copy'?copy:[],
   querySelector:s=>{if(s==='.step-mark')return headerVersion;const m=s.match(/data-roster="([^"]+)"/);return m?rosters[m[1]]:null},createElement:tag=>element(tag),body:{appendChild(){}}};
  const one={id:'i0',pokemon:'ライチュウ',nickname:'test',level:60,skillLevel:6,ingredients:['とくせんリンゴ','あったかジンジャー','とくせんエッグ'],mainSkill:'エナジーチャージS',nature:'さみしがり',subskills:['きのみの数S','','','',''],sleepHours:1000,shiny:false};
@@ -167,9 +167,41 @@ test('real weekly observation button rejects unverifiable data then saves exact 
  assert.deepEqual(report.input.teams.sleep,['i0','i1','i2','i3','i4']);
  assert.equal(report.provenance.source,'in_game_weekly_summary');
  assert.equal(report.provenance.noUnmodeledEvents,false);
- assert.equal(report.capture.appVersion,'0.2.35');
+ assert.equal(report.capture.appVersion,'0.2.36');
  assert.equal(report.capture.screenshotReviewedByApp,false);
  assert.equal(report.observed.total,1000);
  assert.equal(report.observed.berryAndStrengthSkill,600);
  assert.equal(report.observed.cooking,400);
+});
+
+test('import of observed-week JSON replays archived roster without changing current browser storage',async()=>{
+ const app=boot(),blobs=[];
+ app.ctx.URL={createObjectURL(blob){blobs.push(blob);return 'blob:review-test';},revokeObjectURL(){}};
+ app.callbacks.get('fillAllRosters:click')();
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ app.items.get('obsMonday').value='2026-10-19';
+ app.items.get('obsTotal').value='1000';
+ app.items.get('obsBerry').value='600';
+ app.items.get('obsCooking').value='400';
+ app.items.get('obsConfirmedSummary').checked=true;
+ app.callbacks.get('downloadObservation:click')();
+ assert.equal(blobs.length,1);
+ const savedJSON=await blobs[0].text();
+ const savedLocalStorage=app.data.get('pokesleep-event-planner/step1/v1');
+ const inputFile=app.items.get('observationFile');
+ inputFile.files=[{size:savedJSON.length,text:async()=>savedJSON}];
+ await app.callbacks.get('observationFile:change')({target:inputFile});
+ assert.equal(app.items.get('obsImportError').hidden,true,app.items.get('obsImportError').textContent);
+ const visible=app.items.get('obsImportResult').children.map(p=>p.textContent).join('\n');
+ assert.match(visible,/対象週：2026-10-19/);
+ assert.match(visible,/記録時の試算と現行モデル：一致/);
+ assert.match(visible,/実ゲームの単週観測です/);
+ assert.match(visible,/STEP2 HOLD/);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),savedLocalStorage);
+ inputFile.files=[{size:5,text:async()=>'{'}];
+ await app.callbacks.get('observationFile:change')({target:inputFile});
+ assert.equal(app.items.get('obsImportError').hidden,false);
+ assert.equal(app.items.get('obsImportResult').children.length,0);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),savedLocalStorage);
 });

@@ -85,7 +85,78 @@ function preview(report){
   accuracyGate:'HOLD',
   status:unattributed===0&&unconfirmed.length===0?'UNCALIBRATED_OBSERVATION':'CONFOUNDED_OBSERVATION'};
 }
-const api={schema,flags,validMonday,integerInput,captureSimulation,makeReport,preview};
+
+// Replay a saved observation against CURRENT simulator input and model
+// without importing that input into the user's local box or storage.
+// This is a screening tool, never game screenshot verification or rank PASS.
+function reviewImportedReport(report,simulate){
+ if(!report||report.schema!==schema||!report.week||!report.provenance||
+  report.provenance.source!=='in_game_weekly_summary'||
+  !report.input||!Array.isArray(report.input.box)||!report.input.options||
+  !report.input.teams||!report.observed)
+  throw Error('週間観測JSONの形式・出典・編成設定が不正です。');
+ if(!validMonday(report.week.mondayDate))throw Error('観測開始日は実際の月曜日が必要です。');
+ if(typeof report.week.field!=='string'||!report.week.field.trim()||
+  report.week.field!==report.input.options.map)
+  throw Error('観測したフィールドと記録した試算フィールドが一致しません。');
+ if(typeof simulate!=='function')throw Error('現在の週間計算器が使えません。');
+ const o=report.observed;
+ for(const key of ['total','berryAndStrengthSkill','cooking']){
+  if(!Number.isSafeInteger(o[key])||o[key]<0)
+   throw Error('ゲーム週まとめのエナジー欄は0以上の整数が必要です：'+key);
+ }
+ for(const key of flags){
+  if(Object.prototype.hasOwnProperty.call(report.provenance,key)&&
+     typeof report.provenance[key]!=='boolean')
+   throw Error('観測条件の確認フラグは真偽値が必要です：'+key);
+ }
+ if(!report.capture||!report.capture.modelAtCapture)
+  throw Error('試算時点の記録がないJSONです。v0.2.35以降に保存した観測JSONを選択してください。');
+ const saved=modelStats(report.capture.modelAtCapture);
+ // Treat the uploaded record as untrusted; recompute from the recorded
+ // roster rather than treating the sender's model values as authoritative.
+ const fullCurrent=simulate(report.input);
+ const current=modelStats(fullCurrent);
+ const original=Object.fromEntries(['total','berries','skills','cooking'].map(k=>
+  [k,current[k]-saved[k]]));
+ const differs=Object.values(original).some(x=>Math.abs(x)>1e-5);
+ const signedDeltaObservedMinusCurrent={
+  total:o.total-current.total,
+  berryAndStrengthSkill:o.berryAndStrengthSkill-current.berries-current.skills,
+  cooking:o.cooking-current.cooking
+ };
+ const signedDeltaObservedMinusCaptured={
+  total:o.total-saved.total,
+  berryAndStrengthSkill:o.berryAndStrengthSkill-saved.berries-saved.skills,
+  cooking:o.cooking-saved.cooking
+ };
+ const balance=o.total-o.berryAndStrengthSkill-o.cooking;
+ const unconfirmed=flags.filter(k=>report.provenance[k]!==true);
+ const modelLimitations=fullCurrent.estimatedMeals>0?[
+  'モデルは'+fullCurrent.estimatedMeals+'食の成立を確率的な食材生産の期待値から計上しており、実際の成立率は未検証です。'
+ ]:[];
+ const confounders=[
+  ...(differs?['記録時の試算値と最新の計算器の結果が異なります。マスター・計算式の変更を確認してください。']:[]),
+  ...(balance!==0?['ゲームの週まとめ総エナジーときのみ＋料理欄の合計が一致しません。']:[]),
+  ...(unconfirmed.length?['観測条件に未確認が'+unconfirmed.length+'項目あります。']:[])
+ ];
+ return {
+  schema,week:{mondayDate:report.week.mondayDate,field:report.week.field},
+  currentModel:{...current,berryAndStrengthSkill:current.berries+current.skills},
+  capturedModel:{...saved,berryAndStrengthSkill:saved.berries+saved.skills},
+  observed:{total:o.total,berryAndStrengthSkill:o.berryAndStrengthSkill,
+   cooking:o.cooking,unattributed:balance},
+  signedDeltaObservedMinusCurrent,signedDeltaObservedMinusCaptured,
+  captureComparison:{matchesCurrentModel:!differs,
+    signedDeltaCurrentMinusCaptured:original},
+  unconfirmedConditions:unconfirmed,confounders,modelLimitations,
+  weeklySummaryBucketsReconcile:balance===0,
+  sourceIsUserSupplied:true,screenshotReviewed:false,
+  rankOrAccuracyValidated:false,accuracyGate:'HOLD',
+  status:confounders.length||modelLimitations.length?'CONFOUNDED_OBSERVATION':'UNCALIBRATED_OBSERVATION'
+ };
+}
+const api={schema,flags,validMonday,integerInput,captureSimulation,makeReport,preview,reviewImportedReport};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeObservation=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
