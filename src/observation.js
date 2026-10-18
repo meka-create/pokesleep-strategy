@@ -115,7 +115,8 @@ function reviewImportedReport(report,simulate){
  const saved=modelStats(report.capture.modelAtCapture);
  // Treat the uploaded record as untrusted; recompute from the recorded
  // roster rather than treating the sender's model values as authoritative.
- const current=modelStats(simulate(report.input));
+ const fullCurrent=simulate(report.input);
+ const current=modelStats(fullCurrent);
  const original=Object.fromEntries(['total','berries','skills','cooking'].map(k=>
   [k,current[k]-saved[k]]));
  const differs=Object.values(original).some(x=>Math.abs(x)>1e-5);
@@ -131,6 +132,9 @@ function reviewImportedReport(report,simulate){
  };
  const balance=o.total-o.berryAndStrengthSkill-o.cooking;
  const unconfirmed=flags.filter(k=>report.provenance[k]!==true);
+ const modelLimitations=fullCurrent.estimatedMeals>0?[
+  'モデルは'+fullCurrent.estimatedMeals+'食の成立を確率的な食材生産の期待値から計上しており、実際の成立率は未検証です。'
+ ]:[];
  const confounders=[
   ...(differs?['記録時の試算値と最新の計算器の結果が異なります。マスター・計算式の変更を確認してください。']:[]),
   ...(balance!==0?['ゲームの週まとめ総エナジーときのみ＋料理欄の合計が一致しません。']:[]),
@@ -145,11 +149,11 @@ function reviewImportedReport(report,simulate){
   signedDeltaObservedMinusCurrent,signedDeltaObservedMinusCaptured,
   captureComparison:{matchesCurrentModel:!differs,
     signedDeltaCurrentMinusCaptured:original},
-  unconfirmedConditions:unconfirmed,confounders,
+  unconfirmedConditions:unconfirmed,confounders,modelLimitations,
   weeklySummaryBucketsReconcile:balance===0,
   sourceIsUserSupplied:true,screenshotReviewed:false,
   rankOrAccuracyValidated:false,accuracyGate:'HOLD',
-  status:confounders.length?'CONFOUNDED_OBSERVATION':'UNCALIBRATED_OBSERVATION'
+  status:confounders.length||modelLimitations.length?'CONFOUNDED_OBSERVATION':'UNCALIBRATED_OBSERVATION'
  };
 }
 const api={schema,flags,validMonday,integerInput,captureSimulation,makeReport,preview,reviewImportedReport};
