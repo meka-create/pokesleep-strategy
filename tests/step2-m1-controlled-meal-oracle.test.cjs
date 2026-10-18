@@ -4,8 +4,8 @@ const {controlledMealReport}=require('../scripts/step2-m1-controlled-meal-oracle
 const r=controlledMealReport();
 console.log('M1_CONTROLLED_MEAL_JSON='+JSON.stringify(r));
 test('controlled fixed and rotating full-week meals match independent minute clock',()=>{
- assert.equal(r.cases.length,2);
- assert.deepEqual(r.cases.map(x=>x.id),['CM01','CM02']);
+ assert.equal(r.cases.length,3);
+ assert.deepEqual(r.cases.map(x=>x.id),['CM01','CM02','CM03']);
  for(const c of r.cases){
   assert.ok(c.reference.berries>0,'berry production must be present');
   assert.ok(c.reference.cooking>0,'successful meals must be present');
@@ -54,7 +54,7 @@ test('CI-reproduced deterministic 21/20 meal baselines cannot change silently',(
  assert.equal(pinned.grade,'B_CONTROLLED_DETERMINISTIC_COOKING');
  assert.equal(pinned.realGameMixedAccuracyValidated,false);
  assert.equal(pinned.originalM02M04Validated,false);
- assert.deepEqual(r.cases.map(x=>x.id),pinned.cases.map(x=>x.id));
+ assert.deepEqual(r.cases.slice(0,2).map(x=>x.id),pinned.cases.map(x=>x.id));
  for(let i=0;i<2;i++){
   const actual=r.cases[i],saved=pinned.cases[i];
   assert.deepEqual(actual.reference,saved.reference);
@@ -64,4 +64,18 @@ test('CI-reproduced deterministic 21/20 meal baselines cannot change silently',(
  }
  assert.deepEqual(pinned.cases.map(x=>[x.reference.meals,x.reference.total]),
   [[21,174427],[20,165619]]);
+});
+
+test('CM03 shared food bag cap seven retains food in a Pokemon pocket across meals',()=>{
+ const c=r.cases.find(x=>x.id==='CM03');
+ assert.ok(c);
+ assert.equal(c.reference.endingInventory<=7,true);
+ assert.equal(c.reference.consumedApple,c.reference.meals*7);
+ assert.equal(c.reference.endingInventory+c.reference.consumedApple,
+  7+c.reference.ingredientsProduced);
+ assert.ok(c.reference.ingredientsProduced>0);
+ assert.equal(c.model.endingInventory,c.reference.endingInventory);
+ assert.ok(Object.values(c.differences).every(x=>Math.abs(x)<1e-7));
+ assert.equal(r.realGameMixedAccuracyValidated,false);
+ assert.equal(r.originalM02M04Validated,false);
 });
