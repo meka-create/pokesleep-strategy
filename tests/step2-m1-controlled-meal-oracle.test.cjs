@@ -79,3 +79,22 @@ test('CM03 shared food bag cap seven retains food in a Pokemon pocket across mea
  assert.equal(r.realGameMixedAccuracyValidated,false);
  assert.equal(r.originalM02M04Validated,false);
 });
+
+test('CI-provenanced full seven-slot bag keeps original 21 meals and exact bounded stock',()=>{
+ const pinned=require('../docs/STEP2_M1_CONTROLLED_FULL_BAG_BASELINE_20261018.json');
+ assert.equal(pinned.ciProvenance.runId,39100626960);
+ assert.equal(pinned.ciProvenance.verifiedTests,264);
+ assert.equal(pinned.ciProvenance.failedTests,0);
+ assert.equal(pinned.bagCapacity,7);
+ assert.equal(pinned.initialApple,7);
+ assert.equal(pinned.originalM04Validated,false);
+ assert.equal(pinned.actualGameMixedValidated,false);
+ const actual=r.cases.find(x=>x.id==='CM03');
+ assert.deepEqual(actual.reference,pinned.reference);
+ assert.deepEqual(actual.model,pinned.model);
+ assert.deepEqual(actual.differences,pinned.differences);
+ assert.deepEqual(actual.mealTrace,pinned.mealTrace);
+ assert.deepEqual([pinned.reference.total,pinned.reference.meals,
+  pinned.reference.ingredientsProduced,pinned.reference.consumedApple,
+  pinned.reference.endingInventory],[174427,21,147,147,7]);
+});
