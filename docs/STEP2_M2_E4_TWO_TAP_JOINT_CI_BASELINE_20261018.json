@@ -1,0 +1,144 @@
+{
+  "schema": "step2-m2-e4-two-tap-joint-energy-clock-v1",
+  "evidenceGrade": "B_CONTROLLED_EXHAUSTIVE_JOINT_STATE",
+  "productionModelFixed": false,
+  "step2": "HOLD",
+  "m2": "PARTIAL",
+  "step3": "NOT_STARTED",
+  "ratesMeasuredInGame": false,
+  "weekErrorQuantified": false,
+  "cases": [
+    {
+      "id": "cap-and-timer",
+      "initialEnergy": 140,
+      "initialMinutePhase": 9,
+      "artificialProcRates": [
+        0.4,
+        0.25
+      ],
+      "heal": 18,
+      "taps": 2,
+      "minutesBetweenTaps": 1,
+      "terminalStates": [
+        {
+          "state": "139:1",
+          "probability": 0.2025
+        },
+        {
+          "state": "150:1",
+          "probability": 0.2475
+        },
+        {
+          "state": "150:2",
+          "probability": 0.55
+        }
+      ],
+      "independentMeanEnergy": 147.7725,
+      "collapsedModelEnergy": 150,
+      "modelMinusOracle": 2.2275,
+      "observedGameRates": false,
+      "independentlyValidatedWeekRanking": false
+    },
+    {
+      "id": "rare-timer",
+      "initialEnergy": 100,
+      "initialMinutePhase": 9,
+      "artificialProcRates": [
+        0.01,
+        0.01
+      ],
+      "heal": 18,
+      "taps": 2,
+      "minutesBetweenTaps": 1,
+      "terminalStates": [
+        {
+          "state": "117:1",
+          "probability": 0.01940598
+        },
+        {
+          "state": "118:2",
+          "probability": 0.01940598
+        },
+        {
+          "state": "135:1",
+          "probability": 0.00009801
+        },
+        {
+          "state": "136:1",
+          "probability": 0.00039204
+        },
+        {
+          "state": "136:2",
+          "probability": 0.00009801
+        },
+        {
+          "state": "150:1",
+          "probability": 0.00000397
+        },
+        {
+          "state": "99:1",
+          "probability": 0.96059601
+        }
+      ],
+      "independentMeanEnergy": 99.73988394,
+      "collapsedModelEnergy": 100.72,
+      "modelMinusOracle": 0.98011606,
+      "observedGameRates": false,
+      "independentlyValidatedWeekRanking": false
+    },
+    {
+      "id": "never",
+      "initialEnergy": 140,
+      "initialMinutePhase": 9,
+      "artificialProcRates": [
+        0,
+        0
+      ],
+      "heal": 18,
+      "taps": 2,
+      "minutesBetweenTaps": 1,
+      "terminalStates": [
+        {
+          "state": "139:1",
+          "probability": 1
+        }
+      ],
+      "independentMeanEnergy": 139,
+      "collapsedModelEnergy": 139,
+      "modelMinusOracle": 0,
+      "observedGameRates": false,
+      "independentlyValidatedWeekRanking": false
+    },
+    {
+      "id": "certain",
+      "initialEnergy": 140,
+      "initialMinutePhase": 9,
+      "artificialProcRates": [
+        1,
+        0
+      ],
+      "heal": 18,
+      "taps": 2,
+      "minutesBetweenTaps": 1,
+      "terminalStates": [
+        {
+          "state": "150:2",
+          "probability": 1
+        }
+      ],
+      "independentMeanEnergy": 150,
+      "collapsedModelEnergy": 150,
+      "modelMinusOracle": 0,
+      "observedGameRates": false,
+      "independentlyValidatedWeekRanking": false
+    }
+  ],
+  "ciProvenance": {
+    "workflow": "Validate STEP 2",
+    "runId": 39125089120,
+    "testsPassed": 285,
+    "testsFailed": 0,
+    "headSha": "8c6f79454fd18bf831c60b0e856b6fbd69be7c09"
+  },
+  "provenanceNote": "Historical artificial B-grade reference from tested branch before provenance regression added; not real-game validation."
+}
