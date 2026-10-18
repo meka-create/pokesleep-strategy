@@ -62,3 +62,35 @@ test('all 21 meals backed by user-supplied ingredients isolate heal sensitivity'
  const old=require('../docs/STEP2_M1_BASELINE_V0230_20261017.json');
  assert.equal(old.counts.externallyVerifiedRankingPairs,0);
 });
+
+test('R02 internal model flips at 0.75 to 1 even with 21 certain meals',()=>{
+ for(const id of ['original-140','guaranteed-147','berry-only-147']){
+  const s=r.scenarios.find(x=>x.id===id);
+  assert.equal(s.includesModelRankReversal,true,id);
+  assert.deepEqual(s.modelLeaders,['A','B']);
+  const below=s.rates.find(x=>x.rateFactor===.75);
+  const natural=s.rates.find(x=>x.rateFactor===1);
+  assert.equal(below.modelLeader,'A',id);
+  assert.equal(natural.modelLeader,'B',id);
+  assert.ok(below.deltaBminusA<0&&natural.deltaBminusA>0,id);
+  assert.equal(s.externalRankingValidated,false);
+ }
+ const pure=r.scenarios.find(x=>x.id==='berry-only-147');
+ assert.equal(pure.rates.find(x=>x.rateFactor===1.5).modelLeader,'B');
+ assert.equal(pure.rates.find(x=>x.rateFactor===2).modelLeader,'A');
+ // A second sign reversal in the artificial no-food mode warns against
+ // treating healer scaling as a monotonic or measured in-game confidence bound.
+ assert.equal(r.rateFactorsAreMeasured,false);
+});
+test('CI-provenanced R02 sensitivity values are stable and not rank certification',()=>{
+ const pinned=require('../docs/STEP2_M1_R02_SENSITIVITY_CI_BASELINE_20261018.json');
+ assert.equal(pinned.ciProvenance.runId,39104258014);
+ assert.equal(pinned.ciProvenance.tests,268);
+ assert.equal(pinned.ciProvenance.failed,0);
+ assert.equal(pinned.evidenceGrade,'C_INTERNAL_SENSITIVITY_NOT_GAME_REFERENCE');
+ assert.equal(pinned.actualGameWeeksObserved,0);
+ assert.equal(pinned.realGameRankingValidated,false);
+ assert.equal(pinned.step2,'HOLD');
+ assert.deepEqual(r.scenarios,pinned.scenarios);
+ assert.deepEqual(r.pairing,pinned.pairing);
+});
