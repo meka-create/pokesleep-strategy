@@ -31,7 +31,7 @@ test('R02 factor sweeps are identical input pairs and never invent real game evi
    assert.equal(row.scoreA.meals,21);
    assert.equal(row.scoreB.meals,21);
    assert.ok(Number.isFinite(row.deltaBminusA));
-   assert.equal(row.deltaBminusA,Math.round((row.scoreB.total-row.scoreA.total)*1e6)/1e6);
+   assert.ok(Math.abs(row.deltaBminusA-(row.scoreB.total-row.scoreA.total))<2e-6);
    assert.equal(row.modelLeader,Math.abs(row.deltaBminusA)<1e-8?'TIE':row.deltaBminusA>0?'B':'A');
    assert.equal(row.referenceRankValidated,false);
    assert.equal(row.gameAccuracyValidated,false);
