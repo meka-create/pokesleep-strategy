@@ -84,7 +84,7 @@ function oneMinuteOracle(c){
  const energy=new Map(boxNames.map(([id])=>[id,30]));
  const progress=new Map(),tenMinuteTimer=new Map();
  const pockets=new Map(boxNames.map(([id])=>[id,{apple:0,berries:0}]));
- let held=[],berryEnergy=0,cookingEnergy=0,producedApple=0,consumedApple=0;
+ let held=[],berryEnergy=0,cookingEnergy=0,producedApple=0,collectedApple=0,consumedApple=0;
  let inventory=c.initialApple;
  const meals=[];
  function select(next){
@@ -104,6 +104,7 @@ function oneMinuteOracle(c){
   for(const id of held){
    const bag=pockets.get(id);
    inventory+=bag.apple;
+   collectedApple+=bag.apple;
    berryEnergy+=bag.berries*berryUnit(speciesInfo[id].type);
    bag.apple=0;
    bag.berries=0;
@@ -164,11 +165,11 @@ function oneMinuteOracle(c){
    // Uncollected 00:00-04:00 Sunday night remains out of weekly total.
   }
  }
- assert.equal(inventory+consumedApple,c.initialApple+producedApple-
-  [...pockets.values()].reduce((n,b)=>n+b.apple,0),
+ assert.equal(inventory+consumedApple,c.initialApple+collectedApple,
   'apple inventory must conserve deterministic production minus uncollected pockets');
  return {total:berryEnergy+cookingEnergy,berries:berryEnergy,cooking:cookingEnergy,
-  ingredientsProduced:producedApple,consumedApple,endingInventory:inventory,
+  ingredientsProduced:collectedApple,uncollectedApple:producedApple-collectedApple,
+  consumedApple,endingInventory:inventory,
   meals:meals.length,mealTrace:meals};
 }
 function controlledMealReport(){
@@ -196,8 +197,8 @@ function controlledMealReport(){
    assert.equal(model.skills,0,c.id+' phantom skill');
    assert.equal(model.sneaky,0,c.id+' phantom sneaky');
    assert.equal(model.meals.filter(m=>m.recipeId!=='apple_curry').length,0);
-   assert.deepEqual(model.meals.map(m=>[m.day,m.meal]),
-    reference.mealTrace.map(m=>[m.day,m.slot]),c.id+' meal chronology');
+   assert.equal(JSON.stringify(model.meals.map(m=>[m.day,m.meal])),
+    JSON.stringify(reference.mealTrace.map(m=>[m.day,m.slot])),c.id+' meal chronology');
    return {id:c.id,label:c.label,reference:{total:reference.total,berries:reference.berries,
      cooking:reference.cooking,meals:reference.meals,
      ingredientsProduced:reference.ingredientsProduced,consumedApple:reference.consumedApple,
