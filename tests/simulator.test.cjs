@@ -374,14 +374,43 @@ test('legacy recipe simulator keeps extras and success OFF absent explicit flags
 test('Energizing Cheer recipient weights prioritize lowest energy while summing to one',()=>{
  const ids=['a','b','c','d','e'];
  const w=sim.cheerWeights(ids,new Map(ids.map((id,i)=>[id,i===0?5:60])));
- assert.ok(Math.abs(w.get('a')-.76)<1e-9);
- for(const id of ids.slice(1))assert.ok(Math.abs(w.get(id)-.06)<1e-9);
+ assert.ok(Math.abs(w.get('a')-.72)<1e-12);
+ for(const id of ids.slice(1))assert.ok(Math.abs(w.get(id)-.07)<1e-12);
  assert.ok(Math.abs([...w.values()].reduce((a,b)=>a+b,0)-1)<1e-9);
 });
 test('tied low energy Cheer recipients split low-weight probability equally',()=>{
  const ids=['a','b','c','d','e'],w=sim.cheerWeights(ids,new Map([['a',4],['b',4],['c',60],['d',60],['e',60]]));
- assert.ok(Math.abs(w.get('a')-.41)<1e-9);
- assert.ok(Math.abs(w.get('b')-.41)<1e-9);
+ assert.ok(Math.abs(w.get('a')-.395)<1e-12);
+ assert.ok(Math.abs(w.get('b')-.395)<1e-12);
+});
+test('Cheer weighted target probabilities independently integrate upstream 65/35 choice',()=>{
+ const ids=['a','b','c','d','e'];
+ const samples=[
+  {energy:[10,40,50,60,70],expected:[.72,.07,.07,.07,.07]},
+  {energy:[10,10,50,60,70],expected:[.395,.395,.07,.07,.07]},
+  {energy:[20,20,20,20,20],expected:[.2,.2,.2,.2,.2]},
+  {energy:[0,150,0,150,150],expected:[.395,.07,.395,.07,.07]}
+ ];
+ for(const {energy,expected} of samples){
+  const energies=new Map(ids.map((id,i)=>[id,energy[i]]));
+  const actual=sim.cheerWeights(ids,energies);
+  // This reference independently sums the 65% minimum group and
+  // 35% uniform group, rather than reusing the tested implementation.
+  for(let j=0;j<ids.length;j++){
+   const n=energy.filter(x=>x===Math.min(...energy)).length;
+   const p=(j===-1?0:.35/ids.length)+(energy[j]===Math.min(...energy)?.65/n:0);
+   assert.ok(Math.abs(actual.get(ids[j])-p)<1e-12);
+   assert.ok(Math.abs(actual.get(ids[j])-expected[j])<1e-12);
+  }
+  assert.ok(Math.abs([...actual.values()].reduce((a,b)=>a+b,0)-1)<1e-12);
+ }
+});
+test('Cheer does not treat near-minimum but unequal expected energies as exact tied',()=>{
+ const ids=['a','b','c','d','e'];
+ const e=new Map([['a',4],['b',4+1e-10],['c',60],['d',60],['e',60]]);
+ const w=sim.cheerWeights(ids,e);
+ assert.ok(Math.abs(w.get('a')-.72)<1e-12);
+ assert.ok(Math.abs(w.get('b')-.07)<1e-12);
 });
 test('Energizing Cheer and Nuzzle contribute healing expectations without direct skill energy',()=>{
  for(const sk of ['Energizing Cheer S','Energizing Cheer S (Nuzzle)']){
