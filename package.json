@@ -13,7 +13,8 @@
     "m1:observe": "node scripts/step2-m1-observation-compare.cjs",
     "m1:controlled-ranks": "node scripts/step2-m1-controlled-ranking-oracle.cjs",
     "m1:controlled-meals": "node scripts/step2-m1-controlled-meal-oracle.cjs",
-    "m1:r02-sensitivity": "node scripts/step2-m1-r02-sensitivity.cjs"
+    "m1:r02-sensitivity": "node scripts/step2-m1-r02-sensitivity.cjs",
+    "m1:five-ranking-sensitivity": "node scripts/step2-m1-five-ranking-sensitivity.cjs"
   },
   "description": "ポケスリ作戦室 STEP 2 manual seven-day simulator (approximate)"
 }

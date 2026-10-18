@@ -1,0 +1,525 @@
+{
+  "schema": "step2-m1-five-ranking-healer-sensitivity-v1",
+  "source": "frozen v0.2.30 R01-R05",
+  "evidenceGrade": "C_INTERNAL_MODEL_SENSITIVITY",
+  "actualGameRanksValidated": 0,
+  "measuredSkillRateUncertainty": false,
+  "probabilitiesOfRankingErrorsEstimated": false,
+  "step2": "HOLD",
+  "m1": "PARTIAL",
+  "step3": "NOT_STARTED",
+  "caveat": "No flip at these two artificial factors is NOT proof of ranking robustness or game accuracy.",
+  "cases": [
+    {
+      "id": "original-140",
+      "apples": 140,
+      "factors": [
+        {
+          "rateFactor": 0.75,
+          "outputs": {
+            "allBerry": {
+              "total": 974318.226147,
+              "berries": 752646.445804,
+              "cooking": 70287,
+              "skills": 151384.780344,
+              "estimatedMeals": 1,
+              "meals": 21
+            },
+            "oneHealer": {
+              "total": 927610.17048,
+              "berries": 722281.747161,
+              "cooking": 70287,
+              "skills": 135041.423319,
+              "estimatedMeals": 1,
+              "meals": 21
+            },
+            "twoHealer": {
+              "total": 919191.001041,
+              "berries": 730570.965312,
+              "cooking": 70287,
+              "skills": 118333.035729,
+              "estimatedMeals": 1,
+              "meals": 21
+            },
+            "food": {
+              "total": 784779.809329,
+              "berries": 622499.226613,
+              "cooking": 70287,
+              "skills": 91993.582716,
+              "estimatedMeals": 1,
+              "meals": 21
+            },
+            "mixed": {
+              "total": 716384.775949,
+              "berries": 567772.954054,
+              "cooking": 70287,
+              "skills": 78324.821895,
+              "estimatedMeals": 1,
+              "meals": 21
+            },
+            "switching": {
+              "total": 894177.280394,
+              "berries": 693242.578934,
+              "cooking": 70287,
+              "skills": 130647.70146,
+              "estimatedMeals": 1,
+              "meals": 21
+            }
+          },
+          "pairs": [
+            {
+              "id": "R01",
+              "configA": "allBerry",
+              "configB": "oneHealer",
+              "deltaBminusA": -46708.055667,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R02",
+              "configA": "oneHealer",
+              "configB": "twoHealer",
+              "deltaBminusA": -8419.169439,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R03",
+              "configA": "allBerry",
+              "configB": "food",
+              "deltaBminusA": -189538.416818,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R04",
+              "configA": "food",
+              "configB": "mixed",
+              "deltaBminusA": -68395.03338,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R05",
+              "configA": "oneHealer",
+              "configB": "switching",
+              "deltaBminusA": -33432.890086,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            }
+          ]
+        },
+        {
+          "rateFactor": 1,
+          "outputs": {
+            "allBerry": {
+              "total": 974318.226147,
+              "berries": 752646.445804,
+              "cooking": 70287,
+              "skills": 151384.780344,
+              "estimatedMeals": 1,
+              "meals": 21
+            },
+            "oneHealer": {
+              "total": 941650.56107,
+              "berries": 736444.49068,
+              "cooking": 70287,
+              "skills": 134919.07039,
+              "estimatedMeals": 1,
+              "meals": 21
+            },
+            "twoHealer": {
+              "total": 986182.408926,
+              "berries": 797824.523911,
+              "cooking": 70287,
+              "skills": 118070.885015,
+              "estimatedMeals": 1,
+              "meals": 21
+            },
+            "food": {
+              "total": 784779.809329,
+              "berries": 622499.226613,
+              "cooking": 70287,
+              "skills": 91993.582716,
+              "estimatedMeals": 1,
+              "meals": 21
+            },
+            "mixed": {
+              "total": 725342.066207,
+              "berries": 576956.006066,
+              "cooking": 70287,
+              "skills": 78099.060141,
+              "estimatedMeals": 1,
+              "meals": 21
+            },
+            "switching": {
+              "total": 899625.512146,
+              "berries": 698389.989535,
+              "cooking": 70287,
+              "skills": 130948.52261,
+              "estimatedMeals": 1,
+              "meals": 21
+            }
+          },
+          "pairs": [
+            {
+              "id": "R01",
+              "configA": "allBerry",
+              "configB": "oneHealer",
+              "deltaBminusA": -32667.665077,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R02",
+              "configA": "oneHealer",
+              "configB": "twoHealer",
+              "deltaBminusA": 44531.847856,
+              "modelLeader": "B",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R03",
+              "configA": "allBerry",
+              "configB": "food",
+              "deltaBminusA": -189538.416818,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R04",
+              "configA": "food",
+              "configB": "mixed",
+              "deltaBminusA": -59437.743122,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R05",
+              "configA": "oneHealer",
+              "configB": "switching",
+              "deltaBminusA": -42025.048924,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            }
+          ]
+        }
+      ],
+      "comparisons": [
+        {
+          "id": "R01",
+          "at075": -46708.055667,
+          "at1": -32667.665077,
+          "leaderAt075": "A",
+          "leaderAt1": "A",
+          "modelLeaderChanges": false,
+          "triage": "UNVERIFIED_GAME_RANK",
+          "externallyValidated": false
+        },
+        {
+          "id": "R02",
+          "at075": -8419.169439,
+          "at1": 44531.847856,
+          "leaderAt075": "A",
+          "leaderAt1": "B",
+          "modelLeaderChanges": true,
+          "triage": "P1_PRIORITY_VERIFY_SKILL_EVENTS",
+          "externallyValidated": false
+        },
+        {
+          "id": "R03",
+          "at075": -189538.416818,
+          "at1": -189538.416818,
+          "leaderAt075": "A",
+          "leaderAt1": "A",
+          "modelLeaderChanges": false,
+          "triage": "UNVERIFIED_GAME_RANK",
+          "externallyValidated": false
+        },
+        {
+          "id": "R04",
+          "at075": -68395.03338,
+          "at1": -59437.743122,
+          "leaderAt075": "A",
+          "leaderAt1": "A",
+          "modelLeaderChanges": false,
+          "triage": "UNVERIFIED_GAME_RANK",
+          "externallyValidated": false
+        },
+        {
+          "id": "R05",
+          "at075": -33432.890086,
+          "at1": -42025.048924,
+          "leaderAt075": "A",
+          "leaderAt1": "A",
+          "modelLeaderChanges": false,
+          "triage": "UNVERIFIED_GAME_RANK",
+          "externallyValidated": false
+        }
+      ],
+      "changedModelLeaders": [
+        "R02"
+      ]
+    },
+    {
+      "id": "guaranteed-147",
+      "apples": 147,
+      "factors": [
+        {
+          "rateFactor": 0.75,
+          "outputs": {
+            "allBerry": {
+              "total": 974594.227749,
+              "berries": 754547.281286,
+              "cooking": 70287,
+              "skills": 149759.946463,
+              "estimatedMeals": 0,
+              "meals": 21
+            },
+            "oneHealer": {
+              "total": 927903.230659,
+              "berries": 723904.062087,
+              "cooking": 70287,
+              "skills": 133712.168571,
+              "estimatedMeals": 0,
+              "meals": 21
+            },
+            "twoHealer": {
+              "total": 919275.935389,
+              "berries": 731212.850418,
+              "cooking": 70287,
+              "skills": 117776.084971,
+              "estimatedMeals": 0,
+              "meals": 21
+            },
+            "food": {
+              "total": 785072.505061,
+              "berries": 624341.907872,
+              "cooking": 70287,
+              "skills": 90443.597189,
+              "estimatedMeals": 0,
+              "meals": 21
+            },
+            "mixed": {
+              "total": 716301.632384,
+              "berries": 568464.065384,
+              "cooking": 70287,
+              "skills": 77550.566999,
+              "estimatedMeals": 0,
+              "meals": 21
+            },
+            "switching": {
+              "total": 894334.037631,
+              "berries": 694140.925201,
+              "cooking": 70287,
+              "skills": 129906.112431,
+              "estimatedMeals": 0,
+              "meals": 21
+            }
+          },
+          "pairs": [
+            {
+              "id": "R01",
+              "configA": "allBerry",
+              "configB": "oneHealer",
+              "deltaBminusA": -46690.99709,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R02",
+              "configA": "oneHealer",
+              "configB": "twoHealer",
+              "deltaBminusA": -8627.29527,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R03",
+              "configA": "allBerry",
+              "configB": "food",
+              "deltaBminusA": -189521.722688,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R04",
+              "configA": "food",
+              "configB": "mixed",
+              "deltaBminusA": -68770.872677,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R05",
+              "configA": "oneHealer",
+              "configB": "switching",
+              "deltaBminusA": -33569.193028,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            }
+          ]
+        },
+        {
+          "rateFactor": 1,
+          "outputs": {
+            "allBerry": {
+              "total": 974594.227749,
+              "berries": 754547.281286,
+              "cooking": 70287,
+              "skills": 149759.946463,
+              "estimatedMeals": 0,
+              "meals": 21
+            },
+            "oneHealer": {
+              "total": 941704.388698,
+              "berries": 736866.417739,
+              "cooking": 70287,
+              "skills": 134550.970959,
+              "estimatedMeals": 0,
+              "meals": 21
+            },
+            "twoHealer": {
+              "total": 986446.867352,
+              "berries": 799100.550389,
+              "cooking": 70287,
+              "skills": 117059.316963,
+              "estimatedMeals": 0,
+              "meals": 21
+            },
+            "food": {
+              "total": 785072.505061,
+              "berries": 624341.907872,
+              "cooking": 70287,
+              "skills": 90443.597189,
+              "estimatedMeals": 0,
+              "meals": 21
+            },
+            "mixed": {
+              "total": 725584.561932,
+              "berries": 577923.381638,
+              "cooking": 70287,
+              "skills": 77374.180293,
+              "estimatedMeals": 0,
+              "meals": 21
+            },
+            "switching": {
+              "total": 899737.342302,
+              "berries": 699100.459795,
+              "cooking": 70287,
+              "skills": 130349.882507,
+              "estimatedMeals": 0,
+              "meals": 21
+            }
+          },
+          "pairs": [
+            {
+              "id": "R01",
+              "configA": "allBerry",
+              "configB": "oneHealer",
+              "deltaBminusA": -32889.839051,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R02",
+              "configA": "oneHealer",
+              "configB": "twoHealer",
+              "deltaBminusA": 44742.478654,
+              "modelLeader": "B",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R03",
+              "configA": "allBerry",
+              "configB": "food",
+              "deltaBminusA": -189521.722688,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R04",
+              "configA": "food",
+              "configB": "mixed",
+              "deltaBminusA": -59487.943129,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            },
+            {
+              "id": "R05",
+              "configA": "oneHealer",
+              "configB": "switching",
+              "deltaBminusA": -41967.046396,
+              "modelLeader": "A",
+              "originalRankingExternallyVerified": false
+            }
+          ]
+        }
+      ],
+      "comparisons": [
+        {
+          "id": "R01",
+          "at075": -46690.99709,
+          "at1": -32889.839051,
+          "leaderAt075": "A",
+          "leaderAt1": "A",
+          "modelLeaderChanges": false,
+          "triage": "UNVERIFIED_GAME_RANK",
+          "externallyValidated": false
+        },
+        {
+          "id": "R02",
+          "at075": -8627.29527,
+          "at1": 44742.478654,
+          "leaderAt075": "A",
+          "leaderAt1": "B",
+          "modelLeaderChanges": true,
+          "triage": "P1_PRIORITY_VERIFY_SKILL_EVENTS",
+          "externallyValidated": false
+        },
+        {
+          "id": "R03",
+          "at075": -189521.722688,
+          "at1": -189521.722688,
+          "leaderAt075": "A",
+          "leaderAt1": "A",
+          "modelLeaderChanges": false,
+          "triage": "UNVERIFIED_GAME_RANK",
+          "externallyValidated": false
+        },
+        {
+          "id": "R04",
+          "at075": -68770.872677,
+          "at1": -59487.943129,
+          "leaderAt075": "A",
+          "leaderAt1": "A",
+          "modelLeaderChanges": false,
+          "triage": "UNVERIFIED_GAME_RANK",
+          "externallyValidated": false
+        },
+        {
+          "id": "R05",
+          "at075": -33569.193028,
+          "at1": -41967.046396,
+          "leaderAt075": "A",
+          "leaderAt1": "A",
+          "modelLeaderChanges": false,
+          "triage": "UNVERIFIED_GAME_RANK",
+          "externallyValidated": false
+        }
+      ],
+      "changedModelLeaders": [
+        "R02"
+      ]
+    }
+  ],
+  "ciProvenance": {
+    "workflow": "Validate STEP 2",
+    "runId": 39105063029,
+    "tests": 272,
+    "passed": 272,
+    "failed": 0,
+    "headSha": "c6e547475900722a1bde31d4736baf94ddaff3f4"
+  },
+  "evidenceBoundary": "C internal model perturbation; no observed game ranking and no empirical uncertainty bound"
+}
