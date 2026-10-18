@@ -15,7 +15,8 @@
     "m1:controlled-meals": "node scripts/step2-m1-controlled-meal-oracle.cjs",
     "m1:r02-sensitivity": "node scripts/step2-m1-r02-sensitivity.cjs",
     "m1:five-ranking-sensitivity": "node scripts/step2-m1-five-ranking-sensitivity.cjs",
-    "m2:e4-timer-oracle": "node scripts/step2-m2-e4-timer-oracle.cjs"
+    "m2:e4-timer-oracle": "node scripts/step2-m2-e4-timer-oracle.cjs",
+    "m2:e4-joint-oracle": "node scripts/step2-m2-e4-joint-state-oracle.cjs"
   },
   "description": "ポケスリ作戦室 STEP 2 manual seven-day simulator (approximate)"
 }
