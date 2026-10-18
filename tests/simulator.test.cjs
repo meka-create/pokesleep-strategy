@@ -1624,3 +1624,34 @@ test('without a selected recipe all source-dependent Energy counters remain empt
  assert.equal(r.expectedSourceMealEnergy,0);
  assert.equal(r.initialSourceMealEnergy,0);
 });
+
+test('two simultaneous Energy for Everyone S helpers explicitly warn that ranking is unverified',()=>{
+ const make=()=>{
+  const a=input();
+  a.box.push(monster('w0','プクリン'),monster('w1','サーナイト'));
+  a.options.recipeId='';
+  return a;
+ };
+ const single=make(),both=make();
+ for(const part of ['morning','noon','evening']){
+  single.teams[part]=['0','1','2','3','w0'];
+  both.teams[part]=['0','1','2','w0','w1'];
+ }
+ const resultSingle=sim.simulate(single),resultBoth=sim.simulate(both);
+ const needle='試算エナジーだけでヒーラー1匹と2匹の優劣を確定しないでください';
+ assert.equal(resultSingle.warnings.some(x=>x.includes(needle)),false);
+ assert.equal(resultBoth.warnings.some(x=>x.includes(needle)),true);
+ assert.ok(Number.isFinite(resultBoth.total));
+ assert.ok(Number.isFinite(resultSingle.total));
+});
+test('two-healer warning triggers for any individual daylight period, never sleep-only',()=>{
+ const a=input();
+ a.box.push(monster('w0','プクリン'),monster('w1','サーナイト'));
+ a.options.recipeId='';
+ // Only noon has two ordinary E4 helpers.
+ a.teams.noon=['0','1','2','w0','w1'];
+ assert.equal(sim.simulate(a).warnings.some(x=>x.includes('優劣を確定しないでください')),true);
+ a.teams.noon=['0','1','2','3','w0'];
+ a.teams.sleep=['0','1','2','w0','w1'];
+ assert.equal(sim.simulate(a).warnings.some(x=>x.includes('優劣を確定しないでください')),false);
+});
