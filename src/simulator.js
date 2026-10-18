@@ -605,12 +605,14 @@ function chooseRecipe({mode='fixed',preferredId='',foodMode,inventory,potCapacit
   ||Object.values(a.requirements).reduce((n,v)=>n+v,0)-Object.values(b.requirements).reduce((n,v)=>n+v,0)
   ||a.id.localeCompare(b.id))[0]||null;
 }
-// Target-weight proxy (not a measured game probability): 70% shared by
-// lowest-energy teammates and 30% distributed over the entire party.
+// Target-weight proxy aligned with nitoyon/pokesleep-tool
+// src/util/Team/Skill/EnergizingCheer.ts: 65% minimum-Energy branch,
+// 35% uniform among all active members. This is a reference-model rule,
+// NOT an independently measured real-game target probability.
 function cheerWeights(teamIds,energy){
  const minimum=Math.min(...teamIds.map(id=>energy.get(id)??0));
  const lowest=teamIds.filter(id=>(energy.get(id)??0)<=minimum+1e-9);
- return new Map(teamIds.map(id=>[id,.3/teamIds.length+((energy.get(id)??0)<=minimum+1e-9?.7/lowest.length:0)]));
+ return new Map(teamIds.map(id=>[id,.35/teamIds.length+((energy.get(id)??0)<=minimum+1e-9?.65/lowest.length:0)]));
 }
 function recoverFromSleep(current,score,natureRecovery,teamRecoveryBonus,selfHasRecoveryBonus){
  const limit=selfHasRecoveryBonus?105:100;
@@ -870,7 +872,7 @@ function simulate(input){
      const recipient=byId.get(who),rate=recoveryNatureFactor(recipient.nature);
      applyEnergyRecovery(energy,energyDecayTimers,who,clamp(energy.get(who)+heal*triggers*(weights.get(who)||0)*rate,0,150));
     }
-    warnings.add('げんきエールの回復対象は最低げんき優先70%／残り均等30%の仮定です。実際の抽選確率は確定していません。');
+    warnings.add('げんきエールの回復対象は参照計算器に合わせた最低げんき優先65%／全員均等35%の近似です。実際の抽選確率は独立実測されていません。');
     if(actual==='Energizing Cheer S (Nuzzle)')warnings.add('ほっぺすりすりのスキル発動可能ボーナスは未計上です。');
     if(actual==='Energizing Cheer S (Heal Pulse)')warnings.add('いやしのはどうの追加おてつだい・ラティアスとラティオスの同時編成ボーナスは未計上です。');
    }
