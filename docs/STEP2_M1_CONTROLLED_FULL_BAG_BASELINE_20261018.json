@@ -1,0 +1,153 @@
+{
+  "schema": "step2-m1-controlled-full-bag-ci-baseline-v1",
+  "grade": "B_CONTROLLED_DETERMINISTIC_COOKING",
+  "controlledCaseId": "CM03",
+  "bagCapacity": 7,
+  "initialApple": 7,
+  "reference": {
+    "total": 174427,
+    "berries": 104140,
+    "cooking": 70287,
+    "meals": 21,
+    "ingredientsProduced": 147,
+    "consumedApple": 147,
+    "endingInventory": 7
+  },
+  "model": {
+    "total": 174427,
+    "berries": 104140,
+    "cooking": 70287,
+    "meals": 21,
+    "ingredientsProduced": 147,
+    "consumedApple": 147,
+    "endingInventory": 7
+  },
+  "differences": {
+    "berries": 0,
+    "cooking": 0,
+    "total": 0,
+    "meals": 0,
+    "ingredientsProduced": 0,
+    "consumedApple": 0,
+    "endingInventory": 0
+  },
+  "mealTrace": [
+    {
+      "day": 1,
+      "slot": "朝",
+      "energy": 3347
+    },
+    {
+      "day": 1,
+      "slot": "昼",
+      "energy": 3347
+    },
+    {
+      "day": 1,
+      "slot": "夜",
+      "energy": 3347
+    },
+    {
+      "day": 2,
+      "slot": "朝",
+      "energy": 3347
+    },
+    {
+      "day": 2,
+      "slot": "昼",
+      "energy": 3347
+    },
+    {
+      "day": 2,
+      "slot": "夜",
+      "energy": 3347
+    },
+    {
+      "day": 3,
+      "slot": "朝",
+      "energy": 3347
+    },
+    {
+      "day": 3,
+      "slot": "昼",
+      "energy": 3347
+    },
+    {
+      "day": 3,
+      "slot": "夜",
+      "energy": 3347
+    },
+    {
+      "day": 4,
+      "slot": "朝",
+      "energy": 3347
+    },
+    {
+      "day": 4,
+      "slot": "昼",
+      "energy": 3347
+    },
+    {
+      "day": 4,
+      "slot": "夜",
+      "energy": 3347
+    },
+    {
+      "day": 5,
+      "slot": "朝",
+      "energy": 3347
+    },
+    {
+      "day": 5,
+      "slot": "昼",
+      "energy": 3347
+    },
+    {
+      "day": 5,
+      "slot": "夜",
+      "energy": 3347
+    },
+    {
+      "day": 6,
+      "slot": "朝",
+      "energy": 3347
+    },
+    {
+      "day": 6,
+      "slot": "昼",
+      "energy": 3347
+    },
+    {
+      "day": 6,
+      "slot": "夜",
+      "energy": 3347
+    },
+    {
+      "day": 7,
+      "slot": "朝",
+      "energy": 3347
+    },
+    {
+      "day": 7,
+      "slot": "昼",
+      "energy": 3347
+    },
+    {
+      "day": 7,
+      "slot": "夜",
+      "energy": 3347
+    }
+  ],
+  "actualGameMixedValidated": false,
+  "originalM04Validated": false,
+  "step2": "HOLD",
+  "m1": "PARTIAL",
+  "step3": "NOT_STARTED",
+  "ciProvenance": {
+    "source": "GitHub Actions Validate STEP 2",
+    "runId": 39100626960,
+    "verifiedTests": 264,
+    "failedTests": 0,
+    "headSha": "c0591de51abb6de3279700e60fbba27f255004a0"
+  }
+}
