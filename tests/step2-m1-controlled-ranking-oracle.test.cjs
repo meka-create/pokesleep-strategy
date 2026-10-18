@@ -36,3 +36,19 @@ test('original M1 full-ingredient and skill rankings remain explicitly unverifie
  assert.equal(snapshot.counts.externallyVerifiedRankingPairs,0);
  assert.ok(snapshot.rankingComparisons.every(x=>x.externalRankingValidated===false));
 });
+
+test('CI-provenanced controlled pair values are stable without certifying stochastic rankings',()=>{
+ const reference=require('../docs/STEP2_M1_CONTROLLED_RANKING_BASELINE_20261018.json');
+ assert.equal(reference.ciProvenance.runId,39082387457);
+ assert.equal(reference.ciProvenance.testCount,257);
+ assert.equal(reference.ciProvenance.failed,0);
+ assert.equal(reference.actualGameWeeklyValidated,false);
+ assert.equal(reference.originalStochasticRankingPairsValidated,false);
+ for(const [k,v] of Object.entries(reference.results)){
+  assert.equal(report.results[k].reference,v.reference,k);
+  assert.equal(report.results[k].simulated,v.simulated,k);
+  assert.equal(report.results[k].difference,v.difference,k);
+ }
+ assert.deepEqual(report.pairs.map(x=>[x.id,x.referenceDeltaBminusA,x.referenceLeader]),
+  reference.pairs.map(x=>[x.id,x.referenceDeltaBminusA,x.referenceLeader]));
+});
