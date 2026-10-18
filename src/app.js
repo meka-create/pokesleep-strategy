@@ -166,7 +166,7 @@ $('runSim').addEventListener('click',()=>{
   const saved=save();if(!saved)throw Error('設定を保存できません。バックアップを取得してから再試行してください。');
   const runInput={box:state.box,teams:{...sim.teams,sleep:state.sleepIds},options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1,eventEffects:state.event.effects}};
   const result=PokeSimulator.simulate(runInput);
-  const version=$('.step-mark')?.textContent.match(/v(\d+\.\d+\.\d+)/)?.[1];
+  const version=document.querySelector('.step-mark')?.textContent.match(/v(\d+\.\d+\.\d+)/)?.[1];
   lastRunSnapshot=PokeObservation.captureSimulation(runInput,result,version,new Date().toISOString());
   const yen=n=>Math.round(n).toLocaleString('ja-JP');
   $('simTotal').textContent=yen(result.total)+' エナジー（計上できた項目のみ・暫定）';
