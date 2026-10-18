@@ -1,0 +1,235 @@
+{
+  "schema": "step2-m2-e4-skill-stock-pity-joint-state-oracle-v1",
+  "evidence": "B_ARTIFICIAL_EXHAUSTIVE_STOCK_PITY_ENERGY_CLOCK",
+  "scope": "one skill user; four artificial completed helps across two taps",
+  "ratesMeasured": false,
+  "gameErrorQuantified": false,
+  "step2": "HOLD",
+  "m1": "PARTIAL",
+  "m2": "PARTIAL",
+  "step3": "NOT_STARTED",
+  "cases": [
+    {
+      "id": "stochastic-cap",
+      "initialEnergy": 140,
+      "initialPhase": 9,
+      "artificialSkillRate": 0.2,
+      "pityThreshold": 5,
+      "skillStockCap": 1,
+      "eligibleHelpsPerTap": 2,
+      "taps": 2,
+      "minutesBetween": 1,
+      "healPerActivation": 18,
+      "terminalStates": [
+        {
+          "state": "139:1:4:0:0",
+          "mass": 0.4096
+        },
+        {
+          "state": "150:1:0:0:1",
+          "mass": 0.2304
+        },
+        {
+          "state": "150:2:0:0:2",
+          "mass": 0.1296
+        },
+        {
+          "state": "150:2:2:0:1",
+          "mass": 0.2304
+        }
+      ],
+      "expectedActualActivations": 0.72,
+      "collapsedExpectedActivations": 0.72,
+      "exactMeanEnergy": 145.4944,
+      "collapsedModelEnergy": 150,
+      "modelMinusExact": 4.5056,
+      "realGameMeasurements": false,
+      "weekRankValidated": false
+    },
+    {
+      "id": "stochastic-two-stock",
+      "initialEnergy": 100,
+      "initialPhase": 9,
+      "artificialSkillRate": 0.25,
+      "pityThreshold": 5,
+      "skillStockCap": 2,
+      "eligibleHelpsPerTap": 2,
+      "taps": 2,
+      "minutesBetween": 1,
+      "healPerActivation": 18,
+      "terminalStates": [
+        {
+          "state": "117:1:0:0:1",
+          "mass": 0.10546875
+        },
+        {
+          "state": "117:1:1:0:1",
+          "mass": 0.10546875
+        },
+        {
+          "state": "118:2:2:0:1",
+          "mass": 0.10546875
+        },
+        {
+          "state": "118:2:3:0:1",
+          "mass": 0.10546875
+        },
+        {
+          "state": "135:1:0:0:2",
+          "mass": 0.03515625
+        },
+        {
+          "state": "136:1:0:0:2",
+          "mass": 0.0703125
+        },
+        {
+          "state": "136:1:1:0:2",
+          "mass": 0.0703125
+        },
+        {
+          "state": "136:2:2:0:2",
+          "mass": 0.03515625
+        },
+        {
+          "state": "150:1:0:0:3",
+          "mass": 0.03515625
+        },
+        {
+          "state": "150:1:0:0:4",
+          "mass": 0.00390625
+        },
+        {
+          "state": "150:1:1:0:3",
+          "mass": 0.01171875
+        },
+        {
+          "state": "99:1:4:0:0",
+          "mass": 0.31640625
+        }
+      ],
+      "expectedActualActivations": 1,
+      "collapsedExpectedActivations": 1,
+      "exactMeanEnergy": 117.1640625,
+      "collapsedModelEnergy": 118,
+      "modelMinusExact": 0.8359375,
+      "realGameMeasurements": false,
+      "weekRankValidated": false
+    },
+    {
+      "id": "guaranteed-pity",
+      "initialEnergy": 135,
+      "initialPhase": 9,
+      "artificialSkillRate": 0.2,
+      "pityThreshold": 3,
+      "skillStockCap": 1,
+      "eligibleHelpsPerTap": 2,
+      "taps": 2,
+      "minutesBetween": 1,
+      "healPerActivation": 18,
+      "terminalStates": [
+        {
+          "state": "150:1:0:0:1",
+          "mass": 0.64
+        },
+        {
+          "state": "150:2:0:0:2",
+          "mass": 0.1296
+        },
+        {
+          "state": "150:2:2:0:1",
+          "mass": 0.2304
+        }
+      ],
+      "expectedActualActivations": 1.1296,
+      "collapsedExpectedActivations": 1.1296,
+      "exactMeanEnergy": 150,
+      "collapsedModelEnergy": 150,
+      "modelMinusExact": 0,
+      "realGameMeasurements": false,
+      "weekRankValidated": false
+    },
+    {
+      "id": "no-procs",
+      "initialEnergy": 140,
+      "initialPhase": 9,
+      "artificialSkillRate": 0,
+      "pityThreshold": 5,
+      "skillStockCap": 1,
+      "eligibleHelpsPerTap": 2,
+      "taps": 2,
+      "minutesBetween": 1,
+      "healPerActivation": 18,
+      "terminalStates": [
+        {
+          "state": "139:1:0:0:0",
+          "mass": 1
+        }
+      ],
+      "expectedActualActivations": 0,
+      "collapsedExpectedActivations": 0,
+      "exactMeanEnergy": 139,
+      "collapsedModelEnergy": 139,
+      "modelMinusExact": 0,
+      "realGameMeasurements": false,
+      "weekRankValidated": false
+    },
+    {
+      "id": "all-procs",
+      "initialEnergy": 140,
+      "initialPhase": 9,
+      "artificialSkillRate": 1,
+      "pityThreshold": 5,
+      "skillStockCap": 1,
+      "eligibleHelpsPerTap": 2,
+      "taps": 2,
+      "minutesBetween": 1,
+      "healPerActivation": 18,
+      "terminalStates": [
+        {
+          "state": "150:2:0:0:2",
+          "mass": 1
+        }
+      ],
+      "expectedActualActivations": 2,
+      "collapsedExpectedActivations": 2,
+      "exactMeanEnergy": 150,
+      "collapsedModelEnergy": 150,
+      "modelMinusExact": 0,
+      "realGameMeasurements": false,
+      "weekRankValidated": false
+    },
+    {
+      "id": "threshold-one",
+      "initialEnergy": 100,
+      "initialPhase": 9,
+      "artificialSkillRate": 0.25,
+      "pityThreshold": 1,
+      "skillStockCap": 2,
+      "eligibleHelpsPerTap": 2,
+      "taps": 2,
+      "minutesBetween": 1,
+      "healPerActivation": 18,
+      "terminalStates": [
+        {
+          "state": "150:1:0:0:4",
+          "mass": 1
+        }
+      ],
+      "expectedActualActivations": 4,
+      "collapsedExpectedActivations": 4,
+      "exactMeanEnergy": 150,
+      "collapsedModelEnergy": 150,
+      "modelMinusExact": 0,
+      "realGameMeasurements": false,
+      "weekRankValidated": false
+    }
+  ],
+  "ciProvenance": {
+    "workflow": "Validate STEP 2",
+    "runId": 39131023141,
+    "testsPassed": 289,
+    "testsFailed": 0,
+    "headSha": "ead337289e589c283e476879ad56c99caa7a92b9"
+  },
+  "referenceScope": "Artificial fixed four help events; not measured Pokémon Sleep activation rate or game ranking."
+}
