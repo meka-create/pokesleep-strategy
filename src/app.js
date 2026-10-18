@@ -256,33 +256,49 @@ $('downloadObservation').addEventListener('click',()=>{
 
 
 $('observationFile').addEventListener('change',async ev=>{
- const file=ev.target.files?.[0];if(!file)return;
+ const files=Array.from(ev.target.files||[]);if(!files.length)return;
  const result=$('obsImportResult'),error=$('obsImportError');
  result.replaceChildren();error.hidden=true;
  try{
-  if(file.size>8*1024*1024)throw Error('観測JSONが8MBを超えています。');
-  const raw=JSON.parse(await file.text());
-  const replay=PokeObservation.reviewImportedReport(raw,PokeSimulator.simulate);
+  if(files.length>4)throw Error('観測JSONは一度に最大4ファイルです。');
+  if(files.some(file=>file.size>8*1024*1024)||
+     files.reduce((sum,file)=>sum+file.size,0)>12*1024*1024)
+   throw Error('観測JSONは各8MB以下、合計12MB以下にしてください。');
+  const reports=[];
+  for(const file of files)reports.push(JSON.parse(await file.text()));
+  const batch=PokeObservation.reviewImportedReports(reports,PokeSimulator.simulate);
   const numeric=n=>Math.round(n).toLocaleString('ja-JP');
   const signed=n=>(n>0?'+':'')+numeric(n);
   const add=t=>{const row=document.createElement('p');row.textContent=t;result.append(row);};
-  add('対象週：'+replay.week.mondayDate+'／'+replay.week.field);
-  add('ゲーム実測：'+numeric(replay.observed.total)+'／記録時の試算：'+numeric(replay.capturedModel.total)+
-      '／現行モデルでの再試算：'+numeric(replay.currentModel.total));
-  const d=replay.signedDeltaObservedMinusCurrent;
-  add('ゲーム実測−現行モデル：合計 '+signed(d.total)+
-      '／きのみ＋直接エナジースキル '+signed(d.berryAndStrengthSkill)+
-      '／料理 '+signed(d.cooking));
-  add('記録時の試算と現行モデル：'+(replay.captureComparison.matchesCurrentModel?'一致':'差異あり（要調査）'));
-  if(!replay.weeklySummaryBucketsReconcile)
-   add('要確認：ゲーム週まとめの総計と2欄の合計が一致しません。');
-  for(const problem of replay.confounders)add('要確認：'+problem);
-  for(const limitation of replay.modelLimitations)add('モデルの未検証：'+limitation);
-  add('実ゲームの単週観測です。画像照合・モデル精度・編成順位は未検証（STEP2 HOLD）。');
+  if(batch.count>1){
+   add('複数週の観測記録 '+batch.count+'件（ゲーム実測の真正性・精度は未検証）。');
+   add('記録された試算入力：'+(batch.sameSavedInputs?'全件同一':'差異あり。週ごとに条件が異なる可能性があります。'));
+   if(batch.duplicateMondays.length)
+    add('重複した対象週：'+batch.duplicateMondays.join('、')+'。同じ週を独立した複数回の観測と数えないでください。');
+   if(batch.conflictingMondays.length)
+    add('要確認：同一週でフィールドまたは週まとめ数値が矛盾しています：'+batch.conflictingMondays.join('、'));
+   add('個別の未確認・モデル制限がある記録：'+batch.confoundedCount+'件。単純な平均誤差や編成順位を推定しません。');
+  }
+  for(const replay of batch.items){
+   add('対象週：'+replay.week.mondayDate+'／'+replay.week.field);
+   add('ゲーム実測：'+numeric(replay.observed.total)+'／記録時の試算：'+numeric(replay.capturedModel.total)+
+       '／現行モデルでの再試算：'+numeric(replay.currentModel.total));
+   const d=replay.signedDeltaObservedMinusCurrent;
+   add('ゲーム実測−現行モデル：合計 '+signed(d.total)+
+       '／きのみ＋直接エナジースキル '+signed(d.berryAndStrengthSkill)+
+       '／料理 '+signed(d.cooking));
+   add('記録時の試算と現行モデル：'+(replay.captureComparison.matchesCurrentModel?'一致':'差異あり（要調査）'));
+   if(!replay.weeklySummaryBucketsReconcile)
+    add('要確認：ゲーム週まとめの総計と2欄の合計が一致しません。');
+   for(const problem of replay.confounders)add('要確認：'+problem);
+   for(const limitation of replay.modelLimitations)add('モデルの未検証：'+limitation);
+  }
+  add(batch.count===1?
+   '実ゲームの単週観測です。画像照合・モデル精度・編成順位は未検証（STEP2 HOLD）。':
+   '複数の記録は条件差と重複の品質点検用です。画像照合・モデル精度・編成順位は未検証（STEP2 HOLD）。');
  }catch(e){result.replaceChildren();error.textContent=e.message||String(e);error.hidden=false;
  }finally{ev.target.value='';}
 });
-
 
 $('storageNotice').textContent=storage.getLoadError()|| (storage.available()?'このブラウザ内への保存：利用可能':'この環境は保存が制限されています。必ずJSONバックアップをご利用ください。');
 if(storage.getLoadError()){$('storageNotice').className='small warn';$('criticalNotice').textContent=storage.getLoadError();$('criticalNotice').hidden=false;}
