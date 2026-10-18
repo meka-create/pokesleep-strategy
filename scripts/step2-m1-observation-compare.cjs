@@ -69,8 +69,25 @@ function compareSingleWeek(report){
  if(week.field!==input.options.map)
   throw Error('観測フィールドとシミュレーター設定が一致しません。');
  const predicted=sim.simulate(input);
+ // New browser-originated evidence carries the *actual model result recorded
+ // at run time*. Replaying after a master or engine change must not silently
+ // compare a new model prediction as though it were the old one.
+ let captureComparison=null;
+ if(report.capture!==undefined){
+  const c=report.capture;
+  if(!c||typeof c!=='object'||!c.modelAtCapture||
+   !['total','berries','skills','cooking'].every(k=>
+    typeof c.modelAtCapture[k]==='number'&&Number.isFinite(c.modelAtCapture[k])&&c.modelAtCapture[k]>=0))
+   throw Error('記録時の試算スナップショットが不正です。');
+  const delta=Object.fromEntries(['total','berries','skills','cooking'].map(k=>
+   [k,predicted[k]-c.modelAtCapture[k]]));
+  captureComparison={matchesCurrentModel:Object.values(delta).every(x=>Math.abs(x)<1e-5),
+   signedDeltaCurrentMinusCaptured:delta,declaredAppVersion:c.appVersion??null,
+   warning:'記録された試算値はユーザー提供データです。署名済みのゲーム観測ではありません。'};
+ }
  const bucket=compareBuckets(predicted,observed);
  const unexplained=[
+  captureComparison&&!captureComparison.matchesCurrentModel?'記録時の試算値と現在の計算器による再試算が一致しません。マスター・モデル版や入力の変更を先に確認してください。':null,
   !provenance.noUnmodeledEvents?'イベント・EX等の未対応追加効果が除外されたことを確認できません。':null,
   !provenance.sameCollectionSchedule?'実際の回収・食事・編成交代時刻と本モデルのスケジュールが同じか未確認です。':null,
   !provenance.noUntrackedItems?'ホイッスル等のアイテムによる増加が除外されたことを確認できません。':null,
@@ -87,6 +104,7 @@ function compareSingleWeek(report){
   schema:report.schema,week:{mondayDate:week.mondayDate,field:week.field},
   provenance:{source:provenance.source,screenshotReviewed:false,rawSingleWeek:true},
   ...bucket,
+  captureComparison,
   status:unexplained.length||modelLimitations.length?'CONFOUNDED_OBSERVATION':'UNCALIBRATED_OBSERVATION',
   confounders:unexplained,modelLimitations,
   accuracyGate:'HOLD',step3:'NOT_STARTED',

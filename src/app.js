@@ -3,6 +3,8 @@
 const $=id=>document.getElementById(id);
 const storage=window.PokeStorage;
 let state=storage.load();
+// Each exported observation belongs to the *successful run*, never to subsequently edited settings.
+let lastRunSnapshot=null;
 const save=()=>{try{storage.save(state);$('storageNotice').textContent='このブラウザ内への保存：利用可能';$('storageNotice').className='small ok';$('criticalNotice').hidden=true;return true;}catch(e){
 $('storageNotice').textContent=storage.getLoadError()||'保存に失敗しました。現在の変更は未保存です。設定・保存からJSONバックアップを取得してください。';$('storageNotice').className='small warn';$('criticalNotice').textContent=$('storageNotice').textContent;$('criticalNotice').hidden=false;return false;}};
 const notifySave=(success,ok)=>toast(success?(ok||'保存しました。'):'保存に失敗しました。設定・保存からJSONバックアップを取得してください。');
@@ -34,11 +36,11 @@ $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0
  for(const key of ['morning','noon','evening']){
   simTeams[key]=storage.reconcileSleepIds({box:state.box,sleepIds:state.simulation.teams[key]||[]},result.items);
  }
- state.box=result.items;state.sleepIds=kept;state.simulation.teams=simTeams;state.updatedAt=new Date().toISOString();const saved=save();renderBox();fillSimulation();notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`);
+ state.box=result.items;state.sleepIds=kept;state.simulation.teams=simTeams;state.updatedAt=new Date().toISOString();const saved=save();renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`);
  }catch(e){$('importError').textContent=e.message||String(e);$('importError').hidden=false;}finally{ev.target.value='';}});
 $('downloadBackup').addEventListener('click',()=>{download(`pokesleep_event_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2),'application/json;charset=utf-8');toast('バックアップを保存しました。');});
-$('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;storage.allowRecovery();const saved=save();fillEvent();renderBox();fillSimulation();notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
-$('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();storage.allowRecovery();const saved=save();fillEvent();$('searchPokemon').value='';renderBox();fillSimulation();$('simResult').hidden=true;notifySave(saved,'端末内の保存情報を消去しました。');});
+$('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;storage.allowRecovery();const saved=save();fillEvent();renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
+$('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();storage.allowRecovery();const saved=save();fillEvent();$('searchPokemon').value='';renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'端末内の保存情報を消去しました。');});
 const rosterKeys=['morning','noon','evening'];
 const ingredientEditors=Object.create(null);
 const magnetEditors=Object.create(null);
@@ -162,7 +164,10 @@ $('runSim').addEventListener('click',()=>{
  try{
   const sim=readSimulation();state.simulation=sim;
   const saved=save();if(!saved)throw Error('設定を保存できません。バックアップを取得してから再試行してください。');
-  const result=PokeSimulator.simulate({box:state.box,teams:{...sim.teams,sleep:state.sleepIds},options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1,eventEffects:state.event.effects}});
+  const runInput={box:state.box,teams:{...sim.teams,sleep:state.sleepIds},options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1,eventEffects:state.event.effects}};
+  const result=PokeSimulator.simulate(runInput);
+  const version=document.querySelector('.step-mark')?.textContent.match(/v(\d+\.\d+\.\d+)/)?.[1];
+  lastRunSnapshot=PokeObservation.captureSimulation(runInput,result,version,new Date().toISOString());
   const yen=n=>Math.round(n).toLocaleString('ja-JP');
   $('simTotal').textContent=yen(result.total)+' エナジー（計上できた項目のみ・暫定）';
   const stats=[['きのみ',result.berries],['料理',result.cooking],['直接スキル',result.skills]];
@@ -208,8 +213,45 @@ $('runSim').addEventListener('click',()=>{
   if(!entries.length)$('simIngredients').textContent='食材獲得なし／未計上';
   const note=$('simWarnings');note.replaceChildren();for(const warning of result.warnings){const p=document.createElement('p');p.textContent=warning;note.append(p);}
   $('simResult').hidden=false;
+  for(const id of ['obsMonday','obsTotal','obsBerry','obsCooking','obsScreenshot'])$(id).value='';
+  for(const id of ['obsNoUnmodeledEvents','obsSameCollectionSchedule','obsNoUntrackedItems','obsStartStrengthVerified','obsWeekBoundaryReconciled','obsConfirmedSummary'])$(id).checked=false;
+  $('obsError').hidden=true;
+  $('obsResult').textContent='この試算時点の設定を記録用に保持しました。観測数値・確認項目は未入力です。';
   $('simResult').scrollIntoView({behavior:'smooth',block:'start'});
- }catch(e){$('simResult').hidden=true;$('simError').textContent=e.message||String(e);$('simError').hidden=false;}
+ }catch(e){lastRunSnapshot=null;$('simResult').hidden=true;$('simError').textContent=e.message||String(e);$('simError').hidden=false;}
+});
+
+
+$('downloadObservation').addEventListener('click',()=>{
+ $('obsError').hidden=true;
+ try{
+  const form={
+   mondayDate:$('obsMonday').value,
+   total:$('obsTotal').value,berryAndStrengthSkill:$('obsBerry').value,
+   cooking:$('obsCooking').value,
+   screenshotReference:$('obsScreenshot').value,
+   confirmedSummary:$('obsConfirmedSummary').checked,
+   noUnmodeledEvents:$('obsNoUnmodeledEvents').checked,
+   sameCollectionSchedule:$('obsSameCollectionSchedule').checked,
+   noUntrackedItems:$('obsNoUntrackedItems').checked,
+   startStrengthVerified:$('obsStartStrengthVerified').checked,
+   weekBoundaryReconciled:$('obsWeekBoundaryReconciled').checked
+  };
+  const report=PokeObservation.makeReport(lastRunSnapshot,form);
+  const compared=PokeObservation.preview(report);
+  const difference=n=>(n>0?'+':'')+Math.round(n).toLocaleString('ja-JP');
+  const note='実測−試算：総'+difference(compared.signedDeltaObservedMinusModel.total)+
+   '／きのみ＋直接スキル'+difference(compared.signedDeltaObservedMinusModel.berryAndStrengthSkill)+
+   '／料理'+difference(compared.signedDeltaObservedMinusModel.cooking)+
+   '。単週観測のため精度・編成順位は未検証（STEP2 HOLD）。';
+  const concerns=[
+   ...(!compared.weeklySummaryBucketsReconcile?['ゲーム週まとめの総エナジーと2欄の合計が一致しません。']:[]),
+   ...(compared.unconfirmedConditions.length?['確認できていない条件が'+compared.unconfirmedConditions.length+'項目あります。']:[])
+  ];
+  $('obsResult').textContent=note+(concerns.length?' 要確認：'+concerns.join(' '):'');
+  download('pokesleep_weekly_observation_'+report.week.mondayDate+'.json',
+   JSON.stringify(report,null,2),'application/json;charset=utf-8');
+ }catch(e){$('obsError').textContent=e.message||String(e);$('obsError').hidden=false;}
 });
 
 
