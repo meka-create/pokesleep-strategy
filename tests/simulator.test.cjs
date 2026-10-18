@@ -1655,3 +1655,48 @@ test('two-healer warning triggers for any individual daylight period, never slee
  a.teams.sleep=['0','1','2','w0','w1'];
  assert.equal(sim.simulate(a).warnings.some(x=>x.includes('優劣を確定しないでください')),false);
 });
+
+test('exact branch-first Energy cap differs from cap-after-expected-stock when healing is uncertain',()=>{
+ // Independently enumerate each integer stock branch, without relying on
+ // the simulator formula to generate the expected values.
+ const independent=(energy,heal,weights)=>
+  weights.map((p,stock)=>p*Math.min(150,energy+stock*heal)).reduce((a,b)=>a+b,0);
+ const examples=[
+  {before:145,heal:18,p:[.5,.5],exact:147.5,approx:150,gap:2.5},
+  {before:140,heal:18,p:[.5,.5],exact:145,approx:149,gap:4},
+  {before:100,heal:18,p:[.5,.5],exact:109,approx:109,gap:0},
+  {before:130,heal:18,p:[0,.5,.5],exact:149,approx:150,gap:1},
+  {before:149,heal:18,p:[1,0,0],exact:149,approx:149,gap:0}
+ ];
+ for(const x of examples){
+  const got=sim.cappedHealFromStock(x.before,x.heal,x.p);
+  assert.ok(Math.abs(got.expectedAfter-independent(x.before,x.heal,x.p))<1e-10);
+  assert.ok(Math.abs(got.expectedAfter-x.exact)<1e-10);
+  assert.ok(Math.abs(got.modeledAfter-x.approx)<1e-10);
+  assert.ok(Math.abs(got.localGap-x.gap)<1e-10);
+  assert.ok(got.localGap>=0);
+ }
+ assert.throws(()=>sim.cappedHealFromStock(151,18,[.5,.5]),/不正/);
+ assert.throws(()=>sim.cappedHealFromStock(140,18,[.8,.8]),/不正/);
+ assert.throws(()=>sim.cappedHealFromStock(140,18,[-1,2]),/不正/);
+});
+test('two stochastic E4 healers flag local 150-cap gap but preserve old weekly model output',()=>{
+ const a=input();
+ a.box.push(monster('w0','プクリン'),monster('w1','サーナイト'));
+ for(const part of ['morning','noon','evening'])
+  a.teams[part]=['0','1','2','w0','w1'];
+ a.options.initialEnergy=150;
+ a.options.recipeId='';
+ const r=sim.simulate(a);
+ assert.ok(r.healingCapNonlinearEvents>0,'must find an observed cap-nonlinearity risk');
+ assert.ok(r.healingCapLocalGapSum>0);
+ assert.ok(r.warnings.some(x=>x.includes('発動分岐ごとに150を適用する計算に差')));
+ assert.ok(Number.isFinite(r.total));
+ assert.ok(Math.abs(r.days.reduce((sum,d)=>sum+d.berries+d.cooking+d.skills,0)-r.total)<1e-5);
+});
+test('non-healer teams have zero cap-nonlinearity events',()=>{
+ const r=sim.simulate(input());
+ assert.equal(r.healingCapNonlinearEvents,0);
+ assert.equal(r.healingCapLocalGapSum,0);
+ assert.equal(r.warnings.some(x=>x.includes('発動分岐ごとに150を適用する計算に差')),false);
+});
