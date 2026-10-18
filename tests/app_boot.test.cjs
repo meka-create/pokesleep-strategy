@@ -131,3 +131,45 @@ test('result summary reflects actual optional culinary settings, not stale blank
  assert.match(app.items.get('simMealSummary').textContent,/追加食材：期待値で計上/);
  assert.match(app.items.get('simMealSummary').textContent,/大成功：推定期待値で計上/);
 });
+
+test('real weekly observation button rejects unverifiable data then saves exact simulated roster JSON',async()=>{
+ const app=boot(),files=[];
+ app.ctx.URL={createObjectURL(blob){files.push(blob);return 'blob:observation-test';},
+  revokeObjectURL(){}};
+ app.callbacks.get('fillAllRosters:click')();
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ assert.equal(app.items.get('simResult').hidden,false);
+ assert.equal(app.items.get('obsNoUnmodeledEvents').checked,false);
+ assert.equal(app.items.get('obsConfirmedSummary').checked,false);
+ app.items.get('obsMonday').value='2026-10-18'; // Sunday: reject
+ app.items.get('obsTotal').value='1000';
+ app.items.get('obsBerry').value='600';
+ app.items.get('obsCooking').value='400';
+ app.items.get('obsConfirmedSummary').checked=true;
+ app.callbacks.get('downloadObservation:click')();
+ assert.equal(app.items.get('obsError').hidden,false);
+ assert.match(app.items.get('obsError').textContent,/月曜日/);
+ assert.equal(files.length,0);
+ app.items.get('obsMonday').value='2026-10-19';
+ // Edits after the successful run MUST NOT change the captured observation.
+ app.items.get('simFieldBonus').value='95';
+ app.callbacks.get('downloadObservation:click')();
+ assert.equal(app.items.get('obsError').hidden,true,app.items.get('obsError').textContent);
+ assert.equal(files.length,1);
+ assert.match(app.items.get('obsResult').textContent,/STEP2 HOLD/);
+ const report=JSON.parse(await files[0].text());
+ assert.equal(report.schema,'step2-m1-weekly-observation-v1');
+ assert.equal(report.week.mondayDate,'2026-10-19');
+ assert.equal(report.week.field,'シアンの砂浜');
+ assert.equal(report.input.box.length,5);
+ assert.equal(report.input.options.fieldBonus,0);
+ assert.deepEqual(report.input.teams.sleep,['i0','i1','i2','i3','i4']);
+ assert.equal(report.provenance.source,'in_game_weekly_summary');
+ assert.equal(report.provenance.noUnmodeledEvents,false);
+ assert.equal(report.capture.appVersion,'0.2.35');
+ assert.equal(report.capture.screenshotReviewedByApp,false);
+ assert.equal(report.observed.total,1000);
+ assert.equal(report.observed.berryAndStrengthSkill,600);
+ assert.equal(report.observed.cooking,400);
+});
