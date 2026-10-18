@@ -25,10 +25,20 @@
 .sim-warnings{display:flex;flex-direction:column;gap:8px}
 .sim-warnings p{background:#fff8ec;border:1px solid #f5d6a0;padding:9px 10px;border-radius:9px;margin:0;font-size:11px;line-height:1.6;color:#74521b}
 
+/* STEP2 M1: optional, locally downloaded single-week observation */
+.sim-observation{margin-top:22px;border-top:1px solid #e2eaf3;padding-top:16px}
+.sim-observation>summary{font-size:13px;font-weight:750;color:#245d8e;cursor:pointer;line-height:1.6}
+.sim-observation>.small{line-height:1.75}
+.observation-flags{display:flex;flex-direction:column;gap:11px;margin:17px 0}
+.observation-flags label{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6}
+.observation-flags input[type=checkbox]{flex:none;margin:0;width:19px;height:19px}
+.observation-download{width:100%;min-height:46px}
+#obsResult{white-space:pre-line;line-height:1.75;overflow-wrap:anywhere}
+
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.34</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.35</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -127,6 +137,30 @@
   <div class="section-heading minor"><h3>料理履歴・食材消費</h3></div><p id="simMealSummary" class="small muted"></p><div id="simMeals"></div>
   <div class="section-heading minor"><h3>得られた食材（期待個数）</h3></div><div id="simIngredients"></div>
   <div class="section-heading minor"><h3>計算上の注意・未対応</h3></div><div id="simWarnings" class="sim-warnings"></div>
+  <details class="sim-observation">
+   <summary>実ゲームの週まとめを記録して、試算と比較する（任意・M1検証用）</summary>
+   <p class="small muted">ゲームの週まとめ画面に表示された数値を手入力し、この試算の<strong>ポケモン・編成・計算条件を添えたJSON</strong>を保存します。<strong>実ゲームの観測1週分だけで精度合格や最適編成を判定しません。</strong></p>
+   <div class="form-grid">
+    <label class="field"><span>週の開始日（月曜日）</span><input id="obsMonday" type="date" required></label>
+    <label class="field"><span>週間総エナジー</span><input id="obsTotal" type="number" min="0" step="1" inputmode="numeric" required placeholder="ゲームの週まとめ"></label>
+    <label class="field"><span>週まとめの「きのみでのエナジー」欄 <small>直接エナジースキルを別途加算しない</small></span><input id="obsBerry" type="number" min="0" step="1" inputmode="numeric" required placeholder="ゲームのきのみ欄"></label>
+    <label class="field"><span>料理エナジー欄</span><input id="obsCooking" type="number" min="0" step="1" inputmode="numeric" required placeholder="ゲームの料理欄"></label>
+    <label class="field wide"><span>スクリーンショット名・識別子 <small>任意／画像自体はJSONに含めません</small></span><input id="obsScreenshot" type="text" maxlength="300" placeholder="例：週まとめ_20261019.png"></label>
+   </div>
+   <p class="small muted">実際に確認できた項目だけチェックしてください。未確認の項目を自動的に「確認済み」にはしません。</p>
+   <div class="observation-flags">
+    <label><input id="obsNoUnmodeledEvents" type="checkbox"> イベント・EXなど未対応の追加効果がないことを確認</label>
+    <label><input id="obsSameCollectionSchedule" type="checkbox"> 回収・料理・朝昼夜の交代時刻が試算設定と一致</label>
+    <label><input id="obsNoUntrackedItems" type="checkbox"> ホイッスル等の未計上アイテムを使用していない</label>
+    <label><input id="obsStartStrengthVerified" type="checkbox"> 月曜7:30時点の開始エナジー差を確認</label>
+    <label><input id="obsWeekBoundaryReconciled" type="checkbox"> 月曜4:00〜7:30の週境界差を確認</label>
+    <label><input id="obsConfirmedSummary" type="checkbox"> <strong>ゲーム内の週まとめ画面で上記の数値を実際に確認した</strong></label>
+   </div>
+   <button type="button" id="downloadObservation" class="secondary observation-download">週間実測と試算条件をJSONで保存</button>
+   <p id="obsResult" class="small muted" role="status" aria-live="polite"></p>
+   <div id="obsError" class="error" role="alert" hidden></div>
+   <p class="small muted">保存されるJSONには手持ちポケモン・ニックネーム・編成・試算条件が含まれます。外部送信はしません。第三者への共有には注意してください。入力時点の最新設定ではなく、<strong>この結果を算出したときの設定</strong>を保存します。</p>
+  </details>
  </div>
 </section>
 <section id="panel-settings" class="panel" role="tabpanel" hidden>
@@ -1733,11 +1767,107 @@ root.PokeSimulator=api;
 
 </script>
 <script>
+(function(root){
+'use strict';
+// Browser and Node share the evidence contract; this is NOT a game accuracy gate.
+const schema='step2-m1-weekly-observation-v1';
+const flags=['noUnmodeledEvents','sameCollectionSchedule','noUntrackedItems',
+ 'startStrengthVerified','weekBoundaryReconciled'];
+function integerInput(raw,name){
+ const value=String(raw??'').trim();
+ if(!/^\d+$/.test(value)||!Number.isSafeInteger(Number(value)))
+  throw Error(name+'は0以上の整数を入力してください。');
+ return Number(value);
+}
+function validMonday(value){
+ if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+ const d=new Date(value+'T00:00:00Z');
+ return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value&&d.getUTCDay()===1;
+}
+function modelStats(predicted){
+ if(!predicted||!['total','berries','cooking','skills'].every(
+  k=>typeof predicted[k]==='number'&&Number.isFinite(predicted[k])&&predicted[k]>=0))
+  throw Error('試算結果の内訳が不正です。再度試算してください。');
+ if(Math.abs(predicted.berries+predicted.cooking+predicted.skills-predicted.total)>1e-5)
+  throw Error('試算内訳が総エナジーと一致していません。再度試算してください。');
+ return {total:predicted.total,berries:predicted.berries,
+  skills:predicted.skills,cooking:predicted.cooking};
+}
+function captureSimulation(input,predicted,appVersion,capturedAt){
+ if(!input||!Array.isArray(input.box)||!input.teams||!input.options||
+  typeof input.options.map!=='string'||!input.options.map.trim())
+  throw Error('フィールドと編成が確定した試算が必要です。');
+ const safe=modelStats(predicted);
+ const snapshot=JSON.parse(JSON.stringify({input,model:safe}));
+ if(typeof appVersion!=='string'||!/^\d+\.\d+\.\d+$/.test(appVersion))
+  throw Error('計算器の版数を確認できません。');
+ if(typeof capturedAt!=='string'||!Number.isFinite(Date.parse(capturedAt))||
+  new Date(capturedAt).toISOString()!==capturedAt)
+  throw Error('試算日時が不正です。');
+ return {...snapshot,appVersion,capturedAt};
+}
+function makeReport(snapshot,form){
+ if(!snapshot||!snapshot.input||!snapshot.model)throw Error('先に7日間を試算してください。');
+ if(!form||!form.confirmedSummary)
+  throw Error('ゲーム内の週まとめを実際に確認した場合だけ記録できます。');
+ if(!validMonday(form.mondayDate))
+  throw Error('実測週の開始日には実際の月曜日を指定してください。');
+ const observed={
+  total:integerInput(form.total,'週間総エナジー'),
+  berryAndStrengthSkill:integerInput(form.berryAndStrengthSkill,'きのみ＋直接エナジースキル'),
+  cooking:integerInput(form.cooking,'料理エナジー')
+ };
+ const field=snapshot.input.options.map;
+ if(typeof field!=='string'||!field.trim())throw Error('フィールドが未設定です。');
+ const provenance={source:'in_game_weekly_summary'};
+ for(const key of flags){
+  if(typeof form[key]!=='boolean')throw Error('確認項目が不正です：'+key);
+  provenance[key]=form[key];
+ }
+ const ref=String(form.screenshotReference??'').trim();
+ if(ref.length>300)throw Error('スクリーンショット識別子は300文字以内にしてください。');
+ if(ref)provenance.screenshotReference=ref;
+ return {
+  schema,week:{mondayDate:form.mondayDate,field},
+  provenance,input:JSON.parse(JSON.stringify(snapshot.input)),observed,
+  capture:{appVersion:snapshot.appVersion,capturedAt:snapshot.capturedAt,
+   modelAtCapture:{...snapshot.model},recordingMethod:'manual_game_summary_input',
+   screenshotReviewedByApp:false}
+ };
+}
+function preview(report){
+ if(!report||report.schema!==schema||!report.capture||!report.observed)
+  throw Error('観測記録が不正です。');
+ const model=modelStats(report.capture.modelAtCapture),o=report.observed;
+ const signedDelta={
+  total:o.total-model.total,
+  berryAndStrengthSkill:o.berryAndStrengthSkill-model.berries-model.skills,
+  cooking:o.cooking-model.cooking
+ };
+ const unattributed=o.total-o.berryAndStrengthSkill-o.cooking;
+ const unconfirmed=flags.filter(key=>report.provenance[key]!==true);
+ return {signedDeltaObservedMinusModel:signedDelta,
+  weeklySummaryBucketsReconcile:unattributed===0,
+  observedUnattributed:unattributed,
+  unconfirmedConditions:unconfirmed,
+  rankOrAccuracyValidated:false,
+  accuracyGate:'HOLD',
+  status:unattributed===0&&unconfirmed.length===0?'UNCALIBRATED_OBSERVATION':'CONFOUNDED_OBSERVATION'};
+}
+const api={schema,flags,validMonday,integerInput,captureSimulation,makeReport,preview};
+if(typeof module!=='undefined'&&module.exports)module.exports=api;
+root.PokeObservation=api;
+})(typeof globalThis!=='undefined'?globalThis:this);
+
+</script>
+<script>
 (function(){
 'use strict';
 const $=id=>document.getElementById(id);
 const storage=window.PokeStorage;
 let state=storage.load();
+// Each exported observation belongs to the *successful run*, never to subsequently edited settings.
+let lastRunSnapshot=null;
 const save=()=>{try{storage.save(state);$('storageNotice').textContent='このブラウザ内への保存：利用可能';$('storageNotice').className='small ok';$('criticalNotice').hidden=true;return true;}catch(e){
 $('storageNotice').textContent=storage.getLoadError()||'保存に失敗しました。現在の変更は未保存です。設定・保存からJSONバックアップを取得してください。';$('storageNotice').className='small warn';$('criticalNotice').textContent=$('storageNotice').textContent;$('criticalNotice').hidden=false;return false;}};
 const notifySave=(success,ok)=>toast(success?(ok||'保存しました。'):'保存に失敗しました。設定・保存からJSONバックアップを取得してください。');
@@ -1769,11 +1899,11 @@ $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0
  for(const key of ['morning','noon','evening']){
   simTeams[key]=storage.reconcileSleepIds({box:state.box,sleepIds:state.simulation.teams[key]||[]},result.items);
  }
- state.box=result.items;state.sleepIds=kept;state.simulation.teams=simTeams;state.updatedAt=new Date().toISOString();const saved=save();renderBox();fillSimulation();notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`);
+ state.box=result.items;state.sleepIds=kept;state.simulation.teams=simTeams;state.updatedAt=new Date().toISOString();const saved=save();renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`);
  }catch(e){$('importError').textContent=e.message||String(e);$('importError').hidden=false;}finally{ev.target.value='';}});
 $('downloadBackup').addEventListener('click',()=>{download(`pokesleep_event_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2),'application/json;charset=utf-8');toast('バックアップを保存しました。');});
-$('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;storage.allowRecovery();const saved=save();fillEvent();renderBox();fillSimulation();notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
-$('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();storage.allowRecovery();const saved=save();fillEvent();$('searchPokemon').value='';renderBox();fillSimulation();$('simResult').hidden=true;notifySave(saved,'端末内の保存情報を消去しました。');});
+$('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;storage.allowRecovery();const saved=save();fillEvent();renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
+$('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();storage.allowRecovery();const saved=save();fillEvent();$('searchPokemon').value='';renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'端末内の保存情報を消去しました。');});
 const rosterKeys=['morning','noon','evening'];
 const ingredientEditors=Object.create(null);
 const magnetEditors=Object.create(null);
@@ -1897,7 +2027,10 @@ $('runSim').addEventListener('click',()=>{
  try{
   const sim=readSimulation();state.simulation=sim;
   const saved=save();if(!saved)throw Error('設定を保存できません。バックアップを取得してから再試行してください。');
-  const result=PokeSimulator.simulate({box:state.box,teams:{...sim.teams,sleep:state.sleepIds},options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1,eventEffects:state.event.effects}});
+  const runInput={box:state.box,teams:{...sim.teams,sleep:state.sleepIds},options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1,eventEffects:state.event.effects}};
+  const result=PokeSimulator.simulate(runInput);
+  const version=document.querySelector('.step-mark')?.textContent.match(/v(\d+\.\d+\.\d+)/)?.[1];
+  lastRunSnapshot=PokeObservation.captureSimulation(runInput,result,version,new Date().toISOString());
   const yen=n=>Math.round(n).toLocaleString('ja-JP');
   $('simTotal').textContent=yen(result.total)+' エナジー（計上できた項目のみ・暫定）';
   const stats=[['きのみ',result.berries],['料理',result.cooking],['直接スキル',result.skills]];
@@ -1943,8 +2076,45 @@ $('runSim').addEventListener('click',()=>{
   if(!entries.length)$('simIngredients').textContent='食材獲得なし／未計上';
   const note=$('simWarnings');note.replaceChildren();for(const warning of result.warnings){const p=document.createElement('p');p.textContent=warning;note.append(p);}
   $('simResult').hidden=false;
+  for(const id of ['obsMonday','obsTotal','obsBerry','obsCooking','obsScreenshot'])$(id).value='';
+  for(const id of ['obsNoUnmodeledEvents','obsSameCollectionSchedule','obsNoUntrackedItems','obsStartStrengthVerified','obsWeekBoundaryReconciled','obsConfirmedSummary'])$(id).checked=false;
+  $('obsError').hidden=true;
+  $('obsResult').textContent='この試算時点の設定を記録用に保持しました。観測数値・確認項目は未入力です。';
   $('simResult').scrollIntoView({behavior:'smooth',block:'start'});
- }catch(e){$('simResult').hidden=true;$('simError').textContent=e.message||String(e);$('simError').hidden=false;}
+ }catch(e){lastRunSnapshot=null;$('simResult').hidden=true;$('simError').textContent=e.message||String(e);$('simError').hidden=false;}
+});
+
+
+$('downloadObservation').addEventListener('click',()=>{
+ $('obsError').hidden=true;
+ try{
+  const form={
+   mondayDate:$('obsMonday').value,
+   total:$('obsTotal').value,berryAndStrengthSkill:$('obsBerry').value,
+   cooking:$('obsCooking').value,
+   screenshotReference:$('obsScreenshot').value,
+   confirmedSummary:$('obsConfirmedSummary').checked,
+   noUnmodeledEvents:$('obsNoUnmodeledEvents').checked,
+   sameCollectionSchedule:$('obsSameCollectionSchedule').checked,
+   noUntrackedItems:$('obsNoUntrackedItems').checked,
+   startStrengthVerified:$('obsStartStrengthVerified').checked,
+   weekBoundaryReconciled:$('obsWeekBoundaryReconciled').checked
+  };
+  const report=PokeObservation.makeReport(lastRunSnapshot,form);
+  const compared=PokeObservation.preview(report);
+  const difference=n=>(n>0?'+':'')+Math.round(n).toLocaleString('ja-JP');
+  const note='実測−試算：総'+difference(compared.signedDeltaObservedMinusModel.total)+
+   '／きのみ＋直接スキル'+difference(compared.signedDeltaObservedMinusModel.berryAndStrengthSkill)+
+   '／料理'+difference(compared.signedDeltaObservedMinusModel.cooking)+
+   '。単週観測のため精度・編成順位は未検証（STEP2 HOLD）。';
+  const concerns=[
+   ...(!compared.weeklySummaryBucketsReconcile?['ゲーム週まとめの総エナジーと2欄の合計が一致しません。']:[]),
+   ...(compared.unconfirmedConditions.length?['確認できていない条件が'+compared.unconfirmedConditions.length+'項目あります。']:[])
+  ];
+  $('obsResult').textContent=note+(concerns.length?' 要確認：'+concerns.join(' '):'');
+  download('pokesleep_weekly_observation_'+report.week.mondayDate+'.json',
+   JSON.stringify(report,null,2),'application/json;charset=utf-8');
+ }catch(e){$('obsError').textContent=e.message||String(e);$('obsError').hidden=false;}
 });
 
 
