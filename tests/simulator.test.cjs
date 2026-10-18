@@ -1700,3 +1700,24 @@ test('non-healer teams have zero cap-nonlinearity events',()=>{
  assert.equal(r.healingCapLocalGapSum,0);
  assert.equal(r.warnings.some(x=>x.includes('発動分岐ごとに150を適用する計算に差')),false);
 });
+
+test('fractional E4 skill expectation warns on non-zero decay phase at frequent taps',()=>{
+ const box=input();
+ box.box.push(monster('w0','プクリン'),monster('w1','サーナイト'));
+ for(const key of ['morning','noon','evening'])
+  box.teams[key]=['0','1','2','w0','w1'];
+ box.options.recipeId='';
+ box.options.tapMinutes=15;
+ box.options.initialEnergy=100;
+ const model=sim.simulate(box);
+ assert.ok(model.healingTimerCorrelationEvents>0);
+ assert.ok(model.warnings.some(x=>x.includes('10分げんき減少タイマーを必ずリセットする近似')));
+ assert.ok(Number.isFinite(model.total));
+ assert.ok(Math.abs(model.days.reduce((n,d)=>n+d.berries+d.cooking+d.skills,0)-model.total)<1e-5);
+ const noHealing=input();
+ noHealing.options.recipeId='';
+ noHealing.options.tapMinutes=15;
+ const without=sim.simulate(noHealing);
+ assert.equal(without.healingTimerCorrelationEvents,0);
+ assert.equal(without.warnings.some(x=>x.includes('10分げんき減少タイマーを必ずリセットする近似')),false);
+});
