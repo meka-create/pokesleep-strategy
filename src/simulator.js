@@ -684,6 +684,13 @@ function simulate(input){
   }
  }
  if([...members.values()].every(x=>!x))throw Error('マスターに一致するポケモンがいません。');
+ // R02 demonstrated that the prototype's one-vs-two E4 healer ordering can
+ // invert under an artificial skill-rate sensitivity test. Never present
+ // the numeric weekly estimate as an independently verified optimal ranking.
+ const simultaneousAllHealers=['morning','noon','evening'].some(period=>
+  teams[period].filter(id=>members.get(id)?.sp?.skill==='Energy for Everyone S').length>=2);
+ if(simultaneousAllHealers)
+  warnings.add('げんきオールSを2匹以上同時編成した場合、回復スキルの発動時刻・複数個体のげんき相関は未検証です。試算エナジーだけでヒーラー1匹と2匹の優劣を確定しないでください。');
  const inventory={...opts.initialIngredients};for(const k of Object.keys(inventory)){
    const v=nums(inventory[k]);if(!Number.isInteger(v)||v<0||v>10000||!Object.prototype.hasOwnProperty.call(Master.ingredients,k))throw Error('初期食材数が不正です。');
    inventory[k]=v;
