@@ -21,3 +21,13 @@
 .sim-day{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eaf0f5;font-size:12px}
 .sim-warnings{display:flex;flex-direction:column;gap:8px}
 .sim-warnings p{background:#fff8ec;border:1px solid #f5d6a0;padding:9px 10px;border-radius:9px;margin:0;font-size:11px;line-height:1.6;color:#74521b}
+
+/* STEP2 M1: optional, locally downloaded single-week observation */
+.sim-observation{margin-top:22px;border-top:1px solid #e2eaf3;padding-top:16px}
+.sim-observation>summary{font-size:13px;font-weight:750;color:#245d8e;cursor:pointer;line-height:1.6}
+.sim-observation>.small{line-height:1.75}
+.observation-flags{display:flex;flex-direction:column;gap:11px;margin:17px 0}
+.observation-flags label{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.6}
+.observation-flags input[type=checkbox]{flex:none;margin:0;width:19px;height:19px}
+.observation-download{width:100%;min-height:46px}
+#obsResult{white-space:pre-line;line-height:1.75;overflow-wrap:anywhere}
