@@ -227,7 +227,37 @@ function reviewImportedReport(report,simulate){
   status:confounders.length||modelLimitations.length?'CONFOUNDED_OBSERVATION':'UNCALIBRATED_OBSERVATION'
  };
 }
-const api={schema,flags,validMonday,integerInput,captureSimulation,makeReport,preview,validateReplayInput,validateReplayCapture,reviewImportedReport};
+
+function reviewImportedReports(reports,simulate){
+ if(!Array.isArray(reports)||reports.length<1||reports.length>4)
+  throw Error('観測JSONは1〜4ファイル選択してください。');
+ // Validate all weeks before exposing any combined result.
+ const entries=reports.map(report=>reviewImportedReport(report,simulate));
+ const sameInput=reports.every(report=>JSON.stringify(report.input)===JSON.stringify(reports[0].input));
+ const seen=new Map(),duplicates=new Set(),conflicts=new Set();
+ for(let i=0;i<reports.length;i++){
+  const report=reports[i],date=report.week.mondayDate;
+  if(seen.has(date)){
+   duplicates.add(date);
+   const prior=reports[seen.get(date)];
+   if(prior.week.field!==report.week.field||
+      ['total','berryAndStrengthSkill','cooking'].some(k=>prior.observed[k]!==report.observed[k]))
+    conflicts.add(date);
+  }else seen.set(date,i);
+ }
+ return {
+  items:entries,
+  sameSavedInputs:sameInput,
+  duplicateMondays:Array.from(duplicates).sort(),
+  conflictingMondays:Array.from(conflicts).sort(),
+  count:entries.length,
+  confoundedCount:entries.filter(x=>x.status==='CONFOUNDED_OBSERVATION').length,
+  rankOrAccuracyValidated:false,accuracyGate:'HOLD',
+  status:'UNVERIFIED_MULTI_WEEK_RECORDS'
+ };
+}
+
+const api={schema,flags,validMonday,integerInput,captureSimulation,makeReport,preview,validateReplayInput,validateReplayCapture,reviewImportedReport,reviewImportedReports};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeObservation=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -109,3 +109,36 @@ test('replay and CLI reject forged evidence metadata',()=>{
   assert.throws(()=>compareSingleWeek(report),/メタデータ/);
  }
 });
+
+
+test('multiple saved observation reports flag duplicate Mondays without false calibration',()=>{
+ const a=make(),b=make();
+ const result=obs.reviewImportedReports([a,b],sim.simulate);
+ assert.equal(result.count,2);
+ assert.equal(result.sameSavedInputs,true);
+ assert.deepEqual(Array.from(result.duplicateMondays),['2026-10-19']);
+ assert.equal(result.conflictingMondays.length,0);
+ assert.equal(result.accuracyGate,'HOLD');
+ assert.equal(result.rankOrAccuracyValidated,false);
+ assert.equal(result.status,'UNVERIFIED_MULTI_WEEK_RECORDS');
+ b.observed.total=101;
+ const conflicting=obs.reviewImportedReports([a,b],sim.simulate);
+ assert.deepEqual(Array.from(conflicting.conflictingMondays),['2026-10-19']);
+});
+test('different weeks and changed saved options do not form one comparable condition',()=>{
+ const a=make(),b=make();
+ b.week.mondayDate='2026-10-26';
+ b.input.options.fieldBonus=25;
+ const result=obs.reviewImportedReports([a,b],sim.simulate);
+ assert.equal(result.duplicateMondays.length,0);
+ assert.equal(result.sameSavedInputs,false);
+ assert.equal(result.items[1].captureComparison.matchesCurrentModel,false);
+ assert.equal(result.items[1].accuracyGate,'HOLD');
+});
+test('invalid batch input rejects whole comparison instead of returning partial evidence',()=>{
+ const a=make(),b=make();
+ b.input.options.tapMinutes=0;
+ assert.throws(()=>obs.reviewImportedReports([a,b],sim.simulate),/試算入力が不正/);
+ assert.throws(()=>obs.reviewImportedReports([],sim.simulate),/1〜4/);
+ assert.throws(()=>obs.reviewImportedReports(Array.from({length:5},()=>make()),sim.simulate),/1〜4/);
+});
