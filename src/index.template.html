@@ -3,7 +3,7 @@
 <!-- BUILD_CSS -->
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.34</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.35</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -102,6 +102,30 @@
   <div class="section-heading minor"><h3>料理履歴・食材消費</h3></div><p id="simMealSummary" class="small muted"></p><div id="simMeals"></div>
   <div class="section-heading minor"><h3>得られた食材（期待個数）</h3></div><div id="simIngredients"></div>
   <div class="section-heading minor"><h3>計算上の注意・未対応</h3></div><div id="simWarnings" class="sim-warnings"></div>
+  <details class="sim-observation">
+   <summary>実ゲームの週まとめを記録して、試算と比較する（任意・M1検証用）</summary>
+   <p class="small muted">ゲームの週まとめ画面に表示された数値を手入力し、この試算の<strong>ポケモン・編成・計算条件を添えたJSON</strong>を保存します。**実ゲームの観測1週分だけで精度合格や最適編成を判定しません。**</p>
+   <div class="form-grid">
+    <label class="field"><span>週の開始日（月曜日）</span><input id="obsMonday" type="date" required></label>
+    <label class="field"><span>週間総エナジー</span><input id="obsTotal" type="number" min="0" step="1" inputmode="numeric" required placeholder="ゲームの週まとめ"></label>
+    <label class="field"><span>きのみ・直接エナジースキル欄</span><input id="obsBerry" type="number" min="0" step="1" inputmode="numeric" required placeholder="ゲームのきのみ欄"></label>
+    <label class="field"><span>料理エナジー欄</span><input id="obsCooking" type="number" min="0" step="1" inputmode="numeric" required placeholder="ゲームの料理欄"></label>
+    <label class="field wide"><span>スクリーンショット名・識別子 <small>任意／画像自体はJSONに含めません</small></span><input id="obsScreenshot" type="text" maxlength="300" placeholder="例：週まとめ_20261019.png"></label>
+   </div>
+   <p class="small muted">実際に確認できた項目だけチェックしてください。未確認の項目を自動的に「確認済み」にはしません。</p>
+   <div class="observation-flags">
+    <label><input id="obsNoUnmodeledEvents" type="checkbox"> イベント・EXなど未対応の追加効果がないことを確認</label>
+    <label><input id="obsSameCollectionSchedule" type="checkbox"> 回収・料理・朝昼夜の交代時刻が試算設定と一致</label>
+    <label><input id="obsNoUntrackedItems" type="checkbox"> ホイッスル等の未計上アイテムを使用していない</label>
+    <label><input id="obsStartStrengthVerified" type="checkbox"> 月曜7:30時点の開始エナジー差を確認</label>
+    <label><input id="obsWeekBoundaryReconciled" type="checkbox"> 月曜4:00〜7:30の週境界差を確認</label>
+    <label><input id="obsConfirmedSummary" type="checkbox"> <strong>ゲーム内の週まとめ画面で上記の数値を実際に確認した</strong></label>
+   </div>
+   <button type="button" id="downloadObservation" class="secondary observation-download">週間実測と試算条件をJSONで保存</button>
+   <p id="obsResult" class="small muted" role="status" aria-live="polite"></p>
+   <div id="obsError" class="error" role="alert" hidden></div>
+   <p class="small muted">保存されるJSONには手持ちポケモン・ニックネーム・編成・試算条件が含まれます。外部送信はしません。第三者への共有には注意してください。入力時点の最新設定ではなく、<strong>この結果を算出したときの設定</strong>を保存します。</p>
+  </details>
  </div>
 </section>
 <section id="panel-settings" class="panel" role="tabpanel" hidden>
