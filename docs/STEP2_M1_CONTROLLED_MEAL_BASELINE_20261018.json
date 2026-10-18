@@ -1,0 +1,290 @@
+{
+  "schema": "step2-m1-controlled-meal-ci-baseline-v1",
+  "control": "Level50, Raichu first-slot apple guaranteed 1/normal help, Bulbasaur berry-only, no skill triggers, huge carry; 25% FB Gold Power Plant; 80 sleep; 7 apples per curry; fixed sleeping five",
+  "grade": "B_CONTROLLED_DETERMINISTIC_COOKING",
+  "step2": "HOLD",
+  "m1": "PARTIAL",
+  "step3": "NOT_STARTED",
+  "realGameMixedAccuracyValidated": false,
+  "originalM02M04Validated": false,
+  "cases": [
+    {
+      "id": "CM01",
+      "label": "fixed producer and fixed berry squad, initially enough for breakfast",
+      "reference": {
+        "total": 174427,
+        "berries": 104140,
+        "cooking": 70287,
+        "meals": 21,
+        "ingredientsProduced": 411,
+        "consumedApple": 147,
+        "endingInventory": 271
+      },
+      "model": {
+        "total": 174427,
+        "berries": 104140,
+        "cooking": 70287,
+        "meals": 21,
+        "ingredientsProduced": 411,
+        "consumedApple": 147,
+        "endingInventory": 271
+      },
+      "differences": {
+        "berries": 0,
+        "cooking": 0,
+        "total": 0,
+        "meals": 0,
+        "ingredientsProduced": 0,
+        "consumedApple": 0,
+        "endingInventory": 0
+      },
+      "mealTrace": [
+        {
+          "day": 1,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 1,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 1,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 2,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 2,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 2,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 3,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 3,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 3,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 4,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 4,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 4,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 5,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 5,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 5,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 6,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 6,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 6,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 7,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 7,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 7,
+          "slot": "夜",
+          "energy": 3347
+        }
+      ]
+    },
+    {
+      "id": "CM02",
+      "label": "morning/noon/evening substitutes, start with no meal inventory",
+      "reference": {
+        "total": 165619,
+        "berries": 98679,
+        "cooking": 66940,
+        "meals": 20,
+        "ingredientsProduced": 498,
+        "consumedApple": 140,
+        "endingInventory": 358
+      },
+      "model": {
+        "total": 165619,
+        "berries": 98679,
+        "cooking": 66940,
+        "meals": 20,
+        "ingredientsProduced": 498,
+        "consumedApple": 140,
+        "endingInventory": 358
+      },
+      "differences": {
+        "berries": 0,
+        "cooking": 0,
+        "total": 0,
+        "meals": 0,
+        "ingredientsProduced": 0,
+        "consumedApple": 0,
+        "endingInventory": 0
+      },
+      "mealTrace": [
+        {
+          "day": 1,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 1,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 2,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 2,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 2,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 3,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 3,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 3,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 4,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 4,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 4,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 5,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 5,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 5,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 6,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 6,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 6,
+          "slot": "夜",
+          "energy": 3347
+        },
+        {
+          "day": 7,
+          "slot": "朝",
+          "energy": 3347
+        },
+        {
+          "day": 7,
+          "slot": "昼",
+          "energy": 3347
+        },
+        {
+          "day": 7,
+          "slot": "夜",
+          "energy": 3347
+        }
+      ]
+    }
+  ],
+  "ciProvenance": {
+    "source": "GitHub Actions Validate STEP 2",
+    "runId": 39100112506,
+    "verifiedTests": 262,
+    "failedTests": 0,
+    "headSha": "0659150b14d275fbd186e262c22f66f9e21382db"
+  }
+}
