@@ -45,3 +45,23 @@ test('controlled cooking does not certify actual mixed week M02 or M04',()=>{
  assert.equal(baseline.counts.unverifiedCases,4);
  assert.equal(baseline.counts.externallyVerifiedRankingPairs,0);
 });
+
+test('CI-reproduced deterministic 21/20 meal baselines cannot change silently',()=>{
+ const pinned=require('../docs/STEP2_M1_CONTROLLED_MEAL_BASELINE_20261018.json');
+ assert.equal(pinned.ciProvenance.runId,39100112506);
+ assert.equal(pinned.ciProvenance.verifiedTests,262);
+ assert.equal(pinned.ciProvenance.failedTests,0);
+ assert.equal(pinned.grade,'B_CONTROLLED_DETERMINISTIC_COOKING');
+ assert.equal(pinned.realGameMixedAccuracyValidated,false);
+ assert.equal(pinned.originalM02M04Validated,false);
+ assert.deepEqual(r.cases.map(x=>x.id),pinned.cases.map(x=>x.id));
+ for(let i=0;i<2;i++){
+  const actual=r.cases[i],saved=pinned.cases[i];
+  assert.deepEqual(actual.reference,saved.reference);
+  assert.deepEqual(actual.model,saved.model);
+  assert.deepEqual(actual.differences,saved.differences);
+  assert.deepEqual(actual.mealTrace,saved.mealTrace);
+ }
+ assert.deepEqual(pinned.cases.map(x=>[x.reference.meals,x.reference.total]),
+  [[21,174427],[20,165619]]);
+});
