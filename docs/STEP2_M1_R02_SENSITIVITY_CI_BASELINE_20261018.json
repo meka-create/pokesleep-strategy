@@ -1,0 +1,757 @@
+{
+  "schema": "step2-m1-r02-sensitivity-v1",
+  "sourceBaseline": "v0.2.30 M1 R02",
+  "baselineFrozen": true,
+  "scope": "INTERNAL_PARAMETER_SENSITIVITY_ONLY",
+  "actualGameWeeksObserved": 0,
+  "realGameRankingValidated": false,
+  "rateFactorsAreMeasured": false,
+  "probabilityOfRankInversionKnown": false,
+  "step2": "HOLD",
+  "m1": "PARTIAL",
+  "step3": "NOT_STARTED",
+  "pairing": {
+    "A": "r0/r1/r2/r3/Wigglytuff",
+    "B": "r0/r1/r2/Wigglytuff/Gardevoir",
+    "fixedSleepTeam": [
+      "r0",
+      "r1",
+      "r2",
+      "r3",
+      "r4"
+    ],
+    "note": "Identical initial box, schedule and cook settings per pair"
+  },
+  "caveat": "A rank change under skill-rate perturbation is an M1 priority signal, never an empirical rate bound.",
+  "scenarios": [
+    {
+      "id": "original-140",
+      "description": "Original M1 140 initial apples; one meal food-source dependent",
+      "initialApples": 140,
+      "forceBerryDrops": false,
+      "rates": [
+        {
+          "rateFactor": 0,
+          "scoreA": {
+            "total": 874820.898405,
+            "berries": 669199.03097,
+            "skills": 135334.867435,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 52.404595
+          },
+          "scoreB": {
+            "total": 780097.488694,
+            "berries": 593953.669159,
+            "skills": 115856.819536,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 44.862273
+          },
+          "deltaBminusA": -94723.409711,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 0.25,
+          "scoreA": {
+            "total": 905293.050196,
+            "berries": 699681.894842,
+            "skills": 135324.155354,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 57.245377
+          },
+          "scoreB": {
+            "total": 835092.046504,
+            "berries": 647244.781946,
+            "skills": 117560.264558,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 56.147617
+          },
+          "deltaBminusA": -70201.003691,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 0.5,
+          "scoreA": {
+            "total": 915485.93596,
+            "berries": 709976.262959,
+            "skills": 135222.673002,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 58.681207
+          },
+          "scoreB": {
+            "total": 859126.770957,
+            "berries": 671525.94124,
+            "skills": 117313.829716,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 60.284692
+          },
+          "deltaBminusA": -56359.165004,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 0.75,
+          "scoreA": {
+            "total": 927610.17048,
+            "berries": 722281.747161,
+            "skills": 135041.423319,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 60.446316
+          },
+          "scoreB": {
+            "total": 919191.001041,
+            "berries": 730570.965312,
+            "skills": 118333.035729,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 65.743549
+          },
+          "deltaBminusA": -8419.169438,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 1,
+          "scoreA": {
+            "total": 941650.56107,
+            "berries": 736444.49068,
+            "skills": 134919.07039,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 62.523844
+          },
+          "scoreB": {
+            "total": 986182.408926,
+            "berries": 797824.523911,
+            "skills": 118070.885015,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 74.286739
+          },
+          "deltaBminusA": 44531.847856,
+          "modelLeader": "B",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 1.25,
+          "scoreA": {
+            "total": 959911.62501,
+            "berries": 753724.716808,
+            "skills": 135899.908201,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 65.007476
+          },
+          "scoreB": {
+            "total": 1056615.432953,
+            "berries": 869434.590733,
+            "skills": 116893.84222,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 87.262869
+          },
+          "deltaBminusA": 96703.807943,
+          "modelLeader": "B",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 1.5,
+          "scoreA": {
+            "total": 985302.821697,
+            "berries": 779873.123046,
+            "skills": 135142.698651,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 67.257164
+          },
+          "scoreB": {
+            "total": 1065396.853065,
+            "berries": 878141.621998,
+            "skills": 116968.231067,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 94.264551
+          },
+          "deltaBminusA": 80094.031368,
+          "modelLeader": "B",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 2,
+          "scoreA": {
+            "total": 1059233.944375,
+            "berries": 853738.94128,
+            "skills": 135208.003095,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 73.172776
+          },
+          "scoreB": {
+            "total": 1065396.853065,
+            "berries": 878141.621998,
+            "skills": 116968.231067,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 1,
+            "expectedSourceMeals": 1,
+            "skillTriggers": 108.443085
+          },
+          "deltaBminusA": 6162.90869,
+          "modelLeader": "B",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        }
+      ],
+      "includesModelRankReversal": true,
+      "modelLeaders": [
+        "A",
+        "B"
+      ],
+      "testedFactors": [
+        0,
+        0.25,
+        0.5,
+        0.75,
+        1,
+        1.25,
+        1.5,
+        2
+      ],
+      "externalRankingValidated": false
+    },
+    {
+      "id": "guaranteed-147",
+      "description": "All 21 apple curries paid from certain initial apples; normal food draw rates",
+      "initialApples": 147,
+      "forceBerryDrops": false,
+      "rates": [
+        {
+          "rateFactor": 0,
+          "scoreA": {
+            "total": 875149.8873,
+            "berries": 670928.32689,
+            "skills": 133934.56041,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 51.862366
+          },
+          "scoreB": {
+            "total": 780097.488694,
+            "berries": 593953.669159,
+            "skills": 115856.819536,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 44.862273
+          },
+          "deltaBminusA": -95052.398606,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 0.25,
+          "scoreA": {
+            "total": 905604.851875,
+            "berries": 701283.460945,
+            "skills": 134034.39093,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 56.745953
+          },
+          "scoreB": {
+            "total": 835399.54594,
+            "berries": 648932.514986,
+            "skills": 116180.030954,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 55.61316
+          },
+          "deltaBminusA": -70205.305935,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 0.5,
+          "scoreA": {
+            "total": 915748.887685,
+            "berries": 711395.024555,
+            "skills": 134066.86313,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 58.233653
+          },
+          "scoreB": {
+            "total": 859456.277912,
+            "berries": 673125.749889,
+            "skills": 116043.528024,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 59.792804
+          },
+          "deltaBminusA": -56292.609773,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 0.75,
+          "scoreA": {
+            "total": 927903.230659,
+            "berries": 723904.062087,
+            "skills": 133712.168571,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 59.9316
+          },
+          "scoreB": {
+            "total": 919275.935389,
+            "berries": 731212.850418,
+            "skills": 117776.084971,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 65.527885
+          },
+          "deltaBminusA": -8627.295269,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 1,
+          "scoreA": {
+            "total": 941704.388698,
+            "berries": 736866.417739,
+            "skills": 134550.970959,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 62.381308
+          },
+          "scoreB": {
+            "total": 986446.867352,
+            "berries": 799100.550389,
+            "skills": 117059.316963,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 73.895038
+          },
+          "deltaBminusA": 44742.478654,
+          "modelLeader": "B",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 1.25,
+          "scoreA": {
+            "total": 960179.689999,
+            "berries": 755652.891162,
+            "skills": 134239.798837,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 64.364646
+          },
+          "scoreB": {
+            "total": 1056901.260257,
+            "berries": 870364.751255,
+            "skills": 116249.509002,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 87.013369
+          },
+          "deltaBminusA": 96721.570258,
+          "modelLeader": "B",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 1.5,
+          "scoreA": {
+            "total": 985618.133588,
+            "berries": 781774.604318,
+            "skills": 133556.52927,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 66.642965
+          },
+          "scoreB": {
+            "total": 1065687.948552,
+            "berries": 879120.85058,
+            "skills": 116280.097973,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 93.998091
+          },
+          "deltaBminusA": 80069.814964,
+          "modelLeader": "B",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 2,
+          "scoreA": {
+            "total": 1059570.287104,
+            "berries": 854985.03369,
+            "skills": 134298.253414,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 72.820502
+          },
+          "scoreB": {
+            "total": 1065687.948552,
+            "berries": 879120.85058,
+            "skills": 116280.097973,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 108.176625
+          },
+          "deltaBminusA": 6117.661448,
+          "modelLeader": "B",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        }
+      ],
+      "includesModelRankReversal": true,
+      "modelLeaders": [
+        "A",
+        "B"
+      ],
+      "testedFactors": [
+        0,
+        0.25,
+        0.5,
+        0.75,
+        1,
+        1.25,
+        1.5,
+        2
+      ],
+      "externalRankingValidated": false
+    },
+    {
+      "id": "berry-only-147",
+      "description": "All 21 curries paid from initial apples; ingredient draw rate forced to zero",
+      "initialApples": 147,
+      "forceBerryDrops": true,
+      "rates": [
+        {
+          "rateFactor": 0,
+          "scoreA": {
+            "total": 1052635.948072,
+            "berries": 835869,
+            "skills": 146479.948072,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 56.720212
+          },
+          "scoreB": {
+            "total": 930949.275359,
+            "berries": 742608,
+            "skills": 118054.275359,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 45.713175
+          },
+          "deltaBminusA": -121686.672713,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 0.25,
+          "scoreA": {
+            "total": 1088453.428084,
+            "berries": 867308,
+            "skills": 150858.428084,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 63.260585
+          },
+          "scoreB": {
+            "total": 994849.012801,
+            "berries": 800263,
+            "skills": 124299.012801,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 58.757006
+          },
+          "deltaBminusA": -93604.415284,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 0.5,
+          "scoreA": {
+            "total": 1100163.023505,
+            "berries": 877824,
+            "skills": 152052.023505,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 65.197897
+          },
+          "scoreB": {
+            "total": 1021180.623523,
+            "berries": 825062,
+            "skills": 125831.623523,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 63.582967
+          },
+          "deltaBminusA": -78982.399982,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 0.75,
+          "scoreA": {
+            "total": 1113833.779753,
+            "berries": 890347,
+            "skills": 153199.779753,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 67.477625
+          },
+          "scoreB": {
+            "total": 1088246.902267,
+            "berries": 886292,
+            "skills": 131667.902267,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 70.907098
+          },
+          "deltaBminusA": -25586.877486,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 1,
+          "scoreA": {
+            "total": 1129080.724435,
+            "berries": 904659,
+            "skills": 154134.724435,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 69.964562
+          },
+          "scoreB": {
+            "total": 1164768.996833,
+            "berries": 955540,
+            "skills": 138941.996833,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 82.368486
+          },
+          "deltaBminusA": 35688.272398,
+          "modelLeader": "B",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 1.25,
+          "scoreA": {
+            "total": 1149514.076282,
+            "berries": 923466,
+            "skills": 155761.076282,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 72.698151
+          },
+          "scoreB": {
+            "total": 1241288.650829,
+            "berries": 1028699,
+            "skills": 142302.650829,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 97.10171
+          },
+          "deltaBminusA": 91774.574548,
+          "modelLeader": "B",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 1.5,
+          "scoreA": {
+            "total": 1177664.588333,
+            "berries": 949538,
+            "skills": 157839.588333,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 76.045892
+          },
+          "scoreB": {
+            "total": 1250146.009693,
+            "berries": 1037519,
+            "skills": 142340.009693,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 104.089054
+          },
+          "deltaBminusA": 72481.42136,
+          "modelLeader": "B",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        },
+        {
+          "rateFactor": 2,
+          "scoreA": {
+            "total": 1260356.536725,
+            "berries": 1023849,
+            "skills": 166220.536725,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 85.181502
+          },
+          "scoreB": {
+            "total": 1250146.009693,
+            "berries": 1037519,
+            "skills": 142340.009693,
+            "cooking": 70287,
+            "meals": 21,
+            "estimatedMeals": 0,
+            "expectedSourceMeals": 0,
+            "skillTriggers": 118.267588
+          },
+          "deltaBminusA": -10210.527032,
+          "modelLeader": "A",
+          "referenceRankValidated": false,
+          "gameAccuracyValidated": false
+        }
+      ],
+      "includesModelRankReversal": true,
+      "modelLeaders": [
+        "A",
+        "B"
+      ],
+      "testedFactors": [
+        0,
+        0.25,
+        0.5,
+        0.75,
+        1,
+        1.25,
+        1.5,
+        2
+      ],
+      "externalRankingValidated": false
+    }
+  ],
+  "ciProvenance": {
+    "workflow": "Validate STEP 2",
+    "runId": 39104258014,
+    "tests": 268,
+    "passed": 268,
+    "failed": 0,
+    "headSha": "241ef1683de157202094fc5a67247ef1271cd78a"
+  },
+  "evidenceGrade": "C_INTERNAL_SENSITIVITY_NOT_GAME_REFERENCE"
+}
