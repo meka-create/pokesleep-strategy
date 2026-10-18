@@ -11,7 +11,8 @@
     "m1:compare": "node scripts/step2-m1-compare.cjs",
     "m1:mixed-oracle": "node scripts/step2-m1-mixed-berry-oracle.cjs",
     "m1:observe": "node scripts/step2-m1-observation-compare.cjs",
-    "m1:controlled-ranks": "node scripts/step2-m1-controlled-ranking-oracle.cjs"
+    "m1:controlled-ranks": "node scripts/step2-m1-controlled-ranking-oracle.cjs",
+    "m1:controlled-meals": "node scripts/step2-m1-controlled-meal-oracle.cjs"
   },
   "description": "ポケスリ作戦室 STEP 2 manual seven-day simulator (approximate)"
 }
