@@ -72,3 +72,23 @@ test('M2 comparison command reports zero model change on unchanged v0.2.30 and n
  assert.ok(diff.rankingComparisons.every(row=>!row.changedModelLeader&&!row.independentRankingValidated));
  assert.match(diff.note,/not imply improved game accuracy/);
 });
+
+test('P04 always-full 1/1 bag is backed by the independent no-activation rule, not stock-history proof',()=>{
+ const row=report.matrix.find(x=>x.id==='P04');
+ assert.ok(row);
+ assert.equal(row.evidenceGrade,'B');
+ assert.equal(row.reference,0);
+ assert.equal(row.simulated,0);
+ assert.equal(row.absoluteDifference,0);
+ assert.equal(row.disposition,'MATCH_CONTROLLED');
+ assert.equal(row.referenceSource,'community-rule-full-ingredient-bag-prevents-activation');
+ assert.match(row.notes,/stored skill\/pity histories after reopening remain unverified/);
+ assert.equal(report.counts.referenceCompared,10);
+ assert.equal(report.counts.unverifiedCases,4);
+ assert.equal(report.gate.step2,'HOLD');
+ assert.equal(report.counts.externallyVerifiedRankingPairs,0);
+ // Frozen archived v0.2.30 numbers must NOT be rewritten retroactively.
+ const historic=require('../docs/STEP2_M1_BASELINE_V0230_20261017.json');
+ assert.equal(historic.counts.referenceCompared,9);
+ assert.equal(historic.matrix.find(x=>x.id==='P04').evidenceGrade,'C');
+});

@@ -79,11 +79,11 @@ function oracleSevenDays(start,score){
 }
 function check(known,got){assert.ok(Number.isFinite(got)&&Number.isFinite(known));assert.ok(Math.abs(got-known)<1e-7,`Independent mismatch: expected ${known}, got ${got}`);}
 const round=n=>Math.round(n*1e6)/1e6;
-function reportRow(id,group,label,grade,measure,reference,notes){
+function reportRow(id,group,label,grade,measure,reference,notes,explicitReferenceSource=null){
  assert.ok(['B','C'].includes(grade));
  const verified=grade==='B'&&reference!==null;
  if(verified)check(reference,measure);
- return {id,group,label,evidenceGrade:grade,referenceSource:verified?'independent-controlled-formula-or-one-minute-oracle':null,
+ return {id,group,label,evidenceGrade:grade,referenceSource:verified?(explicitReferenceSource||'independent-controlled-formula-or-one-minute-oracle'):null,
   reference:verified?round(reference):null,simulated:round(measure),
   absoluteDifference:verified?round(measure-reference):null,
   disposition:verified?'MATCH_CONTROLLED':'UNVERIFIED_EXTERNAL',
@@ -159,9 +159,18 @@ function buildReport(){
  const x=mixedInput();x.box=x.box.slice(0,5).map((p,i)=>monster('r'+i,'フシギダネ'));
  x.options.initialIngredients={apple:1};x.options.bagCapacity=1;x.options.recipeId='';
  const r=totals(x);
+ // This controlled week has no cooking or other ingredient spending, so
+ // the 1/1 shared bag never opens. The public ingredient-magnet rule
+ // independently requires exactly ZERO activations throughout the week.
+ // It says nothing about hidden queued-skill/pity history after bag space frees.
+ assert.equal(r.meals.length,0);
+ assert.equal(r.inventory.apple,1);
+ assert.equal(Object.values(r.inventory).reduce((a,b)=>a+b,0),1);
  assert.equal(r.skillTriggers,0);
- cases.push(reportRow('P04','probability','full shared bag blocks ingredient-magnet activations','C',
-  r.skillTriggers,null,'C: internal weekly conservation; actual full-bag skill chronology unmeasured'));
+ cases.push(reportRow('P04','probability','permanently full 1/1 bag, no cooking: ingredient skills blocked','B',
+  r.skillTriggers,0,
+  'B: public full-bag ingredient-skill rule guarantees zero activations in this no-spend week; stored skill/pity histories after reopening remain unverified',
+  'community-rule-full-ingredient-bag-prevents-activation'));
  }
  // Mixed cases have NO independently validated weekly oracle. Never mark PASS.
  {
@@ -234,7 +243,7 @@ function buildReport(){
    gate:{step2:'HOLD',m1:'PARTIAL',step3:'NOT_STARTED',
     blockers:['four mixed weeks have no external independent reference',
      'five ranking pairs lack independent ordering validation',
-     'one random-skill case has only model conservation evidence',
+     'P04 full-bag zero activations is independently supported, but queued skill and pity history after reopening remain unvalidated',
      'no Android Chrome device test or actual-game multiweek measurements']},
    limitations:['Model C comparisons are descriptive rankings, not validated optimal teams',
     'Mock mutation of Raichu rates for controlled oracles is not real-game scenario',
