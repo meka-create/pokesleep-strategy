@@ -7,9 +7,10 @@
  */
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const ctx=vm.createContext({module:{exports:{}},globalThis:{}});
-for(const file of ['master.js','recipes.js','simulator.js'])
+for(const file of ['master.js','recipes.js','simulator.js','observation.js'])
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../src',file),'utf8'),ctx,{filename:file});
 const sim=ctx.globalThis.PokeSimulator;
+const observation=ctx.globalThis.PokeObservation;
 function whole(x){
  return typeof x==='number'&&Number.isSafeInteger(x)&&x>=0;
 }
@@ -68,6 +69,8 @@ function compareSingleWeek(report){
   throw Error('観測フィールドを指定してください。');
  if(week.field!==input.options.map)
   throw Error('観測フィールドとシミュレーター設定が一致しません。');
+ observation.validateReplayInput(input);
+ if(report.capture!==undefined)observation.validateReplayCapture(report.capture);
  const predicted=sim.simulate(input);
  // New browser-originated evidence carries the *actual model result recorded
  // at run time*. Replaying after a master or engine change must not silently

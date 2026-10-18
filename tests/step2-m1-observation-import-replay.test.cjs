@@ -76,3 +76,36 @@ test('confounded summary values are displayed without promoting accuracy status'
  assert.equal(view.accuracyGate,'HOLD');
  assert.equal(view.rankOrAccuracyValidated,false);
 });
+
+
+test('replay and CLI reject duplicate IDs, impossible teams and out-of-range saved options',()=>{
+ const edits=[
+  r=>{r.input.box[1].id=r.input.box[0].id;},
+  r=>{r.input.teams.morning[1]=r.input.teams.morning[0];},
+  r=>{r.input.teams.noon.push('a');},
+  r=>{r.input.options.tapMinutes=0;},
+  r=>{r.input.options.fieldBonus=250;},
+  r=>{r.input.options.initialIngredients.apple=-3;},
+  r=>{r.input.options.initialIngredients.apple=0.5;},
+  r=>{r.input.box[0].level=100000;},
+  r=>{r.input.options.map='a'.repeat(81);r.week.field=r.input.options.map;}
+ ];
+ for(const edit of edits){
+  const report=make();edit(report);
+  assert.throws(()=>obs.reviewImportedReport(report,sim.simulate),/試算入力が不正/);
+  assert.throws(()=>compareSingleWeek(report),/試算入力が不正/);
+ }
+});
+test('replay and CLI reject forged evidence metadata',()=>{
+ const edits=[
+  r=>{r.capture.screenshotReviewedByApp=true;},
+  r=>{r.capture.recordingMethod='automatically_verified_game_screen';},
+  r=>{r.capture.capturedAt='not-a-date';},
+  r=>{r.capture.appVersion='unknown';}
+ ];
+ for(const edit of edits){
+  const report=make();edit(report);
+  assert.throws(()=>obs.reviewImportedReport(report,sim.simulate),/メタデータ/);
+  assert.throws(()=>compareSingleWeek(report),/メタデータ/);
+ }
+});
