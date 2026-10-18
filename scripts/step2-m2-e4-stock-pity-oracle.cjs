@@ -22,7 +22,7 @@ const scenarios=[
 const eligibleHelpsPerTap=2,taps=2,minutesBetween=1;
 const stateKey=(s)=>[s.energy,s.phase,s.misses,s.stock,s.fired].join(':');
 const stateFromKey=(s)=>{const [energy,phase,misses,stock,fired]=s.split(':').map(Number);return {energy,phase,misses,stock,fired};};
-const round=v=>Math.round(v*1e10)/1e10;
+const round=v=>{const n=Math.round(v*1e10)/1e10;return Object.is(n,-0)?0:n;};
 const totalMass=dist=>[...dist.values()].reduce((a,b)=>a+b,0);
 
 function dynamicProgramming(s){
