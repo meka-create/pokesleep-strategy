@@ -1813,8 +1813,12 @@ test('R05: queued EXTRA rewards removed at a lineup change are counted by an ind
  ]);
  const q=sim.uncollectedExtraHelpOnSwap(['leave','leave2','stay'],['stay','new'],queues);
  assert.deepEqual(JSON.parse(JSON.stringify(q)),{
-  items:5.5,berries:3,ingredients:2.5,affectedMembers:2
+  items:5.5,berries:3,ingredients:2.5,berryEnergy:0,affectedMembers:2
  });
+ const valued=sim.uncollectedExtraHelpOnSwap(['leave','leave2','stay'],['stay','new'],queues,
+  id=>id==='leave'?10:id==='leave2'?20:9999);
+ assert.equal(valued.berryEnergy,2*10+1*20);
+ assert.equal(valued.items,5.5);
  const ordinary=new Map([['leave',{used:2,berries:2,ingredients:{}}],
   ['leave2',{used:0,berries:0,ingredients:{}}],['stay',{used:1,berries:1,ingredients:{}}]]);
  const stayBag=queues.get('stay');
@@ -1861,4 +1865,19 @@ test('week-end pending EXTRA helps are not automatically credited to old-week en
  assert.ok(Number.isFinite(outcome.total));
  if(outcome.pendingExtraHelpItems>1e-9)
   assert.ok(outcome.warnings.some(x=>x.includes('週末04:00時点の追加おてつだい未回収所持品')));
+});
+
+test('uncollected EXTRA berry energy is a subcomponent of discarded model carry, not credited to baseline',()=>{
+ const sp=master.species.find(p=>p.skill==='Extra Helpful S');
+ const p=input();p.box.forEach(mon=>{mon.pokemon=sp.name;mon.skillLevel=7;});
+ p.box.push(...Array.from({length:5},(_,i)=>monster('alt-'+i)));
+ const replacement=p.box.slice(5).map(v=>v.id);
+ p.teams.noon=replacement;p.teams.evening=replacement;p.teams.sleep=replacement;
+ const output=sim.simulate(p);
+ assert.ok(output.uncollectedExtraHelpItemsAtSwap>0);
+ assert.ok(output.uncollectedExtraHelpBerryEnergyAtSwap>0);
+ assert.ok(output.uncollectedExtraHelpSwaps>0);
+ assert.ok(output.warnings.some(w=>w.includes('未回収きのみの換算値')));
+ assert.ok(Number.isFinite(output.pendingExtraHelpBerryEnergy)&&output.pendingExtraHelpBerryEnergy>=0);
+ assert.ok(Math.abs(output.berries+output.cooking+output.skills-output.total)<1e-5);
 });
