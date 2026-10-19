@@ -84,7 +84,8 @@ function knownModelLimitations(input,simulated){
  if(typeof opts.eventEffects==='string'&&opts.eventEffects.trim())
   issues.push('イベント補正メモはSTEP5まで計算へ反映されません。観測週の効果と差が生じ得ます。');
  const species=root.PokeMaster&&root.PokeMaster.species;
- if(Array.isArray(species)&&Array.isArray(input&&input.box)){
+ const ingredients=root.PokeMaster&&root.PokeMaster.ingredients;
+ if(Array.isArray(species)&&ingredients&&Array.isArray(input&&input.box)){
   const dex=new Map(species.map(x=>[x.name,x]));
   const active=new Set(['morning','noon','evening','sleep'].flatMap(period=>
    Array.isArray(input.teams&&input.teams[period])?input.teams[period]:[]));
