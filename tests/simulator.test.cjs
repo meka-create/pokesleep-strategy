@@ -1802,3 +1802,63 @@ test('valid stock and bag limits keep exact prior numbers and optional defaults'
   assert.equal(textZero[key],explicit[key],key);
  }
 });
+
+
+test('R05: queued EXTRA rewards removed at a lineup change are counted by an independent pocket oracle',()=>{
+ const queues=new Map([
+  ['leave',{used:3,berries:2,ingredients:{apple:1}}],
+  ['leave2',{used:2.5,berries:1,ingredients:{milk:1.5}}],
+  ['stay',{used:4,berries:4,ingredients:{}}],
+  ['new',{used:5,berries:5,ingredients:{}}]
+ ]);
+ const q=sim.uncollectedExtraHelpOnSwap(['leave','leave2','stay'],['stay','new'],queues);
+ assert.deepEqual(JSON.parse(JSON.stringify(q)),{
+  items:5.5,berries:3,ingredients:2.5,affectedMembers:2
+ });
+ const ordinary=new Map([['leave',{used:2,berries:2,ingredients:{}}],
+  ['leave2',{used:0,berries:0,ingredients:{}}],['stay',{used:1,berries:1,ingredients:{}}]]);
+ const stayBag=queues.get('stay');
+ sim.clearDepartingPockets(['leave','leave2','stay'],['stay','new'],ordinary,queues);
+ assert.equal(queues.get('leave').used,0);
+ assert.equal(queues.get('leave2').used,0);
+ assert.equal(queues.get('stay'),stayBag);
+ // No switch, no discarded model queue, even when the queue is nonempty.
+ assert.equal(sim.uncollectedExtraHelpOnSwap(['stay'],['stay'],queues).items,0);
+});
+test('R05: real 7-day prototype reports uncollected EXTRA queue on rotating skill teams',()=>{
+ const sp=master.species.find(s=>s.skill==='Extra Helpful S');
+ assert.ok(sp);
+ const rotating=input();
+ rotating.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=7;});
+ const reserve=Array.from({length:5},(_,i)=>monster('reserve-'+i));
+ rotating.box.push(...reserve);
+ const reserves=reserve.map(x=>x.id);
+ rotating.teams.noon=reserves;
+ rotating.teams.evening=reserves;
+ rotating.teams.sleep=reserves;
+ const result=sim.simulate(rotating);
+ assert.ok(result.extraHelps>0,'must actually produce expected extra helps');
+ assert.ok(result.uncollectedExtraHelpItemsAtSwap>0,'rotation must expose discarded pending items');
+ assert.ok(result.uncollectedExtraHelpSwaps>0);
+ assert.ok(result.warnings.some(w=>w.includes('編成交代時にモデルから除外')));
+ assert.equal(result.days.length,7);
+ assert.ok(Math.abs(result.days.reduce((sum,d)=>sum+d.berries+d.skills+d.cooking,0)-result.total)<1e-5);
+ const fixed=input();
+ fixed.box.forEach(p=>{p.pokemon=sp.name;p.skillLevel=7;});
+ const same=sim.simulate(fixed);
+ assert.ok(same.extraHelps>0);
+ assert.equal(same.uncollectedExtraHelpItemsAtSwap,0);
+ assert.equal(same.uncollectedExtraHelpSwaps,0);
+ assert.ok(!same.warnings.some(w=>w.includes('編成交代時にモデルから除外')));
+});
+test('week-end pending EXTRA helps are not automatically credited to old-week energy',()=>{
+ const sp=master.species.find(s=>s.skill==='Extra Helpful S');
+ const p=input();
+ p.box.forEach(m=>{m.pokemon=sp.name;m.skillLevel=7;});
+ const outcome=sim.simulate(p);
+ assert.ok(Number.isFinite(outcome.pendingExtraHelpItems));
+ assert.ok(outcome.pendingExtraHelpItems>=0);
+ assert.ok(Number.isFinite(outcome.total));
+ if(outcome.pendingExtraHelpItems>1e-9)
+  assert.ok(outcome.warnings.some(x=>x.includes('週末04:00時点の追加おてつだい未回収所持品')));
+});
