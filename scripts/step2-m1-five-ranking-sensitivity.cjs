@@ -109,4 +109,4 @@ function reportFivePairs(){
   cases};
 }
 if(require.main===module)console.log('M1_FIVE_RANKINGS_JSON='+JSON.stringify(reportFivePairs()));
-module.exports={reportFivePairs};
+module.exports={reportFivePairs,fixture};
