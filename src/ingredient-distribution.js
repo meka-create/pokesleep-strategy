@@ -163,6 +163,8 @@ function evaluateRecipeOutcomes(dist,requirements,capacity=0,maxStates=LIMIT){
 }
 /* Exact finite meal sequence, GIVEN an explicitly specified distribution.
  * An optional draws array holds independent stochastic EVENTS between meals;
+ * every event may carry either mutually exclusive single-species outcomes or
+ * mutually exclusive COMPOUND outcomes (ordered items per outcome).
  * each event's outcomes are mutually exclusive. No correlations with other
  * game systems are guessed. energyIfCooked must be supplied by the caller
  * and can already include that meal's known great-success expectation.
@@ -181,8 +183,19 @@ function evaluateRecipeSequence(initial,steps,capacity=0,maxStates=LIMIT){
      (step.draws!=null&&!Array.isArray(step.draws)))
    throw Error('連続料理試算の食事入力が不正です。');
   const draws=step.draws||[];
-  for(const outcomes of draws)
-   current=addIngredientOutcomes(current,outcomes,capacity,maxStates).distribution;
+  for(const outcomes of draws){
+   if(!Array.isArray(outcomes)||!outcomes.length)
+    throw Error('連続料理試算の食材抽選分岐が不正です。');
+   // Preserve each event's mutually exclusive compound outcomes. Never turn
+   // correlated ingredient deliveries into independent per-species draws.
+   // The caller specifies both event order and compound item delivery order.
+   const compound=outcomes.every(o=>o&&Object.prototype.hasOwnProperty.call(o,'items'));
+   const mixed=outcomes.some(o=>o&&Object.prototype.hasOwnProperty.call(o,'items'))&&!compound;
+   if(mixed)throw Error('単種類と複数種類の食材抽選を同じイベントに混在できません。');
+   current=(compound?
+    addCompoundIngredientOutcomes(current,outcomes,capacity,maxStates):
+    addIngredientOutcomes(current,outcomes,capacity,maxStates)).distribution;
+  }
   const result=evaluateRecipeOutcomes(current,step.requirements,capacity,maxStates);
   current=result.distribution;
   const expectedEnergy=result.successProbability*step.energyIfCooked;
