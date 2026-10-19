@@ -1727,7 +1727,7 @@ test('invalid numeric simulator settings are rejected instead of silently becomi
  const cases=[
   ['tapMinutes',0],['tapMinutes',''],['tapMinutes',Infinity],
   ['potSize',0],['potSize',''],['potSize',NaN],
-  ['fieldBonus','unreadable'],['fieldBonus',0.5],
+  ['fieldBonus','unreadable'],['fieldBonus',Infinity],
   ['sleepScore',''],['sleepScore','not-a-score'],
   ['initialEnergy',undefined], // checked separately as valid fallback
  ];
@@ -1737,9 +1737,11 @@ test('invalid numeric simulator settings are rejected instead of silently becomi
  }
  const a=input();a.options.initialEnergy='not-a-number';
  assert.throws(()=>sim.simulate(a),/入力値を確認/);
- a.options.initialEnergy=24.5;
+ a.options.initialEnergy=100;a.options.tapMinutes=150.5;
  assert.throws(()=>sim.simulate(a),/入力値を確認/);
- a.options.initialEnergy=false;
+ a.options.tapMinutes=150;a.options.potSize=57.5;
+ assert.throws(()=>sim.simulate(a),/入力値を確認/);
+ a.options.potSize=57;a.options.initialEnergy=false;
  assert.throws(()=>sim.simulate(a),/入力値を確認/);
 });
 test('valid numeric settings preserve results with numeric-string or nullish defaults',()=>{
