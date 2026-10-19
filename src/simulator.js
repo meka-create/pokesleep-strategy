@@ -498,7 +498,6 @@ const EXCLUDED_MAIN_SKILLS=new Set([
 ]);
 function clamp(x,l,h){return Math.max(l,Math.min(h,x));}
 function roundup(x){return Math.ceil(x-1e-9);}
-function nums(x){return Number.isFinite(Number(x))?Number(x):0;}
 function natureFactor(jp,up,down){const en=Object.keys(Master.natures).find(k=>Master.natures[k]===jp)||'';
  return up.includes(en)?1.2:down.includes(en)?.8:1;
 }
@@ -727,16 +726,31 @@ function simulate(input){
   teams[period].filter(id=>members.get(id)?.sp?.skill==='Energy for Everyone S').length>=2);
  if(simultaneousAllHealers)
   warnings.add('げんきオールSを2匹以上同時編成した場合、回復スキルの発動時刻・複数個体のげんき相関は未検証です。試算エナジーだけでヒーラー1匹と2匹の優劣を確定しないでください。');
- const inventory={...opts.initialIngredients};for(const k of Object.keys(inventory)){
-   const v=nums(inventory[k]);if(!Number.isInteger(v)||v<0||v>10000||!Object.prototype.hasOwnProperty.call(Master.ingredients,k))throw Error('初期食材数が不正です。');
-   inventory[k]=v;
+ // Input files may reach the simulator without going through the browser UI.
+ // Never turn invalid food counts into 0 via a forgiving numeric coercion.
+ const rawIngredients=opts.initialIngredients??{};
+ if(Object.prototype.toString.call(rawIngredients)!=='[object Object]')
+  throw Error('初期食材数が不正です。');
+ const inventory={...rawIngredients};
+ for(const k of Object.keys(inventory)){
+  const raw=inventory[k],v=Number(raw);
+  if((typeof raw!=='number'&&typeof raw!=='string')||
+    String(raw).trim()===''||!Number.isSafeInteger(v)||
+    v<0||v>10000||!Object.prototype.hasOwnProperty.call(Master.ingredients,k))
+   throw Error('初期食材数が不正です。');
+  inventory[k]=v;
  }
  // Track only deterministic ingredients entered by the user. Stochastic food
  // production is NEVER credited here. This is a conservative provenance
  // audit of the chosen meal sequence, not a recipe-success probability.
  const initialOnlyStock={...inventory};
- const bagCapacity=nums(opts.bagCapacity??0);
- if(!Number.isInteger(bagCapacity)||bagCapacity<0||bagCapacity>10000)throw Error('食材バッグ容量が不正です。');
+ const rawBagCapacity=opts.bagCapacity??0,bagCapacity=Number(rawBagCapacity);
+ // 0 is the user's explicit "capacity not configured" setting. A malformed
+ // value (NaN, "", false, etc.) MUST NOT silently become 0/unlimited.
+ if((typeof rawBagCapacity!=='number'&&typeof rawBagCapacity!=='string')||
+   String(rawBagCapacity).trim()===''||!Number.isSafeInteger(bagCapacity)||
+   bagCapacity<0||bagCapacity>10000)
+  throw Error('食材バッグ容量が不正です。');
  const bagUsed=()=>Object.values(inventory).reduce((sum,n)=>sum+n,0);
  if(bagCapacity&&bagUsed()>bagCapacity)throw Error('初期食材の合計が食材バッグ容量を超えています。');
  if(!bagCapacity)warnings.add('食材バッグ容量が未設定です。満杯時の食材回収制限は考慮していません。');
