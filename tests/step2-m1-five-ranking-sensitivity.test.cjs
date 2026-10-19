@@ -19,7 +19,7 @@ test('all five pair baselines reproduce frozen mixed-week leaderboard at natural
     const ref=frozen.rankingComparisons.find(x=>x.id===comp.id);
     const factor=mode.factors[1];
     const scoreA=factor.outputs[ref.configurationA],scoreB=factor.outputs[ref.configurationB];
-    const oldDelta=Math.round((comp.at1-(scoreB.directStrengthRoundingCorrection-scoreA.directStrengthRoundingCorrection))*1e6)/1e6;
+    const oldDelta=Math.round((scoreB.historicalTotal-scoreA.historicalTotal)*1e6)/1e6;
     assert.equal(oldDelta,ref.modelDeltaBminusA);
     assert.equal(comp.leaderAt1,ref.modelLeader);
    }
@@ -78,9 +78,10 @@ test('CI-provenanced five-pair ranks remain an internal model baseline, not accu
   for(const factor of scenario.factors){
    for(const score of Object.values(factor.outputs)){
     const correction=score.directStrengthRoundingCorrection;
-    score.total=round(score.total-correction);
-    score.skills=round(score.skills-correction);
+    score.total=score.historicalTotal;
+    score.skills=score.historicalSkills;
     delete score.directStrengthRoundingCorrection;
+    delete score.historicalTotal;delete score.historicalSkills;
    }
    for(const pair of factor.pairs){
     pair.deltaBminusA=round(factor.outputs[pair.configB].total-factor.outputs[pair.configA].total);
