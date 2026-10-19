@@ -175,20 +175,26 @@ function buildReport(){
  // Mixed cases have NO independently validated weekly oracle. Never mark PASS.
  {
  const x=mixedInput();x.options.recipeId='';
- cases.push(reportRow('M01','mixed','5 Raichu, berry/skill mixed full seven-day run','C',
-  totals(x).total,null,'C: simulation-only, no independent mixed-week reference'));
+ const r=totals(x),row=reportRow('M01','mixed','5 Raichu, berry/skill mixed full seven-day run','C',
+  r.total,null,'C: simulation-only, no independent mixed-week reference');
+ row.directStrengthRoundingCorrection=round(r.directStrengthRoundingCorrection);
+ cases.push(row);
  }
  {
  const x=mixedInput();const food=['r0','r1','r2','g0','f0'];
  x.teams.morning=food.slice();x.teams.noon=food.slice();x.teams.evening=food.slice();
- cases.push(reportRow('M02','mixed','ingredient-focused daytime with curry production','C',
-  totals(x).total,null,'C: recipes use expected food quantities, 21-meal success not validated'));
+ const r=totals(x),row=reportRow('M02','mixed','ingredient-focused daytime with curry production','C',
+  r.total,null,'C: recipes use expected food quantities, 21-meal success not validated');
+ row.directStrengthRoundingCorrection=round(r.directStrengthRoundingCorrection);
+ cases.push(row);
  }
  {
  const x=mixedInput(),healer=['r0','r1','r2','r3','w0'];
  x.teams.morning=healer.slice();x.teams.noon=healer.slice();x.teams.evening=healer.slice();
- cases.push(reportRow('M03','mixed','healer/Raichu mixed team with night-only sleep squad','C',
-  totals(x).total,null,'C: healer activation timing and inter-Pokemon Energy correlations unmeasured'));
+ const r=totals(x),row=reportRow('M03','mixed','healer/Raichu mixed team with night-only sleep squad','C',
+  r.total,null,'C: healer activation timing and inter-Pokemon Energy correlations unmeasured');
+ row.directStrengthRoundingCorrection=round(r.directStrengthRoundingCorrection);
+ cases.push(row);
  }
  {
  const x=mixedInput();
@@ -196,8 +202,10 @@ function buildReport(){
  x.teams.morning=['r0','r1','r2','g0','f0'];
  x.teams.noon=['r0','r1','r2','r3','w0'];
  x.teams.evening=['r0','r1','r2','r3','t0'];
- cases.push(reportRow('M04','mixed','full bag with breakfast/noon/evening substitution and fixed sleep','C',
-  totals(x).total,null,'C: mixed full-bag carry and team-swap correlations not externally validated'));
+ const r=totals(x),row=reportRow('M04','mixed','full bag with breakfast/noon/evening substitution and fixed sleep','C',
+  r.total,null,'C: mixed full-bag carry and team-swap correlations not externally validated');
+ row.directStrengthRoundingCorrection=round(r.directStrengthRoundingCorrection);
+ cases.push(row);
  }
  assert.equal(cases.length,14);
  const configurations={
@@ -221,7 +229,7 @@ function buildReport(){
   for(const period of ['morning','noon','evening'])x.teams[period]=configurations[name][period].slice();
   const z=totals(x);
   outputs[name]={total:round(z.total),berries:round(z.berries),cooking:round(z.cooking),
-   skills:round(z.skills),meals:z.meals.length,uncertainMeals:z.expectedSourceMeals};
+   skills:round(z.skills),meals:z.meals.length,uncertainMeals:z.expectedSourceMeals,directStrengthRoundingCorrection:round(z.directStrengthRoundingCorrection)};
  }
  const comparisons=pairPlan.map(([id,a,b,label])=>{
   const delta=outputs[b].total-outputs[a].total;
