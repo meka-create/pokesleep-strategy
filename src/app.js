@@ -277,6 +277,9 @@ $('observationFile').addEventListener('change',async ev=>{
     add('重複した対象週：'+batch.duplicateMondays.join('、')+'。同じ週を独立した複数回の観測と数えないでください。');
    if(batch.conflictingMondays.length)
     add('要確認：同一週でフィールドまたは週まとめ数値が矛盾しています：'+batch.conflictingMondays.join('、'));
+   if(batch.conflictingInputsMondays.length)
+    add('要確認：同一週の記録なのに保存された試算入力（ポケモン・編成・設定）に差異があります：'+batch.conflictingInputsMondays.join('、')+
+      '。どちらの試算が実ゲームの条件に対応するか確認してください。');
    add('個別の未確認・モデル制限がある記録：'+batch.confoundedCount+'件。単純な平均誤差や編成順位を推定しません。');
   }
   for(const replay of batch.items){
