@@ -1759,3 +1759,46 @@ test('valid numeric settings preserve results with numeric-string or nullish def
  explicit.options.tapMinutes=150;explicit.options.potSize=57;
  assert.equal(sim.simulate(defaults).total,sim.simulate(explicit).total);
 });
+
+
+test('malformed food bag capacities never become unlimited storage',()=>{
+ const invalid=['', '  ', 'not-a-number', 'NaN', 'Infinity', NaN, Infinity, -Infinity, false, true, {}, [], 0.5, -1, 10001];
+ for(const value of invalid){
+  const a=input();a.options.bagCapacity=value;
+  assert.throws(()=>sim.simulate(a),/食材バッグ容量が不正/,String(value));
+ }
+ const fixed=input();fixed.options.initialIngredients={apple:7};fixed.options.bagCapacity=7;
+ const invalidInput=input();invalidInput.options.initialIngredients={apple:7};invalidInput.options.bagCapacity='missing';
+ assert.throws(()=>sim.simulate(invalidInput),/食材バッグ容量が不正/);
+ const safe=sim.simulate(fixed);
+ assert.ok(Object.values(safe.inventory).reduce((sum,n)=>sum+n,0)<=7+1e-8);
+});
+test('malformed initial food counts never silently turn into zero',()=>{
+ const invalid=['', ' ', 'not-a-number', 'NaN', 'Infinity', NaN, Infinity, -Infinity, false, true, null, {}, [], 1.5, -1, 10001];
+ for(const value of invalid){
+  const a=input();a.options.initialIngredients={apple:value};
+  assert.throws(()=>sim.simulate(a),/初期食材数が不正/,String(value));
+ }
+ for(const value of ['bad-stock',true,[],27]){
+  const a=input();a.options.initialIngredients=value;
+  assert.throws(()=>sim.simulate(a),/初期食材数が不正/,String(value));
+ }
+});
+test('valid stock and bag limits keep exact prior numbers and optional defaults',()=>{
+ const baseline=input();baseline.options.initialIngredients={apple:7,milk:2};
+ baseline.options.bagCapacity=20;
+ const equivalent=input();equivalent.options.initialIngredients={apple:'7',milk:'2'};
+ equivalent.options.bagCapacity='20';
+ const a=sim.simulate(baseline),b=sim.simulate(equivalent);
+ for(const key of ['total','berries','cooking','skills','estimatedMeals','skillTriggers'])
+  assert.equal(a[key],b[key],key);
+ assert.deepEqual(JSON.parse(JSON.stringify(a.inventory)),JSON.parse(JSON.stringify(b.inventory)));
+ const none=input();delete none.options.bagCapacity;
+ const zero=input();zero.options.bagCapacity=0;
+ const strZero=input();strZero.options.bagCapacity='0';
+ const omitted=sim.simulate(none),explicit=sim.simulate(zero),textZero=sim.simulate(strZero);
+ for(const key of ['total','berries','skills','cooking']){
+  assert.equal(omitted[key],explicit[key],key);
+  assert.equal(textZero[key],explicit[key],key);
+ }
+});
