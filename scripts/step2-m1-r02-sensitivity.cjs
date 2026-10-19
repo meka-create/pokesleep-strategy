@@ -59,7 +59,7 @@ function score(result){
  return {total:result.total,berries:result.berries,skills:result.skills,
   cooking:result.cooking,meals:result.meals.length,
   estimatedMeals:result.estimatedMeals,expectedSourceMeals:result.expectedSourceMeals,
-  skillTriggers:result.skillTriggers};
+  skillTriggers:result.skillTriggers,directStrengthRoundingCorrection:result.directStrengthRoundingCorrection};
 }
 function leader(delta){
  if(Math.abs(delta)<1e-8)return 'TIE';
@@ -108,8 +108,10 @@ function sensitivityReport(){
  });
  const original=scenariosOut.find(x=>x.id==='original-140');
  const atNatural=original.rates.find(x=>x.rateFactor===1);
- assert.equal(atNatural.deltaBminusA,savedPair.modelDeltaBminusA,
-  'Unchanged natural-rate benchmark must reproduce frozen v0.2.30 R02');
+ assert.equal(safeRound(atNatural.deltaBminusA-
+   (atNatural.scoreB.directStrengthRoundingCorrection-atNatural.scoreA.directStrengthRoundingCorrection)),
+  savedPair.modelDeltaBminusA,
+  'The source-verified per-proc rounding delta must reconcile exactly to the frozen v0.2.30 R02 model');
  assert.equal(atNatural.modelLeader,savedPair.modelLeader);
  return {schema:'step2-m1-r02-sensitivity-v1',sourceBaseline:'v0.2.30 M1 R02',
   baselineFrozen:true,scope:'INTERNAL_PARAMETER_SENSITIVITY_ONLY',
