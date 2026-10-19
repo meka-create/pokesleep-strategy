@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p
 test('weekly game observation is opt-in after successful simulation and is embedded in both compiled artifacts',()=>{
  const html=read('src/index.template.html'),build=read('build.mjs');
  const app=read('src/app.js'),packageData=JSON.parse(read('package.json'));
- assert.match(packageData.version,/^\\d+\\.\\d+\\.\\d+$/);
+ assert.match(packageData.version,/^\d+\.\d+\.\d+$/);
  const versionBadge='STEP 2 · v'+packageData.version;
  assert.ok(html.includes(versionBadge));
  assert.match(html,/<details class="sim-observation">/);
