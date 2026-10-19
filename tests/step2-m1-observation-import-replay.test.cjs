@@ -194,3 +194,35 @@ test('M1 three records detect same-week condition mismatch without spurious week
  assert.deepEqual(Array.from(result.conflictingInputsMondays),['2026-10-19']);
  assert.equal(result.status,'UNVERIFIED_MULTI_WEEK_RECORDS');
 });
+
+test('M1 actual-game comparisons fail closed for known unmodeled scope even when all checkboxes are true',()=>{
+ const cases=[
+  {name:'EX field',change:r=>{r.input.options.map='シアンの砂浜EX';r.week.field='シアンの砂浜EX';},needle:'EXフィールド'},
+  {name:'random food category',change:r=>{r.input.options.foodMode='random';},needle:'ランダム料理カテゴリ'},
+  {name:'event memo not calculated',change:r=>{r.input.options.eventEffects='イベント補正あり';},needle:'イベント補正メモ'},
+  {name:'unknown selected species',change:r=>{r.input.box[0].pokemon='未実装の種族';},needle:'マスター未登録'},
+  {name:'two simultaneous healers',change:r=>{r.input.box[0].pokemon='プクリン';r.input.box[1].pokemon='サーナイト';},needle:'2匹以上同時編成'}
+ ];
+ for(const {name,change,needle} of cases){
+  const report=make();
+  for(const flag of obs.flags)report.provenance[flag]=true;
+  change(report);
+  const ui=obs.reviewImportedReport(report,sim.simulate),cli=compareSingleWeek(report);
+  const local=obs.preview(report);
+  assert.equal(ui.status,'CONFOUNDED_OBSERVATION',name);
+  assert.equal(cli.status,ui.status,name);
+  assert.equal(local.status,'CONFOUNDED_OBSERVATION',name);
+  assert.ok(ui.modelLimitations.some(x=>x.includes(needle)),name+' browser limitation');
+  assert.ok(cli.modelLimitations.some(x=>x.includes(needle)),name+' CLI limitation');
+  assert.ok(local.modelLimitations.some(x=>x.includes(needle)),name+' preview limitation');
+  assert.equal(ui.accuracyGate,'HOLD');
+  assert.equal(cli.rankOrAccuracyValidated,false);
+ }
+});
+test('normal five-berry controlled input keeps explicit scope triage empty',()=>{
+ const report=make();
+ for(const flag of obs.flags)report.provenance[flag]=true;
+ assert.deepEqual(Array.from(obs.knownModelLimitations(report.input)),[]);
+ assert.equal(obs.preview(report).status,'UNCALIBRATED_OBSERVATION');
+ assert.equal(obs.reviewImportedReport(report,sim.simulate).accuracyGate,'HOLD');
+});

@@ -66,6 +66,46 @@ function makeReport(snapshot,form){
    screenshotReviewedByApp:false}
  };
 }
+
+// M1 evidence triage: known missing model scope must override a user's
+// positive checkboxes. This is NOT an estimate of game error or rank.
+// Determine issues from the saved inputs and explicit simulator diagnostics,
+// rather than from user-editable evidence claims or warning-language matching.
+function knownModelLimitations(input,simulated){
+ const opts=input&&input.options||{},issues=[];
+ const favorites=root.PokeSimulator&&root.PokeSimulator.FAVORITES;
+ if(favorites&&typeof opts.map==='string'&&
+   !Object.prototype.hasOwnProperty.call(favorites,opts.map))
+  issues.push('指定フィールドの好みのきのみがモデルで未確定です。週間のきのみエナジーを直接照合できません。');
+ if(opts.map==='シアンの砂浜EX'||opts.map==='ワカクサ本島EX')
+  issues.push('EXフィールド固有の補正をモデルは計算していません。');
+ if(opts.foodMode==='random')
+  issues.push('ランダム料理カテゴリをモデルは確定できず、料理エナジーを計上していません。');
+ if(typeof opts.eventEffects==='string'&&opts.eventEffects.trim())
+  issues.push('イベント補正メモはSTEP5まで計算へ反映されません。観測週の効果と差が生じ得ます。');
+ const species=root.PokeMaster&&root.PokeMaster.species;
+ if(Array.isArray(species)&&Array.isArray(input&&input.box)){
+  const dex=new Map(species.map(x=>[x.name,x]));
+  const active=new Set(['morning','noon','evening','sleep'].flatMap(period=>
+   Array.isArray(input.teams&&input.teams[period])?input.teams[period]:[]));
+  const missing=[...new Set(input.box.filter(p=>active.has(p.id)&&!dex.has(p.pokemon))
+   .map(p=>p.pokemon))];
+  if(missing.length)
+   issues.push('編成にマスター未登録の種族があり、通常おてつだいを含め計算対象外です：'+missing.join('、'));
+  if(['morning','noon','evening'].some(period=>
+   (input.teams&&input.teams[period]||[]).filter(id=>{
+    const p=input.box.find(item=>item.id===id),sp=p&&dex.get(p.pokemon);
+    return sp&&['Energy for Everyone S','Energy for Everyone S (Berry Juice)'].includes(sp.skill);
+   }).length>=2))
+   issues.push('げんきオールS系を日中に2匹以上同時編成しています。R02型の回復時刻・げんき相関と編成順位は未検証です。');
+ }
+ if(simulated&&simulated.healingTimerCorrelationEvents>0)
+  issues.push('げんき回復の発動分岐と10分減衰タイマーの相関が週間モデルでは未検証です。');
+ if(simulated&&simulated.healingCapNonlinearEvents>0)
+  issues.push('げんき回復時の150上限とスキル発動分岐の非線形誤差が週間モデルでは未解消です。');
+ return issues;
+}
+
 function preview(report){
  if(!report||report.schema!==schema||!report.capture||!report.observed)
   throw Error('観測記録が不正です。');
@@ -77,13 +117,14 @@ function preview(report){
  };
  const unattributed=o.total-o.berryAndStrengthSkill-o.cooking;
  const unconfirmed=flags.filter(key=>report.provenance[key]!==true);
+ const modelLimitations=knownModelLimitations(report.input);
  return {signedDeltaObservedMinusModel:signedDelta,
   weeklySummaryBucketsReconcile:unattributed===0,
   observedUnattributed:unattributed,
-  unconfirmedConditions:unconfirmed,
+  unconfirmedConditions:unconfirmed,modelLimitations,
   rankOrAccuracyValidated:false,
   accuracyGate:'HOLD',
-  status:unattributed===0&&unconfirmed.length===0?'UNCALIBRATED_OBSERVATION':'CONFOUNDED_OBSERVATION'};
+  status:unattributed===0&&unconfirmed.length===0&&modelLimitations.length===0?'UNCALIBRATED_OBSERVATION':'CONFOUNDED_OBSERVATION'};
 }
 
 
@@ -203,9 +244,10 @@ function reviewImportedReport(report,simulate){
  };
  const balance=o.total-o.berryAndStrengthSkill-o.cooking;
  const unconfirmed=flags.filter(k=>report.provenance[k]!==true);
- const modelLimitations=fullCurrent.estimatedMeals>0?[
-  'モデルは'+fullCurrent.estimatedMeals+'食の成立を確率的な食材生産の期待値から計上しており、実際の成立率は未検証です。'
- ]:[];
+ const modelLimitations=[...knownModelLimitations(report.input,fullCurrent),
+  ...(fullCurrent.estimatedMeals>0?[
+   'モデルは'+fullCurrent.estimatedMeals+'食の成立を確率的な食材生産の期待値から計上しており、実際の成立率は未検証です。'
+  ]:[])];
  const confounders=[
   ...(differs?['記録時の試算値と最新の計算器の結果が異なります。マスター・計算式の変更を確認してください。']:[]),
   ...(balance!==0?['ゲームの週まとめ総エナジーときのみ＋料理欄の合計が一致しません。']:[]),
@@ -271,7 +313,7 @@ function reviewImportedReports(reports,simulate){
  };
 }
 
-const api={schema,flags,validMonday,integerInput,captureSimulation,makeReport,preview,validateReplayInput,validateReplayCapture,reviewImportedReport,reviewImportedReports};
+const api={schema,flags,validMonday,integerInput,captureSimulation,makeReport,preview,knownModelLimitations,validateReplayInput,validateReplayCapture,reviewImportedReport,reviewImportedReports};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeObservation=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
