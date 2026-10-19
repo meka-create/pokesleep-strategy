@@ -100,9 +100,10 @@ function compareSingleWeek(report){
  ].filter(Boolean);
  // A meal that relies on expected (not guaranteed) future ingredients is
  // not comparable to a deterministic observed meal count without extra evidence.
- const modelLimitations=predicted.estimatedMeals>0?[
-  'モデルは'+predicted.estimatedMeals+'食の料理成立を不確実な食材生産期待値から計上しています。実際の成立率は未検証です。'
- ]:[];
+ const modelLimitations=[...observation.knownModelLimitations(input,predicted),
+  ...(predicted.estimatedMeals>0?[
+   'モデルは'+predicted.estimatedMeals+'食の料理成立を不確実な食材生産期待値から計上しています。実際の成立率は未検証です。'
+  ]:[])];
  return {
   schema:report.schema,week:{mondayDate:week.mondayDate,field:week.field},
   provenance:{source:provenance.source,screenshotReviewed:false,rawSingleWeek:true},
