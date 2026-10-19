@@ -226,3 +226,53 @@ test('normal five-berry controlled input keeps explicit scope triage empty',()=>
  assert.equal(obs.preview(report).status,'UNCALIBRATED_OBSERVATION');
  assert.equal(obs.reviewImportedReport(report,sim.simulate).accuracyGate,'HOLD');
 });
+
+
+test('M1 active unlocked ingredient mismatch is an unmodeled-input condition, not a game deviation',()=>{
+ const r=make();
+ for(const flag of obs.flags)r.provenance[flag]=true;
+ r.input.box[0].ingredients[0]='ゲームに存在しない食材';
+ const prediction=sim.simulate(r.input);
+ assert.ok(prediction.warnings.some(x=>x.includes('食材設定を種族マスターと照合できない')));
+ r.capture.modelAtCapture=Object.fromEntries(['total','berries','skills','cooking'].map(k=>[k,prediction[k]]));
+ const browser=obs.reviewImportedReport(r,sim.simulate),cli=compareSingleWeek(r),preview=obs.preview(r);
+ assert.equal(browser.captureComparison.matchesCurrentModel,true,'model drift must not be needed to reveal missing ingredients');
+ assert.equal(browser.unconfirmedConditions.length,0);
+ assert.equal(browser.confounders.length,0,'warning is a model limitation, distinct from self-reported confirmation flags');
+ for(const result of [browser,cli,preview]){
+  assert.equal(result.status,'CONFOUNDED_OBSERVATION');
+  assert.ok(result.modelLimitations.some(x=>x.includes('解放済み食材')&&x.includes('1枠')));
+  assert.equal(result.accuracyGate,'HOLD');
+  assert.equal(result.rankOrAccuracyValidated,false);
+ }
+});
+test('M1 ingredient check ignores off-roster and still-locked slots, but catches unlocked slot 2',()=>{
+ const r=make();
+ for(const flag of obs.flags)r.provenance[flag]=true;
+ r.input.box[0].ingredients[1]='不明な食材'; // level 1: second slot locked
+ r.input.box.push({...pokemon('off'),ingredients:['不明な食材','','']});
+ assert.equal(obs.knownModelLimitations(r.input).some(x=>x.includes('解放済み食材')),false);
+ assert.equal(obs.preview(r).status,'UNCALIBRATED_OBSERVATION');
+ r.input.box[0].level=30; // second slot is now available
+ assert.ok(obs.knownModelLimitations(r.input).some(x=>x.includes('解放済み食材')));
+ assert.equal(obs.preview(r).status,'CONFOUNDED_OBSERVATION');
+});
+test('M1 model-limitations and actual simulator treat the Berry Juice E4 pair the same',()=>{
+ const r=make();
+ for(const flag of obs.flags)r.provenance[flag]=true;
+ r.input.box[0].pokemon='プクリン';
+ r.input.box[1].pokemon='ツボツボ';
+ // Construct canonical unlocked ingredients from each species instead of
+ // interpreting ingredient mismatch as an E4 comparison issue.
+ for(const p of r.input.box.slice(0,2)){
+  const sp=ctx.globalThis.PokeMaster.species.find(x=>x.name===p.pokemon);
+  const row=(sp.mythIng||sp.ings).find(x=>x&&x.c1>0);
+  p.ingredients[0]=ctx.globalThis.PokeMaster.ingredients[row.name];
+ }
+ const predicted=sim.simulate(r.input);
+ assert.ok(predicted.warnings.some(x=>x.includes('優劣を確定しないでください')));
+ const limitations=obs.knownModelLimitations(r.input,predicted);
+ assert.ok(limitations.some(x=>x.includes('R02型')));
+ assert.equal(limitations.some(x=>x.includes('解放済み食材')),false);
+ assert.equal(obs.preview(r).status,'CONFOUNDED_OBSERVATION');
+});
