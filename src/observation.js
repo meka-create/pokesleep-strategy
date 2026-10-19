@@ -84,18 +84,38 @@ function knownModelLimitations(input,simulated){
  if(typeof opts.eventEffects==='string'&&opts.eventEffects.trim())
   issues.push('イベント補正メモはSTEP5まで計算へ反映されません。観測週の効果と差が生じ得ます。');
  const species=root.PokeMaster&&root.PokeMaster.species;
- if(Array.isArray(species)&&Array.isArray(input&&input.box)){
+ const ingredients=root.PokeMaster&&root.PokeMaster.ingredients;
+ if(Array.isArray(species)&&ingredients&&Array.isArray(input&&input.box)){
   const dex=new Map(species.map(x=>[x.name,x]));
   const active=new Set(['morning','noon','evening','sleep'].flatMap(period=>
    Array.isArray(input.teams&&input.teams[period])?input.teams[period]:[]));
-  const missing=[...new Set(input.box.filter(p=>active.has(p.id)&&!dex.has(p.pokemon))
-   .map(p=>p.pokemon))];
+  const selected=input.box.filter(p=>active.has(p.id));
+  const missing=[...new Set(selected.filter(p=>!dex.has(p.pokemon)).map(p=>p.pokemon))];
   if(missing.length)
    issues.push('編成にマスター未登録の種族があり、通常おてつだいを含め計算対象外です：'+missing.join('、'));
+  // The weekly simulator deliberately skips ingredients it cannot resolve
+  // against the unlocked slot in the species snapshot. Never treat those
+  // missing expected drops as a measured game-production difference.
+  let invalidIngredientSlots=0;
+  for(const p of selected){
+   const sp=dex.get(p.pokemon);
+   if(!sp)continue; // separately flagged above
+   const choices=sp.mythIng||sp.ings;
+   for(let j=0;j<(p.level>=60?3:p.level>=30?2:1);j++){
+    const key=Object.keys(ingredients||{}).find(k=>ingredients[k]===
+     (Array.isArray(p.ingredients)?p.ingredients[j]:undefined));
+    if(!Array.isArray(choices)||!choices.some(row=>
+      row&&row.name===key&&row['c'+(j+1)]>0))
+     invalidIngredientSlots++;
+   }
+  }
+  if(invalidIngredientSlots)
+   issues.push('解放済み食材の設定が種族マスターと一致せず、生産が未計上です（'+invalidIngredientSlots+'枠）。');
+  const isE4=root.PokeSimulator&&root.PokeSimulator.isAllHealerSkill;
   if(['morning','noon','evening'].some(period=>
    (input.teams&&input.teams[period]||[]).filter(id=>{
     const p=input.box.find(item=>item.id===id),sp=p&&dex.get(p.pokemon);
-    return sp&&['Energy for Everyone S','Energy for Everyone S (Berry Juice)'].includes(sp.skill);
+    return sp&&typeof isE4==='function'&&isE4(sp.skill);
    }).length>=2))
    issues.push('げんきオールS系を日中に2匹以上同時編成しています。R02型の回復時刻・げんき相関と編成順位は未検証です。');
  }
