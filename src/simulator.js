@@ -683,7 +683,19 @@ function simulate(input){
   if(!Array.isArray(ids)||ids.length!==5||new Set(ids).size!==5||ids.some(id=>!byId.has(id)))throw Error('朝・昼・夜・睡眠の各パーティに別々の5匹を指定してください。');
  }
  const opts=input.options||{};
- const bonus=nums(opts.fieldBonus),tapMinutes=nums(opts.tapMinutes||150),pot=nums(opts.potSize||57),score=nums(opts.sleepScore??100),initialEnergy=nums(opts.initialEnergy??100);
+ // The UI already rejects invalid integers. Enforce the same contract in
+ // the simulator so imported/saved or direct API inputs cannot turn 0-minute
+ // taps, a 0-capacity pot, NaN or a blank field into plausible default values.
+ const numericOption=(name,fallback)=>{
+  const raw=opts[name]??fallback;
+  if((typeof raw!=='number'&&typeof raw!=='string')||
+     String(raw).trim()===''||!Number.isSafeInteger(Number(raw)))
+   throw Error('フィールド補正・回収間隔・鍋容量・睡眠スコアなどの入力値を確認してください。');
+  return Number(raw);
+ };
+ const bonus=numericOption('fieldBonus',0),tapMinutes=numericOption('tapMinutes',150),
+  pot=numericOption('potSize',57),score=numericOption('sleepScore',100),
+  initialEnergy=numericOption('initialEnergy',100);
  if(bonus<0||bonus>100||tapMinutes<120||tapMinutes>180||pot<7||pot>300||score<0||score>100||initialEnergy<0||initialEnergy>150)throw Error('フィールド補正・回収間隔・鍋容量・睡眠スコアなどの入力値を確認してください。');
  const favorite=FAVORITES[opts.map]||[];
  const warnings=new Set();
