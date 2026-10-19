@@ -90,6 +90,15 @@ function knownModelLimitations(input,simulated){
   const active=new Set(['morning','noon','evening','sleep'].flatMap(period=>
    Array.isArray(input.teams&&input.teams[period])?input.teams[period]:[]));
   const selected=input.box.filter(p=>active.has(p.id));
+  const omitted=new Set();
+  const skillOmission=root.PokeSimulator&&root.PokeSimulator.unmodeledStrengthSkillEffect;
+  if(typeof skillOmission==='function')
+   for(const p of selected){
+    const sp=dex.get(p.pokemon),effect=sp&&skillOmission(sp.skill);
+    if(effect)omitted.add(sp.name+'：'+effect);
+   }
+  if(omitted.size)
+   issues.push('編成中のメインスキルには週間エナジーに影響し得る未計上の追加効果があります（'+[...omitted].join('、')+'）。実ゲームとの差分を計算誤差と断定できません。');
   const missing=[...new Set(selected.filter(p=>!dex.has(p.pokemon)).map(p=>p.pokemon))];
   if(missing.length)
    issues.push('編成にマスター未登録の種族があり、通常おてつだいを含め計算対象外です：'+missing.join('、'));
