@@ -4,8 +4,8 @@ const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p
 test('weekly game observation is opt-in after successful simulation and is embedded in both compiled artifacts',()=>{
  const html=read('src/index.template.html'),build=read('build.mjs');
  const app=read('src/app.js'),packageData=JSON.parse(read('package.json'));
- assert.equal(packageData.version,'0.2.38');
- assert.match(html,/STEP 2 · v0\.2\.38/);
+ assert.equal(packageData.version,'0.2.39');
+ assert.match(html,/STEP 2 · v0\.2\.39/);
  assert.match(html,/<details class="sim-observation">/);
  assert.match(html,/id="observationFile"/);
  assert.match(html,/id="observationFile"[^>]*multiple/);
