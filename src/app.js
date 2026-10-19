@@ -246,7 +246,8 @@ $('downloadObservation').addEventListener('click',()=>{
    '。単週観測のため精度・編成順位は未検証（STEP2 HOLD）。';
   const concerns=[
    ...(!compared.weeklySummaryBucketsReconcile?['ゲーム週まとめの総エナジーと2欄の合計が一致しません。']:[]),
-   ...(compared.unconfirmedConditions.length?['確認できていない条件が'+compared.unconfirmedConditions.length+'項目あります。']:[])
+   ...(compared.unconfirmedConditions.length?['確認できていない条件が'+compared.unconfirmedConditions.length+'項目あります。']:[]),
+   ...compared.modelLimitations.map(x=>'モデルの未検証：'+x)
   ];
   $('obsResult').textContent=note+(concerns.length?' 要確認：'+concerns.join(' '):'');
   download('pokesleep_weekly_observation_'+report.week.mondayDate+'.json',
