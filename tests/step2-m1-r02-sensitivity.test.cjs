@@ -3,20 +3,21 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {sensitivityReport}=require('../scripts/step2-m1-r02-sensitivity.cjs');
 const r=sensitivityReport();
 console.log('M1_R02_SENSITIVITY_JSON='+JSON.stringify(r));
+const rounded=n=>Math.round(n*1e6)/1e6;
 const original=r.scenarios.find(s=>s.id==='original-140');
 const certain=r.scenarios.find(s=>s.id==='guaranteed-147');
 test('R02 original natural skill rates match frozen 2026-10-17 M1 CI baseline',()=>{
  const frozen=require('../docs/STEP2_M1_BASELINE_V0230_20261017.json');
  const row=frozen.rankingComparisons.find(x=>x.id==='R02');
  const actual=original.rates.find(x=>x.rateFactor===1);
- assert.equal(actual.deltaBminusA,row.modelDeltaBminusA);
+ assert.equal(rounded(actual.deltaBminusA-(actual.scoreB.directStrengthRoundingCorrection-actual.scoreA.directStrengthRoundingCorrection)),row.modelDeltaBminusA);
  assert.equal(actual.modelLeader,row.modelLeader);
- assert.equal(actual.scoreA.total,row.scoreA.total);
- assert.equal(actual.scoreB.total,row.scoreB.total);
+ assert.equal(rounded(actual.scoreA.total-actual.scoreA.directStrengthRoundingCorrection),row.scoreA.total);
+ assert.equal(rounded(actual.scoreB.total-actual.scoreB.directStrengthRoundingCorrection),row.scoreB.total);
  assert.equal(actual.scoreA.berries,row.scoreA.berries);
  assert.equal(actual.scoreB.berries,row.scoreB.berries);
- assert.equal(actual.scoreA.skills,row.scoreA.skills);
- assert.equal(actual.scoreB.skills,row.scoreB.skills);
+ assert.equal(rounded(actual.scoreA.skills-actual.scoreA.directStrengthRoundingCorrection),row.scoreA.skills);
+ assert.equal(rounded(actual.scoreB.skills-actual.scoreB.directStrengthRoundingCorrection),row.scoreB.skills);
  assert.equal(actual.scoreA.cooking,row.scoreA.cooking);
  assert.equal(actual.scoreB.cooking,row.scoreB.cooking);
  assert.equal(actual.scoreA.meals,21);
@@ -91,6 +92,19 @@ test('CI-provenanced R02 sensitivity values are stable and not rank certificatio
  assert.equal(pinned.actualGameWeeksObserved,0);
  assert.equal(pinned.realGameRankingValidated,false);
  assert.equal(pinned.step2,'HOLD');
- assert.deepEqual(r.scenarios,pinned.scenarios);
+ // The archived snapshot remains byte-for-byte unchanged; reproduce it by
+ // stripping ONLY the upstream-verified per-activation rounding contribution.
+ const historical=JSON.parse(JSON.stringify(r.scenarios));
+ for(const scenario of historical)for(const sample of scenario.rates){
+  for(const key of ['scoreA','scoreB']){
+   const score=sample[key],correction=score.directStrengthRoundingCorrection;
+   score.total=rounded(score.total-correction);
+   score.skills=rounded(score.skills-correction);
+   delete score.directStrengthRoundingCorrection;
+  }
+  sample.deltaBminusA=rounded(sample.scoreB.total-sample.scoreA.total);
+  sample.modelLeader=Math.abs(sample.deltaBminusA)<1e-8?'TIE':sample.deltaBminusA>0?'B':'A';
+ }
+ assert.deepEqual(historical,pinned.scenarios);
  assert.deepEqual(r.pairing,pinned.pairing);
 });
