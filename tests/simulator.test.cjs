@@ -1902,3 +1902,37 @@ test('Berry Juice is the same E4 healing class for two-helper comparison warning
  a.teams.evening=['0','1','2','w0','j0'];
  assert.equal(warn(sim.simulate(a)),true,'evening combined E4 should warn');
 });
+
+
+test('upstream exact direct-strength skill reward rounds once PER proc before expected activations',()=>{
+ assert.equal(sim.directStrengthPerActivation('Charge Strength S',2,25),712);
+ assert.equal(sim.directStrengthPerActivation('Charge Strength M',2,25),1564);
+ assert.equal(sim.directStrengthPerActivation('Charge Strength M (Bad Dreams)',2,25),4692);
+ assert.equal(sim.roundedDirectStrength(1408,25),1760);
+ assert.throws(()=>sim.directStrengthPerActivation('Charge Strength S',0,25),/不正/);
+ assert.throws(()=>sim.roundedDirectStrength(500,101),/不正/);
+});
+test('upstream random strength index 0..150 is an exact 151-outcome arithmetic mean of individually rounded rewards',()=>{
+ const intervals=[[200,800],[285,1138],[393,1570],[542,2166],
+  [748,2992],[1033,4132],[1606,6424]];
+ for(let lv=1;lv<=7;lv++)for(const bonus of [0,25,50,100]){
+  const [min,max]=intervals[lv-1];
+  const independent=Array.from({length:151},(_,i)=>
+   Math.ceil((min+(max-min)*i/150)*(1+bonus/100)))
+   .reduce((a,b)=>a+b,0)/151;
+  assert.ok(Math.abs(independent-sim.directStrengthPerActivation('Charge Strength S (Random)',lv,bonus))<1e-10);
+ }
+ assert.throws(()=>sim.expectedRandomChargeStrength(8,25),/不正/);
+});
+test('seven-day direct-strength rounding correction is positive and solely an accounting delta',()=>{
+ const a=input();
+ a.options.map='ゴールド旧発電所';
+ a.options.fieldBonus=25;
+ a.options.recipeId='';
+ a.box.forEach(p=>{p.skillLevel=2;p.subskills=['','','','',''];});
+ const r=sim.simulate(a),n=r.skillTriggers;
+ assert.ok(n>0);
+ assert.ok(Math.abs(r.directStrengthRoundingCorrection-n*0.75)<1e-6);
+ assert.ok(Math.abs(r.total-r.berries-r.cooking-r.skills)<1e-6);
+ assert.ok(r.skills-r.directStrengthRoundingCorrection>=0);
+});

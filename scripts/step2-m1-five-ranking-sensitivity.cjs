@@ -56,7 +56,10 @@ function modelScore(name,apples){
  if(apples===147)assert.equal(out.estimatedMeals,0);
  return {total:round(out.total),berries:round(out.berries),
   cooking:round(out.cooking),skills:round(out.skills),
-  estimatedMeals:out.estimatedMeals,meals:out.meals.length};
+  estimatedMeals:out.estimatedMeals,meals:out.meals.length,
+  directStrengthRoundingCorrection:round(out.directStrengthRoundingCorrection),
+  historicalTotal:round(out.total-out.directStrengthRoundingCorrection),
+  historicalSkills:round(out.skills-out.directStrengthRoundingCorrection)};
 }
 function winner(n){return Math.abs(n)<1e-8?'TIE':n>0?'B':'A';}
 function runScenario(mode,rateFactor){
@@ -70,9 +73,10 @@ function runScenario(mode,rateFactor){
    assert.ok(a&&b);
    const delta=round(b.total-a.total);
    if(mode.id==='original-140'&&rateFactor===1){
-    assert.equal(delta,row.modelDeltaBminusA,row.id+' original delta');
-    assert.equal(round(a.total),row.scoreA.total,row.id+' score A');
-    assert.equal(round(b.total),row.scoreB.total,row.id+' score B');
+    assert.equal(round(b.historicalTotal-a.historicalTotal),
+     row.modelDeltaBminusA,row.id+' frozen 2026-10-17 delta + isolated rounding difference');
+    assert.equal(a.historicalTotal,row.scoreA.total,row.id+' frozen score A');
+    assert.equal(b.historicalTotal,row.scoreB.total,row.id+' frozen score B');
    }
    return {id:row.id,configA:row.configurationA,configB:row.configurationB,
     deltaBminusA:delta,modelLeader:winner(delta),

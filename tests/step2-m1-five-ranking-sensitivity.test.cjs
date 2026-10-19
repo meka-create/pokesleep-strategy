@@ -17,7 +17,10 @@ test('all five pair baselines reproduce frozen mixed-week leaderboard at natural
    assert.equal(comp.externallyValidated,false);
    if(mode.id==='original-140'){
     const ref=frozen.rankingComparisons.find(x=>x.id===comp.id);
-    assert.equal(comp.at1,ref.modelDeltaBminusA);
+    const factor=mode.factors[1];
+    const scoreA=factor.outputs[ref.configurationA],scoreB=factor.outputs[ref.configurationB];
+    const oldDelta=Math.round((scoreB.historicalTotal-scoreA.historicalTotal)*1e6)/1e6;
+    assert.equal(oldDelta,ref.modelDeltaBminusA);
     assert.equal(comp.leaderAt1,ref.modelLeader);
    }
   }
@@ -66,7 +69,37 @@ test('CI-provenanced five-pair ranks remain an internal model baseline, not accu
  assert.equal(snapshot.actualGameRanksValidated,0);
  assert.equal(snapshot.measuredSkillRateUncertainty,false);
  assert.equal(snapshot.probabilitiesOfRankingErrorsEstimated,false);
- assert.deepEqual(r.cases,snapshot.cases);
+ // Keep the archived 2026-10-18 CI evidence immutable. Reconstruct every
+ // frozen six-lineup score, pair delta and classification from the current
+ // report by removing ONLY the new per-activation direct-strength rounding.
+ const historical=JSON.parse(JSON.stringify(r.cases)),round=n=>Math.round(n*1e6)/1e6;
+ const winner=n=>Math.abs(n)<1e-8?'TIE':n>0?'B':'A';
+ for(const scenario of historical){
+  for(const factor of scenario.factors){
+   for(const score of Object.values(factor.outputs)){
+    const correction=score.directStrengthRoundingCorrection;
+    score.total=score.historicalTotal;
+    score.skills=score.historicalSkills;
+    delete score.directStrengthRoundingCorrection;
+    delete score.historicalTotal;delete score.historicalSkills;
+   }
+   for(const pair of factor.pairs){
+    pair.deltaBminusA=round(factor.outputs[pair.configB].total-factor.outputs[pair.configA].total);
+    pair.modelLeader=winner(pair.deltaBminusA);
+   }
+  }
+  scenario.changedModelLeaders=[];
+  for(const comp of scenario.comparisons){
+   const at075=scenario.factors[0].pairs.find(x=>x.id===comp.id);
+   const at1=scenario.factors[1].pairs.find(x=>x.id===comp.id);
+   Object.assign(comp,{at075:at075.deltaBminusA,at1:at1.deltaBminusA,
+    leaderAt075:at075.modelLeader,leaderAt1:at1.modelLeader,
+    modelLeaderChanges:at075.modelLeader!==at1.modelLeader});
+   comp.triage=comp.modelLeaderChanges?'P1_PRIORITY_VERIFY_SKILL_EVENTS':'UNVERIFIED_GAME_RANK';
+   if(comp.modelLeaderChanges)scenario.changedModelLeaders.push(comp.id);
+  }
+ }
+ assert.deepEqual(historical,snapshot.cases);
  assert.equal(r.step2,'HOLD');
  assert.equal(r.step3,'NOT_STARTED');
 });

@@ -59,7 +59,9 @@ function score(result){
  return {total:result.total,berries:result.berries,skills:result.skills,
   cooking:result.cooking,meals:result.meals.length,
   estimatedMeals:result.estimatedMeals,expectedSourceMeals:result.expectedSourceMeals,
-  skillTriggers:result.skillTriggers};
+  skillTriggers:result.skillTriggers,directStrengthRoundingCorrection:result.directStrengthRoundingCorrection,
+  historicalTotal:result.total-result.directStrengthRoundingCorrection,
+  historicalSkills:result.skills-result.directStrengthRoundingCorrection};
 }
 function leader(delta){
  if(Math.abs(delta)<1e-8)return 'TIE';
@@ -87,7 +89,7 @@ function compareTwo(scenario,rateFactor){
     throw Error('All recipe mandatory ingredients must be certain');
   }
   const delta=safeRound(b.total-a.total);
-  return {rateFactor,scoreA:Object.fromEntries(Object.entries(a).map(([k,v])=>[k,safeRound(v)])),
+  return {rateFactor,historicalDeltaBminusA:safeRound(b.historicalTotal-a.historicalTotal),scoreA:Object.fromEntries(Object.entries(a).map(([k,v])=>[k,safeRound(v)])),
    scoreB:Object.fromEntries(Object.entries(b).map(([k,v])=>[k,safeRound(v)])),
    deltaBminusA:delta,modelLeader:leader(delta),
    referenceRankValidated:false,gameAccuracyValidated:false};
@@ -108,8 +110,9 @@ function sensitivityReport(){
  });
  const original=scenariosOut.find(x=>x.id==='original-140');
  const atNatural=original.rates.find(x=>x.rateFactor===1);
- assert.equal(atNatural.deltaBminusA,savedPair.modelDeltaBminusA,
-  'Unchanged natural-rate benchmark must reproduce frozen v0.2.30 R02');
+ assert.equal(safeRound(atNatural.scoreB.historicalTotal-atNatural.scoreA.historicalTotal),
+  savedPair.modelDeltaBminusA,
+  'The source-verified per-proc rounding delta must reconcile exactly to the frozen v0.2.30 R02 model');
  assert.equal(atNatural.modelLeader,savedPair.modelLeader);
  return {schema:'step2-m1-r02-sensitivity-v1',sourceBaseline:'v0.2.30 M1 R02',
   baselineFrozen:true,scope:'INTERNAL_PARAMETER_SENSITIVITY_ONLY',

@@ -17,7 +17,7 @@ function score(result){
   uncollectedExtraHelpItemsAtSwap:round(result.uncollectedExtraHelpItemsAtSwap),
   uncollectedExtraHelpBerryEnergyAtSwap:round(result.uncollectedExtraHelpBerryEnergyAtSwap),
   pendingExtraHelpBerryEnergy:round(result.pendingExtraHelpBerryEnergy),
-  extraHelps:round(result.extraHelps)};
+  extraHelps:round(result.extraHelps),directStrengthRoundingCorrection:round(result.directStrengthRoundingCorrection)};
 }
 function extraFixture(name){
  const input=fixture(name,140);
@@ -37,8 +37,8 @@ function report(){
  assert.ok(row);
  const originalA=sim.simulate(fixture('oneHealer',140));
  const originalB=sim.simulate(fixture('switching',140));
- assert.equal(round(originalA.total),row.scoreA.total);
- assert.equal(round(originalB.total),row.scoreB.total);
+ assert.equal(round(originalA.total-originalA.directStrengthRoundingCorrection),row.scoreA.total);
+ assert.equal(round(originalB.total-originalB.directStrengthRoundingCorrection),row.scoreB.total);
  // The historical R05 roster has NO extra-help generating skill at all.
  for(const result of [originalA,originalB]){
   assert.equal(result.extraHelps,0);

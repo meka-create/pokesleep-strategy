@@ -20,7 +20,7 @@ function compare(current=buildReport()){
     currentModelDelta:row.modelDeltaBminusA,changedModelLeader:old.modelLeader!==row.modelLeader,
     independentRankingValidated:false};
  });
- return {baselineVersion:baseline.baselineVersion,currentCodeVersion:current.baselineVersion,
+ return {baselineVersion:baseline.baselineVersion,currentCodeVersion:require('../package.json').version,
   purpose:'MODEL_CHANGE_DETECTION_ONLY',
   note:'A smaller model difference does not imply improved game accuracy. For five rankings, external ordering validation remains required.',
   matrix,rankingComparisons};

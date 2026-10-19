@@ -62,14 +62,28 @@ test('CI-sourced v0.2.30 numeric baseline is archived with honest evidence grade
 });
 
 
-test('M2 comparison command reports zero model change on unchanged v0.2.30 and never calls it accuracy improvement',()=>{
+test('M2 rounding-only change reconstructs the frozen M1 baseline without rewriting it',()=>{
  const {compare}=require('../scripts/step2-m1-compare.cjs');
+ const round=n=>Math.round(n*1e6)/1e6;
  const diff=compare(report);
  assert.equal(diff.purpose,'MODEL_CHANGE_DETECTION_ONLY');
+ assert.equal(diff.currentCodeVersion,require('../package.json').version);
+ assert.equal(diff.baselineVersion,'0.2.30');
  assert.equal(diff.matrix.length,14);
- assert.ok(diff.matrix.every(row=>row.modelChange===0));
+ for(const row of diff.matrix){
+  const current=report.matrix.find(x=>x.id===row.id);
+  const correction=current.directStrengthRoundingCorrection||0;
+  assert.ok(Math.abs(row.modelChange-correction)<2e-6,row.id);
+  assert.equal(row.independentlyValidated,row.evidenceGrade==='B');
+ }
+ assert.ok(diff.matrix.some(row=>row.modelChange>0));
  assert.equal(diff.rankingComparisons.length,5);
- assert.ok(diff.rankingComparisons.every(row=>!row.changedModelLeader&&!row.independentRankingValidated));
+ for(const row of diff.rankingComparisons){
+  const current=report.rankingComparisons.find(x=>x.id===row.id);
+  assert.ok(Math.abs(round(row.currentModelDelta-row.baselineModelDelta)-
+    round(current.scoreB.directStrengthRoundingCorrection-current.scoreA.directStrengthRoundingCorrection))<2e-6,row.id);
+  assert.equal(row.independentRankingValidated,false);
+ }
  assert.match(diff.note,/not imply improved game accuracy/);
 });
 
