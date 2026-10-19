@@ -64,7 +64,7 @@ function compare(capacity){
  assert.equal(modeled.expectedCooking,reference.expectedCooking);
  for(const key of ['apple','milk'])
   assert.equal(modeled.expectedConsumed[key]||0,reference.consumed[key]||0);
- assert.deepEqual([...modeled.distribution].sort((a,b)=>a[0].localeCompare(b[0])),
+ assert.deepEqual(Array.from(modeled.distribution,([key,p])=>[key,p]).sort((a,b)=>a[0].localeCompare(b[0])),
   [...reference.terminal].sort((a,b)=>a[0].localeCompare(b[0])));
  assert.equal([...modeled.distribution.values()].reduce((a,b)=>a+b,0),1);
  return modeled;
