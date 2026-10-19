@@ -142,3 +142,55 @@ test('invalid batch input rejects whole comparison instead of returning partial 
  assert.throws(()=>obs.reviewImportedReports([],sim.simulate),/1〜4/);
  assert.throws(()=>obs.reviewImportedReports(Array.from({length:5},()=>make()),sim.simulate),/1〜4/);
 });
+
+
+test('M1 multiweek comparison ignores arbitrary JSON object-key order but preserves array meaning',()=>{
+ const a=make(),b=make();
+ b.week.mondayDate='2026-10-26';
+ const reorder=value=>Array.isArray(value)?value.map(reorder):
+  value&&typeof value==='object'?
+   Object.fromEntries(Object.entries(value).reverse().map(([k,v])=>[k,reorder(v)])):value;
+ b.input=reorder(b.input);
+ assert.notEqual(JSON.stringify(a.input),JSON.stringify(b.input),
+  'test fixture must actually reorder serialized input keys');
+ const snapshot=JSON.stringify(b);
+ const batch=obs.reviewImportedReports([a,b],sim.simulate);
+ assert.equal(batch.sameSavedInputs,true);
+ assert.deepEqual(Array.from(batch.duplicateMondays),[]);
+ assert.deepEqual(Array.from(batch.conflictingInputsMondays),[]);
+ assert.equal(JSON.stringify(b),snapshot,'review may not rewrite user observation JSON');
+ assert.equal(batch.accuracyGate,'HOLD');
+});
+test('M1 same game-week observations with identical totals but different recorded lineup are flagged',()=>{
+ const a=make(),b=make();
+ b.input.teams.morning=[...b.input.teams.morning].reverse();
+ const result=obs.reviewImportedReports([a,b],sim.simulate);
+ assert.deepEqual(Array.from(result.duplicateMondays),['2026-10-19']);
+ assert.deepEqual(Array.from(result.conflictingMondays),[]);
+ assert.deepEqual(Array.from(result.conflictingInputsMondays),['2026-10-19']);
+ assert.equal(result.sameSavedInputs,false);
+ assert.equal(result.rankOrAccuracyValidated,false);
+ assert.equal(result.accuracyGate,'HOLD');
+});
+test('M1 same-week duplicate with reordered properties and different capture timestamp is not a condition contradiction',()=>{
+ const a=make(),b=make();
+ b.capture.capturedAt='2026-10-19T10:00:00.000Z';
+ b.provenance.noUntrackedItems=true;
+ const reversed=Object.fromEntries(Object.entries(b.input).reverse());
+ b.input=reversed;
+ const result=obs.reviewImportedReports([a,b],sim.simulate);
+ assert.deepEqual(Array.from(result.duplicateMondays),['2026-10-19']);
+ assert.deepEqual(Array.from(result.conflictingMondays),[]);
+ assert.deepEqual(Array.from(result.conflictingInputsMondays),[]);
+ assert.equal(result.sameSavedInputs,true);
+ assert.equal(result.accuracyGate,'HOLD');
+});
+test('M1 three records detect same-week condition mismatch without spurious weekly totals mismatch',()=>{
+ const a=make(),b=make(),c=make();
+ c.input.options.tapMinutes=180;
+ const result=obs.reviewImportedReports([a,b,c],sim.simulate);
+ assert.deepEqual(Array.from(result.duplicateMondays),['2026-10-19']);
+ assert.deepEqual(Array.from(result.conflictingMondays),[]);
+ assert.deepEqual(Array.from(result.conflictingInputsMondays),['2026-10-19']);
+ assert.equal(result.status,'UNVERIFIED_MULTI_WEEK_RECORDS');
+});
