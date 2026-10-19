@@ -228,13 +228,22 @@ function reviewImportedReport(report,simulate){
  };
 }
 
+// Compare JSON data by meaning, not by arbitrary object property order.
+// Arrays stay ordered: five-member lineup and event order may be significant.
+// This does NOT establish that game conditions were actually the same.
+function comparableInputKey(input){
+ return JSON.stringify(input,(_key,value)=>
+  value&&typeof value==='object'&&!Array.isArray(value)?
+   Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value);
+}
 function reviewImportedReports(reports,simulate){
  if(!Array.isArray(reports)||reports.length<1||reports.length>4)
   throw Error('観測JSONは1〜4ファイル選択してください。');
  // Validate all weeks before exposing any combined result.
  const entries=reports.map(report=>reviewImportedReport(report,simulate));
- const sameInput=reports.every(report=>JSON.stringify(report.input)===JSON.stringify(reports[0].input));
- const seen=new Map(),duplicates=new Set(),conflicts=new Set();
+ const inputKeys=reports.map(report=>comparableInputKey(report.input));
+ const sameInput=inputKeys.every(key=>key===inputKeys[0]);
+ const seen=new Map(),duplicates=new Set(),conflicts=new Set(),inputConflicts=new Set();
  for(let i=0;i<reports.length;i++){
   const report=reports[i],date=report.week.mondayDate;
   if(seen.has(date)){
@@ -243,6 +252,10 @@ function reviewImportedReports(reports,simulate){
    if(prior.week.field!==report.week.field||
       ['total','berryAndStrengthSkill','cooking'].some(k=>prior.observed[k]!==report.observed[k]))
     conflicts.add(date);
+   // Two records for the SAME real-game week with different simulation
+   // settings cannot be presented as a matching duplicated observation,
+   // even when the user entered identical weekly summary numbers.
+   if(inputKeys[seen.get(date)]!==inputKeys[i])inputConflicts.add(date);
   }else seen.set(date,i);
  }
  return {
@@ -250,6 +263,7 @@ function reviewImportedReports(reports,simulate){
   sameSavedInputs:sameInput,
   duplicateMondays:Array.from(duplicates).sort(),
   conflictingMondays:Array.from(conflicts).sort(),
+  conflictingInputsMondays:Array.from(inputConflicts).sort(),
   count:entries.length,
   confoundedCount:entries.filter(x=>x.status==='CONFOUNDED_OBSERVATION').length,
   rankOrAccuracyValidated:false,accuracyGate:'HOLD',
