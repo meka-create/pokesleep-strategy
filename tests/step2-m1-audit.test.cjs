@@ -67,6 +67,8 @@ test('M2 rounding-only change reconstructs the frozen M1 baseline without rewrit
  const round=n=>Math.round(n*1e6)/1e6;
  const diff=compare(report);
  assert.equal(diff.purpose,'MODEL_CHANGE_DETECTION_ONLY');
+ assert.equal(diff.currentCodeVersion,require('../package.json').version);
+ assert.equal(diff.baselineVersion,'0.2.30');
  assert.equal(diff.matrix.length,14);
  for(const row of diff.matrix){
   const current=report.matrix.find(x=>x.id===row.id);
