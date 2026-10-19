@@ -89,7 +89,7 @@ function compareTwo(scenario,rateFactor){
     throw Error('All recipe mandatory ingredients must be certain');
   }
   const delta=safeRound(b.total-a.total);
-  return {rateFactor,scoreA:Object.fromEntries(Object.entries(a).map(([k,v])=>[k,safeRound(v)])),
+  return {rateFactor,historicalDeltaBminusA:safeRound(b.historicalTotal-a.historicalTotal),scoreA:Object.fromEntries(Object.entries(a).map(([k,v])=>[k,safeRound(v)])),
    scoreB:Object.fromEntries(Object.entries(b).map(([k,v])=>[k,safeRound(v)])),
    deltaBminusA:delta,modelLeader:leader(delta),
    referenceRankValidated:false,gameAccuracyValidated:false};
