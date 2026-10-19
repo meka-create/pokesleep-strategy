@@ -1721,3 +1721,39 @@ test('fractional E4 skill expectation warns on non-zero decay phase at permitted
  assert.equal(without.healingTimerCorrelationEvents,0);
  assert.equal(without.warnings.some(x=>x.includes('10分げんき減少タイマーを必ずリセットする近似')),false);
 });
+
+
+test('invalid numeric simulator settings are rejected instead of silently becoming safe defaults',()=>{
+ const cases=[
+  ['tapMinutes',0],['tapMinutes',''],['tapMinutes',Infinity],
+  ['potSize',0],['potSize',''],['potSize',NaN],
+  ['fieldBonus','unreadable'],['fieldBonus',0.5],
+  ['sleepScore',''],['sleepScore','not-a-score'],
+  ['initialEnergy',undefined], // checked separately as valid fallback
+ ];
+ for(const [key,value] of cases.filter(([key])=>key!=='initialEnergy')){
+  const a=input();a.options[key]=value;
+  assert.throws(()=>sim.simulate(a),/入力値を確認/,key+'='+String(value));
+ }
+ const a=input();a.options.initialEnergy='not-a-number';
+ assert.throws(()=>sim.simulate(a),/入力値を確認/);
+ a.options.initialEnergy=24.5;
+ assert.throws(()=>sim.simulate(a),/入力値を確認/);
+ a.options.initialEnergy=false;
+ assert.throws(()=>sim.simulate(a),/入力値を確認/);
+});
+test('valid numeric settings preserve results with numeric-string or nullish defaults',()=>{
+ const a=input(),b=input();
+ b.options.tapMinutes=String(b.options.tapMinutes);
+ b.options.potSize=String(b.options.potSize);
+ b.options.fieldBonus=String(b.options.fieldBonus);
+ b.options.sleepScore=String(b.options.sleepScore);
+ b.options.initialEnergy=String(b.options.initialEnergy);
+ const x=sim.simulate(a),y=sim.simulate(b);
+ for(const key of ['total','berries','skills','cooking','skillTriggers','estimatedMeals'])
+  assert.equal(y[key],x[key],key);
+ const defaults=input(),explicit=input();
+ delete defaults.options.tapMinutes;delete defaults.options.potSize;
+ explicit.options.tapMinutes=150;explicit.options.potSize=57;
+ assert.equal(sim.simulate(defaults).total,sim.simulate(explicit).total);
+});
