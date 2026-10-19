@@ -103,7 +103,8 @@ test('CI-provenanced R02 sensitivity values are stable and not rank certificatio
    delete score.directStrengthRoundingCorrection;
    delete score.historicalTotal;delete score.historicalSkills;
   }
-  sample.deltaBminusA=rounded(sample.scoreB.total-sample.scoreA.total);
+  sample.deltaBminusA=sample.historicalDeltaBminusA;
+  delete sample.historicalDeltaBminusA;
   sample.modelLeader=Math.abs(sample.deltaBminusA)<1e-8?'TIE':sample.deltaBminusA>0?'B':'A';
  }
  assert.deepEqual(historical,pinned.scenarios);
