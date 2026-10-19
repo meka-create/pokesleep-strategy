@@ -1881,3 +1881,24 @@ test('uncollected EXTRA berry energy is a subcomponent of discarded model carry,
  assert.ok(Number.isFinite(output.pendingExtraHelpBerryEnergy)&&output.pendingExtraHelpBerryEnergy>=0);
  assert.ok(Math.abs(output.berries+output.cooking+output.skills-output.total)<1e-5);
 });
+
+
+test('Berry Juice is the same E4 healing class for two-helper comparison warnings, not only skill execution',()=>{
+ const juice=master.species.find(sp=>sp.skill==='Energy for Everyone S (Berry Juice)');
+ assert.ok(juice&&juice.name==='ツボツボ','master must contain a Berry Juice E4 species');
+ assert.equal(sim.isAllHealerSkill('Energy for Everyone S'),true);
+ assert.equal(sim.isAllHealerSkill('Energy for Everyone S (Berry Juice)'),true);
+ assert.equal(sim.isAllHealerSkill('Charge Energy S'),false);
+ const a=input();
+ a.box.push(monster('w0','プクリン'),monster('j0',juice.name));
+ a.options.recipeId='';
+ const warn=result=>result.warnings.some(x=>x.includes('優劣を確定しないでください'));
+ a.teams.noon=['0','1','2','w0','j0'];
+ assert.equal(warn(sim.simulate(a)),true,'mixed E4 + Berry Juice in noon');
+ a.teams.noon=['0','1','2','3','j0'];
+ assert.equal(warn(sim.simulate(a)),false,'only one Berry Juice helper');
+ a.teams.sleep=['0','1','2','w0','j0'];
+ assert.equal(warn(sim.simulate(a)),false,'sleep-only combination is not a simultaneous daytime comparison');
+ a.teams.evening=['0','1','2','w0','j0'];
+ assert.equal(warn(sim.simulate(a)),true,'evening combined E4 should warn');
+});
