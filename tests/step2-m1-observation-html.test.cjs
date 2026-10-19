@@ -25,7 +25,7 @@ test('weekly game observation is opt-in after successful simulation and is embed
  assert.ok(app.includes("lastRunSnapshot=null"));
  for(const output of ['index.html','dist/index.html']){
   const data=read(output);
-  assert.match(data,/STEP 2 · v0\.2\.38/);
+  assert.match(data,/STEP 2 · v0\.2\.39/);
   assert.ok(data.includes('PokeObservation=api'));
   assert.ok(data.includes('id="obsMonday"'));
   assert.ok(data.indexOf('PokeObservation=api')<data.indexOf("lastRunSnapshot=PokeObservation.captureSimulation"));
