@@ -59,7 +59,9 @@ function score(result){
  return {total:result.total,berries:result.berries,skills:result.skills,
   cooking:result.cooking,meals:result.meals.length,
   estimatedMeals:result.estimatedMeals,expectedSourceMeals:result.expectedSourceMeals,
-  skillTriggers:result.skillTriggers,directStrengthRoundingCorrection:result.directStrengthRoundingCorrection};
+  skillTriggers:result.skillTriggers,directStrengthRoundingCorrection:result.directStrengthRoundingCorrection,
+  historicalTotal:result.total-result.directStrengthRoundingCorrection,
+  historicalSkills:result.skills-result.directStrengthRoundingCorrection};
 }
 function leader(delta){
  if(Math.abs(delta)<1e-8)return 'TIE';
@@ -108,8 +110,7 @@ function sensitivityReport(){
  });
  const original=scenariosOut.find(x=>x.id==='original-140');
  const atNatural=original.rates.find(x=>x.rateFactor===1);
- assert.equal(safeRound(atNatural.deltaBminusA-
-   (atNatural.scoreB.directStrengthRoundingCorrection-atNatural.scoreA.directStrengthRoundingCorrection)),
+ assert.equal(safeRound(atNatural.scoreB.historicalTotal-atNatural.scoreA.historicalTotal),
   savedPair.modelDeltaBminusA,
   'The source-verified per-proc rounding delta must reconcile exactly to the frozen v0.2.30 R02 model');
  assert.equal(atNatural.modelLeader,savedPair.modelLeader);
