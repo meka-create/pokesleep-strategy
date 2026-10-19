@@ -340,6 +340,24 @@ function expectedPocketOccupation(expectedCount,capacity){
  return new Map([[lo,hi-x],[hi,x-lo]]);
 }
 function emptyPocket(){return {used:0,berries:0,ingredients:{},skillState:[1,0,0],pendingSneaky:0,occupation:new Map([[0,1]])};}
+// Count the model's EXTRA help carry removed by a lineup change. This is
+// explicitly an uncollected-model-queue diagnostic, not a claim that items
+// vanish in the real game. We must not silently pretend the two policies are
+// calibrated when comparing fixed vs rotating teams.
+function uncollectedExtraHelpOnSwap(oldTeam,newTeam,extraPocket){
+ const retained=new Set(newTeam);
+ let items=0,berries=0,ingredients=0,affectedMembers=0;
+ for(const id of oldTeam){
+  if(retained.has(id))continue;
+  const bag=extraPocket.get(id);
+  if(!bag||!(bag.used>1e-9))continue;
+  items+=bag.used;
+  berries+=bag.berries||0;
+  ingredients+=Object.values(bag.ingredients||{}).reduce((sum,n)=>sum+n,0);
+  affectedMembers++;
+ }
+ return {items,berries,ingredients,affectedMembers};
+}
 function clearDepartingPockets(oldTeam,newTeam,pocket,extraPocket){
  const retained=new Set(newTeam);
  for(const id of oldTeam)if(!retained.has(id)){
@@ -705,7 +723,7 @@ function simulate(input){
  const warnings=new Set();
  if(!favorite.length)warnings.add('このフィールドの好みのきのみは未確定です。好みボーナスを計上していません。');
  const species=new Map(Master.species.map(s=>[s.name,s]));
- const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,skillHelpCompletions:0,skillEligibleHelps:0,exactFoodCarryCollections:0,meals:[],estimatedMeals:0,initialCoveredMeals:0,expectedSourceMeals:0,expectedSourceMealEnergy:0,initialSourceMealEnergy:0,consumedIngredients:{}};
+ const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,skillHelpCompletions:0,skillEligibleHelps:0,exactFoodCarryCollections:0,uncollectedExtraHelpItemsAtSwap:0,uncollectedExtraHelpSwaps:0,meals:[],estimatedMeals:0,initialCoveredMeals:0,expectedSourceMeals:0,expectedSourceMealEnergy:0,initialSourceMealEnergy:0,consumedIngredients:{}};
  for(const p of input.box){
   energy.set(p.id,initialEnergy);
   pocket.set(p.id,emptyPocket());
@@ -772,6 +790,14 @@ function simulate(input){
  // Every stockpile user starts at zero on Monday; team substitutions reset it.
  const stockpileStates=new Map();
  function resetStockpileLeaving(oldTeam,newTeam){
+  // A tap may generate EXTRA-help items after its ordinary rewards are
+  // collected. The present model drops this queue on lineup departure; record
+  // the amount explicitly so team-comparison users can spot the uncertainty.
+  const dropped=uncollectedExtraHelpOnSwap(oldTeam,newTeam,extraPocket);
+  if(dropped.items>1e-9){
+   status.uncollectedExtraHelpItemsAtSwap+=dropped.items;
+   status.uncollectedExtraHelpSwaps++;
+  }
   // Outgoing team is collected before switching; any blocked carry is lost.
   clearDepartingPockets(oldTeam,newTeam,pocket,extraPocket);
   clearDepartingHelpProgress(oldTeam,newTeam,helpProgress);
@@ -1207,11 +1233,16 @@ function simulate(input){
  // Sunday 00:00-04:00 has no collection: do not add its pending
  // sneaky energy to the old week. The next real tap will earn it.
  const pendingSneaky=Array.from(pocket.values()).reduce((n,bag)=>n+(bag.pendingSneaky||0),0);
+ const pendingExtraHelpItems=Array.from(extraPocket.values()).reduce((n,bag)=>n+(bag.used||0),0);
  const stockpilePending={};
  for(const [id,probabilities] of stockpileStates){
   const pending=probabilities.reduce((sum,p,k)=>sum+p*k,0);
   if(pending>1e-9)stockpilePending[id]=pending;
  }
+ if(status.uncollectedExtraHelpItemsAtSwap>1e-9)
+  warnings.add('追加おてつだいの未回収所持品が編成交代時にモデルから除外されました（期待'+status.uncollectedExtraHelpItemsAtSwap.toFixed(2)+'個、'+status.uncollectedExtraHelpSwaps+'回の交代）。交代前の追加分を実ゲームで回収できるか未検証です。固定編成と交代編成の優劣をこの差だけで確定しないでください。');
+ if(pendingExtraHelpItems>1e-9)
+  warnings.add('週末04:00時点の追加おてつだい未回収所持品（期待'+pendingExtraHelpItems.toFixed(2)+'個）は前週の獲得に加算していません。次の実操作による回収は別週扱いです。');
  if(status.stockpileResets)warnings.add('たくわえるは編成から外れた際、期待蓄積を計'+status.stockpileExpectedLost.toFixed(2)+'回分リセットしました（'+status.stockpileResets+'回の交代）。');
  if(Object.keys(stockpilePending).length)warnings.add('週末時点で放出されていないたくわえる蓄積はエナジーへ加算しません。');
  for(const s of warningsSkills)warnings.add('未対応のメインスキル（エナジー寄与未計上）：'+s);
@@ -1236,9 +1267,9 @@ function simulate(input){
  if(status.expectedSourceMeals>0)warnings.add('週間料理エナジーの一部は不確実な食材生産への依存を含みます（'+status.expectedSourceMeals+'食・'+Math.round(status.expectedSourceMealEnergy)+'エナジー相当）。これは食材由来の分類であり、料理成立確率・誤差率を表すものではありません。');
  if(status.estimatedMeals>0)warnings.add('料理'+status.estimatedMeals+'食は、必要食材の一部または全部を不確実な生産期待値に依存して計上しています。実際のレシピ成立確率と未成立時の食材・げんき・エナジー分岐は未計算です。');
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他の個体との相関・条件外は期待値近似です。');
- return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
+ return {berries:status.berries,cooking:status.cooking,skills:status.skills,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
+const api={cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
