@@ -10,14 +10,14 @@ test('R02 original natural skill rates match frozen 2026-10-17 M1 CI baseline',(
  const frozen=require('../docs/STEP2_M1_BASELINE_V0230_20261017.json');
  const row=frozen.rankingComparisons.find(x=>x.id==='R02');
  const actual=original.rates.find(x=>x.rateFactor===1);
- assert.equal(rounded(actual.deltaBminusA-(actual.scoreB.directStrengthRoundingCorrection-actual.scoreA.directStrengthRoundingCorrection)),row.modelDeltaBminusA);
+ assert.equal(rounded(actual.scoreB.historicalTotal-actual.scoreA.historicalTotal),row.modelDeltaBminusA);
  assert.equal(actual.modelLeader,row.modelLeader);
- assert.equal(rounded(actual.scoreA.total-actual.scoreA.directStrengthRoundingCorrection),row.scoreA.total);
- assert.equal(rounded(actual.scoreB.total-actual.scoreB.directStrengthRoundingCorrection),row.scoreB.total);
+ assert.equal(actual.scoreA.historicalTotal,row.scoreA.total);
+ assert.equal(actual.scoreB.historicalTotal,row.scoreB.total);
  assert.equal(actual.scoreA.berries,row.scoreA.berries);
  assert.equal(actual.scoreB.berries,row.scoreB.berries);
- assert.equal(rounded(actual.scoreA.skills-actual.scoreA.directStrengthRoundingCorrection),row.scoreA.skills);
- assert.equal(rounded(actual.scoreB.skills-actual.scoreB.directStrengthRoundingCorrection),row.scoreB.skills);
+ assert.equal(actual.scoreA.historicalSkills,row.scoreA.skills);
+ assert.equal(actual.scoreB.historicalSkills,row.scoreB.skills);
  assert.equal(actual.scoreA.cooking,row.scoreA.cooking);
  assert.equal(actual.scoreB.cooking,row.scoreB.cooking);
  assert.equal(actual.scoreA.meals,21);
@@ -98,9 +98,10 @@ test('CI-provenanced R02 sensitivity values are stable and not rank certificatio
  for(const scenario of historical)for(const sample of scenario.rates){
   for(const key of ['scoreA','scoreB']){
    const score=sample[key],correction=score.directStrengthRoundingCorrection;
-   score.total=rounded(score.total-correction);
-   score.skills=rounded(score.skills-correction);
+   score.total=score.historicalTotal;
+   score.skills=score.historicalSkills;
    delete score.directStrengthRoundingCorrection;
+   delete score.historicalTotal;delete score.historicalSkills;
   }
   sample.deltaBminusA=rounded(sample.scoreB.total-sample.scoreA.total);
   sample.modelLeader=Math.abs(sample.deltaBminusA)<1e-8?'TIE':sample.deltaBminusA>0?'B':'A';
