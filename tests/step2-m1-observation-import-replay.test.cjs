@@ -276,3 +276,47 @@ test('M1 model-limitations and actual simulator treat the Berry Juice E4 pair th
  assert.equal(limitations.some(x=>x.includes('解放済み食材')),false);
  assert.equal(obs.preview(r).status,'CONFOUNDED_OBSERVATION');
 });
+
+
+test('M1 compares four active partial-skill strengths as confounded, in browser, CLI and save preview',()=>{
+ const cases=[
+  ['Berry Zone (Psystrike)','マゴのみゾーン'],
+  ['Charge Energy S (Moonlight)','追加チーム回復'],
+  ['Energizing Cheer S (Nuzzle)','スキル発動可能ボーナス'],
+  ['Ingredient Draw S (Hyper Cutter)','条件付き追加食材']
+ ];
+ const master=ctx.globalThis.PokeMaster;
+ for(const [skill,reason] of cases){
+  const sp=master.species.find(x=>x.skill===skill);
+  assert.ok(sp,'master species must exist: '+skill);
+  assert.equal(sim.unmodeledStrengthSkillEffect(skill)?.includes(reason),true);
+  const r=make();for(const flag of obs.flags)r.provenance[flag]=true;
+  r.input.box[0].pokemon=sp.name;
+  const slot=(sp.mythIng||sp.ings).find(x=>x&&x.c1>0);
+  r.input.box[0].ingredients[0]=master.ingredients[slot.name];
+  const actualModel=sim.simulate(r.input);
+  r.capture.modelAtCapture=Object.fromEntries(
+   ['total','berries','skills','cooking'].map(k=>[k,actualModel[k]]));
+  const imported=obs.reviewImportedReport(r,sim.simulate),cli=compareSingleWeek(r),preview=obs.preview(r);
+  assert.equal(imported.captureComparison.matchesCurrentModel,true,skill);
+  assert.equal(imported.unconfirmedConditions.length,0,skill);
+  assert.equal(imported.confounders.length,0,skill);
+  for(const review of [imported,cli,preview]){
+   assert.equal(review.status,'CONFOUNDED_OBSERVATION',skill);
+   assert.ok(review.modelLimitations.some(x=>x.includes(sp.name)&&x.includes(reason)),skill);
+   assert.equal(review.accuracyGate,'HOLD',skill);
+   assert.equal(review.rankOrAccuracyValidated,false,skill);
+  }
+ }
+});
+test('M1 does not count excluded dream shard-only skills or inactive partial effects as strength omissions',()=>{
+ const master=ctx.globalThis.PokeMaster;
+ assert.equal(sim.unmodeledStrengthSkillEffect('Dream Shard Magnet S'),null);
+ assert.equal(sim.unmodeledStrengthSkillEffect('Energy for Everyone S (Berry Juice)'),null);
+ const r=make();for(const flag of obs.flags)r.provenance[flag]=true;
+ const partial=master.species.find(x=>x.skill==='Berry Zone (Psystrike)');
+ assert.ok(partial);
+ r.input.box.push({...pokemon('outside'),pokemon:partial.name});
+ assert.equal(obs.knownModelLimitations(r.input).some(x=>x.includes('未計上の追加効果')),false);
+ assert.equal(obs.preview(r).status,'UNCALIBRATED_OBSERVATION');
+});
