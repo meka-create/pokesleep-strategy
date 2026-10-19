@@ -1264,8 +1264,13 @@ function simulate(input){
  // taps, a 0-capacity pot, NaN or a blank field into plausible default values.
  const numericOption=(name,fallback)=>{
   const raw=opts[name]??fallback;
+  const n=Number(raw);
+  // Fractional initial Energy (e.g. 80.5) is intentionally supported by
+  // controlled Energy/timer benchmarks. Tap intervals and pot slots are
+  // discrete counts; they must be integers.
   if((typeof raw!=='number'&&typeof raw!=='string')||
-     String(raw).trim()===''||!Number.isSafeInteger(Number(raw)))
+     String(raw).trim()===''||!Number.isFinite(n)||
+     ((name==='tapMinutes'||name==='potSize')&&!Number.isSafeInteger(n)))
    throw Error('フィールド補正・回収間隔・鍋容量・睡眠スコアなどの入力値を確認してください。');
   return Number(raw);
  };
