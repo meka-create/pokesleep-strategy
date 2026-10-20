@@ -379,3 +379,32 @@ test('M1 legacy and changed diagnostics fail closed even when recorded energy to
   assert.equal(view.rankOrAccuracyValidated,false);
  }
 });
+
+
+test('M1 Heal Pulse expected two-target model remains observationally confounded, consistently in preview/browser/CLI',()=>{
+ const master=ctx.globalThis.PokeMaster,sp=master.species.find(x=>x.skill==='Energizing Cheer S (Heal Pulse)');
+ assert.ok(sp);
+ const r=make();
+ for(const flag of obs.flags)r.provenance[flag]=true;
+ r.input.box[0].pokemon=sp.name;
+ const first=(sp.mythIng||sp.ings).find(x=>x.c1>0);
+ assert.ok(first);
+ r.input.box[0].ingredients[0]=master.ingredients[first.name];
+ const predicted=sim.simulate(r.input);
+ r.capture.modelAtCapture=Object.fromEntries(['total','berries','cooking','skills'].map(k=>[k,predicted[k]]));
+ r.capture.modelDiagnosticsAtCapture=obs.modelDiagnostics(predicted);
+ const browser=obs.reviewImportedReport(r,sim.simulate),cli=compareSingleWeek(r),preview=obs.preview(r);
+ assert.equal(browser.captureComparison.matchesCurrentModel,true);
+ assert.equal(browser.confounders.length,0);
+ for(const view of [browser,cli,preview]){
+  assert.equal(view.status,'CONFOUNDED_OBSERVATION');
+  assert.equal(view.accuracyGate,'HOLD');
+  assert.equal(view.rankOrAccuracyValidated,false);
+  assert.ok(view.modelLimitations.some(x=>x.includes('いやしのはどう')&&x.includes('対象2匹')));
+ }
+ const outside=make();
+ outside.input.box.push({...pokemon('off'),pokemon:sp.name,
+  ingredients:[master.ingredients[first.name],'','']});
+ assert.equal(obs.knownModelLimitations(outside.input).some(x=>x.includes('いやしのはどう')),false,
+  'off-roster Heal Pulse cannot confound the observation');
+});
