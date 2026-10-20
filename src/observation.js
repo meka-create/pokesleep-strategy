@@ -404,9 +404,14 @@ function screenR02TwoWeekPair(reports,entries){
   // R02 itself and its known E4 correlations are descriptive limitations,
   // not evidence that an optional ingredient, invalid slot, or omitted skill
   // can be safely compared between the two candidate weeks.
-  const r02Specific=x=>x.includes('R02型')||
-    x.includes('げんき回復の発動分岐と10分減衰タイマー')||
-    x.includes('げんき回復時の150上限');
+  // A user-supplied, unregistered species name can contain "R02型".
+  // Only the exact three program-authored E4 diagnostics are allowed here.
+  const allowedR02=new Set([
+   'げんきオールS系を日中に2匹以上同時編成しています。R02型の回復時刻・げんき相関と編成順位は未検証です。',
+   'げんき回復の発動分岐と10分減衰タイマーの相関が週間モデルでは未検証です。',
+   'げんき回復時の150上限とスキル発動分岐の非線形誤差が週間モデルでは未解消です。'
+  ]);
+  const r02Specific=x=>allowedR02.has(x);
   if(entry.modelLimitations.some(x=>!r02Specific(x)))
    blockers.push(reports[i].week.mondayDate+'：R02以外のモデル前提不足・料理や食材の未検証要因があります。');
  });
