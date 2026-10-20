@@ -126,6 +126,12 @@ function knownModelLimitations(input,simulated){
    }
   if(omitted.size)
    issues.push('編成中のメインスキルには週間エナジーに影響し得る未計上の追加効果があります（'+[...omitted].join('、')+'）。実ゲームとの差分を計算誤差と断定できません。');
+  // The weekly engine omits food from ingredient-magnet skills if the pool of
+  // discovered items is empty. Game observations can still contain that food.
+  const needsPool=root.PokeSimulator&&root.PokeSimulator.needsMagnetIngredientPool;
+  if((!Array.isArray(opts.magnetIngredients)||opts.magnetIngredients.length===0)&&
+     typeof needsPool==='function'&&selected.some(p=>needsPool(dex.get(p.pokemon)?.skill)))
+   issues.push('編成中に抽選食材の候補が未設定の食材ゲット系メインスキルがあります。計算器はその食材の生産を料理へ加算しないため、実ゲームの料理エナジーとの比較は未検証です。');
   if(selected.some(p=>dex.get(p.pokemon)?.skill==='Energizing Cheer S (Heal Pulse)'))
    issues.push('いやしのはどうは対象2匹の抽選・げんき回復・追加おてつだいを1発動分の期待値で近似しています。週内の抽選履歴・所持品・回復時刻の結合は未検証です。');
   const missing=[...new Set(selected.filter(p=>!dex.has(p.pokemon)).map(p=>p.pokemon))];

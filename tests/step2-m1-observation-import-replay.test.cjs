@@ -461,3 +461,37 @@ test('M1 optional filler uncertainty from an actual simulated week is held in pr
   assert.equal(view.accuracyGate,'HOLD');
  }
 });
+
+test('M1 missing discovered-ingredient pool holds only rostered magnet-type skills in preview/browser/CLI',()=>{
+ const master=ctx.globalThis.PokeMaster;
+ const sp=master.species.find(x=>x.skill==='Ingredient Magnet S');
+ assert.ok(sp,'need a standard food magnet species in master');
+ const first=(sp.mythIng||sp.ings).find(row=>row&&row.c1>0);
+ assert.ok(first);
+ const item=master.ingredients[first.name];
+ const r=make();
+ for(const k of obs.flags)r.provenance[k]=true;
+ r.input.box[0].pokemon=sp.name;
+ r.input.box[0].ingredients[0]=item;
+ // An empty discovered-item pool makes the simulator omit these food rewards.
+ r.input.options.magnetIngredients=[];
+ const prediction=sim.simulate(r.input);
+ assert.ok(prediction.unassignedMagnet>0,'actual weekly model must omit unassigned food');
+ r.capture.modelAtCapture=Object.fromEntries(['total','berries','skills','cooking'].map(k=>[k,prediction[k]]));
+ r.capture.modelDiagnosticsAtCapture=obs.modelDiagnostics(prediction);
+ for(const view of [obs.preview(r),obs.reviewImportedReport(r,sim.simulate),compareSingleWeek(r)]){
+  assert.equal(view.status,'CONFOUNDED_OBSERVATION');
+  assert.ok(view.modelLimitations.some(x=>x.includes('抽選食材')&&x.includes('未設定')));
+  assert.equal(view.accuracyGate,'HOLD');
+  assert.equal(view.rankOrAccuracyValidated,false);
+ }
+ const withPool=JSON.parse(JSON.stringify(r));
+ withPool.input.options.magnetIngredients=['apple'];
+ assert.equal(sim.simulate(withPool.input).unassignedMagnet,0);
+ assert.equal(obs.knownModelLimitations(withPool.input).some(x=>x.includes('抽選食材の候補')),false);
+ const inactive=make();
+ inactive.input.box.push({...pokemon('off'),pokemon:sp.name,ingredients:[item,'','']});
+ assert.equal(obs.knownModelLimitations(inactive.input).some(x=>x.includes('抽選食材の候補')),false);
+ const noSkill=make();
+ assert.equal(obs.knownModelLimitations(noSkill.input).some(x=>x.includes('抽選食材の候補')),false);
+});

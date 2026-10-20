@@ -2025,3 +2025,10 @@ test('Lunar Blessing and ordinary/Berry Juice E4 heal the entire party and requi
  x.teams.evening=['0','1','2','3','c0'];
  assert.equal(paired(),false,'removing one daytime E4 clears only that rank warning');
 });
+
+test('ingredient-pool requirement is shared for all four food-producing magnet skills',()=>{
+ for(const name of ['Ingredient Magnet S','Ingredient Magnet S (Plus)','Ingredient Magnet S (Present)','Cooking Assist S (Bulk Up)'])
+  assert.equal(sim.needsMagnetIngredientPool(name),true,name);
+ for(const name of ['Ingredient Draw S','Energy for Everyone S','Metronome','Dream Shard Magnet S'])
+  assert.equal(sim.needsMagnetIngredientPool(name),false,name);
+});
