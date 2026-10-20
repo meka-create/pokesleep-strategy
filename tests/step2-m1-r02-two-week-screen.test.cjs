@@ -138,3 +138,17 @@ test('R02 pair with identical non-R02 model omissions still blocks a misleading 
   assert.equal(out.independentGameRankingValidated,false);
  }
 });
+
+test('R02 whitelist cannot be spoofed by an unknown species name containing an allowed diagnostic substring',()=>{
+ for(const speciesName of ['R02型未登録','げんき回復時の150上限_未登録']){
+  const invalid=x=>{x.box.find(p=>p.id==='b').pokemon=speciesName;};
+  const a=observation(one,'2026-10-19',invalid);
+  const b=observation(two,'2026-10-26',invalid);
+  const out=screen([a,b]);
+  assert.equal(out.status,'NON_COMPARABLE');
+  assert.equal(out.comparison,null);
+  assert.ok(out.modelLimitations.some(x=>x.includes('マスター未登録')&&x.includes(speciesName)));
+  assert.ok(out.blockers.some(x=>x.includes('R02以外')));
+  assert.equal(out.independentGameRankingValidated,false);
+ }
+});
