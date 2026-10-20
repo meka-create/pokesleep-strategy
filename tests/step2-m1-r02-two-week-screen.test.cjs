@@ -123,3 +123,18 @@ test('R02 screen never confuses same-team repeat weeks or batches with a candida
   observation(two,'2026-10-26'),observation(two,'2026-11-02')]);
  assert.equal(triple,null);
 });
+
+test('R02 pair with identical non-R02 model omissions still blocks a misleading comparison',()=>{
+ for(const edit of [
+  x=>{x.options.eventEffects='イベントの追加エナジー';},
+  x=>{x.box[0].ingredients[0]='';}
+ ]){
+  const a=observation(one,'2026-10-19',edit);
+  const b=observation(two,'2026-10-26',edit);
+  const out=screen([a,b]);
+  assert.equal(out.status,'NON_COMPARABLE');
+  assert.equal(out.comparison,null);
+  assert.ok(out.blockers.some(s=>s.includes('R02以外')));
+  assert.equal(out.independentGameRankingValidated,false);
+ }
+});
