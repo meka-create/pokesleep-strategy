@@ -123,6 +123,8 @@ test('CM04/CM05 140 vs 147 controlled apples isolate the last Sunday evening mea
  assert.equal(delta.independentDelta.cooking,3347);
  assert.deepEqual(delta.productionDelta,delta.independentDelta);
  assert.equal(delta.indirectBerryDelta,delta.independentDelta.berries);
+ assert.equal(delta.indirectBerryDelta,420,'independent minute-clock berry feedback baseline');
+ assert.equal(delta.independentDelta.total,3767,'independent complete-week one-meal delta baseline');
  assert.equal(delta.independentDelta.total,
   delta.independentDelta.cooking+delta.independentDelta.berries);
  assert.equal(delta.gameProbabilityOrRankingValidated,false);
