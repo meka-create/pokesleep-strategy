@@ -29,7 +29,15 @@ const configs=[
  {id:'CM02',label:'morning/noon/evening substitutes, start with no meal inventory',
   initialApple:0,bagCapacity:0,teams:rotating},
  {id:'CM03',label:'always-sized global bag7, held food until a meal frees storage',
-  initialApple:7,bagCapacity:7,teams:{morning,noon:morning,evening:morning}}
+  initialApple:7,bagCapacity:7,teams:{morning,noon:morning,evening:morning}},
+ // Artificial zero-food/zero-skill chance: no apples are produced during the
+ // entire week. Only the INITIAL seven-apple difference changes last meal.
+ {id:'CM04',label:'140 initial apples: Sunday evening 21st meal is skipped',
+  initialApple:140,bagCapacity:500,sleepScore:0,noAppleProduction:true,
+  teams:{morning,noon:morning,evening:morning}},
+ {id:'CM05',label:'147 initial apples: Sunday evening 21st meal is cooked',
+  initialApple:147,bagCapacity:500,sleepScore:0,noAppleProduction:true,
+  teams:{morning,noon:morning,evening:morning}}
 ];
 const types={normal:28,fire:27,water:31,electric:25,grass:30,ice:32,
  fighting:27,poison:32,ground:29,flying:24,psychic:26,
@@ -52,7 +60,7 @@ function fixture(c){
  }),teams:{morning:[...c.teams.morning],noon:[...c.teams.noon],
   evening:[...c.teams.evening],sleep:[...sleep]},
  options:{map:'ゴールド旧発電所',fieldBonus:25,tapMinutes:150,potSize:57,
-  sleepScore:80,initialEnergy:30,foodMode:'curry',
+  sleepScore:c.sleepScore??80,initialEnergy:30,foodMode:'curry',
   recipeMode:'fixed',recipeId:'apple_curry',initialIngredients:{apple:c.initialApple},
   bagCapacity:c.bagCapacity||0,camp:false,extraMode:'none',successMode:'none'}};
 }
@@ -133,7 +141,7 @@ function oneMinuteOracle(c){
    const completed=Math.floor(phase+1e-10);
    progress.set(id,Math.max(0,phase-completed));
    const bag=pockets.get(id);
-   if(sp.appleProducer){bag.apple+=completed;producedApple+=completed;}
+   if(sp.appleProducer&&!c.noAppleProduction){bag.apple+=completed;producedApple+=completed;}
    else bag.berries+=completed*(sp.specialty==='Berries'||sp.specialty==='All'?2:1);
    const time=(tenMinuteTimer.get(id)||0)+1;
    if(time===10){
@@ -159,7 +167,7 @@ function oneMinuteOracle(c){
    for(let m=0;m<450;m++)minute();
    for(const id of sleep){
     const old=energy.get(id);
-    const next=Math.max(old,Math.ceil(Math.min(100,old+80)));
+    const next=Math.max(old,Math.ceil(Math.min(100,old+(c.sleepScore??80))));
     if(next>old)tenMinuteTimer.set(id,0);
     energy.set(id,next);
    }
@@ -182,9 +190,11 @@ function controlledMealReport(){
   return {sp,old:{ingRate:sp.ingRate,skillRate:sp.skillRate,carryLimit:sp.carryLimit}};
  });
  try{
-  for(const {sp} of mods)Object.assign(sp,{ingRate:sp.name==='ライチュウ'?100:0,
-   skillRate:0,carryLimit:1000000});
   const cases=configs.map(c=>{
+   for(const {sp} of mods)Object.assign(sp,{
+    ingRate:sp.name==='ライチュウ'&&!c.noAppleProduction?100:0,
+    skillRate:0,carryLimit:1000000
+   });
    const input=fixture(c),reference=oneMinuteOracle(c),model=engine.simulate(input);
    const compared={
     berries:model.berries-reference.berries,
@@ -207,7 +217,7 @@ function controlledMealReport(){
    assert.equal(model.meals.filter(m=>m.recipeId!=='apple_curry').length,0);
    assert.equal(JSON.stringify(model.meals.map(m=>[m.day,m.meal])),
     JSON.stringify(reference.mealTrace.map(m=>[m.day,m.slot])),c.id+' meal chronology');
-   return {id:c.id,label:c.label,reference:{total:reference.total,berries:reference.berries,
+   return {id:c.id,label:c.label,noAppleProduction:!!c.noAppleProduction,reference:{total:reference.total,berries:reference.berries,
      cooking:reference.cooking,meals:reference.meals,
      ingredientsProduced:reference.ingredientsProduced,consumedApple:reference.consumedApple,
      endingInventory:reference.endingInventory},
@@ -216,10 +226,36 @@ function controlledMealReport(){
      consumedApple:model.consumedIngredients.apple||0,endingInventory:model.inventory.apple||0},
     differences:compared,mealTrace:reference.mealTrace};
   });
-  return {schema:'step2-m1-controlled-meal-week-v1',grade:'B_CONTROLLED_DETERMINISTIC_COOKING',
+  const missing=cases.find(c=>c.id==='CM04'),present=cases.find(c=>c.id==='CM05');
+  assert.equal(missing.reference.meals,20);
+  assert.equal(present.reference.meals,21);
+  assert.deepEqual(present.mealTrace.slice(0,20),missing.mealTrace,
+   'Adding seven certain apples may change only the 21st meal chronology');
+  assert.deepEqual(present.mealTrace[20],{day:7,slot:'夜',energy:3347});
+  const compareKeys=['total','berries','cooking'];
+  const diff=(a,b)=>Object.fromEntries(compareKeys.map(k=>[k,a[k]-b[k]]));
+  const refDelta=diff(present.reference,missing.reference);
+  const modelDelta=diff(present.model,missing.model);
+  assert.deepEqual(modelDelta,refDelta,
+   'The cooking + post-meal Energy/help/berry counterfactual must match a separate minute clock');
+  assert.equal(refDelta.cooking,3347);
+  const lastMealCounterfactual={
+   schema:'step2-m1-last-meal-sunday-evening-v1',
+   grade:'B_CONTROLLED_ZERO_INGREDIENT_ZERO_SKILL',
+   scenario:'Identical seven days; initial apples 140 vs 147, zero stochastic food/skill, one additional Sunday evening apple curry',
+   initialStockMissing:140,initialStockPresent:147,
+   missingMeals:missing.reference.meals,presentMeals:present.reference.meals,
+   independentDelta:{...refDelta},
+   productionDelta:{...modelDelta},
+   indirectBerryDelta:refDelta.berries,
+   weeklyTotalDifferenceNotAssumedToEqualMealStrength:true,
+   gameProbabilityOrRankingValidated:false
+  };
+  return {schema:'step2-m1-controlled-meal-week-v2',grade:'B_CONTROLLED_DETERMINISTIC_COOKING',
+   lastMealCounterfactual,
    step2:'HOLD',m1:'PARTIAL',step3:'NOT_STARTED',realGameMixedAccuracyValidated:false,
    originalM02M04Validated:false,
-   controls:'Level50, Raichu first-slot apple guaranteed 1/normal help, Bulbasaur berry-only, no skill triggers, huge Pokemon carry; CM01/CM02 unbounded food bag, CM03 bag cap7; 25% FB Gold Power Plant; 80 sleep; 7 apples per curry; fixed sleeping five',
+   controls:'Level50, CM01-CM03 Raichu apple guaranteed per normal help; CM04-CM05 zero ingredient probability on both species; Bulbasaur berry-only, no skill triggers, huge Pokemon carry; CM01/CM02 unbounded food bag, CM03 bag cap7; CM04/CM05 bag cap500 and sleep score0; 25% FB Gold Power Plant; 7 apples per curry; fixed sleeping five',
    reference:'independent one-minute clock, per-help inventory and per-meal energy/energy recovery, separate from simulator helpers',
    cases};
  }finally{
