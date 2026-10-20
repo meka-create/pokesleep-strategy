@@ -162,6 +162,7 @@ function knownModelLimitations(input,simulated){
 function preview(report){
  if(!report||report.schema!==schema||!report.capture||!report.observed)
   throw Error('観測記録が不正です。');
+ validateReplayCapture(report.capture);
  const model=modelStats(report.capture.modelAtCapture),o=report.observed;
  const signedDelta={
   total:o.total-model.total,
