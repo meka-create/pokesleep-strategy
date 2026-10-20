@@ -408,3 +408,37 @@ test('M1 Heal Pulse expected two-target model remains observationally confounded
  assert.equal(obs.knownModelLimitations(outside.input).some(x=>x.includes('いやしのはどう')),false,
   'off-roster Heal Pulse cannot confound the observation');
 });
+
+
+test('M1 concurrent Cresselia Lunar Blessing and regular E4 is classed as unverified rank risk by all intake paths',()=>{
+ const master=ctx.globalThis.PokeMaster,r=make();
+ for(const flag of obs.flags)r.provenance[flag]=true;
+ const choices=[
+  master.species.find(x=>x.skill==='Energy for Everyone S (Lunar Blessing)'),
+  master.species.find(x=>x.name==='プクリン')
+ ];
+ for(let i=0;i<2;i++){
+  const sp=choices[i];assert.ok(sp);
+  const row=(sp.mythIng||sp.ings).find(x=>x&&x.c1>0);
+  assert.ok(row);
+  r.input.box[i].pokemon=sp.name;
+  r.input.box[i].ingredients[0]=master.ingredients[row.name];
+ }
+ const prediction=sim.simulate(r.input);
+ r.capture.modelAtCapture=Object.fromEntries(['total','berries','skills','cooking'].map(k=>[k,prediction[k]]));
+ r.capture.modelDiagnosticsAtCapture=obs.modelDiagnostics(prediction);
+ assert.ok(prediction.warnings.some(x=>x.includes('優劣を確定しないでください')));
+ for(const view of [obs.preview(r),obs.reviewImportedReport(r,sim.simulate),compareSingleWeek(r)]){
+  assert.equal(view.status,'CONFOUNDED_OBSERVATION');
+  assert.ok(view.modelLimitations.some(x=>x.includes('R02型')));
+  assert.equal(view.accuracyGate,'HOLD');
+  assert.equal(view.rankOrAccuracyValidated,false);
+ }
+ const sleepOnly=JSON.parse(JSON.stringify(r));
+ // Both healers are only together while sleeping; the daytime rosters each have at most one.
+ sleepOnly.input.box.push({...pokemon('g'),ingredients:['とくせんリンゴ','','']});
+ sleepOnly.input.teams.morning=['a','c','d','e','g'];
+ sleepOnly.input.teams.noon=['a','c','d','e','g'];
+ sleepOnly.input.teams.evening=['a','c','d','e','g'];
+ assert.equal(obs.knownModelLimitations(sleepOnly.input).some(x=>x.includes('R02型')),false);
+});
