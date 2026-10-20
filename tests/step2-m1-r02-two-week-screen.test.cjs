@@ -13,7 +13,10 @@ function member(id,name){
  const first=slots.find(s=>s&&s.c1>0);
  assert.ok(first,name+' mandatory first slot');
  return {id,pokemon:name,nickname:id,level:50,skillLevel:6,
-  ingredients:[master.ingredients[first.name],'',''],
+  ingredients:[1,2,3].map(i=>{
+   const slot=slots.find(s=>s&&s['c'+i]>0);
+   return slot?master.ingredients[slot.name]:'';
+  }),
   subskills:['','','','',''],nature:'まじめ',sleepHours:0,shiny:false};
 }
 const sleep=['a','b','c','d','e'],one=['a','b','c','d','w'],
