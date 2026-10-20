@@ -121,6 +121,8 @@ function knownModelLimitations(input,simulated){
    }
   if(omitted.size)
    issues.push('編成中のメインスキルには週間エナジーに影響し得る未計上の追加効果があります（'+[...omitted].join('、')+'）。実ゲームとの差分を計算誤差と断定できません。');
+  if(selected.some(p=>dex.get(p.pokemon)?.skill==='Energizing Cheer S (Heal Pulse)'))
+   issues.push('いやしのはどうは対象2匹の抽選・げんき回復・追加おてつだいを1発動分の期待値で近似しています。週内の抽選履歴・所持品・回復時刻の結合は未検証です。');
   const missing=[...new Set(selected.filter(p=>!dex.has(p.pokemon)).map(p=>p.pokemon))];
   if(missing.length)
    issues.push('編成にマスター未登録の種族があり、通常おてつだいを含め計算対象外です：'+missing.join('、'));

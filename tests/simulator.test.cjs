@@ -555,7 +555,7 @@ test('Heal Pulse restores energy and generates expected extra helps without new 
  const r=sim.simulate(a);
  assert.ok(Number.isFinite(r.total));
  assert.ok(r.extraHelps>0);
- assert.ok(r.warnings.some(w=>w.includes('いやしのはどうは回復・追加おてつだい')));
+ assert.ok(r.warnings.some(w=>w.includes('いやしのはどうは最低げんき優先65%')&&w.includes('残り4匹')));
 });
 test('Seven user-excluded main skills remain excluded after additional branches',()=>{
  for(const skill of [...sim.EXCLUDED_MAIN_SKILLS]){
@@ -1935,4 +1935,67 @@ test('seven-day direct-strength rounding correction is positive and solely an ac
  assert.ok(Math.abs(r.directStrengthRoundingCorrection-n*0.75)<1e-6);
  assert.ok(Math.abs(r.total-r.berries-r.cooking-r.skills)<1e-6);
  assert.ok(r.skills-r.directStrengthRoundingCorrection>=0);
+});
+
+
+test('Heal Pulse 5x4 ordered-branch reference: 65/35 lowest target, second excludes first after its heal',()=>{
+ const ids=['a','b','c','d','e'];
+ const cases=[
+  {energies:[10,40,70,100,120],factors:[1,1,1,1,1],heal:18},
+  {energies:[20,20,90,90,90],factors:[.88,1,1.12,1,1],heal:18},
+  {energies:[148,149,150,150,150],factors:[1,1,1,1,1],heal:18},
+  {energies:[150,150,150,150,150],factors:[1,1,1,1,1],heal:18},
+  {energies:[0,40,50,90,110],factors:[1.12,.88,1,1,1],heal:0}
+ ];
+ const weight=(list,values,index)=>{
+  const minimum=Math.min(...list.map(i=>values[i]));
+  const tied=list.filter(i=>values[i]===minimum).length;
+  return .35/list.length+(values[index]===minimum?.65/tied:0);
+ };
+ for(const fixture of cases){
+  const energy=new Map(ids.map((id,i)=>[id,fixture.energies[i]]));
+  const natures=new Map(ids.map((id,i)=>[id,fixture.factors[i]]));
+  const actual=sim.healPulseRecipientExpectation(ids,energy,fixture.heal,natures);
+  const expectedAfter=new Array(5).fill(0),targetCounts=new Array(5).fill(0);
+  let mass=0;
+  for(let first=0;first<5;first++){
+   const odds1=weight([0,1,2,3,4],fixture.energies,first);
+   const afterOne=fixture.energies.slice();
+   afterOne[first]=Math.min(150,afterOne[first]+fixture.heal*fixture.factors[first]);
+   const remaining=[0,1,2,3,4].filter(i=>i!==first);
+   for(const second of remaining){
+    const probability=odds1*weight(remaining,afterOne,second);
+    const terminal=afterOne.slice();
+    terminal[second]=Math.min(150,terminal[second]+fixture.heal*fixture.factors[second]);
+    mass+=probability;
+    for(let k=0;k<5;k++){
+     expectedAfter[k]+=probability*terminal[k];
+     if(k===first||k===second)targetCounts[k]+=probability;
+    }
+   }
+  }
+  assert.ok(Math.abs(actual.probabilityMass-1)<1e-12);
+  assert.ok(Math.abs(mass-1)<1e-12);
+  assert.ok(Math.abs([...actual.recipientCounts.values()].reduce((a,b)=>a+b,0)-2)<1e-12);
+  for(let k=0;k<5;k++){
+   assert.ok(Math.abs(actual.recipientCounts.get(ids[k])-targetCounts[k])<1e-12,fixture.energies+' target '+k);
+   assert.ok(Math.abs(actual.expectedAfter.get(ids[k])-expectedAfter[k])<1e-11,fixture.energies+' Energy '+k);
+   assert.ok(actual.expectedAfter.get(ids[k])>=fixture.energies[k]-1e-9);
+   assert.ok(actual.expectedAfter.get(ids[k])<=150+1e-9);
+  }
+ }
+ const low=sim.healPulseRecipientExpectation(ids,new Map(ids.map((id,i)=>[id,[10,40,70,100,120][i]])),
+ 18,new Map(ids.map(id=>[id,1])));
+ assert.ok(low.recipientCounts.get('a')>.4,'lowest Energy recipient gets more than uniform 2/5 extra helps');
+ assert.ok(low.recipientCounts.get('e')<.4,'high Energy recipient gets fewer than uniform 2/5 extra helps');
+ assert.equal(low.expectedAfter.get('a')>10,true);
+});
+test('Heal Pulse one-proc oracle rejects impossible or incomplete probability inputs without changing state',()=>{
+ const ids=['a','b','c','d','e'],energy=new Map(ids.map(id=>[id,30])),nature=new Map(ids.map(id=>[id,1]));
+ const original=[...energy];
+ assert.throws(()=>sim.healPulseRecipientExpectation([...ids.slice(0,4),'a'],energy,18,nature),/不正/);
+ assert.throws(()=>sim.healPulseRecipientExpectation(ids,energy,-1,nature),/不正/);
+ assert.throws(()=>sim.healPulseRecipientExpectation(ids,new Map(ids.map(id=>[id,151])),18,nature),/不正/);
+ assert.throws(()=>sim.healPulseRecipientExpectation(ids,energy,18,new Map([['a',1]])),/不正/);
+ assert.deepEqual([...energy],original);
 });
