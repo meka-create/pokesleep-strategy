@@ -694,6 +694,43 @@ function cheerWeights(teamIds,energy){
  const lowest=teamIds.filter(id=>(energy.get(id)??0)===minimum);
  return new Map(teamIds.map(id=>[id,.35/teamIds.length+((energy.get(id)??0)===minimum?.65/lowest.length:0)]));
 }
+// Reference: pokesleep-tool EnergizingCheerHealPulse.ts calls
+// addEnergizingCheer twice, removing the FIRST target for the second roll.
+// Each roll uses 65% lowest-Energy/35% uniform selection on its current pool.
+// Enumerate all 5x4 ORDERED branches for one activation, including the first
+// heal before choosing the second. Weekly proc counts still use expectations;
+// this is not a week-long joint Energy/stock/extra-help distribution.
+function healPulseRecipientExpectation(teamIds,energy,heal,natureFactors){
+ if(!Array.isArray(teamIds)||teamIds.length!==5||new Set(teamIds).size!==5||
+    !(energy instanceof Map)||!(natureFactors instanceof Map)||
+    !Number.isFinite(heal)||heal<0||
+    teamIds.some(id=>!Number.isFinite(energy.get(id))||energy.get(id)<0||
+     energy.get(id)>150||!Number.isFinite(natureFactors.get(id))||
+     natureFactors.get(id)<=0||natureFactors.get(id)>2))
+  throw Error('いやしのはどうの回復対象分布が不正です。');
+ const recipientCounts=new Map(teamIds.map(id=>[id,0]));
+ const expectedAfter=new Map(teamIds.map(id=>[id,0]));
+ const firstWeights=cheerWeights(teamIds,energy);
+ let mass=0;
+ for(const first of teamIds){
+  const afterFirst=new Map(energy);
+  afterFirst.set(first,Math.min(150,energy.get(first)+heal*natureFactors.get(first)));
+  const remaining=teamIds.filter(id=>id!==first);
+  const secondWeights=cheerWeights(remaining,afterFirst);
+  for(const second of remaining){
+   const p=firstWeights.get(first)*secondWeights.get(second);
+   mass+=p;
+   const secondRecovery=Math.min(150,afterFirst.get(second)+heal*natureFactors.get(second));
+   for(const id of teamIds){
+    expectedAfter.set(id,expectedAfter.get(id)+p*(id===second?secondRecovery:afterFirst.get(id)));
+    if(id===first||id===second)
+     recipientCounts.set(id,recipientCounts.get(id)+p);
+   }
+  }
+ }
+ if(Math.abs(mass-1)>1e-10)throw Error('いやしのはどうの対象確率質量が一致しません。');
+ return {recipientCounts,expectedAfter,probabilityMass:mass};
+}
 function recoverFromSleep(current,score,natureRecovery,teamRecoveryBonus,selfHasRecoveryBonus){
  const limit=selfHasRecoveryBonus?105:100;
  // Reference: pokesleep-tool Energy.calculateEnergyForEvents (wake).
@@ -975,12 +1012,16 @@ function simulate(input){
     const lvl=clamp(pair.p.skillLevel-1,0,5),heal=CHEER_HEAL[actual][lvl];
     const bonusHelp=teamHasLatiTwins(teamIds,members)?(lvl<2?1:lvl<5?2:3):0;
     const helps=triggers*(HEAL_PULSE_HELP[lvl]+bonusHelp);
+    const factors=new Map(teamIds.map(who=>
+     [who,recoveryNatureFactor(byId.get(who).nature)]));
+    const targets=healPulseRecipientExpectation(teamIds,energy,heal,factors);
     for(const who of teamIds){
-     const recipient=byId.get(who),factor=recoveryNatureFactor(recipient.nature);
-     applyEnergyRecovery(energy,energyDecayTimers,who,clamp(energy.get(who)+triggers*heal*2/teamIds.length*factor,0,150));
-     giveHelps(who,helps*2/teamIds.length);
+     const before=energy.get(who);
+     const delta=Math.max(0,targets.expectedAfter.get(who)-before);
+     applyEnergyRecovery(energy,energyDecayTimers,who,clamp(before+triggers*delta,0,150));
+     giveHelps(who,helps*targets.recipientCounts.get(who));
     }
-    warnings.add('いやしのはどうは回復・追加おてつだいを対象2匹への均等期待値で近似しています。');
+    warnings.add('いやしのはどうは最低げんき優先65%／全員均等35%で1匹目を選び、その個体を除いた残り4匹から2匹目を選ぶ1回発動分の期待値です。週間での発動時刻・げんき・追加おてつだいの相関は未検証です。');
    }
    else if(actual==='Energy for Everyone S (Lunar Blessing)'){
     const level=clamp(pair.p.skillLevel-1,0,5),r=LUNAR_HEAL[level];
@@ -1327,7 +1368,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他の個体との相関・条件外は期待値近似です。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,directStrengthRoundingCorrection:status.directStrengthRoundingCorrection,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,pendingExtraHelpBerryEnergy,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpBerryEnergyAtSwap:status.uncollectedExtraHelpBerryEnergyAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={isAllHealerSkill,unmodeledStrengthSkillEffect,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
+const api={isAllHealerSkill,unmodeledStrengthSkillEffect,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
