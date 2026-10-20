@@ -401,6 +401,14 @@ function screenR02TwoWeekPair(reports,entries){
   if(entry.modelLimitations.some(x=>x.includes('診断情報が保存されていません')||
      x.includes('診断カウンターが変わっています')))
    blockers.push(reports[i].week.mondayDate+'：記録時のモデル診断が欠落または変化しています。');
+  // R02 itself and its known E4 correlations are descriptive limitations,
+  // not evidence that an optional ingredient, invalid slot, or omitted skill
+  // can be safely compared between the two candidate weeks.
+  const r02Specific=x=>x.includes('R02型')||
+    x.includes('げんき回復の発動分岐と10分減衰タイマー')||
+    x.includes('げんき回復時の150上限');
+  if(entry.modelLimitations.some(x=>!r02Specific(x)))
+   blockers.push(reports[i].week.mondayDate+'：R02以外のモデル前提不足・料理や食材の未検証要因があります。');
  });
  const limitations=entries.flatMap((entry,i)=>
   entry.modelLimitations.map(x=>reports[i].week.mondayDate+'：'+x));
