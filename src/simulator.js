@@ -702,7 +702,8 @@ function cheerWeights(teamIds,energy){
 // this is not a week-long joint Energy/stock/extra-help distribution.
 function healPulseRecipientExpectation(teamIds,energy,heal,natureFactors){
  if(!Array.isArray(teamIds)||teamIds.length!==5||new Set(teamIds).size!==5||
-    !(energy instanceof Map)||!(natureFactors instanceof Map)||
+    Object.prototype.toString.call(energy)!=='[object Map]'||
+    Object.prototype.toString.call(natureFactors)!=='[object Map]'||
     !Number.isFinite(heal)||heal<0||
     teamIds.some(id=>!Number.isFinite(energy.get(id))||energy.get(id)<0||
      energy.get(id)>150||!Number.isFinite(natureFactors.get(id))||
