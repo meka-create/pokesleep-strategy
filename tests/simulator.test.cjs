@@ -555,7 +555,7 @@ test('Heal Pulse restores energy and generates expected extra helps without new 
  const r=sim.simulate(a);
  assert.ok(Number.isFinite(r.total));
  assert.ok(r.extraHelps>0);
- assert.ok(r.warnings.some(w=>w.includes('いやしのはどうは回復・追加おてつだい')));
+ assert.ok(r.warnings.some(w=>w.includes('いやしのはどうは最低げんき優先65%')&&w.includes('残り4匹')));
 });
 test('Seven user-excluded main skills remain excluded after additional branches',()=>{
  for(const skill of [...sim.EXCLUDED_MAIN_SKILLS]){
