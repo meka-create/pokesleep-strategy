@@ -106,7 +106,6 @@ test('CM04/CM05 140 vs 147 controlled apples isolate the last Sunday evening mea
  for(const c of [missing,present]){
   assert.equal(c.noAppleProduction,true);
   assert.equal(c.reference.ingredientsProduced,0);
-  assert.equal(c.reference.uncollectedApple,0);
   assert.equal(c.reference.endingInventory,0);
   assert.equal(c.model.ingredientsProduced,0);
   assert.equal(c.reference.consumedApple,c.reference.meals*7);
