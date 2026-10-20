@@ -69,6 +69,12 @@ test('R02 two different saved weeks, same input except one daytime healer substi
  assert.ok(Number.isFinite(result.comparison.modeledDeltaTwoMinusOne));
  assert.ok(Number.isFinite(result.comparison.descriptiveDeltaDisagreement));
  assert.ok(result.notes.some(s=>s.includes('証明しません')));
+ const cli=comparePair(reports);
+ assert.equal(cli.status,result.status);
+ assert.equal(cli.comparison.modeledDeltaTwoMinusOne,result.comparison.modeledDeltaTwoMinusOne);
+ assert.equal(cli.comparison.observedDeltaTwoMinusOne,result.comparison.observedDeltaTwoMinusOne);
+ assert.equal(cli.screenshotVerified,false);
+ assert.throws(()=>comparePair([reports[0]]),/2つ/);
  const reverse=screen(reports.slice().reverse());
  assert.equal(reverse.status,'DESCRIPTIVE_ONLY');
  assert.equal(reverse.comparison.modeledDeltaTwoMinusOne,result.comparison.modeledDeltaTwoMinusOne);
