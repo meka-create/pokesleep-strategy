@@ -78,7 +78,8 @@ test('local UI preview flags contradictory totals and keeps evidence explicitly 
  const yes=Object.fromEntries(obs.flags.map(k=>[k,true]));
  const all=obs.makeReport(snap,{...form(),...yes});
  const uncalibrated=obs.preview(all);
- assert.equal(uncalibrated.status,'UNCALIBRATED_OBSERVATION');
+ assert.equal(uncalibrated.status,'CONFOUNDED_OBSERVATION');
+ assert.ok(uncalibrated.modelLimitations.some(x=>x.includes('診断情報が保存されていません')));
  assert.equal(uncalibrated.rankOrAccuracyValidated,false);
  assert.equal(uncalibrated.accuracyGate,'HOLD');
 });
@@ -105,4 +106,37 @@ test('recorded real-week JSON is directly accepted by existing CLI without false
  const malformed=JSON.parse(JSON.stringify(report));
  malformed.capture.modelAtCapture.total='not-a-number';
  assert.throws(()=>compareSingleWeek(malformed),/スナップショット/);
+});
+
+
+test('M1 captures only three integer diagnostic counters, and a zero-risk full simulation remains uncalibrated',()=>{
+ const runInput=input(),full=PokeSimulator.simulate(runInput);
+ const snap=obs.captureSimulation(runInput,full,'0.2.49',time);
+ const counters=obs.diagnosticFields;
+ assert.deepEqual(Object.keys(snap.modelDiagnostics).sort(),Array.from(counters).sort());
+ assert.equal(snap.modelDiagnostics.estimatedMeals,full.estimatedMeals);
+ assert.equal(snap.modelDiagnostics.healingTimerCorrelationEvents,full.healingTimerCorrelationEvents);
+ assert.equal(snap.modelDiagnostics.healingCapNonlinearEvents,full.healingCapNonlinearEvents);
+ const report=obs.makeReport(snap,{...form(),...Object.fromEntries(obs.flags.map(k=>[k,true]))});
+ assert.deepEqual(JSON.parse(JSON.stringify(report.capture.modelDiagnosticsAtCapture)),
+  JSON.parse(JSON.stringify(snap.modelDiagnostics)));
+ assert.equal(obs.preview(report).accuracyGate,'HOLD');
+ assert.equal(obs.reviewImportedReport(report,PokeSimulator.simulate).captureComparison.matchesCurrentModel,true);
+ assert.equal(obs.capturedDiagnosticLimitations(report.capture,full).length,0);
+ assert.equal(obs.preview(report).status,obs.reviewImportedReport(report,PokeSimulator.simulate).status);
+});
+test('M1 partial diagnostic snapshots and malformed imported counters are rejected; legacy ones remain readable but held',()=>{
+ const source=input(),basic={total:175,berries:100,cooking:50,skills:25};
+ assert.throws(()=>obs.captureSimulation(source,{...basic,estimatedMeals:1},'0.2.49',time),/診断カウンター/);
+ assert.throws(()=>obs.captureSimulation(source,{...basic,estimatedMeals:-1,healingTimerCorrelationEvents:0,healingCapNonlinearEvents:0},'0.2.49',time),/診断カウンター/);
+ const snap=obs.captureSimulation(source,basic,'0.2.35',time);
+ const r=obs.makeReport(snap,{...form(),...Object.fromEntries(obs.flags.map(k=>[k,true]))});
+ assert.equal(r.capture.modelDiagnosticsAtCapture,undefined);
+ assert.equal(obs.preview(r).status,'CONFOUNDED_OBSERVATION');
+ assert.equal(obs.validateReplayCapture(r.capture),r.capture);
+ const broken=JSON.parse(JSON.stringify(r));
+ broken.capture.modelDiagnosticsAtCapture={estimatedMeals:'0',
+  healingTimerCorrelationEvents:0,healingCapNonlinearEvents:0};
+ assert.throws(()=>obs.preview(broken),/メタデータが不正/);
+ assert.throws(()=>obs.reviewImportedReport(broken,PokeSimulator.simulate),/メタデータが不正/);
 });

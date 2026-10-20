@@ -4,6 +4,25 @@
 const schema='step2-m1-weekly-observation-v1';
 const flags=['noUnmodeledEvents','sameCollectionSchedule','noUntrackedItems',
  'startStrengthVerified','weekBoundaryReconciled'];
+// Persist minimal, non-sensitive model diagnostics at the ORIGINAL run.
+// Total/berry/skill/cooking alone cannot reconstruct uncertainty at capture.
+const diagnosticFields=['estimatedMeals','healingTimerCorrelationEvents','healingCapNonlinearEvents'];
+function modelDiagnostics(predicted){
+ const present=diagnosticFields.filter(k=>Object.prototype.hasOwnProperty.call(predicted,k));
+ if(present.length===0)return null; // historical/limited model-only snapshots
+ if(present.length!==diagnosticFields.length||diagnosticFields.some(k=>
+   !Number.isSafeInteger(predicted[k])||predicted[k]<0))
+  throw Error('試算時点の診断カウンターが不正です。再度試算してください。');
+ return Object.fromEntries(diagnosticFields.map(k=>[k,predicted[k]]));
+}
+function capturedDiagnosticLimitations(capture,current){
+ const stored=capture&&capture.modelDiagnosticsAtCapture;
+ if(!stored)return ['記録時点の料理成立・げんき回復の診断情報が保存されていません。旧形式として比較保留にしてください。'];
+ if(!current)return [];
+ return diagnosticFields.some(k=>stored[k]!==current[k])?[
+  '記録時点と現在の計算器で、料理成立・げんき回復の診断カウンターが変わっています。計算条件・版数を再確認してください。'
+ ]:[];
+}
 function integerInput(raw,name){
  const value=String(raw??'').trim();
  if(!/^\d+$/.test(value)||!Number.isSafeInteger(Number(value)))
@@ -28,8 +47,9 @@ function captureSimulation(input,predicted,appVersion,capturedAt){
  if(!input||!Array.isArray(input.box)||!input.teams||!input.options||
   typeof input.options.map!=='string'||!input.options.map.trim())
   throw Error('フィールドと編成が確定した試算が必要です。');
- const safe=modelStats(predicted);
- const snapshot=JSON.parse(JSON.stringify({input,model:safe}));
+ const safe=modelStats(predicted),diagnostics=modelDiagnostics(predicted);
+ const snapshot=JSON.parse(JSON.stringify({input,model:safe,
+  ...(diagnostics?{modelDiagnostics:diagnostics}:{})}));
  if(typeof appVersion!=='string'||!/^\d+\.\d+\.\d+$/.test(appVersion))
   throw Error('計算器の版数を確認できません。');
  if(typeof capturedAt!=='string'||!Number.isFinite(Date.parse(capturedAt))||
@@ -62,7 +82,9 @@ function makeReport(snapshot,form){
   schema,week:{mondayDate:form.mondayDate,field},
   provenance,input:JSON.parse(JSON.stringify(snapshot.input)),observed,
   capture:{appVersion:snapshot.appVersion,capturedAt:snapshot.capturedAt,
-   modelAtCapture:{...snapshot.model},recordingMethod:'manual_game_summary_input',
+   modelAtCapture:{...snapshot.model},
+   ...(snapshot.modelDiagnostics?{modelDiagnosticsAtCapture:{...snapshot.modelDiagnostics}}:{}),
+   recordingMethod:'manual_game_summary_input',
    screenshotReviewedByApp:false}
  };
 }
@@ -128,6 +150,8 @@ function knownModelLimitations(input,simulated){
    }).length>=2))
    issues.push('げんきオールS系を日中に2匹以上同時編成しています。R02型の回復時刻・げんき相関と編成順位は未検証です。');
  }
+ if(simulated&&simulated.estimatedMeals>0)
+  issues.push('モデルは'+simulated.estimatedMeals+'食の料理成立を不確実な食材生産期待値から計上しています。実際の成立率は未検証です。');
  if(simulated&&simulated.healingTimerCorrelationEvents>0)
   issues.push('げんき回復の発動分岐と10分減衰タイマーの相関が週間モデルでは未検証です。');
  if(simulated&&simulated.healingCapNonlinearEvents>0)
@@ -138,6 +162,7 @@ function knownModelLimitations(input,simulated){
 function preview(report){
  if(!report||report.schema!==schema||!report.capture||!report.observed)
   throw Error('観測記録が不正です。');
+ validateReplayCapture(report.capture);
  const model=modelStats(report.capture.modelAtCapture),o=report.observed;
  const signedDelta={
   total:o.total-model.total,
@@ -146,7 +171,8 @@ function preview(report){
  };
  const unattributed=o.total-o.berryAndStrengthSkill-o.cooking;
  const unconfirmed=flags.filter(key=>report.provenance[key]!==true);
- const modelLimitations=knownModelLimitations(report.input);
+ const modelLimitations=[...knownModelLimitations(report.input,report.capture.modelDiagnosticsAtCapture),
+  ...capturedDiagnosticLimitations(report.capture)];
  return {signedDeltaObservedMinusModel:signedDelta,
   weeklySummaryBucketsReconcile:unattributed===0,
   observedUnattributed:unattributed,
@@ -220,7 +246,13 @@ function validateReplayCapture(capture){
   typeof capture.capturedAt!=='string'||!Number.isFinite(Date.parse(capture.capturedAt))||
   new Date(capture.capturedAt).toISOString()!==capture.capturedAt||
   capture.recordingMethod!=='manual_game_summary_input'||
-  capture.screenshotReviewedByApp!==false)
+  capture.screenshotReviewedByApp!==false||
+  (capture.modelDiagnosticsAtCapture!==undefined&&
+   (!capture.modelDiagnosticsAtCapture||
+    typeof capture.modelDiagnosticsAtCapture!=='object'||
+    Array.isArray(capture.modelDiagnosticsAtCapture)||
+    diagnosticFields.some(k=>!Number.isSafeInteger(capture.modelDiagnosticsAtCapture[k])||
+     capture.modelDiagnosticsAtCapture[k]<0))))
   throw Error('観測JSONの試算時点のメタデータが不正です。画像はアプリで検証済みとは扱えません。');
  return capture;
 }
@@ -274,9 +306,7 @@ function reviewImportedReport(report,simulate){
  const balance=o.total-o.berryAndStrengthSkill-o.cooking;
  const unconfirmed=flags.filter(k=>report.provenance[k]!==true);
  const modelLimitations=[...knownModelLimitations(report.input,fullCurrent),
-  ...(fullCurrent.estimatedMeals>0?[
-   'モデルは'+fullCurrent.estimatedMeals+'食の成立を確率的な食材生産の期待値から計上しており、実際の成立率は未検証です。'
-  ]:[])];
+  ...capturedDiagnosticLimitations(report.capture,fullCurrent)];
  const confounders=[
   ...(differs?['記録時の試算値と最新の計算器の結果が異なります。マスター・計算式の変更を確認してください。']:[]),
   ...(balance!==0?['ゲームの週まとめ総エナジーときのみ＋料理欄の合計が一致しません。']:[]),
@@ -342,7 +372,7 @@ function reviewImportedReports(reports,simulate){
  };
 }
 
-const api={schema,flags,validMonday,integerInput,captureSimulation,makeReport,preview,knownModelLimitations,validateReplayInput,validateReplayCapture,reviewImportedReport,reviewImportedReports};
+const api={schema,flags,diagnosticFields,modelDiagnostics,capturedDiagnosticLimitations,validMonday,integerInput,captureSimulation,makeReport,preview,knownModelLimitations,validateReplayInput,validateReplayCapture,reviewImportedReport,reviewImportedReports};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeObservation=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
