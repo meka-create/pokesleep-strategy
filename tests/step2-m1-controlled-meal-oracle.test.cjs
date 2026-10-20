@@ -4,13 +4,14 @@ const {controlledMealReport}=require('../scripts/step2-m1-controlled-meal-oracle
 const r=controlledMealReport();
 console.log('M1_CONTROLLED_MEAL_JSON='+JSON.stringify(r));
 test('controlled fixed and rotating full-week meals match independent minute clock',()=>{
- assert.equal(r.cases.length,3);
- assert.deepEqual(r.cases.map(x=>x.id),['CM01','CM02','CM03']);
+ assert.equal(r.cases.length,5);
+ assert.deepEqual(r.cases.map(x=>x.id),['CM01','CM02','CM03','CM04','CM05']);
  for(const c of r.cases){
   assert.ok(c.reference.berries>0,'berry production must be present');
   assert.ok(c.reference.cooking>0,'successful meals must be present');
   assert.ok(c.reference.meals>=1&&c.reference.meals<=21);
-  assert.ok(c.reference.ingredientsProduced>0);
+  if(c.noAppleProduction)assert.equal(c.reference.ingredientsProduced,0);
+  else assert.ok(c.reference.ingredientsProduced>0);
   assert.ok(c.reference.endingInventory>=0);
   assert.equal(c.reference.consumedApple,c.reference.meals*7);
   for(const key of ['total','berries','cooking','meals','ingredientsProduced','consumedApple','endingInventory'])
@@ -97,4 +98,34 @@ test('CI-provenanced full seven-slot bag keeps original 21 meals and exact bound
  assert.deepEqual([pinned.reference.total,pinned.reference.meals,
   pinned.reference.ingredientsProduced,pinned.reference.consumedApple,
   pinned.reference.endingInventory],[174427,21,147,147,7]);
+});
+
+test('CM04/CM05 140 vs 147 controlled apples isolate the last Sunday evening meal and its indirect helper impact',()=>{
+ const missing=r.cases.find(x=>x.id==='CM04'),present=r.cases.find(x=>x.id==='CM05');
+ assert.ok(missing&&present);
+ for(const c of [missing,present]){
+  assert.equal(c.noAppleProduction,true);
+  assert.equal(c.reference.ingredientsProduced,0);
+  assert.equal(c.reference.uncollectedApple,0);
+  assert.equal(c.reference.endingInventory,0);
+  assert.equal(c.model.ingredientsProduced,0);
+  assert.equal(c.reference.consumedApple,c.reference.meals*7);
+  assert.equal(c.model.consumedApple,c.reference.consumedApple);
+  assert.equal(c.model.total,c.reference.total);
+  assert.ok(Object.values(c.differences).every(d=>Math.abs(d)<1e-7));
+ }
+ assert.equal(missing.reference.meals,20);
+ assert.equal(present.reference.meals,21);
+ assert.equal(missing.mealTrace.some(m=>m.day===7&&m.slot==='夜'),false);
+ assert.equal(present.mealTrace.at(-1).day,7);
+ assert.equal(present.mealTrace.at(-1).slot,'夜');
+ const delta=r.lastMealCounterfactual;
+ assert.equal(delta.schema,'step2-m1-last-meal-sunday-evening-v1');
+ assert.equal(delta.independentDelta.cooking,3347);
+ assert.deepEqual(delta.productionDelta,delta.independentDelta);
+ assert.equal(delta.indirectBerryDelta,delta.independentDelta.berries);
+ assert.equal(delta.independentDelta.total,
+  delta.independentDelta.cooking+delta.independentDelta.berries);
+ assert.equal(delta.gameProbabilityOrRankingValidated,false);
+ assert.equal(delta.weeklyTotalDifferenceNotAssumedToEqualMealStrength,true);
 });
