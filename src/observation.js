@@ -358,6 +358,79 @@ function comparableInputKey(input){
   value&&typeof value==='object'&&!Array.isArray(value)?
    Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value);
 }
+// A model-input controlled screening of two user-supplied weeks. Not a game
+// ranking test: the uncontrolled stochastic week outcomes remain confounded.
+function screenR02TwoWeekPair(reports,entries){
+ if(reports.length!==2)return null;
+ const blockers=[],notes=[];
+ const [a,b]=reports,[entryA,entryB]=entries;
+ if(a.week.mondayDate===b.week.mondayDate)
+  blockers.push('同じ週の記録は独立した2週比較になりません。');
+ if(comparableInputKey(a.input.box)!==comparableInputKey(b.input.box))
+  blockers.push('両週のボックス個体・レベル・食材・サブスキルなどが異なります。');
+ if(comparableInputKey(a.input.options)!==comparableInputKey(b.input.options))
+  blockers.push('フィールド・料理・回収・初期在庫などの試算設定が両週で異なります。');
+ if(comparableInputKey(a.input.teams.sleep)!==comparableInputKey(b.input.teams.sleep))
+  blockers.push('固定睡眠チームの5匹または並びが両週で異なります。');
+ const dex=new Map(root.PokeMaster.species.map(sp=>[sp.name,sp]));
+ const isHealer=root.PokeSimulator&&root.PokeSimulator.isAllHealerSkill;
+ const rosters=reports.map(r=>{
+  const teams=r.input.teams,day=teams.morning;
+  if(!['noon','evening'].every(k=>comparableInputKey(teams[k])===comparableInputKey(day)))
+   blockers.push(r.week.mondayDate+'：日中3時間帯が同じ固定編成ではありません。');
+  const box=new Map(r.input.box.map(p=>[p.id,p]));
+  const count=day.filter(id=>typeof isHealer==='function'&&
+   isHealer(dex.get(box.get(id)?.pokemon)?.skill)).length;
+  return {day,count};
+ });
+ const oneIndex=rosters.findIndex(r=>r.count===1);
+ const twoIndex=rosters.findIndex(r=>r.count===2);
+ if(oneIndex<0||twoIndex<0)
+  blockers.push('日中固定の全員回復ヒーラー1匹対2匹の組み合わせではありません。');
+ if(oneIndex>=0&&twoIndex>=0){
+  const one=new Set(rosters[oneIndex].day),two=new Set(rosters[twoIndex].day);
+  if([...one].filter(id=>two.has(id)).length!==4)
+   blockers.push('日中の編成差が1匹の交代に限定されていません。');
+ }
+ entries.forEach((entry,i)=>{
+  if(entry.unconfirmedConditions.length||entry.confounders.length||
+     !entry.weeklySummaryBucketsReconcile)
+   blockers.push(reports[i].week.mondayDate+'：観測条件・実測内訳または試算整合に未解決事項があります。');
+  if(!entry.captureComparison.matchesCurrentModel)
+   blockers.push(reports[i].week.mondayDate+'：記録時と現行のモデル試算に差があります。');
+  if(entry.modelLimitations.some(x=>x.includes('診断情報が保存されていません')||
+     x.includes('診断カウンターが変わっています')))
+   blockers.push(reports[i].week.mondayDate+'：記録時のモデル診断が欠落または変化しています。');
+ });
+ const limitations=entries.flatMap((entry,i)=>
+  entry.modelLimitations.map(x=>reports[i].week.mondayDate+'：'+x));
+ const compatible=blockers.length===0;
+ let comparison=null;
+ if(compatible){
+  const one=entries[oneIndex],two=entries[twoIndex];
+  const observed=two.observed.total-one.observed.total;
+  const modeled=two.currentModel.total-one.currentModel.total;
+  comparison={
+   oneHealerMonday:reports[oneIndex].week.mondayDate,
+   twoHealerMonday:reports[twoIndex].week.mondayDate,
+   observedOneHealer:one.observed.total,observedTwoHealers:two.observed.total,
+   modeledOneHealer:one.currentModel.total,modeledTwoHealers:two.currentModel.total,
+   observedDeltaTwoMinusOne:observed,modeledDeltaTwoMinusOne:modeled,
+   descriptiveDeltaDisagreement:observed-modeled,
+   observedSign:Math.abs(observed)<1e-9?'TIE':observed>0?'TWO':'ONE',
+   modelSign:Math.abs(modeled)<1e-9?'TIE':modeled>0?'TWO':'ONE'
+  };
+  notes.push('保存された試算条件のR02型1匹交代だけを確認しました。実ゲームで操作・補正が一致した証拠ではありません。');
+  notes.push('異なる2週のランダム実績差はモデル期待値の真の誤差、統計的な順位、勝率を証明しません。');
+ }
+ return {
+  type:'R02_TWO_WEEK_SCREEN',
+  status:compatible?'DESCRIPTIVE_ONLY':'NON_COMPARABLE',
+  blockers,modelLimitations:limitations,notes,comparison,
+  independentGameRankingValidated:false,rankOrAccuracyValidated:false,
+  accuracyGate:'HOLD',step2:'HOLD',step3:'NOT_STARTED'
+ };
+}
 function reviewImportedReports(reports,simulate){
  if(!Array.isArray(reports)||reports.length<1||reports.length>4)
   throw Error('観測JSONは1〜4ファイル選択してください。');
@@ -382,6 +455,7 @@ function reviewImportedReports(reports,simulate){
  }
  return {
   items:entries,
+  r02TwoWeekScreen:screenR02TwoWeekPair(reports,entries),
   sameSavedInputs:sameInput,
   duplicateMondays:Array.from(duplicates).sort(),
   conflictingMondays:Array.from(conflicts).sort(),
