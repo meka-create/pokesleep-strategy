@@ -38,7 +38,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.50</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.51</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -610,9 +610,11 @@ function directStrengthPerActivation(skill,level,bonus){
   expectedRandomChargeStrength(level,bonus):
   roundedDirectStrength(SKILL_STRENGTH[skill][level-1],bonus);
 }
-// A variant of E4 still heals the whole active party. Keep the R02
+// Count every implemented E4 variant that heals the ENTIRE active party,
+// including the Lunar Blessing branch (which also grants berry Strength).
+// Keep the R02
 // comparison warning and skill calculation on the same classification.
-const E4_SKILLS=new Set(['Energy for Everyone S','Energy for Everyone S (Berry Juice)']);
+const E4_SKILLS=new Set(['Energy for Everyone S','Energy for Everyone S (Berry Juice)','Energy for Everyone S (Lunar Blessing)']);
 function isAllHealerSkill(skill){return E4_SKILLS.has(skill);}
 // These skills have a non-shard, potentially strength-affecting component
 // explicitly omitted by the current weekly engine. Keep the M1 evidence gate

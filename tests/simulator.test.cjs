@@ -1999,3 +1999,29 @@ test('Heal Pulse one-proc oracle rejects impossible or incomplete probability in
  assert.throws(()=>sim.healPulseRecipientExpectation(ids,energy,18,new Map([['a',1]])),/不正/);
  assert.deepEqual([...energy],original);
 });
+
+
+test('Lunar Blessing and ordinary/Berry Juice E4 heal the entire party and require two-healer rank HOLD',()=>{
+ const cress=master.species.find(sp=>sp.skill==='Energy for Everyone S (Lunar Blessing)');
+ const wig=master.species.find(sp=>sp.skill==='Energy for Everyone S');
+ assert.ok(cress&&cress.name==='クレセリア');
+ assert.ok(wig);
+ for(const skill of ['Energy for Everyone S','Energy for Everyone S (Berry Juice)','Energy for Everyone S (Lunar Blessing)'])
+  assert.equal(sim.isAllHealerSkill(skill),true,skill);
+ assert.equal(sim.isAllHealerSkill('Charge Energy S (Moonlight)'),false);
+ assert.equal(sim.isAllHealerSkill('Energizing Cheer S (Heal Pulse)'),false);
+ const x=input();
+ x.box.push(monster('c0',cress.name),monster('w0',wig.name));
+ x.options.recipeId='';
+ const paired=()=>sim.simulate(x).warnings.some(w=>w.includes('優劣を確定しないでください'));
+ x.teams.noon=['0','1','2','c0','w0'];
+ assert.equal(paired(),true,'mixed Lunar Blessing + E4 in one daytime period');
+ x.teams.noon=['0','1','2','3','c0'];
+ assert.equal(paired(),false,'only one lunar healer in daytime');
+ x.teams.sleep=['0','1','2','c0','w0'];
+ assert.equal(paired(),false,'sleep-only dual E4 does not trigger concurrent daytime rank warning');
+ x.teams.evening=['0','1','2','c0','w0'];
+ assert.equal(paired(),true,'two full-party healers together in evening');
+ x.teams.evening=['0','1','2','3','c0'];
+ assert.equal(paired(),false,'removing one daytime E4 clears only that rank warning');
+});
