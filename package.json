@@ -1,13 +1,14 @@
 {
   "name": "pokesleep-strategy",
   "private": true,
-  "version": "0.2.56",
+  "version": "0.2.57",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
     "test": "node --test tests/*.test.cjs",
     "check": "npm run test && npm run build",
     "m1:audit": "node scripts/step2-m1-audit.cjs",
+    "m1:mixed-meal-provenance": "node scripts/step2-m1-mixed-meal-provenance.cjs",
     "m1:compare": "node scripts/step2-m1-compare.cjs",
     "m1:mixed-oracle": "node scripts/step2-m1-mixed-berry-oracle.cjs",
     "m1:observe": "node scripts/step2-m1-observation-compare.cjs",
