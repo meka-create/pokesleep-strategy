@@ -297,6 +297,24 @@ $('observationFile').addEventListener('change',async ev=>{
    for(const problem of replay.confounders)add('要確認：'+problem);
    for(const limitation of replay.modelLimitations)add('モデルの未検証：'+limitation);
   }
+  // Two observed weeks cannot validate the healer ranking; only display
+  // a descriptive delta after a strict saved-input and provenance screen.
+  if(batch.r02TwoWeekScreen){
+   const pair=batch.r02TwoWeekScreen;
+   if(pair.status==='DESCRIPTIVE_ONLY'){
+    const d=pair.comparison;
+    add('R02ヒーラー1匹対2匹：保存した試算条件は1匹交代の2週として一致（参考情報のみ）。');
+    add('ヒーラー1匹の週 '+d.oneHealerMonday+'／ヒーラー2匹の週 '+d.twoHealerMonday+'。');
+    add('ゲーム入力の2匹−1匹差 '+signed(d.observedDeltaTwoMinusOne)+
+        '／モデル期待値の2匹−1匹差 '+signed(d.modeledDeltaTwoMinusOne)+
+        '／差同士の隔たり '+signed(d.descriptiveDeltaDisagreement)+' エナジー。');
+    for(const note of pair.notes)add('比較の限界：'+note);
+    add('R02の回復時刻・同時確率とゲーム順位は未検証。参考差分を勝者・精度PASSにしません（STEP2 HOLD）。');
+   }else{
+    add('R02ヒーラー1匹対2匹：2週の参考比較は条件不一致・検証不足のため保留。');
+    for(const why of pair.blockers)add('R02比較保留：'+why);
+   }
+  }
   add(batch.count===1?
    '実ゲームの単週観測です。画像照合・モデル精度・編成順位は未検証（STEP2 HOLD）。':
    '複数の記録は条件差と重複の品質点検用です。画像照合・モデル精度・編成順位は未検証（STEP2 HOLD）。');
