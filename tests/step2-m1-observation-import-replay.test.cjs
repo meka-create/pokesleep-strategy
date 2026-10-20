@@ -442,3 +442,22 @@ test('M1 concurrent Cresselia Lunar Blessing and regular E4 is classed as unveri
  sleepOnly.input.teams.evening=['a','c','d','e','g'];
  assert.equal(obs.knownModelLimitations(sleepOnly.input).some(x=>x.includes('R02型')),false);
 });
+
+test('M1 optional filler uncertainty from an actual simulated week is held in preview, browser replay, CLI',()=>{
+ const x=input();
+ x.box.forEach(p=>{p.level=30;p.ingredients=['とくせんリンゴ','あったかジンジャー',''];});
+ x.options.recipeId='apple_curry';x.options.extraMode='fill';x.options.potSize=8;
+ x.options.initialIngredients={apple:147,ginger:10};
+ const prediction=sim.simulate(x);
+ assert.equal(prediction.estimatedMeals,0,'all required apples should come from certain input stock');
+ assert.ok(prediction.expectedSourceMeals>0,'some extra ingredients must rely on expected production');
+ const r=obs.makeReport(obs.captureSimulation(x,prediction,'0.2.52','2026-10-18T13:00:00.000Z'),
+  {mondayDate:'2026-10-19',total:'100',berryAndStrengthSkill:'60',
+   cooking:'40',confirmedSummary:true,...Object.fromEntries(obs.flags.map(k=>[k,true]))});
+ assert.equal(r.capture.modelDiagnosticsAtCapture.expectedSourceMeals,prediction.expectedSourceMeals);
+ for(const view of [obs.preview(r),obs.reviewImportedReport(r,sim.simulate),compareSingleWeek(r)]){
+  assert.equal(view.status,'CONFOUNDED_OBSERVATION');
+  assert.ok(view.modelLimitations.some(s=>s.includes('追加食材')&&s.includes('不確実な食材')));
+  assert.equal(view.accuracyGate,'HOLD');
+ }
+});
