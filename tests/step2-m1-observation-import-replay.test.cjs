@@ -320,3 +320,62 @@ test('M1 does not count excluded dream shard-only skills or inactive partial eff
  assert.equal(obs.knownModelLimitations(r.input).some(x=>x.includes('未計上の追加効果')),false);
  assert.equal(obs.preview(r).status,'UNCALIBRATED_OBSERVATION');
 });
+
+
+test('M1 original save preview, browser replay, and CLI all flag uncertain recipe-source meals',()=>{
+ const x=input();
+ x.options.recipeId='apple_curry';
+ x.options.initialIngredients={};
+ const pred=sim.simulate(x);
+ assert.ok(pred.estimatedMeals>0,'the test must actually produce a modeled uncertain dish');
+ const cap=obs.captureSimulation(x,pred,'0.2.49','2026-10-18T13:00:00.000Z');
+ const form={mondayDate:'2026-10-19',total:'100',berryAndStrengthSkill:'60',cooking:'40',
+  confirmedSummary:true,...Object.fromEntries(obs.flags.map(k=>[k,true]))};
+ const report=obs.makeReport(cap,form);
+ assert.ok(report.capture.modelDiagnosticsAtCapture.estimatedMeals>0);
+ const entries=[obs.preview(report),obs.reviewImportedReport(report,sim.simulate),compareSingleWeek(report)];
+ for(const v of entries){
+  assert.equal(v.status,'CONFOUNDED_OBSERVATION');
+  assert.equal(v.accuracyGate,'HOLD');
+  assert.ok(v.modelLimitations.some(line=>line.includes('不確実な食材生産')&&line.includes(pred.estimatedMeals+'食')));
+ }
+});
+test('M1 original save preview, browser replay, CLI share E4 cap/timer diagnostics from actual week',()=>{
+ const x=input();
+ const species=ctx.globalThis.PokeMaster.species.find(sp=>sp.name==='プクリン');
+ const first=(species.mythIng||species.ings).find(row=>row&&row.c1>0);
+ const ingredient=ctx.globalThis.PokeMaster.ingredients[first.name];
+ x.box.forEach(p=>{p.pokemon='プクリン';p.ingredients=[ingredient,'',''];p.skillLevel=6;});
+ x.options.initialEnergy=145;
+ const pred=sim.simulate(x);
+ assert.ok(pred.healingCapNonlinearEvents>0||pred.healingTimerCorrelationEvents>0,
+  'test should exercise nonlinear E4 production diagnostics');
+ const cap=obs.captureSimulation(x,pred,'0.2.49','2026-10-18T13:00:00.000Z');
+ const r=obs.makeReport(cap,{mondayDate:'2026-10-19',total:'100',
+  berryAndStrengthSkill:'60',cooking:'40',confirmedSummary:true,
+  ...Object.fromEntries(obs.flags.map(k=>[k,true]))});
+ for(const view of [obs.preview(r),obs.reviewImportedReport(r,sim.simulate),compareSingleWeek(r)]){
+  assert.equal(view.status,'CONFOUNDED_OBSERVATION');
+  assert.ok(view.modelLimitations.some(x=>x.includes('げんき回復')||x.includes('げんきオールS系')));
+  assert.equal(view.accuracyGate,'HOLD');
+ }
+});
+test('M1 legacy and changed diagnostics fail closed even when recorded energy totals are identical',()=>{
+ const original=make();
+ for(const key of obs.flags)original.provenance[key]=true;
+ const saved=JSON.parse(JSON.stringify(original));
+ delete saved.capture.modelDiagnosticsAtCapture;
+ for(const view of [obs.preview(saved),obs.reviewImportedReport(saved,sim.simulate),compareSingleWeek(saved)]){
+  assert.equal(view.status,'CONFOUNDED_OBSERVATION');
+  assert.ok(view.modelLimitations.some(x=>x.includes('診断情報が保存されていません')));
+ }
+ const drift=JSON.parse(JSON.stringify(original));
+ drift.capture.modelDiagnosticsAtCapture.healingTimerCorrelationEvents+=1;
+ const browser=obs.reviewImportedReport(drift,sim.simulate),cli=compareSingleWeek(drift);
+ assert.equal(browser.captureComparison.matchesCurrentModel,true);
+ for(const view of [browser,cli]){
+  assert.equal(view.status,'CONFOUNDED_OBSERVATION');
+  assert.ok(view.modelLimitations.some(x=>x.includes('診断カウンターが変わっています')));
+  assert.equal(view.rankOrAccuracyValidated,false);
+ }
+});
