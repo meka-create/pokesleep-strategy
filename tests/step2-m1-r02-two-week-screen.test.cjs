@@ -4,6 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const ctx=vm.createContext({module:{exports:{}},globalThis:{}});
 for(const file of ['master.js','recipes.js','simulator.js','observation.js'])
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../src',file),'utf8'),ctx,{filename:file});
+const {comparePair}=require('../scripts/step2-m1-r02-two-week-compare.cjs');
 const master=ctx.globalThis.PokeMaster,sim=ctx.globalThis.PokeSimulator,
  obs=ctx.globalThis.PokeObservation;
 const dex=new Map(master.species.map(sp=>[sp.name,sp]));
