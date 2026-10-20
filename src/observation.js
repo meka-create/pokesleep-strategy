@@ -6,7 +6,10 @@ const flags=['noUnmodeledEvents','sameCollectionSchedule','noUntrackedItems',
  'startStrengthVerified','weekBoundaryReconciled'];
 // Persist minimal, non-sensitive model diagnostics at the ORIGINAL run.
 // Total/berry/skill/cooking alone cannot reconstruct uncertainty at capture.
-const diagnosticFields=['estimatedMeals','healingTimerCorrelationEvents','healingCapNonlinearEvents'];
+// Existing three-counter observation JSON remains readable. New captures
+// also preserve uncertainty in optional pot-filler cooking Energy.
+const legacyDiagnosticFields=['estimatedMeals','healingTimerCorrelationEvents','healingCapNonlinearEvents'];
+const diagnosticFields=[...legacyDiagnosticFields,'expectedSourceMeals'];
 function modelDiagnostics(predicted){
  const present=diagnosticFields.filter(k=>Object.prototype.hasOwnProperty.call(predicted,k));
  if(present.length===0)return null; // historical/limited model-only snapshots
@@ -18,10 +21,12 @@ function modelDiagnostics(predicted){
 function capturedDiagnosticLimitations(capture,current){
  const stored=capture&&capture.modelDiagnosticsAtCapture;
  if(!stored)return ['記録時点の料理成立・げんき回復の診断情報が保存されていません。旧形式として比較保留にしてください。'];
- if(!current)return [];
- return diagnosticFields.some(k=>stored[k]!==current[k])?[
-  '記録時点と現在の計算器で、料理成立・げんき回復の診断カウンターが変わっています。計算条件・版数を再確認してください。'
- ]:[];
+ const issues=[];
+ if(!Object.prototype.hasOwnProperty.call(stored,'expectedSourceMeals'))
+  issues.push('記録時点の追加食材を含む不確実な料理エナジーの診断情報が保存されていません。旧形式として比較保留にしてください。');
+ if(current&&diagnosticFields.some(k=>Object.prototype.hasOwnProperty.call(stored,k)&&stored[k]!==current[k]))
+  issues.push('記録時点と現在の計算器で、料理成立・追加食材・げんき回復の診断カウンターが変わっています。計算条件・版数を再確認してください。');
+ return issues;
 }
 function integerInput(raw,name){
  const value=String(raw??'').trim();
@@ -154,6 +159,11 @@ function knownModelLimitations(input,simulated){
  }
  if(simulated&&simulated.estimatedMeals>0)
   issues.push('モデルは'+simulated.estimatedMeals+'食の料理成立を不確実な食材生産期待値から計上しています。実際の成立率は未検証です。');
+ // Mandatory ingredients can be certain while optional pot fillers remain
+ // stochastic. Only additional source-dependent meals need a separate warning.
+ if(simulated&&Number.isSafeInteger(simulated.expectedSourceMeals)&&
+    simulated.expectedSourceMeals>Math.max(0,simulated.estimatedMeals||0))
+  issues.push('モデルは'+(simulated.expectedSourceMeals-Math.max(0,simulated.estimatedMeals||0))+'食で、必須材料が揃っていても追加食材のエナジーを不確実な食材生産期待値から計上しています。料理エナジーの実際の成立・追加量は未検証です。');
  if(simulated&&simulated.healingTimerCorrelationEvents>0)
   issues.push('げんき回復の発動分岐と10分減衰タイマーの相関が週間モデルでは未検証です。');
  if(simulated&&simulated.healingCapNonlinearEvents>0)
@@ -253,8 +263,11 @@ function validateReplayCapture(capture){
    (!capture.modelDiagnosticsAtCapture||
     typeof capture.modelDiagnosticsAtCapture!=='object'||
     Array.isArray(capture.modelDiagnosticsAtCapture)||
-    diagnosticFields.some(k=>!Number.isSafeInteger(capture.modelDiagnosticsAtCapture[k])||
-     capture.modelDiagnosticsAtCapture[k]<0))))
+    legacyDiagnosticFields.some(k=>!Number.isSafeInteger(capture.modelDiagnosticsAtCapture[k])||
+     capture.modelDiagnosticsAtCapture[k]<0)||
+    (Object.prototype.hasOwnProperty.call(capture.modelDiagnosticsAtCapture,'expectedSourceMeals')&&
+     (!Number.isSafeInteger(capture.modelDiagnosticsAtCapture.expectedSourceMeals)||
+      capture.modelDiagnosticsAtCapture.expectedSourceMeals<0)))))
   throw Error('観測JSONの試算時点のメタデータが不正です。画像はアプリで検証済みとは扱えません。');
  return capture;
 }

@@ -109,12 +109,13 @@ test('recorded real-week JSON is directly accepted by existing CLI without false
 });
 
 
-test('M1 captures only three integer diagnostic counters, and a zero-risk full simulation remains uncalibrated',()=>{
+test('M1 captures four integer diagnostic counters, and a zero-risk full simulation remains uncalibrated',()=>{
  const runInput=input(),full=PokeSimulator.simulate(runInput);
  const snap=obs.captureSimulation(runInput,full,'0.2.49',time);
  const counters=obs.diagnosticFields;
  assert.deepEqual(Object.keys(snap.modelDiagnostics).sort(),Array.from(counters).sort());
  assert.equal(snap.modelDiagnostics.estimatedMeals,full.estimatedMeals);
+ assert.equal(snap.modelDiagnostics.expectedSourceMeals,full.expectedSourceMeals);
  assert.equal(snap.modelDiagnostics.healingTimerCorrelationEvents,full.healingTimerCorrelationEvents);
  assert.equal(snap.modelDiagnostics.healingCapNonlinearEvents,full.healingCapNonlinearEvents);
  const report=obs.makeReport(snap,{...form(),...Object.fromEntries(obs.flags.map(k=>[k,true]))});
@@ -139,4 +140,29 @@ test('M1 partial diagnostic snapshots and malformed imported counters are reject
   healingTimerCorrelationEvents:0,healingCapNonlinearEvents:0};
  assert.throws(()=>obs.preview(broken),/メタデータが不正/);
  assert.throws(()=>obs.reviewImportedReport(broken,PokeSimulator.simulate),/メタデータが不正/);
+});
+
+test('M1 optional-filler-only uncertainty is captured and legacy three-counter JSON is readable but held',()=>{
+ const x=input(),model={total:175,berries:100,skills:25,cooking:50,
+  estimatedMeals:0,expectedSourceMeals:1,healingTimerCorrelationEvents:0,healingCapNonlinearEvents:0};
+ const r=obs.makeReport(obs.captureSimulation(x,model,'0.2.52',time),
+  {...form(),...Object.fromEntries(obs.flags.map(k=>[k,true]))});
+ assert.equal(r.capture.modelDiagnosticsAtCapture.expectedSourceMeals,1);
+ for(const view of [obs.preview(r),obs.reviewImportedReport(r,()=>model)]){
+  assert.equal(view.status,'CONFOUNDED_OBSERVATION');
+  assert.ok(view.modelLimitations.some(s=>s.includes('追加食材')&&s.includes('不確実な食材')));
+  assert.equal(view.accuracyGate,'HOLD');
+ }
+ const old=JSON.parse(JSON.stringify(r));
+ delete old.capture.modelDiagnosticsAtCapture.expectedSourceMeals;
+ assert.doesNotThrow(()=>obs.validateReplayCapture(old.capture));
+ for(const view of [obs.preview(old),obs.reviewImportedReport(old,()=>model)]){
+  assert.equal(view.status,'CONFOUNDED_OBSERVATION');
+  assert.ok(view.modelLimitations.some(s=>s.includes('追加食材')&&s.includes('保存されていません')));
+ }
+ const bad=JSON.parse(JSON.stringify(r));
+ bad.capture.modelDiagnosticsAtCapture.expectedSourceMeals='1';
+ assert.throws(()=>obs.preview(bad),/メタデータが不正/);
+ assert.throws(()=>obs.reviewImportedReport(bad,()=>model),/メタデータが不正/);
+ assert.throws(()=>obs.captureSimulation(x,{...model,expectedSourceMeals:-1},'0.2.52',time),/診断カウンター/);
 });
