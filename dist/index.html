@@ -38,7 +38,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.54</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.55</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -2317,6 +2317,87 @@ function comparableInputKey(input){
   value&&typeof value==='object'&&!Array.isArray(value)?
    Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value);
 }
+// A model-input controlled screening of two user-supplied weeks. Not a game
+// ranking test: the uncontrolled stochastic week outcomes remain confounded.
+function screenR02TwoWeekPair(reports,entries){
+ if(reports.length!==2)return null;
+ const blockers=[],notes=[];
+ const [a,b]=reports,[entryA,entryB]=entries;
+ if(a.week.mondayDate===b.week.mondayDate)
+  blockers.push('同じ週の記録は独立した2週比較になりません。');
+ if(comparableInputKey(a.input.box)!==comparableInputKey(b.input.box))
+  blockers.push('両週のボックス個体・レベル・食材・サブスキルなどが異なります。');
+ if(comparableInputKey(a.input.options)!==comparableInputKey(b.input.options))
+  blockers.push('フィールド・料理・回収・初期在庫などの試算設定が両週で異なります。');
+ if(comparableInputKey(a.input.teams.sleep)!==comparableInputKey(b.input.teams.sleep))
+  blockers.push('固定睡眠チームの5匹または並びが両週で異なります。');
+ const dex=new Map(root.PokeMaster.species.map(sp=>[sp.name,sp]));
+ const isHealer=root.PokeSimulator&&root.PokeSimulator.isAllHealerSkill;
+ const rosters=reports.map(r=>{
+  const teams=r.input.teams,day=teams.morning;
+  if(!['noon','evening'].every(k=>comparableInputKey(teams[k])===comparableInputKey(day)))
+   blockers.push(r.week.mondayDate+'：日中3時間帯が同じ固定編成ではありません。');
+  const box=new Map(r.input.box.map(p=>[p.id,p]));
+  const count=day.filter(id=>typeof isHealer==='function'&&
+   isHealer(dex.get(box.get(id)?.pokemon)?.skill)).length;
+  return {day,count};
+ });
+ const oneIndex=rosters.findIndex(r=>r.count===1);
+ const twoIndex=rosters.findIndex(r=>r.count===2);
+ if(oneIndex<0||twoIndex<0)
+  blockers.push('日中固定の全員回復ヒーラー1匹対2匹の組み合わせではありません。');
+ if(oneIndex>=0&&twoIndex>=0){
+  const one=new Set(rosters[oneIndex].day),two=new Set(rosters[twoIndex].day);
+  if([...one].filter(id=>two.has(id)).length!==4)
+   blockers.push('日中の編成差が1匹の交代に限定されていません。');
+ }
+ entries.forEach((entry,i)=>{
+  if(entry.unconfirmedConditions.length||entry.confounders.length||
+     !entry.weeklySummaryBucketsReconcile)
+   blockers.push(reports[i].week.mondayDate+'：観測条件・実測内訳または試算整合に未解決事項があります。');
+  if(!entry.captureComparison.matchesCurrentModel)
+   blockers.push(reports[i].week.mondayDate+'：記録時と現行のモデル試算に差があります。');
+  if(entry.modelLimitations.some(x=>x.includes('診断情報が保存されていません')||
+     x.includes('診断カウンターが変わっています')))
+   blockers.push(reports[i].week.mondayDate+'：記録時のモデル診断が欠落または変化しています。');
+  // R02 itself and its known E4 correlations are descriptive limitations,
+  // not evidence that an optional ingredient, invalid slot, or omitted skill
+  // can be safely compared between the two candidate weeks.
+  const r02Specific=x=>x.includes('R02型')||
+    x.includes('げんき回復の発動分岐と10分減衰タイマー')||
+    x.includes('げんき回復時の150上限');
+  if(entry.modelLimitations.some(x=>!r02Specific(x)))
+   blockers.push(reports[i].week.mondayDate+'：R02以外のモデル前提不足・料理や食材の未検証要因があります。');
+ });
+ const limitations=entries.flatMap((entry,i)=>
+  entry.modelLimitations.map(x=>reports[i].week.mondayDate+'：'+x));
+ const compatible=blockers.length===0;
+ let comparison=null;
+ if(compatible){
+  const one=entries[oneIndex],two=entries[twoIndex];
+  const observed=two.observed.total-one.observed.total;
+  const modeled=two.currentModel.total-one.currentModel.total;
+  comparison={
+   oneHealerMonday:reports[oneIndex].week.mondayDate,
+   twoHealerMonday:reports[twoIndex].week.mondayDate,
+   observedOneHealer:one.observed.total,observedTwoHealers:two.observed.total,
+   modeledOneHealer:one.currentModel.total,modeledTwoHealers:two.currentModel.total,
+   observedDeltaTwoMinusOne:observed,modeledDeltaTwoMinusOne:modeled,
+   descriptiveDeltaDisagreement:observed-modeled,
+   observedSign:Math.abs(observed)<1e-9?'TIE':observed>0?'TWO':'ONE',
+   modelSign:Math.abs(modeled)<1e-9?'TIE':modeled>0?'TWO':'ONE'
+  };
+  notes.push('保存された試算条件のR02型1匹交代だけを確認しました。実ゲームで操作・補正が一致した証拠ではありません。');
+  notes.push('異なる2週のランダム実績差はモデル期待値の真の誤差、統計的な順位、勝率を証明しません。');
+ }
+ return {
+  type:'R02_TWO_WEEK_SCREEN',
+  status:compatible?'DESCRIPTIVE_ONLY':'NON_COMPARABLE',
+  blockers,modelLimitations:limitations,notes,comparison,
+  independentGameRankingValidated:false,rankOrAccuracyValidated:false,
+  accuracyGate:'HOLD',step2:'HOLD',step3:'NOT_STARTED'
+ };
+}
 function reviewImportedReports(reports,simulate){
  if(!Array.isArray(reports)||reports.length<1||reports.length>4)
   throw Error('観測JSONは1〜4ファイル選択してください。');
@@ -2341,6 +2422,7 @@ function reviewImportedReports(reports,simulate){
  }
  return {
   items:entries,
+  r02TwoWeekScreen:screenR02TwoWeekPair(reports,entries),
   sameSavedInputs:sameInput,
   duplicateMondays:Array.from(duplicates).sort(),
   conflictingMondays:Array.from(conflicts).sort(),
@@ -2657,6 +2739,24 @@ $('observationFile').addEventListener('change',async ev=>{
     add('要確認：ゲーム週まとめの総計と2欄の合計が一致しません。');
    for(const problem of replay.confounders)add('要確認：'+problem);
    for(const limitation of replay.modelLimitations)add('モデルの未検証：'+limitation);
+  }
+  // Two observed weeks cannot validate the healer ranking; only display
+  // a descriptive delta after a strict saved-input and provenance screen.
+  if(batch.r02TwoWeekScreen){
+   const pair=batch.r02TwoWeekScreen;
+   if(pair.status==='DESCRIPTIVE_ONLY'){
+    const d=pair.comparison;
+    add('R02ヒーラー1匹対2匹：保存した試算条件は1匹交代の2週として一致（参考情報のみ）。');
+    add('ヒーラー1匹の週 '+d.oneHealerMonday+'／ヒーラー2匹の週 '+d.twoHealerMonday+'。');
+    add('ゲーム入力の2匹−1匹差 '+signed(d.observedDeltaTwoMinusOne)+
+        '／モデル期待値の2匹−1匹差 '+signed(d.modeledDeltaTwoMinusOne)+
+        '／差同士の隔たり '+signed(d.descriptiveDeltaDisagreement)+' エナジー。');
+    for(const note of pair.notes)add('比較の限界：'+note);
+    add('R02の回復時刻・同時確率とゲーム順位は未検証。参考差分を勝者・精度PASSにしません（STEP2 HOLD）。');
+   }else{
+    add('R02ヒーラー1匹対2匹：2週の参考比較は条件不一致・検証不足のため保留。');
+    for(const why of pair.blockers)add('R02比較保留：'+why);
+   }
   }
   add(batch.count===1?
    '実ゲームの単週観測です。画像照合・モデル精度・編成順位は未検証（STEP2 HOLD）。':
