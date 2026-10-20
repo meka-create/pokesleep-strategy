@@ -34,9 +34,11 @@ function directStrengthPerActivation(skill,level,bonus){
   expectedRandomChargeStrength(level,bonus):
   roundedDirectStrength(SKILL_STRENGTH[skill][level-1],bonus);
 }
-// A variant of E4 still heals the whole active party. Keep the R02
+// Count every implemented E4 variant that heals the ENTIRE active party,
+// including the Lunar Blessing branch (which also grants berry Strength).
+// Keep the R02
 // comparison warning and skill calculation on the same classification.
-const E4_SKILLS=new Set(['Energy for Everyone S','Energy for Everyone S (Berry Juice)']);
+const E4_SKILLS=new Set(['Energy for Everyone S','Energy for Everyone S (Berry Juice)','Energy for Everyone S (Lunar Blessing)']);
 function isAllHealerSkill(skill){return E4_SKILLS.has(skill);}
 // These skills have a non-shard, potentially strength-affecting component
 // explicitly omitted by the current weekly engine. Keep the M1 evidence gate
