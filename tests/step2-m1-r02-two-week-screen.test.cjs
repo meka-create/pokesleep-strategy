@@ -85,6 +85,7 @@ test('R02 screening refuses same-week duplicates, mismatched box/settings/sleep,
   rs=>rs[1].week.mondayDate=rs[0].week.mondayDate,
   rs=>rs[1]=observation(two,'2026-10-26',x=>x.box[0].level=49),
   rs=>rs[1]=observation(two,'2026-10-26',x=>x.options.fieldBonus=50),
+  rs=>rs[1]=observation(two,'2026-10-26',x=>x.options.eventEffects='限定ボーナス適用'),
   rs=>rs[1]=observation(two,'2026-10-26',x=>x.teams.sleep=['b','a','c','d','e']),
   rs=>rs[1]=observation(two,'2026-10-26',x=>x.teams.noon=['a','b','c','d','w']),
   rs=>rs[1]=observation(['a','b','w','g','e'],'2026-10-26')
