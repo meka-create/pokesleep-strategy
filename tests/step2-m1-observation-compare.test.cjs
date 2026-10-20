@@ -77,7 +77,8 @@ test('a contradictory game summary is always confounded even if user checked eve
  const base={schema:'step2-m1-weekly-observation-v1',week:{mondayDate:'2026-10-19',field:'ゴールド旧発電所'},
   provenance:flags,input,observed:{total:10,berryAndStrengthSkill:10,cooking:0}};
  const ok=compareSingleWeek(base);
- assert.equal(ok.status,'UNCALIBRATED_OBSERVATION');
+ assert.equal(ok.status,'CONFOUNDED_OBSERVATION');
+ assert.ok(ok.modelLimitations.some(x=>x.includes('診断情報が保存されていません')));
  assert.equal(ok.accuracyGate,'HOLD');
  assert.equal(ok.rankOrAccuracyValidated,false);
  const bad=compareSingleWeek({...base,observed:{total:11,berryAndStrengthSkill:10,cooking:0}});
