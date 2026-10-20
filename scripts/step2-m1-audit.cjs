@@ -259,4 +259,6 @@ function buildReport(){
     'Monte Carlo variance and official mixed-skill correlation remain unmeasured']};
 }
 if(require.main===module)console.log('M1_REPORT_JSON='+JSON.stringify(buildReport()));
-module.exports={buildReport};
+// Expose the exact frozen M01-M04 input constructor for narrowly scoped
+// *component* oracles; frozen baseline results remain untouched.
+module.exports={buildReport,mixedInput};
