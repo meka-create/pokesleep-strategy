@@ -130,3 +130,42 @@ test('CM04/CM05 140 vs 147 controlled apples isolate the last Sunday evening mea
  assert.equal(delta.gameProbabilityOrRankingValidated,false);
  assert.equal(delta.weeklyTotalDifferenceNotAssumedToEqualMealStrength,true);
 });
+
+const {bridgeExplicitLastMealRoll}=require('../scripts/step2-m3-last-meal-feedback-bridge.cjs');
+test('M3 exact 0/7 apple draw joins independent final-meal seven-day branches without losing berry feedback',()=>{
+ for(const p of [0,.01,.25,.5,.75,1]){
+  const actual=bridgeExplicitLastMealRoll(r,p);
+  assert.equal(actual.schema,'step2-m3-last-meal-feedback-v1');
+  assert.ok(Math.abs(actual.successProbability-p)<1e-10);
+  for(const key of ['meals','cookingEnergy','berryEnergy','totalEnergy'])
+   assert.equal(actual.exactBranchAverage[key],actual.independentEnumeration[key],
+    'explicit integer bag kernel disagreed with independent two-world enumeration '+key);
+  assert.equal(actual.exactBranchAverage.totalEnergy,
+   Math.round((282620+3767*p)*1e8)/1e8);
+  assert.equal(actual.exactBranchAverage.cookingEnergy,
+   Math.round((66940+3347*p)*1e8)/1e8);
+  assert.equal(actual.omittedExpectedBerryFeedback,
+   Math.round(420*p*1e8)/1e8);
+  assert.equal(actual.validatesOriginalM02M03,false);
+  assert.equal(actual.validatesRealGameRankings,false);
+  assert.equal(actual.usedActualGameIngredientRates,false);
+  assert.equal(actual.step2,'HOLD');
+  assert.equal(actual.step3,'NOT_STARTED');
+ }
+ const quarter=bridgeExplicitLastMealRoll(r,.25);
+ assert.equal(quarter.exactBranchAverage.totalEnergy,283561.75);
+ assert.equal(quarter.exactBranchAverage.cookingEnergy,67776.75);
+ assert.equal(quarter.exactBranchAverage.berryEnergy,215785);
+ assert.equal(quarter.naiveCookingOnlyTotal,283456.75);
+ assert.equal(quarter.omittedExpectedBerryFeedback,105);
+});
+test('M3 bridge rejects missing real independent reference and malformed or implicit roll probabilities',()=>{
+ for(const p of [-.1,1.1,NaN,Infinity,'0.25',null])
+  assert.throws(()=>bridgeExplicitLastMealRoll(r,p),/確率/);
+ const corrupted=JSON.parse(JSON.stringify(r));
+ corrupted.cases[4].reference.total+=1;
+ assert.throws(()=>bridgeExplicitLastMealRoll(corrupted,.25),/一致/);
+ const missing=JSON.parse(JSON.stringify(r));
+ missing.cases.splice(3,1);
+ assert.throws(()=>bridgeExplicitLastMealRoll(missing,.25),/独立の7日間/);
+});
