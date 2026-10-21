@@ -38,7 +38,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.59</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.60</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -1386,7 +1386,7 @@ function simulate(input){
  const warnings=new Set();
  if(!favorite.length)warnings.add('このフィールドの好みのきのみは未確定です。好みボーナスを計上していません。');
  const species=new Map(Master.species.map(s=>[s.name,s]));
- const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,directStrengthRoundingCorrection:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,skillHelpCompletions:0,skillEligibleHelps:0,exactFoodCarryCollections:0,uncollectedExtraHelpItemsAtSwap:0,uncollectedExtraHelpBerryEnergyAtSwap:0,uncollectedExtraHelpSwaps:0,meals:[],estimatedMeals:0,initialCoveredMeals:0,expectedSourceMeals:0,expectedSourceMealEnergy:0,initialSourceMealEnergy:0,consumedIngredients:{}};
+ const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,directStrengthRoundingCorrection:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,skillHelpCompletions:0,skillEligibleHelps:0,exactFoodCarryCollections:0,uncollectedExtraHelpItemsAtSwap:0,uncollectedExtraHelpBerryEnergyAtSwap:0,uncollectedExtraHelpSwaps:0,meals:[],potDependentMeals:0,estimatedMeals:0,initialCoveredMeals:0,expectedSourceMeals:0,expectedSourceMealEnergy:0,initialSourceMealEnergy:0,consumedIngredients:{}};
  for(const p of input.box){
   energy.set(p.id,initialEnergy);
   pocket.set(p.id,emptyPocket());
@@ -1817,6 +1817,11 @@ function simulate(input){
    const capacity=effectivePotCapacity(pot,potBonus,day,!!opts.camp);
    const chosen=chooseRecipe({mode:recipeMode,preferredId:opts.recipeId||'',foodMode:opts.foodMode,inventory,potCapacity:capacity});
    if(!chosen)return 0;
+   // Compare the selected plan with the pot available WITHOUT random skill
+   // expansion. This is dependency attribution, never a success probability.
+   const basePotCapacity=effectivePotCapacity(pot,0,day,!!opts.camp);
+   const withoutPotSkill=chooseRecipe({mode:recipeMode,preferredId:opts.recipeId||'',foodMode:opts.foodMode,inventory,potCapacity:basePotCapacity});
+   const recipeDependsOnPotSkill=withoutPotSkill?.id!==chosen.id;
    const needed=Object.entries(chosen.requirements);
    // An expected inventory of 7.5 does not prove that an integer recipe
    // requiring 7 items is feasible on every sample path. Quantify the
@@ -1846,6 +1851,8 @@ function simulate(input){
      extraIngredients[key]=count;extraCount+=count;extraEnergy+=count*ING[key];
     }
    }
+   const potDependent=recipeDependsOnPotSkill||mandatoryCount+extraCount>basePotCapacity;
+   if(potDependent)status.potDependentMeals++;
    const greatChance=successMode==='expected'?clamp((day===6?.3:.1)+successBonus,0,1):0;
    const mealEnergy=calculateMealEnergy(chosen.strength70,extraEnergy,bonus,greatChance,day);
    const value=mealEnergy.expected;
@@ -1859,7 +1866,7 @@ function simulate(input){
      normalEnergy:mealEnergy.normal,extraTastyEnergy:mealEnergy.extraTasty,
      count:mandatoryCount+extraCount,mandatoryCount,extraIngredients,extraEnergy,successProbability:greatChance,
      initialCovered,expectedMandatoryUnits,expectedExtraUnits,expectedSource,
-     potCapacity:capacity,usedPotBonus:potBonus});
+     potDependent,recipeDependsOnPotSkill,basePotCapacity,potCapacity:capacity,usedPotBonus:potBonus});
    if(successMode==='expected')successBonus*=1-greatChance;
    // Cooking restores a small amount of energy to the current on-field party.
    for(const id of teamIds)applyEnergyRecovery(energy,energyDecayTimers,id,clamp(energy.get(id)+mealRecovery(energy.get(id)),0,150));
@@ -1946,9 +1953,10 @@ function simulate(input){
  else warnings.add('大成功は平日10%・日曜30%の推定確率と料理チャンスSの期待値近似です。大成功時のスキル蓄積リセットや結果のばらつきは簡略化しています。');
  if(bagCapacity)warnings.add('食材獲得系メインスキルはバッグが満杯の間は不発動として待機ストックを保持し、次の空きがある回収時に発動します。料理チャンス上限など食材以外の発動停止条件は未再現です。');
  if(status.expectedSourceMeals>0)warnings.add('週間料理エナジーの一部は不確実な食材生産への依存を含みます（'+status.expectedSourceMeals+'食・'+Math.round(status.expectedSourceMealEnergy)+'エナジー相当）。これは食材由来の分類であり、料理成立確率・誤差率を表すものではありません。');
+ if(status.potDependentMeals>0)warnings.add('料理'+status.potDependentMeals+'食のレシピ選択または追加食材量がスキル期待値による鍋拡張に依存します。初期食材が十分でも、実際の発動・料理成立・げんき回復の分岐は未検証です。');
  if(status.estimatedMeals>0)warnings.add('料理'+status.estimatedMeals+'食は、必要食材の一部または全部を不確実な生産期待値に依存して計上しています。実際のレシピ成立確率と未成立時の食材・げんき・エナジー分岐は未計算です。');
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他の個体との相関・条件外は期待値近似です。');
- return {berries:status.berries,cooking:status.cooking,skills:status.skills,directStrengthRoundingCorrection:status.directStrengthRoundingCorrection,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,pendingExtraHelpBerryEnergy,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpBerryEnergyAtSwap:status.uncollectedExtraHelpBerryEnergyAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
+ return {berries:status.berries,cooking:status.cooking,skills:status.skills,directStrengthRoundingCorrection:status.directStrengthRoundingCorrection,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,pendingExtraHelpBerryEnergy,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpBerryEnergyAtSwap:status.uncollectedExtraHelpBerryEnergyAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,potDependentMeals:status.potDependentMeals,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
 const api={isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
@@ -1965,10 +1973,11 @@ const flags=['noUnmodeledEvents','sameCollectionSchedule','noUntrackedItems',
  'startStrengthVerified','weekBoundaryReconciled'];
 // Persist minimal, non-sensitive model diagnostics at the ORIGINAL run.
 // Total/berry/skill/cooking alone cannot reconstruct uncertainty at capture.
-// Existing three-counter observation JSON remains readable. New captures
-// also preserve uncertainty in optional pot-filler cooking Energy.
+// Existing three/four-counter observation JSON remains readable. New captures
+// also preserve dependence on expected skill-driven pot expansion.
 const legacyDiagnosticFields=['estimatedMeals','healingTimerCorrelationEvents','healingCapNonlinearEvents'];
-const diagnosticFields=[...legacyDiagnosticFields,'expectedSourceMeals'];
+const optionalReplayDiagnosticFields=['expectedSourceMeals','potDependentMeals'];
+const diagnosticFields=[...legacyDiagnosticFields,...optionalReplayDiagnosticFields];
 function modelDiagnostics(predicted){
  const present=diagnosticFields.filter(k=>Object.prototype.hasOwnProperty.call(predicted,k));
  if(present.length===0)return null; // historical/limited model-only snapshots
@@ -1983,8 +1992,10 @@ function capturedDiagnosticLimitations(capture,current){
  const issues=[];
  if(!Object.prototype.hasOwnProperty.call(stored,'expectedSourceMeals'))
   issues.push('記録時点の追加食材を含む不確実な料理エナジーの診断情報が保存されていません。旧形式として比較保留にしてください。');
+ if(!Object.prototype.hasOwnProperty.call(stored,'potDependentMeals'))
+  issues.push('記録時点のスキル期待値による鍋拡張依存の診断情報が保存されていません。旧形式として比較保留にしてください。');
  if(current&&diagnosticFields.some(k=>Object.prototype.hasOwnProperty.call(stored,k)&&stored[k]!==current[k]))
-  issues.push('記録時点と現在の計算器で、料理成立・追加食材・げんき回復の診断カウンターが変わっています。計算条件・版数を再確認してください。');
+  issues.push('記録時点と現在の計算器で、料理成立・追加食材・鍋拡張・げんき回復の診断カウンターが変わっています。計算条件・版数を再確認してください。');
  return issues;
 }
 function integerInput(raw,name){
@@ -2122,6 +2133,8 @@ function knownModelLimitations(input,simulated){
    }).length>=2))
    issues.push('げんきオールS系を日中に2匹以上同時編成しています。R02型の回復時刻・げんき相関と編成順位は未検証です。');
  }
+ if(simulated&&simulated.potDependentMeals>0)
+  issues.push('モデルは'+simulated.potDependentMeals+'食のレシピ選択または追加食材量をスキル期待値による鍋拡張に依存して計上しています。初期食材が十分でも、実際の発動・料理成立・げんき回復の分岐は未検証です。');
  if(simulated&&simulated.estimatedMeals>0)
   issues.push('モデルは'+simulated.estimatedMeals+'食の料理成立を不確実な食材生産期待値から計上しています。実際の成立率は未検証です。');
  // Mandatory ingredients can be certain while optional pot fillers remain
@@ -2230,9 +2243,9 @@ function validateReplayCapture(capture){
     Array.isArray(capture.modelDiagnosticsAtCapture)||
     legacyDiagnosticFields.some(k=>!Number.isSafeInteger(capture.modelDiagnosticsAtCapture[k])||
      capture.modelDiagnosticsAtCapture[k]<0)||
-    (Object.prototype.hasOwnProperty.call(capture.modelDiagnosticsAtCapture,'expectedSourceMeals')&&
-     (!Number.isSafeInteger(capture.modelDiagnosticsAtCapture.expectedSourceMeals)||
-      capture.modelDiagnosticsAtCapture.expectedSourceMeals<0)))))
+    optionalReplayDiagnosticFields.some(k=>Object.prototype.hasOwnProperty.call(capture.modelDiagnosticsAtCapture,k)&&
+     (!Number.isSafeInteger(capture.modelDiagnosticsAtCapture[k])||
+      capture.modelDiagnosticsAtCapture[k]<0)))))
   throw Error('観測JSONの試算時点のメタデータが不正です。画像はアプリで検証済みとは扱えません。');
  return capture;
 }
@@ -2639,6 +2652,7 @@ $('runSim').addEventListener('click',()=>{
   }
   $('simMealSummary').textContent='期待値モデルで料理を計上 '+result.meals.length+' / 21食（初期食材の確定在庫だけで必須材料を満たす計画 '+result.initialCoveredMeals+'食／生産期待値に依存 '+result.estimatedMeals+'食、料理エナジー '+yen(result.cooking)+'）。'
    +' 不確実な生産由来の食材を使う料理：'+result.expectedSourceMeals+'食・'+yen(result.expectedSourceMealEnergy)+'エナジー相当（成立確率ではありません）。'
+   +' スキル期待値による鍋拡張に依存する料理：'+result.potDependentMeals+'食（食材由来の分類とは重複します）。'
    +'追加食材：'+(sim.extraMode==='fill'?'期待値で計上':'OFF')+'／大成功：'+(sim.successMode==='expected'?'推定期待値で計上':'OFF')+'。'
    +(result.extraHelps>0?' 追加おてつだい '+result.extraHelps.toFixed(1)+'回（期待値、獲得きのみ・食材へ反映）。':'');
   $('simMeals').replaceChildren();
@@ -2650,6 +2664,7 @@ $('runSim').addEventListener('click',()=>{
     (meal.expectedMandatoryUnits>1e-9?'／確定在庫不足 '+meal.expectedMandatoryUnits.toFixed(1)+'個':'')+
     '／合計'+meal.count+'個'+(meal.extraEnergy?'／追加分+'+yen(meal.extraEnergy):'')+
     (meal.expectedExtraUnits>1e-9?'／追加食材も期待値に依存':'')+
+    (meal.potDependent?'／鍋拡張のスキル期待値に依存':'')+
     (meal.expectedSource?'／料理エナジーは生産期待値由来を含む':'')+
     (meal.successProbability?'／大成功推定'+Math.round(meal.successProbability*100)+'%':'')+'）';
    const score=document.createElement('strong');score.textContent=yen(meal.energy);

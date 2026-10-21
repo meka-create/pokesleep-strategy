@@ -109,7 +109,7 @@ test('recorded real-week JSON is directly accepted by existing CLI without false
 });
 
 
-test('M1 captures four integer diagnostic counters, and a zero-risk full simulation remains uncalibrated',()=>{
+test('M1 captures five integer diagnostic counters, and a zero-risk full simulation remains uncalibrated',()=>{
  const runInput=input(),full=PokeSimulator.simulate(runInput);
  const snap=obs.captureSimulation(runInput,full,'0.2.49',time);
  const counters=obs.diagnosticFields;
@@ -144,7 +144,7 @@ test('M1 partial diagnostic snapshots and malformed imported counters are reject
 
 test('M1 optional-filler-only uncertainty is captured and legacy three-counter JSON is readable but held',()=>{
  const x=input(),model={total:175,berries:100,skills:25,cooking:50,
-  estimatedMeals:0,expectedSourceMeals:1,healingTimerCorrelationEvents:0,healingCapNonlinearEvents:0};
+  estimatedMeals:0,expectedSourceMeals:1,potDependentMeals:0,healingTimerCorrelationEvents:0,healingCapNonlinearEvents:0};
  const r=obs.makeReport(obs.captureSimulation(x,model,'0.2.52',time),
   {...form(),...Object.fromEntries(obs.flags.map(k=>[k,true]))});
  assert.equal(r.capture.modelDiagnosticsAtCapture.expectedSourceMeals,1);
