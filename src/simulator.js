@@ -777,6 +777,19 @@ function dracoBerryCounts(level,species,twins){
  return [self+bonus,others];
 }
 function berryUnit(type,lv,favorites,fieldBonus){const b0=BERRY[type];const raw=Math.max(b0+lv-1,Math.round(Math.pow(1.025,lv-1)*b0));return roundup(roundup(raw*(1+fieldBonus/100))*(favorites.includes(type)?2:1));}
+// Keep the existing 15-minute integration grid, splitting it at every
+// requested tap. Checking only grid coincidences silently loses e.g. 121m taps.
+function daytimeSchedule(tapMinutes){
+ if(!Number.isSafeInteger(tapMinutes)||tapMinutes<120||tapMinutes>180)
+  throw Error('回収間隔は120〜180分の整数で指定してください。');
+ const boundaries=new Set(),taps=new Set();
+ for(let minute=450;minute<=1440;minute+=15)boundaries.add(minute);
+ for(let minute=450+tapMinutes;minute<1440;minute+=tapMinutes){
+  boundaries.add(minute);taps.add(minute);
+ }
+ const times=[...boundaries].sort((a,b)=>a-b);
+ return times.slice(0,-1).map((minute,i)=>({minute,duration:times[i+1]-minute,tap:taps.has(minute)}));
+}
 function simulate(input){
  if(!input||!Array.isArray(input.box))throw Error('ボックスがありません。');
  const byId=new Map(input.box.map(p=>[p.id,p]));
@@ -1297,12 +1310,13 @@ function simulate(input){
    potBonus=0;
    return value;
  }
- const daySummaries=[],nightEnergy=[];
+ const daySummaries=[],nightEnergy=[],daySchedule=daytimeSchedule(tapMinutes);
  
  for(let d=0;d<7;d++){
   const before={berries:status.berries,cooking:status.cooking,skills:status.skills,sneaky:status.sneaky};
   let current=null;
-  for(let t=7.5;t<24-1e-9;t+=.25){
+  for(const step of daySchedule){
+    const t=step.minute/60;
     const key=t<12?'morning':t<18?'noon':'evening',ids=teams[key];
     if(current!==key){
       if(current)collect(teams[current]);
@@ -1310,9 +1324,8 @@ function simulate(input){
       current=key;collect(ids);
       if([7.5,12,18].includes(t))cook(d,t===7.5?'朝':t===12?'昼':'夜',ids);
     }
-    const sinceWake=(t-7.5)*60;
-    if(Math.abs(sinceWake/tapMinutes-Math.round(sinceWake/tapMinutes))<1e-6 &&t>7.5)collect(ids);
-    tickActive(ids,15,!!opts.camp,true);
+    if(step.tap)collect(ids);
+    tickActive(ids,step.duration,!!opts.camp,true);
   }
   collect(teams.evening);
   resetStockpileLeaving(teams.evening,teams.sleep);
@@ -1382,7 +1395,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他の個体との相関・条件外は期待値近似です。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,directStrengthRoundingCorrection:status.directStrengthRoundingCorrection,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,pendingExtraHelpBerryEnergy,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpBerryEnergyAtSwap:status.uncollectedExtraHelpBerryEnergyAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,potDependentMeals:status.potDependentMeals,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
+const api={daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
