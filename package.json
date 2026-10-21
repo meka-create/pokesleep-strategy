@@ -1,7 +1,7 @@
 {
   "name": "pokesleep-strategy",
   "private": true,
-  "version": "0.2.58",
+  "version": "0.2.59",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
@@ -14,6 +14,7 @@
     "m1:observe": "node scripts/step2-m1-observation-compare.cjs",
     "m1:controlled-ranks": "node scripts/step2-m1-controlled-ranking-oracle.cjs",
     "m1:controlled-meals": "node scripts/step2-m1-controlled-meal-oracle.cjs",
+    "m3:last-meal-feedback": "node scripts/step2-m3-last-meal-feedback-bridge.cjs",
     "m1:r02-sensitivity": "node scripts/step2-m1-r02-sensitivity.cjs",
     "m1:r02-two-week": "node scripts/step2-m1-r02-two-week-compare.cjs",
     "m1:five-ranking-sensitivity": "node scripts/step2-m1-five-ranking-sensitivity.cjs",
