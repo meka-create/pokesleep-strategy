@@ -6,10 +6,11 @@ const flags=['noUnmodeledEvents','sameCollectionSchedule','noUntrackedItems',
  'startStrengthVerified','weekBoundaryReconciled'];
 // Persist minimal, non-sensitive model diagnostics at the ORIGINAL run.
 // Total/berry/skill/cooking alone cannot reconstruct uncertainty at capture.
-// Existing three-counter observation JSON remains readable. New captures
-// also preserve uncertainty in optional pot-filler cooking Energy.
+// Existing three/four-counter observation JSON remains readable. New captures
+// also preserve dependence on expected skill-driven pot expansion.
 const legacyDiagnosticFields=['estimatedMeals','healingTimerCorrelationEvents','healingCapNonlinearEvents'];
-const diagnosticFields=[...legacyDiagnosticFields,'expectedSourceMeals'];
+const optionalReplayDiagnosticFields=['expectedSourceMeals','potDependentMeals'];
+const diagnosticFields=[...legacyDiagnosticFields,...optionalReplayDiagnosticFields];
 function modelDiagnostics(predicted){
  const present=diagnosticFields.filter(k=>Object.prototype.hasOwnProperty.call(predicted,k));
  if(present.length===0)return null; // historical/limited model-only snapshots
@@ -24,8 +25,10 @@ function capturedDiagnosticLimitations(capture,current){
  const issues=[];
  if(!Object.prototype.hasOwnProperty.call(stored,'expectedSourceMeals'))
   issues.push('記録時点の追加食材を含む不確実な料理エナジーの診断情報が保存されていません。旧形式として比較保留にしてください。');
+ if(!Object.prototype.hasOwnProperty.call(stored,'potDependentMeals'))
+  issues.push('記録時点のスキル期待値による鍋拡張依存の診断情報が保存されていません。旧形式として比較保留にしてください。');
  if(current&&diagnosticFields.some(k=>Object.prototype.hasOwnProperty.call(stored,k)&&stored[k]!==current[k]))
-  issues.push('記録時点と現在の計算器で、料理成立・追加食材・げんき回復の診断カウンターが変わっています。計算条件・版数を再確認してください。');
+  issues.push('記録時点と現在の計算器で、料理成立・追加食材・鍋拡張・げんき回復の診断カウンターが変わっています。計算条件・版数を再確認してください。');
  return issues;
 }
 function integerInput(raw,name){
@@ -163,6 +166,8 @@ function knownModelLimitations(input,simulated){
    }).length>=2))
    issues.push('げんきオールS系を日中に2匹以上同時編成しています。R02型の回復時刻・げんき相関と編成順位は未検証です。');
  }
+ if(simulated&&simulated.potDependentMeals>0)
+  issues.push('モデルは'+simulated.potDependentMeals+'食のレシピ選択または追加食材量をスキル期待値による鍋拡張に依存して計上しています。初期食材が十分でも、実際の発動・料理成立・げんき回復の分岐は未検証です。');
  if(simulated&&simulated.estimatedMeals>0)
   issues.push('モデルは'+simulated.estimatedMeals+'食の料理成立を不確実な食材生産期待値から計上しています。実際の成立率は未検証です。');
  // Mandatory ingredients can be certain while optional pot fillers remain
@@ -271,9 +276,9 @@ function validateReplayCapture(capture){
     Array.isArray(capture.modelDiagnosticsAtCapture)||
     legacyDiagnosticFields.some(k=>!Number.isSafeInteger(capture.modelDiagnosticsAtCapture[k])||
      capture.modelDiagnosticsAtCapture[k]<0)||
-    (Object.prototype.hasOwnProperty.call(capture.modelDiagnosticsAtCapture,'expectedSourceMeals')&&
-     (!Number.isSafeInteger(capture.modelDiagnosticsAtCapture.expectedSourceMeals)||
-      capture.modelDiagnosticsAtCapture.expectedSourceMeals<0)))))
+    optionalReplayDiagnosticFields.some(k=>Object.prototype.hasOwnProperty.call(capture.modelDiagnosticsAtCapture,k)&&
+     (!Number.isSafeInteger(capture.modelDiagnosticsAtCapture[k])||
+      capture.modelDiagnosticsAtCapture[k]<0)))))
   throw Error('観測JSONの試算時点のメタデータが不正です。画像はアプリで検証済みとは扱えません。');
  return capture;
 }

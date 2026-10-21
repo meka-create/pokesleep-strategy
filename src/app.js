@@ -191,6 +191,7 @@ $('runSim').addEventListener('click',()=>{
   }
   $('simMealSummary').textContent='期待値モデルで料理を計上 '+result.meals.length+' / 21食（初期食材の確定在庫だけで必須材料を満たす計画 '+result.initialCoveredMeals+'食／生産期待値に依存 '+result.estimatedMeals+'食、料理エナジー '+yen(result.cooking)+'）。'
    +' 不確実な生産由来の食材を使う料理：'+result.expectedSourceMeals+'食・'+yen(result.expectedSourceMealEnergy)+'エナジー相当（成立確率ではありません）。'
+   +' スキル期待値による鍋拡張に依存する料理：'+result.potDependentMeals+'食（食材由来の分類とは重複します）。'
    +'追加食材：'+(sim.extraMode==='fill'?'期待値で計上':'OFF')+'／大成功：'+(sim.successMode==='expected'?'推定期待値で計上':'OFF')+'。'
    +(result.extraHelps>0?' 追加おてつだい '+result.extraHelps.toFixed(1)+'回（期待値、獲得きのみ・食材へ反映）。':'');
   $('simMeals').replaceChildren();
@@ -202,6 +203,7 @@ $('runSim').addEventListener('click',()=>{
     (meal.expectedMandatoryUnits>1e-9?'／確定在庫不足 '+meal.expectedMandatoryUnits.toFixed(1)+'個':'')+
     '／合計'+meal.count+'個'+(meal.extraEnergy?'／追加分+'+yen(meal.extraEnergy):'')+
     (meal.expectedExtraUnits>1e-9?'／追加食材も期待値に依存':'')+
+    (meal.potDependent?'／鍋拡張のスキル期待値に依存':'')+
     (meal.expectedSource?'／料理エナジーは生産期待値由来を含む':'')+
     (meal.successProbability?'／大成功推定'+Math.round(meal.successProbability*100)+'%':'')+'）';
    const score=document.createElement('strong');score.textContent=yen(meal.energy);
