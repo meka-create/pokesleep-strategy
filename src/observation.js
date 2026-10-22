@@ -169,6 +169,10 @@ function knownModelLimitations(input,simulated){
    }).length>=2))
    issues.push('げんきオールS系を日中に2匹以上同時編成しています。R02型の回復時刻・げんき相関と編成順位は未検証です。');
  }
+ // A real cooked meal can randomly be Extra Tasty without a chance skill.
+ // An expectation-OFF cooking estimate cannot calibrate observed game cooking.
+ if(opts.successMode==='none'&&simulated&&Number.isFinite(simulated.cooking)&&simulated.cooking>0)
+  issues.push('大成功期待値OFFの試算で料理エナジーを計上しています。実ゲームには通常の料理大成功抽選があり、実測の料理エナジーとこの試算を同条件として定量照合できません。');
  if(simulated&&simulated.potDependentMeals>0)
   issues.push('モデルは'+simulated.potDependentMeals+'食のレシピ選択または追加食材量をスキル期待値による鍋拡張に依存して計上しています。初期食材が十分でも、実際の発動・料理成立・げんき回復の分岐は未検証です。');
  if(simulated&&simulated.estimatedMeals>0)
@@ -197,7 +201,7 @@ function preview(report){
  };
  const unattributed=o.total-o.berryAndStrengthSkill-o.cooking;
  const unconfirmed=flags.filter(key=>report.provenance[key]!==true);
- const modelLimitations=[...knownModelLimitations(report.input,report.capture.modelDiagnosticsAtCapture),
+ const modelLimitations=[...knownModelLimitations(report.input,{...report.capture.modelDiagnosticsAtCapture,cooking:model.cooking}),
   ...capturedDiagnosticLimitations(report.capture)];
  return {signedDeltaObservedMinusModel:signedDelta,
   weeklySummaryBucketsReconcile:unattributed===0,
