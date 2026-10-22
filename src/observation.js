@@ -101,7 +101,7 @@ function makeReport(snapshot,form){
 // positive checkboxes. This is NOT an estimate of game error or rank.
 // Determine issues from the saved inputs and explicit simulator diagnostics,
 // rather than from user-editable evidence claims or warning-language matching.
-function knownModelLimitations(input,simulated){
+function knownModelLimitations(input,simulated,observedCooking){
  const opts=input&&input.options||{},issues=[];
  const favorites=root.PokeSimulator&&root.PokeSimulator.FAVORITES;
  if(favorites&&typeof opts.map==='string'&&
@@ -169,6 +169,13 @@ function knownModelLimitations(input,simulated){
    }).length>=2))
    issues.push('げんきオールS系を日中に2匹以上同時編成しています。R02型の回復時刻・げんき相関と編成順位は未検証です。');
  }
+ // A zero modeled cooking bucket does not account for a positive game
+ // cooking bucket. The source may be a missing recipe, unsupported food mode,
+ // or stochastic meals not represented by the expected-inventory model.
+ // Keep it explicitly uncalibrated, not an unexplained model error verdict.
+ if(Number.isFinite(observedCooking)&&observedCooking>0&&simulated&&
+    Number.isFinite(simulated.cooking)&&simulated.cooking===0)
+  issues.push('ゲーム週まとめには料理エナジーが記録されていますが、計算器は料理エナジーを0として試算しています。レシピ未選択・料理カテゴリ不一致・食材不足や抽選近似を確認できるまでは、同条件の料理比較として扱えません。');
  // A real cooked meal can randomly be Extra Tasty without a chance skill.
  // An expectation-OFF cooking estimate cannot calibrate observed game cooking.
  if(opts.successMode==='none'&&simulated&&Number.isFinite(simulated.cooking)&&simulated.cooking>0)
@@ -206,7 +213,7 @@ function preview(report){
  };
  const unattributed=o.total-o.berryAndStrengthSkill-o.cooking;
  const unconfirmed=flags.filter(key=>report.provenance[key]!==true);
- const modelLimitations=[...knownModelLimitations(report.input,{...report.capture.modelDiagnosticsAtCapture,cooking:model.cooking}),
+ const modelLimitations=[...knownModelLimitations(report.input,{...report.capture.modelDiagnosticsAtCapture,cooking:model.cooking},o.cooking),
   ...capturedDiagnosticLimitations(report.capture)];
  return {signedDeltaObservedMinusModel:signedDelta,
   weeklySummaryBucketsReconcile:unattributed===0,
@@ -343,7 +350,7 @@ function reviewImportedReport(report,simulate){
  };
  const balance=o.total-o.berryAndStrengthSkill-o.cooking;
  const unconfirmed=flags.filter(k=>report.provenance[k]!==true);
- const modelLimitations=[...knownModelLimitations(report.input,fullCurrent),
+ const modelLimitations=[...knownModelLimitations(report.input,fullCurrent,o.cooking),
   ...capturedDiagnosticLimitations(report.capture,fullCurrent)];
  const confounders=[
   ...(differs?['記録時の試算値と最新の計算器の結果が異なります。マスター・計算式の変更を確認してください。']:[]),
