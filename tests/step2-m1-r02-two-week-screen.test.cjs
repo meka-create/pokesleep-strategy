@@ -31,7 +31,7 @@ function fixture(roster){
  options:{map:'ゴールド旧発電所',fieldBonus:25,tapMinutes:150,potSize:57,
   sleepScore:88,initialEnergy:100,foodMode:'curry',recipeMode:'fixed',
   recipeId:'apple_curry',initialIngredients:{apple:147},
-  bagCapacity:500,camp:false,extraMode:'none',successMode:'none',
+  bagCapacity:500,camp:false,extraMode:'none',successMode:'expected',
   magnetIngredients:['apple']}
  };
 }
@@ -69,6 +69,12 @@ test('R02 two different saved weeks, same input except one daytime healer substi
  assert.ok(Number.isFinite(result.comparison.modeledDeltaTwoMinusOne));
  assert.ok(Number.isFinite(result.comparison.descriptiveDeltaDisagreement));
  assert.ok(result.notes.some(s=>s.includes('証明しません')));
+ // A model that excludes real Extra Tasty rolls cannot screen cooked game weeks.
+ const off=[observation(one,'2026-10-19',x=>x.options.successMode='none'),
+  observation(two,'2026-10-26',x=>x.options.successMode='none')];
+ const blocked=screen(off);
+ assert.equal(blocked.status,'NON_COMPARABLE');
+ assert.ok(blocked.modelLimitations.some(s=>s.includes('大成功期待値OFF')));
  const cli=comparePair(reports);
  assert.equal(cli.status,result.status);
  assert.equal(cli.comparison.modeledDeltaTwoMinusOne,result.comparison.modeledDeltaTwoMinusOne);
