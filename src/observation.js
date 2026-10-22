@@ -120,6 +120,9 @@ function knownModelLimitations(input,simulated){
   const active=new Set(['morning','noon','evening','sleep'].flatMap(period=>
    Array.isArray(input.teams&&input.teams[period])?input.teams[period]:[]));
   const selected=input.box.filter(p=>active.has(p.id));
+  if(opts.successMode==='expected'&&selected.some(p=>
+    ['Tasty Chance S','Cooking Assist S (Bulk Up)'].includes(dex.get(p.pokemon)?.skill)))
+   issues.push('料理チャンス系の大成功後リセットは分岐計算ですが、スキル加算量は発動期待値です。実際の抽選履歴・上限時の待機ストックとの相関は未検証です。');
   const omitted=new Set();
   const skillOmission=root.PokeSimulator&&root.PokeSimulator.unmodeledStrengthSkillEffect;
   if(typeof skillOmission==='function')
