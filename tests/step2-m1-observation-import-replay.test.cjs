@@ -221,6 +221,7 @@ test('M1 actual-game comparisons fail closed for known unmodeled scope even when
 });
 test('normal five-berry controlled input keeps explicit scope triage empty',()=>{
  const report=make();
+ report.observed.cooking=0;report.observed.total=report.observed.berryAndStrengthSkill;
  for(const flag of obs.flags)report.provenance[flag]=true;
  assert.deepEqual(Array.from(obs.knownModelLimitations(report.input)),[]);
  assert.equal(obs.preview(report).status,'UNCALIBRATED_OBSERVATION');
@@ -248,6 +249,7 @@ test('M1 active unlocked ingredient mismatch is an unmodeled-input condition, no
 });
 test('M1 ingredient check ignores off-roster and still-locked slots, but catches unlocked slot 2',()=>{
  const r=make();
+ r.observed.cooking=0;r.observed.total=r.observed.berryAndStrengthSkill;
  for(const flag of obs.flags)r.provenance[flag]=true;
  r.input.box[0].ingredients[1]='不明な食材'; // level 1: second slot locked
  r.input.box.push({...pokemon('off'),ingredients:['不明な食材','','']});
@@ -313,7 +315,8 @@ test('M1 does not count excluded dream shard-only skills or inactive partial eff
  const master=ctx.globalThis.PokeMaster;
  assert.equal(sim.unmodeledStrengthSkillEffect('Dream Shard Magnet S'),null);
  assert.equal(sim.unmodeledStrengthSkillEffect('Energy for Everyone S (Berry Juice)'),null);
- const r=make();for(const flag of obs.flags)r.provenance[flag]=true;
+ const r=make();r.observed.cooking=0;r.observed.total=r.observed.berryAndStrengthSkill;
+ for(const flag of obs.flags)r.provenance[flag]=true;
  const partial=master.species.find(x=>x.skill==='Berry Zone (Psystrike)');
  assert.ok(partial);
  r.input.box.push({...pokemon('outside'),pokemon:partial.name});
@@ -578,4 +581,39 @@ test('M1 duplicate records ignore box ordering but detect real individual or tea
  const lineup=obs.reviewImportedReports([a,teamChange],sim.simulate);
  assert.equal(lineup.sameSavedInputs,false);
  assert.deepEqual(Array.from(lineup.conflictingInputsMondays),['2026-10-19']);
+});
+
+
+test('M1 positive observed cooking with zero modeled cooking is confounded in capture, replay and CLI',()=>{
+ const x=input(),pred=sim.simulate(x);
+ assert.equal(pred.cooking,0);
+ assert.equal(x.options.recipeId,'');
+ const cap=obs.captureSimulation(x,pred,'0.2.66','2026-10-22T10:00:00.000Z');
+ const game=obs.makeReport(cap,{mondayDate:'2026-10-19',total:'100',berryAndStrengthSkill:'60',cooking:'40',
+  confirmedSummary:true,...Object.fromEntries(obs.flags.map(k=>[k,true]))});
+ for(const out of [obs.preview(game),obs.reviewImportedReport(game,sim.simulate),compareSingleWeek(game)]){
+  assert.equal(out.status,'CONFOUNDED_OBSERVATION');
+  assert.equal(out.accuracyGate,'HOLD');
+  assert.equal(out.rankOrAccuracyValidated,false);
+  assert.ok(out.modelLimitations.some(m=>m.includes('料理エナジーを0')&&m.includes('料理比較')));
+ }
+ const noCooking=JSON.parse(JSON.stringify(game));
+ noCooking.observed.cooking=0;noCooking.observed.total=noCooking.observed.berryAndStrengthSkill;
+ for(const out of [obs.preview(noCooking),obs.reviewImportedReport(noCooking,sim.simulate),compareSingleWeek(noCooking)]){
+  assert.equal(out.status,'UNCALIBRATED_OBSERVATION');
+  assert.equal(out.modelLimitations.some(m=>m.includes('料理エナジーを0')),false);
+  assert.equal(out.accuracyGate,'HOLD');
+ }
+ const mismatch=JSON.parse(JSON.stringify(game));
+ mismatch.input.options.recipeId='apple_curry';
+ mismatch.input.options.foodMode='salad';
+ assert.equal(sim.simulate(mismatch.input).cooking,0);
+ const compared=obs.reviewImportedReport(mismatch,sim.simulate);
+ assert.ok(compared.modelLimitations.some(m=>m.includes('料理エナジーを0')));
+ assert.equal(compared.status,'CONFOUNDED_OBSERVATION');
+ const cooked={...x,options:{...x.options,recipeId:'apple_curry',foodMode:'curry',
+  initialIngredients:{apple:147},bagCapacity:500,successMode:'expected'}};
+ const modeled=sim.simulate(cooked);
+ assert.ok(modeled.cooking>0);
+ assert.equal(obs.knownModelLimitations(cooked,modeled,40).some(m=>m.includes('料理エナジーを0')),false);
 });
