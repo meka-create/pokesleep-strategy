@@ -526,8 +526,8 @@ test('M1 cooked weeks with Extra Tasty expectation OFF are confounded in capture
 test('M1 automatic best/fallback recipe cooking stays HOLD in capture, replay and CLI',()=>{
  const base=input();
  base.options.recipeId='apple_curry';
- base.options.initialIngredients={apple:500};
- base.options.bagCapacity=1000;
+ base.options.initialIngredients={apple:147};
+ base.options.bagCapacity=500;
  base.options.successMode='expected';
  for(const mode of ['best','fallback']){
   const x=JSON.parse(JSON.stringify(base));x.options.recipeMode=mode;
