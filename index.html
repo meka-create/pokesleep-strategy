@@ -38,7 +38,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.61</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.62</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -1238,6 +1238,45 @@ function effectivePotCapacity(base,skillBonus,day,camp){
 /* The game rounds the final Strength of each dish down separately for
    normal and Extra Tasty outcomes. Do not multiply an unrounded meal
    by an averaged success multiplier. Event modifiers are not modeled. */
+// Preserve the last successful meal's reset history instead of replacing it
+// with a mean bonus. Skill increments remain the weekly model's expected
+// increments, NOT a distribution of actual skill activations. At most one
+// new state per cooked meal (22 in a 21-meal week); grants do not branch.
+function readTastyChanceState(state){
+ if(Object.prototype.toString.call(state)!=='[object Map]'||!state.size)
+  throw Error('料理チャンスの確率状態が不正です。');
+ let mass=0;
+ for(const [bonus,p] of state){
+  if(!Number.isFinite(bonus)||bonus<0||bonus>.7||!Number.isFinite(p)||p<0||p>1+1e-8)
+   throw Error('料理チャンスの確率状態が不正です。');
+  mass+=p;
+ }
+ if(Math.abs(mass-1)>1e-8)throw Error('料理チャンスの確率質量が不正です。');
+}
+function addTastyChanceBonus(state,increment){
+ readTastyChanceState(state);
+ if(!Number.isFinite(increment)||increment<0)throw Error('料理チャンスの追加量が不正です。');
+ const next=new Map();
+ for(const [bonus,p] of state){
+  if(!p)continue;
+  const value=Math.min(.7,bonus+increment);
+  next.set(value,(next.get(value)||0)+p);
+ }
+ return next;
+}
+function resolveTastyChanceMeal(state,baseProbability){
+ readTastyChanceState(state);
+ if(!Number.isFinite(baseProbability)||baseProbability<0||baseProbability>1)
+  throw Error('料理大成功の基礎確率が不正です。');
+ const next=new Map();let successProbability=0;
+ for(const [bonus,p] of state){
+  const chance=Math.min(1,baseProbability+bonus),failed=p*(1-chance);
+  successProbability+=p*chance;
+  if(failed>0)next.set(bonus,(next.get(bonus)||0)+failed);
+ }
+ if(successProbability>0)next.set(0,(next.get(0)||0)+successProbability);
+ return {distribution:next,successProbability:clamp(successProbability,0,1)};
+}
 function calculateMealEnergy(recipeStrength,extraStrength,fieldBonus,probability,day){
  if(![recipeStrength,extraStrength,fieldBonus,probability,day].every(Number.isFinite)||
    recipeStrength<0||extraStrength<0||fieldBonus<0||fieldBonus>100||
@@ -1496,7 +1535,11 @@ function simulate(input){
  const magnetPool=opts.magnetIngredients??[];
  if(!Array.isArray(magnetPool)||new Set(magnetPool).size!==magnetPool.length||
     magnetPool.some(k=>!Object.prototype.hasOwnProperty.call(Master.ingredients,k)))throw Error('食材ゲットSの抽選対象が不正です。');
- let potBonus=0,successBonus=0;
+ let potBonus=0,tastyChanceState=new Map([[0,1]]);
+ const grantTastyChance=increment=>{
+  tastyChanceState=addTastyChanceBonus(tastyChanceState,increment);
+  if(increment>0)warnings.add('料理チャンスの大成功後リセットは分岐ごとに計算します。スキルの加算量は発動期待値のままで、実際の抽選・上限時の待機ストックとの相関は未検証です。');
+ };
  const extraMode=opts.extraMode??'none',successMode=opts.successMode??'none';
  if(!['none','fill'].includes(extraMode)||!['none','expected'].includes(successMode))throw Error('追加食材・大成功の設定が不正です。');
  function addInventory(key,count,fromSkill){
@@ -1691,7 +1734,7 @@ function simulate(input){
     if(burst.critical)warnings.add('ばけのかわの大成功率18.5%は期待値で計算しています。抽選結果の上下振れは未再現です。');
    }
    else if(actual==='Tasty Chance S'){
-    if(successMode==='expected')successBonus=clamp(successBonus+triggers*TASTY_CHANCE[clamp(pair.p.skillLevel-1,0,5)]/100,0,.7);
+    if(successMode==='expected')grantTastyChance(triggers*TASTY_CHANCE[clamp(pair.p.skillLevel-1,0,5)]/100);
     else warnings.add('料理チャンスSは大成功期待値OFFのため計上していません。');
    }
    else if(actual==='Ingredient Draw S'||actual==='Ingredient Draw S (Super Luck)'||actual==='Ingredient Draw S (Hyper Cutter)'){
@@ -1723,7 +1766,7 @@ function simulate(input){
     if(actual==='Cooking Assist S (Bulk Up)'){
      if(successMode==='expected'){
       const chanceAmounts=[1,2,2,3,3,4,5];
-      successBonus=clamp(successBonus+triggers*chanceAmounts[clamp(pair.p.skillLevel-1,0,6)]/100,0,.7);
+      grantTastyChance(triggers*chanceAmounts[clamp(pair.p.skillLevel-1,0,6)]/100);
      }else warnings.add('ビルドアップの大成功確率アップは大成功期待値OFFのため未計上です。');
      warnings.add('ビルドアップの食材は発見済み食材への均等配分・大成功率は期待値近似です。');
     }
@@ -1866,7 +1909,8 @@ function simulate(input){
    }
    const potDependent=recipeDependsOnPotSkill||mandatoryCount+extraCount>basePotCapacity;
    if(potDependent)status.potDependentMeals++;
-   const greatChance=successMode==='expected'?clamp((day===6?.3:.1)+successBonus,0,1):0;
+   const tastyMeal=successMode==='expected'?resolveTastyChanceMeal(tastyChanceState,day===6?.3:.1):null;
+   const greatChance=tastyMeal?tastyMeal.successProbability:0;
    const mealEnergy=calculateMealEnergy(chosen.strength70,extraEnergy,bonus,greatChance,day);
    const value=mealEnergy.expected;
    status.cooking+=value;
@@ -1880,7 +1924,7 @@ function simulate(input){
      count:mandatoryCount+extraCount,mandatoryCount,extraIngredients,extraEnergy,successProbability:greatChance,
      initialCovered,expectedMandatoryUnits,expectedExtraUnits,expectedSource,
      potDependent,recipeDependsOnPotSkill,basePotCapacity,potCapacity:capacity,usedPotBonus:potBonus});
-   if(successMode==='expected')successBonus*=1-greatChance;
+   if(tastyMeal)tastyChanceState=tastyMeal.distribution;
    // Cooking restores a small amount of energy to the current on-field party.
    for(const id of teamIds)applyEnergyRecovery(energy,energyDecayTimers,id,clamp(energy.get(id)+mealRecovery(energy.get(id)),0,150));
    potBonus=0;
@@ -1929,6 +1973,7 @@ function simulate(input){
  }
  // Sunday 00:00-04:00 has no collection: do not add its pending
  // sneaky energy to the old week. The next real tap will earn it.
+ const successBonus=Array.from(tastyChanceState,([bonus,p])=>bonus*p).reduce((a,b)=>a+b,0);
  const pendingSneaky=Array.from(pocket.values()).reduce((n,bag)=>n+(bag.pendingSneaky||0),0);
  const pendingExtraHelpItems=Array.from(extraPocket.values()).reduce((n,bag)=>n+(bag.used||0),0);
  const pendingExtraHelpBerryEnergy=Array.from(extraPocket,([id,bag])=>{
@@ -1971,7 +2016,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他の個体との相関・条件外は期待値近似です。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,directStrengthRoundingCorrection:status.directStrengthRoundingCorrection,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,pendingExtraHelpBerryEnergy,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpBerryEnergyAtSwap:status.uncollectedExtraHelpBerryEnergyAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,potDependentMeals:status.potDependentMeals,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
+const api={addTastyChanceBonus,resolveTastyChanceMeal,daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -2100,6 +2145,9 @@ function knownModelLimitations(input,simulated){
   const active=new Set(['morning','noon','evening','sleep'].flatMap(period=>
    Array.isArray(input.teams&&input.teams[period])?input.teams[period]:[]));
   const selected=input.box.filter(p=>active.has(p.id));
+  if(opts.successMode==='expected'&&selected.some(p=>
+    ['Tasty Chance S','Cooking Assist S (Bulk Up)'].includes(dex.get(p.pokemon)?.skill)))
+   issues.push('料理チャンス系の大成功後リセットは分岐計算ですが、スキル加算量は発動期待値です。実際の抽選履歴・上限時の待機ストックとの相関は未検証です。');
   const omitted=new Set();
   const skillOmission=root.PokeSimulator&&root.PokeSimulator.unmodeledStrengthSkillEffect;
   if(typeof skillOmission==='function')
