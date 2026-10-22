@@ -375,6 +375,15 @@ function comparableInputKey(input){
   value&&typeof value==='object'&&!Array.isArray(value)?
    Object.fromEntries(Object.keys(value).sort().map(k=>[k,value[k]])):value);
 }
+// The box is an ID-keyed inventory, not a lineup. Imported CSV or manual
+// sorting must not create a false week-to-week mismatch. Actual team-array
+// ordering remains significant and is never normalized.
+function comparableBoxKey(box){
+ return comparableInputKey([...box].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0));
+}
+function comparableSavedInputKey(input){
+ return comparableInputKey({...input,box:[...input.box].sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0)});
+}
 // A model-input controlled screening of two user-supplied weeks. Not a game
 // ranking test: the uncontrolled stochastic week outcomes remain confounded.
 function screenR02TwoWeekPair(reports,entries){
@@ -383,7 +392,7 @@ function screenR02TwoWeekPair(reports,entries){
  const [a,b]=reports,[entryA,entryB]=entries;
  if(a.week.mondayDate===b.week.mondayDate)
   blockers.push('同じ週の記録は独立した2週比較になりません。');
- if(comparableInputKey(a.input.box)!==comparableInputKey(b.input.box))
+ if(comparableBoxKey(a.input.box)!==comparableBoxKey(b.input.box))
   blockers.push('両週のボックス個体・レベル・食材・サブスキルなどが異なります。');
  if(comparableInputKey(a.input.options)!==comparableInputKey(b.input.options))
   blockers.push('フィールド・料理・回収・初期在庫などの試算設定が両週で異なります。');
@@ -466,7 +475,7 @@ function reviewImportedReports(reports,simulate){
   throw Error('観測JSONは1〜4ファイル選択してください。');
  // Validate all weeks before exposing any combined result.
  const entries=reports.map(report=>reviewImportedReport(report,simulate));
- const inputKeys=reports.map(report=>comparableInputKey(report.input));
+ const inputKeys=reports.map(report=>comparableSavedInputKey(report.input));
  const sameInput=inputKeys.every(key=>key===inputKeys[0]);
  const seen=new Map(),duplicates=new Set(),conflicts=new Set(),inputConflicts=new Set();
  for(let i=0;i<reports.length;i++){
