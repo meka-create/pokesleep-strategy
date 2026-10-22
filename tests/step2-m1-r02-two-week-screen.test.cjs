@@ -158,3 +158,23 @@ test('R02 whitelist cannot be spoofed by an unknown species name containing an a
   assert.equal(out.independentGameRankingValidated,false);
  }
 });
+
+
+test('R02 comparison ignores harmless box-array order while preserving lineup and member differences',()=>{
+ const rs=pair(),before=screen(rs);
+ assert.equal(before.status,'DESCRIPTIVE_ONLY');
+ const same=JSON.parse(JSON.stringify(rs[1]));
+ same.input.box.reverse();
+ const preserved=JSON.stringify(same);
+ const after=screen([rs[0],same]);
+ assert.equal(after.status,'DESCRIPTIVE_ONLY');
+ assert.equal(after.blockers.length,0);
+ assert.equal(after.comparison.modeledDeltaTwoMinusOne,before.comparison.modeledDeltaTwoMinusOne);
+ assert.equal(after.comparison.observedDeltaTwoMinusOne,before.comparison.observedDeltaTwoMinusOne);
+ assert.equal(JSON.stringify(same),preserved);
+ const viaCli=comparePair([rs[0],same]);
+ assert.equal(viaCli.status,'DESCRIPTIVE_ONLY');
+ const genuinelyChanged=JSON.parse(JSON.stringify(same));
+ genuinelyChanged.input.box.find(p=>p.id==='a').level--;
+ assert.equal(screen([rs[0],genuinelyChanged]).status,'NON_COMPARABLE');
+});

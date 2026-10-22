@@ -556,3 +556,26 @@ test('M1 automatic best/fallback recipe cooking stays HOLD in capture, replay an
   assert.equal(obs.knownModelLimitations(x,prediction).some(x=>x.includes('自動選択近似')),false);
  }
 });
+
+
+test('M1 duplicate records ignore box ordering but detect real individual or team differences',()=>{
+ const a=make(),b=make();
+ b.input.box.reverse();
+ const snapshot=JSON.stringify(b);
+ const group=obs.reviewImportedReports([a,b],sim.simulate);
+ assert.equal(group.sameSavedInputs,true);
+ assert.deepEqual(Array.from(group.duplicateMondays),['2026-10-19']);
+ assert.deepEqual(Array.from(group.conflictingInputsMondays),[]);
+ assert.equal(group.accuracyGate,'HOLD');
+ assert.equal(JSON.stringify(b),snapshot);
+ const different=JSON.parse(JSON.stringify(b));
+ different.input.box.find(p=>p.id==='a').level+=1;
+ const changed=obs.reviewImportedReports([a,different],sim.simulate);
+ assert.equal(changed.sameSavedInputs,false);
+ assert.deepEqual(Array.from(changed.conflictingInputsMondays),['2026-10-19']);
+ const teamChange=JSON.parse(JSON.stringify(b));
+ teamChange.input.teams.morning.reverse();
+ const lineup=obs.reviewImportedReports([a,teamChange],sim.simulate);
+ assert.equal(lineup.sameSavedInputs,false);
+ assert.deepEqual(Array.from(lineup.conflictingInputsMondays),['2026-10-19']);
+});
