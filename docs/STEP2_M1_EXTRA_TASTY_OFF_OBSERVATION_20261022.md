@@ -19,6 +19,9 @@
 
 `tests/step2-m1-observation-import-replay.test.cjs`に人工の初期確定りんご147個・21食・OFFを追加し、プレビュー・ブラウザ再読込・CLIの3経路で`CONFOUNDED_OBSERVATION`と`accuracyGate=HOLD`を照合。料理0と期待値ONの負例も確認。全体CIと生成HTML一致の実行結果はPR・mainのrunで確認する。実ゲームの独立週間観測を取得した証拠ではない。
 
+
+回帰で既存のR02観測比較および鍋依存ゼロのテストが、「料理を計上しても大成功OFFなら交絡なし」という旧前提に依存していたことを検出した。R02の通常比較は大成功期待値ONで実施し、OFFの場合は`NON_COMPARABLE`を確認。鍋依存ゼロの例も大成功OFFなら比較保留／ONなら従来の`UNCALIBRATED_OBSERVATION`を維持する。比較ゲートを弱めて旧ラベルへ戻さない。
+
 ## 精度ゲート
 
 M1限定10/14、M01〜M04完全混成週間外部比較0/4、R01〜R05外部順位0/5、実ゲーム週間観測0。M1/M2/M3 PARTIAL、M4 NOT_STARTED。**STEP2精度HOLD・STEP3未着手**。
