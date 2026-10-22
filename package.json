@@ -1,7 +1,7 @@
 {
   "name": "pokesleep-strategy",
   "private": true,
-  "version": "0.2.61",
+  "version": "0.2.62",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
