@@ -495,3 +495,28 @@ test('M1 missing discovered-ingredient pool holds only rostered magnet-type skil
  const noSkill=make();
  assert.equal(obs.knownModelLimitations(noSkill.input).some(x=>x.includes('抽選食材の候補')),false);
 });
+
+test('M1 cooked weeks with Extra Tasty expectation OFF are confounded in capture, browser replay and CLI',()=>{
+ const x=input();x.options.recipeId='apple_curry';x.options.initialIngredients={apple:147};x.options.bagCapacity=500;
+ const prediction=sim.simulate(x);
+ assert.equal(prediction.meals.length,21);
+ assert.ok(prediction.cooking>0);
+ assert.equal(prediction.estimatedMeals,0);
+ assert.equal(prediction.potDependentMeals,0);
+ const cap=obs.captureSimulation(x,prediction,'0.2.63','2026-10-22T03:00:00.000Z');
+ const record=obs.makeReport(cap,{mondayDate:'2026-10-19',total:'100',berryAndStrengthSkill:'60',cooking:'40',
+  confirmedSummary:true,...Object.fromEntries(obs.flags.map(k=>[k,true]))});
+ for(const outcome of [obs.preview(record),obs.reviewImportedReport(record,sim.simulate),compareSingleWeek(record)]){
+  assert.equal(outcome.status,'CONFOUNDED_OBSERVATION');
+  assert.equal(outcome.accuracyGate,'HOLD');
+  assert.equal(outcome.rankOrAccuracyValidated,false);
+  assert.ok(outcome.modelLimitations.some(reason=>reason.includes('大成功期待値OFF')));
+ }
+ const expected={...x,options:{...x.options,successMode:'expected'}};
+ const normal=sim.simulate(expected);
+ assert.ok(normal.cooking>prediction.cooking);
+ assert.equal(obs.knownModelLimitations(expected,normal).some(reason=>reason.includes('大成功期待値OFF')),false);
+ const empty=input(),emptyResult=sim.simulate(empty);
+ assert.equal(emptyResult.cooking,0);
+ assert.equal(obs.knownModelLimitations(empty,emptyResult).some(reason=>reason.includes('大成功期待値OFF')),false);
+});

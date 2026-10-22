@@ -65,7 +65,12 @@ test('no cooking and a sufficient base pot do not claim pot-dependent meals',()=
  const x=input();x.options.recipeId='';assert.equal(sim.simulate(x).potDependentMeals,0);
  x.options.recipeId='curry_03';x.options.potSize=15;
  const r=sim.simulate(x);assert.equal(r.potDependentMeals,0);
- assert.equal(obs.preview(report(x,r)).status,'UNCALIBRATED_OBSERVATION');
+ const off=obs.preview(report(x,r));
+ assert.equal(off.status,'CONFOUNDED_OBSERVATION');
+ assert.ok(off.modelLimitations.some(s=>s.includes('大成功期待値OFF')));
+ x.options.successMode='expected';
+ const on=sim.simulate(x);assert.equal(on.potDependentMeals,0);
+ assert.equal(obs.preview(report(x,on)).status,'UNCALIBRATED_OBSERVATION');
 });
 test('legacy pot diagnostics stay readable but held; invalid and changed counters are detected',()=>{
  const x=input(),r=sim.simulate(x),saved=report(x,r);
