@@ -173,6 +173,11 @@ function knownModelLimitations(input,simulated){
  // An expectation-OFF cooking estimate cannot calibrate observed game cooking.
  if(opts.successMode==='none'&&simulated&&Number.isFinite(simulated.cooking)&&simulated.cooking>0)
   issues.push('大成功期待値OFFの試算で料理エナジーを計上しています。実ゲームには通常の料理大成功抽選があり、実測の料理エナジーとこの試算を同条件として定量照合できません。');
+ // The model's per-meal fallback/best pick is not an observed cooking log.
+ // Without a meal-by-meal game recipe record, it cannot calibrate actual cooking.
+ if(simulated&&Number.isFinite(simulated.cooking)&&simulated.cooking>0&&
+    (opts.recipeMode==='best'||opts.recipeMode==='fallback'))
+  issues.push('料理の代替／毎食最高エナジーは食事ごとの自動選択近似です。実ゲームで選んだ全レシピと一致する記録がなく、観測週の料理エナジーをこの試算と同条件として定量照合できません。');
  if(simulated&&simulated.potDependentMeals>0)
   issues.push('モデルは'+simulated.potDependentMeals+'食のレシピ選択または追加食材量をスキル期待値による鍋拡張に依存して計上しています。初期食材が十分でも、実際の発動・料理成立・げんき回復の分岐は未検証です。');
  if(simulated&&simulated.estimatedMeals>0)

@@ -520,3 +520,39 @@ test('M1 cooked weeks with Extra Tasty expectation OFF are confounded in capture
  assert.equal(emptyResult.cooking,0);
  assert.equal(obs.knownModelLimitations(empty,emptyResult).some(reason=>reason.includes('大成功期待値OFF')),false);
 });
+
+// A per-meal recipe chosen by the weekly model is not evidence of which meals
+// the user cooked in game, even when the starting ingredients are sufficient.
+test('M1 automatic best/fallback recipe cooking stays HOLD in capture, replay and CLI',()=>{
+ const base=input();
+ base.options.recipeId='apple_curry';
+ base.options.initialIngredients={apple:147};
+ base.options.bagCapacity=500;
+ base.options.successMode='expected';
+ for(const mode of ['best','fallback']){
+  const x=JSON.parse(JSON.stringify(base));x.options.recipeMode=mode;
+  const prediction=sim.simulate(x);
+  assert.ok(prediction.cooking>0);
+  assert.equal(prediction.estimatedMeals,0);
+  assert.equal(prediction.potDependentMeals,0);
+  const record=obs.makeReport(obs.captureSimulation(x,prediction,'0.2.64','2026-10-22T05:00:00.000Z'),{
+   mondayDate:'2026-10-19',total:'100',berryAndStrengthSkill:'60',cooking:'40',
+   confirmedSummary:true,...Object.fromEntries(obs.flags.map(k=>[k,true]))});
+  for(const outcome of [obs.preview(record),obs.reviewImportedReport(record,sim.simulate),compareSingleWeek(record)]){
+   assert.equal(outcome.status,'CONFOUNDED_OBSERVATION',mode);
+   assert.equal(outcome.accuracyGate,'HOLD');
+   assert.equal(outcome.rankOrAccuracyValidated,false);
+   assert.ok(outcome.modelLimitations.some(x=>x.includes('自動選択近似')&&x.includes('全レシピ')),mode);
+  }
+ }
+ const fixed={...base,options:{...base.options,recipeMode:'fixed'}};
+ const fixedPrediction=sim.simulate(fixed);
+ assert.ok(fixedPrediction.cooking>0);
+ assert.equal(obs.knownModelLimitations(fixed,fixedPrediction).some(x=>x.includes('自動選択近似')),false);
+ for(const mode of ['best','fallback']){
+  const x={...base,options:{...base.options,recipeMode:mode,foodMode:'random'}};
+  const prediction=sim.simulate(x);
+  assert.equal(prediction.cooking,0);
+  assert.equal(obs.knownModelLimitations(x,prediction).some(x=>x.includes('自動選択近似')),false);
+ }
+});
