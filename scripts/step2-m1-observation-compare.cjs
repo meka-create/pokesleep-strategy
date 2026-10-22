@@ -100,7 +100,7 @@ function compareSingleWeek(report){
  ].filter(Boolean);
  // A meal that relies on expected (not guaranteed) future ingredients is
  // not comparable to a deterministic observed meal count without extra evidence.
- const modelLimitations=[...observation.knownModelLimitations(input,predicted),
+ const modelLimitations=[...observation.knownModelLimitations(input,predicted,observed.cooking),
   ...observation.capturedDiagnosticLimitations(report.capture,predicted)];
  return {
   schema:report.schema,week:{mondayDate:week.mondayDate,field:week.field},
