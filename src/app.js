@@ -271,14 +271,14 @@ $('downloadObservation').addEventListener('click',()=>{
    startStrengthVerified:$('obsStartStrengthVerified').checked,
    weekBoundaryReconciled:$('obsWeekBoundaryReconciled').checked
   };
-  const report=PokeObservation.makeReport(lastRunSnapshot,form);
+  const report=PokeObservation.makeReport(lastRunSnapshot,form,new Date().toISOString());
   const compared=PokeObservation.preview(report);
   const difference=n=>(n>0?'+':'')+Math.round(n).toLocaleString('ja-JP');
   const timingLabel={PRE_WEEK:'週開始前に記録した試算（端末時計上・独立証明なし）',DURING_WEEK:'週途中の試算',AFTER_WEEK:'週終了後の事後試算'};
   const note='試算の時期：'+timingLabel[compared.forecastTiming.phase]+'。実測−試算：総'+difference(compared.signedDeltaObservedMinusModel.total)+
    '／きのみ＋直接スキル'+difference(compared.signedDeltaObservedMinusModel.berryAndStrengthSkill)+
    '／料理'+difference(compared.signedDeltaObservedMinusModel.cooking)+
-   '。単週観測のため精度・編成順位は未検証（STEP2 HOLD）。';
+   '。週まとめ入力：'+compared.summaryRecordingTime.recordedAt+'（端末時計上・独立証明なし）。単週観測のため精度・編成順位は未検証（STEP2 HOLD）。';
   const concerns=[
    ...(!compared.weeklySummaryBucketsReconcile?['ゲーム週まとめの総エナジーと2欄の合計が一致しません。']:[]),
    ...(compared.unconfirmedConditions.length?['確認できていない条件が'+compared.unconfirmedConditions.length+'項目あります。']:[]),
@@ -320,6 +320,8 @@ $('observationFile').addEventListener('change',async ev=>{
   }
   for(const replay of batch.items){
    add('対象週：'+replay.week.mondayDate+'／'+replay.week.field);
+   if(replay.summaryRecordingTime)add('週まとめ記録日時：'+replay.summaryRecordingTime.recordedAt+'（端末時計上・独立証明なし）。');
+   else add('週まとめ記録日時：旧観測JSONでは未保存。日付は自己申告として扱います。');
    const timingLabel={PRE_WEEK:'週開始前記録（端末時計上・独立証明なし）',DURING_WEEK:'週途中記録',AFTER_WEEK:'週終了後の事後記録'};
    add('試算保存の時期：'+timingLabel[replay.forecastTiming.phase]+'／保存時刻 '+replay.forecastTiming.capturedAt);
    add('ゲーム実測：'+numeric(replay.observed.total)+'／記録時の試算：'+numeric(replay.capturedModel.total)+

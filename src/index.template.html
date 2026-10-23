@@ -3,7 +3,7 @@
 <!-- BUILD_CSS -->
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.72</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.73</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -107,6 +107,7 @@
    <summary>実ゲームの週まとめを記録して、試算と比較する（任意・M1検証用）</summary>
    <p class="small muted">ゲームの週まとめ画面に表示された数値を手入力し、この試算の<strong>ポケモン・編成・計算条件を添えたJSON</strong>を保存します。<strong>実ゲームの観測1週分だけで精度合格や最適編成を判定しません。</strong></p>
    <p class="small muted">事前検証をする場合は、<strong>対象月曜04:00（日本時間）より前に試算を実行</strong>し、下の月曜日を指定して「事前予測JSON」を保存してください。週終了後、このファイルを読み戻してから実ゲームの数値を入力します。事後に試算し直した結果は事前予測に置き換えられません。</p>
+   <p class="small muted"><strong>週間実測JSONは対象週が終了した翌月曜04:00（日本時間）以降にだけ保存できます。</strong>週途中には事前予測JSONを保管し、ゲームの週まとめが確定してから実測値を入力してください。入力時刻は端末時計で記録しますが、第三者による検証ではありません。</p>
    <div class="observation-flags">
     <button type="button" class="secondary observation-download" id="downloadPlan">対象週の事前予測JSONを保存</button>
     <label class="secondary file-button sim-import-label" for="planFile">保存済み事前予測JSONを読み込む

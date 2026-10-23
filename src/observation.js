@@ -121,7 +121,24 @@ function captureSimulation(input,predicted,appVersion,capturedAt){
    plannedWeekMonday:plan.week.mondayDate};
  }
 
-function makeReport(snapshot,form){
+// A manually-entered WEEKLY summary cannot exist before the entire Monday
+// 04:00 JST -> next Monday 04:00 JST period ends. Existing observations
+// without this field remain readable; recorded clocks are not trusted proof.
+function summaryRecordingTime(mondayDate,capturedAt,recordedAt){
+ if(recordedAt===undefined)return null; // legacy observation schema
+ if(!validMonday(mondayDate)||typeof recordedAt!=='string'||
+    !Number.isFinite(Date.parse(recordedAt))||
+    new Date(recordedAt).toISOString()!==recordedAt)
+  throw Error('週まとめの記録日時が不正です。ISO形式の日時が必要です。');
+ const weekEnd=Date.parse(mondayDate+'T04:00:00+09:00')+7*24*60*60*1000;
+ if(Date.parse(recordedAt)<weekEnd)
+  throw Error('実ゲームの週まとめは対象週の終了（翌月曜04:00、日本時間）後に記録してください。未終了の週は観測記録にできません。');
+ if(Date.parse(recordedAt)<Date.parse(capturedAt))
+  throw Error('実ゲーム週まとめの記録時刻が試算の保存時刻より前になっています。記録の順序を確認してください。');
+ return {recordedAt,weekCompletedByRecordedClock:true,independentlyVerified:false};
+}
+
+function makeReport(snapshot,form,recordedAt){
  if(!snapshot||!snapshot.input||!snapshot.model)throw Error('先に7日間を試算してください。');
  if(!form||!form.confirmedSummary)
   throw Error('ゲーム内の週まとめを実際に確認した場合だけ記録できます。');
@@ -137,6 +154,8 @@ function makeReport(snapshot,form){
  const field=snapshot.input.options.map;
  if(typeof field!=='string'||!field.trim())throw Error('フィールドが未設定です。');
  const provenance={source:'in_game_weekly_summary'};
+ const recorded=summaryRecordingTime(form.mondayDate,snapshot.capturedAt,recordedAt);
+ if(recorded)provenance.summaryRecordedAt=recorded.recordedAt;
  for(const key of flags){
   if(typeof form[key]!=='boolean')throw Error('確認項目が不正です：'+key);
   provenance[key]=form[key];
@@ -263,6 +282,7 @@ function preview(report){
  if(!report||report.schema!==schema||!report.capture||!report.observed)
   throw Error('観測記録が不正です。');
  validateReplayCapture(report.capture);
+ const summaryTime=summaryRecordingTime(report.week?.mondayDate,report.capture.capturedAt,report.provenance?.summaryRecordedAt);
  const model=modelStats(report.capture.modelAtCapture),o=report.observed;
  const signedDelta={
   total:o.total-model.total,
@@ -275,6 +295,7 @@ function preview(report){
   ...capturedDiagnosticLimitations(report.capture),
    ...timingLimitations(report.capture,report.week.mondayDate)];
  return {forecastTiming:forecastTiming(report.capture.capturedAt,report.week.mondayDate),
+   summaryRecordingTime:summaryTime,
    signedDeltaObservedMinusModel:signedDelta,
   weeklySummaryBucketsReconcile:unattributed===0,
   observedUnattributed:unattributed,
@@ -389,6 +410,7 @@ function reviewImportedReport(report,simulate){
  if(!report.capture||!report.capture.modelAtCapture)
   throw Error('試算時点の記録がないJSONです。v0.2.35以降に保存した観測JSONを選択してください。');
  validateReplayCapture(report.capture);
+ const summaryTime=summaryRecordingTime(report.week.mondayDate,report.capture.capturedAt,report.provenance.summaryRecordedAt);
  validateReplayInput(report.input);
  const saved=modelStats(report.capture.modelAtCapture);
  // Treat the uploaded record as untrusted; recompute from the recorded
@@ -420,6 +442,7 @@ function reviewImportedReport(report,simulate){
  ];
  return {
   schema,forecastTiming:forecastTiming(report.capture.capturedAt,report.week.mondayDate),
+  summaryRecordingTime:summaryTime,
   week:{mondayDate:report.week.mondayDate,field:report.week.field},
   currentModel:{...current,berryAndStrengthSkill:current.berries+current.skills},
   capturedModel:{...saved,berryAndStrengthSkill:saved.berries+saved.skills},
@@ -575,7 +598,7 @@ function reviewImportedReports(reports,simulate){
  };
 }
 
-const api={schema,planSchema,flags,diagnosticFields,modelDiagnostics,capturedDiagnosticLimitations,validMonday,integerInput,captureSimulation,forecastTiming,makePlan,snapshotFromPlan,makeReport,preview,knownModelLimitations,validateReplayInput,validateReplayCapture,reviewImportedReport,reviewImportedReports};
+const api={schema,planSchema,flags,diagnosticFields,modelDiagnostics,capturedDiagnosticLimitations,validMonday,integerInput,captureSimulation,forecastTiming,summaryRecordingTime,makePlan,snapshotFromPlan,makeReport,preview,knownModelLimitations,validateReplayInput,validateReplayCapture,reviewImportedReport,reviewImportedReports};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeObservation=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
