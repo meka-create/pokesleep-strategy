@@ -611,7 +611,8 @@ test('Lunar and Draco same-type unique species count ignores different types and
 });
 test('Stockpile reward levels 1 and 7 use explicit rewards from cited skill table',()=>{
  assert.deepEqual([...sim.STOCKPILE_REWARDS[0]],[600,1020,1500,2040,2640,3300,4020,4920,6480,8880,12120]);
- assert.deepEqual([...sim.STOCKPILE_REWARDS[6]],[4502,7653,11255,15307,19809,24761,30163,36916,46370,59876,82386]);
+ // Current Lv.7 values at stacks 8-10; the v2.12.2-and-before table is different.
+ assert.deepEqual([...sim.STOCKPILE_REWARDS[6]],[4502,7653,11255,15307,19809,24761,30163,36916,48621,66629,90940]);
 });
 test('helper boost matches upstream for same-type species count 1 through 5',()=>{
  const expected=[[2,2,3,4,6],[3,3,4,5,7],[3,3,5,6,8],[4,4,6,7,9],[4,5,7,8,10],[5,6,8,9,11]];
