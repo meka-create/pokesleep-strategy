@@ -25,7 +25,7 @@ test('weekly game observation can reload pre-week plans without a visible simula
  assert.match(html,/id="obsCooking"/);
  assert.ok(build.includes("'simulator.js','observation.js'"));
  assert.ok(app.indexOf('lastRunSnapshot=PokeObservation.captureSimulation')>app.indexOf('PokeSimulator.simulate(runInput)'));
- assert.ok(app.includes("PokeObservation.makeReport(lastRunSnapshot,form)"));
+ assert.ok(app.includes("PokeObservation.makeReport(lastRunSnapshot,form,new Date().toISOString())"));
  assert.ok(app.includes("PokeObservation.preview(report)"));
  assert.ok(app.includes("checked=false"));
  assert.ok(app.includes("lastRunSnapshot=null"));
