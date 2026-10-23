@@ -168,6 +168,7 @@ $('runSim').addEventListener('click',()=>{
   const result=PokeSimulator.simulate(runInput);
   const version=document.querySelector('.step-mark')?.textContent.match(/v(\d+\.\d+\.\d+)/)?.[1];
   lastRunSnapshot=PokeObservation.captureSimulation(runInput,result,version,new Date().toISOString());
+  $('planStatus').textContent='今回の試算を記録用に保持しました。事前予測として利用する場合は週開始前にJSONを保存してください。';
   const yen=n=>Math.round(n).toLocaleString('ja-JP');
   $('simTotal').textContent=yen(result.total)+' エナジー（計上できた項目のみ・暫定）';
   const stats=[['きのみ',result.berries],['料理',result.cooking],['直接スキル',result.skills]];
@@ -224,6 +225,37 @@ $('runSim').addEventListener('click',()=>{
 });
 
 
+
+$('downloadPlan').addEventListener('click',()=>{
+ $('planError').hidden=true;
+ try{
+  const plan=PokeObservation.makePlan(lastRunSnapshot,$('obsMonday').value);
+  download('pokesleep_preweek_plan_'+plan.week.mondayDate+'.json',
+   JSON.stringify(plan,null,2),'application/json;charset=utf-8');
+  $('planStatus').textContent='事前予測JSONを保存しました（対象週：'+plan.week.mondayDate+
+   '／試算時刻：'+plan.capture.capturedAt+'）。端末時計・ファイル内容の独立証明ではありません。';
+ }catch(e){$('planError').textContent=e.message||String(e);$('planError').hidden=false;}
+});
+$('planFile').addEventListener('change',async ev=>{
+ const file=ev.target.files?.[0];if(!file)return;
+ $('planError').hidden=true;
+ try{
+  if(file.size>8*1024*1024)throw Error('事前予測JSONは8MB以下にしてください。');
+  const plan=JSON.parse(await file.text());
+  const restored=PokeObservation.snapshotFromPlan(plan);
+  lastRunSnapshot=restored;
+  $('obsMonday').value=restored.plannedWeekMonday;
+  for(const id of ['obsTotal','obsBerry','obsCooking','obsScreenshot'])$(id).value='';
+  for(const id of ['obsNoUnmodeledEvents','obsSameCollectionSchedule','obsNoUntrackedItems',
+    'obsStartStrengthVerified','obsWeekBoundaryReconciled','obsConfirmedSummary'])$(id).checked=false;
+  $('obsError').hidden=true;
+  $('obsResult').textContent='事前予測を復元しました。週まとめの実測値と実際に確認した条件のみ入力してください。';
+  $('planStatus').textContent='事前予測：'+restored.plannedWeekMonday+'／試算時刻 '+restored.capturedAt+
+   '。現在の手持ち・設定を上書きしていません。ファイルは自己申告記録であり精度PASSではありません。';
+ }catch(e){$('planError').textContent=e.message||String(e);$('planError').hidden=false;}
+ finally{ev.target.value='';}
+});
+
 $('downloadObservation').addEventListener('click',()=>{
  $('obsError').hidden=true;
  try{
@@ -242,7 +274,8 @@ $('downloadObservation').addEventListener('click',()=>{
   const report=PokeObservation.makeReport(lastRunSnapshot,form);
   const compared=PokeObservation.preview(report);
   const difference=n=>(n>0?'+':'')+Math.round(n).toLocaleString('ja-JP');
-  const note='実測−試算：総'+difference(compared.signedDeltaObservedMinusModel.total)+
+  const timingLabel={PRE_WEEK:'週開始前に記録した試算（端末時計上・独立証明なし）',DURING_WEEK:'週途中の試算',AFTER_WEEK:'週終了後の事後試算'};
+  const note='試算の時期：'+timingLabel[compared.forecastTiming.phase]+'。実測−試算：総'+difference(compared.signedDeltaObservedMinusModel.total)+
    '／きのみ＋直接スキル'+difference(compared.signedDeltaObservedMinusModel.berryAndStrengthSkill)+
    '／料理'+difference(compared.signedDeltaObservedMinusModel.cooking)+
    '。単週観測のため精度・編成順位は未検証（STEP2 HOLD）。';
@@ -287,6 +320,8 @@ $('observationFile').addEventListener('change',async ev=>{
   }
   for(const replay of batch.items){
    add('対象週：'+replay.week.mondayDate+'／'+replay.week.field);
+   const timingLabel={PRE_WEEK:'週開始前記録（端末時計上・独立証明なし）',DURING_WEEK:'週途中記録',AFTER_WEEK:'週終了後の事後記録'};
+   add('試算保存の時期：'+timingLabel[replay.forecastTiming.phase]+'／保存時刻 '+replay.forecastTiming.capturedAt);
    add('ゲーム実測：'+numeric(replay.observed.total)+'／記録時の試算：'+numeric(replay.capturedModel.total)+
        '／現行モデルでの再試算：'+numeric(replay.currentModel.total));
    const d=replay.signedDeltaObservedMinusCurrent;
