@@ -437,6 +437,35 @@ function advanceStockpile(state,expectedTriggers,level){
  }
  return {state:current,earned};
 }
+// A collected skill stock is a discrete 0/1/2 activation distribution.
+// Stockpile rewards and the next stack state depend on activation order, so
+// advancing by E[activations] is not equivalent to averaging complete paths.
+// This is exact CONDITIONAL on the existing marginal stock distribution and
+// independent current stockpile state; cross-tap correlations remain modeled
+// approximately by the weekly simulator.
+function advanceStockpileByReadyStock(state,readyStock,level){
+ if(!Array.isArray(state)||state.length!==11||
+   state.some(p=>!Number.isFinite(p)||p<0)||
+   Math.abs(state.reduce((a,b)=>a+b,0)-1)>1e-8||
+   !Array.isArray(readyStock)||![2,3].includes(readyStock.length)||
+   readyStock.some(p=>!Number.isFinite(p)||p<0)||
+   Math.abs(readyStock.reduce((a,b)=>a+b,0)-1)>1e-8)
+  throw Error('たくわえるの待機ストック分布が不正です。');
+ const result=new Array(11).fill(0);
+ let earned=0;
+ for(let count=0;count<readyStock.length;count++){
+  const probability=readyStock[count];
+  if(probability===0)continue;
+  let branch=state.slice(),reward=0;
+  for(let i=0;i<count;i++){
+   const step=stockpileStep(branch,level);
+   branch=step.state;reward+=step.earned;
+  }
+  earned+=probability*reward;
+  for(let i=0;i<result.length;i++)result[i]+=probability*branch[i];
+ }
+ return {state:result,earned};
+}
 const LUNAR_HEAL=[3,4,5,7,9,11];
 const LUNAR_BERRIES=[
  [[5,1],[7,1],[9,1],[12,1],[14,2]],
@@ -1033,7 +1062,7 @@ function simulate(input){
    if(excluded)warningsSkillsExcluded.add(actual);
    else if(actual==='Charge Strength S (Stockpile)'){
     const current=stockpileStates.get(id)||emptyStockpile();
-    const update=advanceStockpile(current,triggers,pair.p.skillLevel);
+    const update=advanceStockpileByReadyStock(current,triggerState?skillProcMarginal(triggerState):[1,0],pair.p.skillLevel);
     stockpileStates.set(id,update.state);
     status.skills+=update.earned*(1+bonus/100);
     warnings.add('たくわえるは蓄積0回から開始し、交代時リセット・週末未放出を反映した状態確率モデルです。25%放出は実測推定、発動回数と抽選は期待値近似です。');
@@ -1440,7 +1469,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他の個体との相関・条件外は期待値近似です。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,directStrengthRoundingCorrection:status.directStrengthRoundingCorrection,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,pendingExtraHelpBerryEnergy,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpBerryEnergyAtSwap:status.uncollectedExtraHelpBerryEnergyAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,potDependentMeals:status.potDependentMeals,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={addTastyChanceBonus,resolveTastyChanceMeal,daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
+const api={addTastyChanceBonus,resolveTastyChanceMeal,daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceStockpileByReadyStock,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
