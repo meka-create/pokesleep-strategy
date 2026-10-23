@@ -23,7 +23,14 @@ function boot(){
  const event={name:'test',start:'2026-10-19',duration:1,map:'シアンの砂浜',food1:'curry',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false};
  const data=new Map([['pokesleep-event-planner/step1/v1',JSON.stringify({version:1,box,sleepIds:ids,event,updatedAt:''})]]);
  const localStorage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
- const ctx={document,localStorage,confirm:()=>true,alert:()=>{},URL,Blob,setTimeout:()=>1,clearTimeout(){}};
+ // Freeze the browser clock AFTER the fixture's target game week (Oct 19-26).
+ // CI must not depend on the wall-clock date of this test run.
+ class TestDate extends Date{
+  constructor(...args){super(...(args.length?args:['2026-11-10T00:00:00.000Z']));}
+  static now(){return Date.parse('2026-11-10T00:00:00.000Z');}
+ }
+ const ctx={document,localStorage,confirm:()=>true,alert:()=>{},URL,Blob,
+  Date:TestDate,setTimeout:()=>1,clearTimeout(){}};
  ctx.globalThis=ctx;ctx.window=ctx;
  vm.createContext(ctx);
  for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','observation.js','app.js'])
