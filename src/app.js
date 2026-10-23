@@ -361,6 +361,24 @@ $('observationFile').addEventListener('change',async ev=>{
  }finally{ev.target.value='';}
 });
 
+
+$('shareObservationFile').addEventListener('change',async ev=>{
+ const file=ev.target.files?.[0];if(!file)return;
+ const error=$('shareObservationError'),result=$('shareObservationResult');
+ error.hidden=true;result.textContent='';
+ try{
+  if(file.size>8*1024*1024)throw Error('共有用に変換する観測JSONは8MB以下にしてください。');
+  const report=JSON.parse(await file.text());
+  const redacted=PokeObservation.shareObservation(report,PokeSimulator.simulate);
+  const output='pokesleep_weekly_observation_share_'+redacted.week.mondayDate+'.json';
+  download(output,JSON.stringify(redacted,null,2),'application/json;charset=utf-8');
+  result.textContent='計算と観測の判定を照合して、共有用コピーを保存しました。'+
+   'ニックネーム・内部ID・スクリーンショット識別子・自由記述メモは含めません。'+
+   '種族・能力・編成・日付・エナジーは残ります。匿名性・ゲーム実測の真正性・精度は保証しません（STEP2 HOLD）。';
+ }catch(e){error.textContent=e.message||String(e);error.hidden=false;}
+ finally{ev.target.value='';}
+});
+
 $('storageNotice').textContent=storage.getLoadError()|| (storage.available()?'このブラウザ内への保存：利用可能':'この環境は保存が制限されています。必ずJSONバックアップをご利用ください。');
 if(storage.getLoadError()){$('storageNotice').className='small warn';$('criticalNotice').textContent=storage.getLoadError();$('criticalNotice').hidden=false;}
 fillEvent();renderBox();fillSimulation();setTab('event');

@@ -598,7 +598,74 @@ function reviewImportedReports(reports,simulate){
  };
 }
 
-const api={schema,planSchema,flags,diagnosticFields,modelDiagnostics,capturedDiagnosticLimitations,validMonday,integerInput,captureSimulation,forecastTiming,summaryRecordingTime,makePlan,snapshotFromPlan,makeReport,preview,knownModelLimitations,validateReplayInput,validateReplayCapture,reviewImportedReport,reviewImportedReports};
+
+// Export a replayable, limited-disclosure evidence copy. This is not irreversible
+// anonymization: roster, species, level, skills and observed week still exist.
+// Drop unrecognized / free-text fields rather than recursively copying them.
+function shareObservation(report,simulate){
+ if(typeof simulate!=='function')throw Error('共有用JSONの検証には現在の週間計算器が必要です。');
+ const before=reviewImportedReport(report,simulate);
+ const box=report.input.box;
+ // Sorting original IDs gives consistent aliases for identical saved boxes
+ // even when their row order differs. Never embed the original ID in the copy.
+ const sortedIds=box.map(p=>p.id).sort();
+ const alias=new Map(sortedIds.map((id,i)=>[id,'P'+String(i+1).padStart(5,'0')]));
+ const teamNames=['morning','noon','evening','sleep'];
+ const safeBox=box.map(p=>({
+  id:alias.get(p.id),pokemon:p.pokemon,level:p.level,skillLevel:p.skillLevel,
+  ingredients:Array.isArray(p.ingredients)?[...p.ingredients]:p.ingredients,
+  subskills:Array.isArray(p.subskills)?[...p.subskills]:p.subskills,
+  nature:p.nature,sleepHours:p.sleepHours,shiny:p.shiny
+ }));
+ const opts=report.input.options;
+ const optionNames=['map','fieldBonus','tapMinutes','potSize','bagCapacity',
+  'sleepScore','initialEnergy','foodMode','recipeMode','recipeId','camp',
+  'extraMode','successMode','magnetIngredients','initialIngredients'];
+ const safeOptions=Object.fromEntries(optionNames.filter(k=>
+   Object.prototype.hasOwnProperty.call(opts,k)).map(k=>[k,
+    JSON.parse(JSON.stringify(opts[k]))]));
+ // Event notes are free text, but keeping whether an event note exists
+ // preserves the model's "unmodeled event effects" evidence blocker.
+ if(typeof opts.eventEffects==='string'&&opts.eventEffects.trim())
+  safeOptions.eventEffects='内容非公開：イベント補正メモあり';
+ else if(opts.eventEffects!==undefined)safeOptions.eventEffects='';
+ const safeProvenance={source:'in_game_weekly_summary'};
+ for(const key of flags)
+  if(Object.prototype.hasOwnProperty.call(report.provenance,key))
+   safeProvenance[key]=report.provenance[key];
+ if(report.provenance.summaryRecordedAt!==undefined)
+  safeProvenance.summaryRecordedAt=report.provenance.summaryRecordedAt;
+ const cap=report.capture;
+ const safeCapture={appVersion:cap.appVersion,capturedAt:cap.capturedAt,
+  modelAtCapture:{...modelStats(cap.modelAtCapture)},
+  ...(cap.modelDiagnosticsAtCapture?{
+   modelDiagnosticsAtCapture:Object.fromEntries(diagnosticFields.filter(k=>
+    Object.prototype.hasOwnProperty.call(cap.modelDiagnosticsAtCapture,k))
+     .map(k=>[k,cap.modelDiagnosticsAtCapture[k]]))
+  }:{}),
+  recordingMethod:'manual_game_summary_input',screenshotReviewedByApp:false};
+ const output={
+  schema,week:{mondayDate:report.week.mondayDate,field:report.week.field},
+  provenance:safeProvenance,
+  input:{box:safeBox,
+   teams:Object.fromEntries(teamNames.map(k=>[k,report.input.teams[k].map(id=>alias.get(id))])),
+   options:safeOptions},
+  observed:{total:report.observed.total,berryAndStrengthSkill:report.observed.berryAndStrengthSkill,
+   cooking:report.observed.cooking},
+  capture:safeCapture
+ };
+ const after=reviewImportedReport(output,simulate);
+ for(const key of ['total','berries','skills','cooking']){
+  if(Math.abs(before.currentModel[key]-after.currentModel[key])>1e-5||
+   Math.abs(before.capturedModel[key]-after.capturedModel[key])>1e-5)
+   throw Error('共有用の情報削減で計算結果が変わりました。JSONを保存できません。');
+ }
+ if(before.status!==after.status||before.modelLimitations.length!==after.modelLimitations.length||
+    before.unconfirmedConditions.length!==after.unconfirmedConditions.length)
+  throw Error('共有用JSONで観測の判定条件が変化したため、出力を中止しました。');
+ return output; // Input object is NEVER modified.
+}
+const api={schema,planSchema,flags,diagnosticFields,modelDiagnostics,capturedDiagnosticLimitations,validMonday,integerInput,captureSimulation,forecastTiming,summaryRecordingTime,makePlan,snapshotFromPlan,makeReport,preview,knownModelLimitations,validateReplayInput,validateReplayCapture,reviewImportedReport,reviewImportedReports,shareObservation};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeObservation=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
