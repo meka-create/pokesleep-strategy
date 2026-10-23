@@ -38,7 +38,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.72</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.73</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -142,6 +142,7 @@
    <summary>実ゲームの週まとめを記録して、試算と比較する（任意・M1検証用）</summary>
    <p class="small muted">ゲームの週まとめ画面に表示された数値を手入力し、この試算の<strong>ポケモン・編成・計算条件を添えたJSON</strong>を保存します。<strong>実ゲームの観測1週分だけで精度合格や最適編成を判定しません。</strong></p>
    <p class="small muted">事前検証をする場合は、<strong>対象月曜04:00（日本時間）より前に試算を実行</strong>し、下の月曜日を指定して「事前予測JSON」を保存してください。週終了後、このファイルを読み戻してから実ゲームの数値を入力します。事後に試算し直した結果は事前予測に置き換えられません。</p>
+   <p class="small muted"><strong>週間実測JSONは対象週が終了した翌月曜04:00（日本時間）以降にだけ保存できます。</strong>週途中には事前予測JSONを保管し、ゲームの週まとめが確定してから実測値を入力してください。入力時刻は端末時計で記録しますが、第三者による検証ではありません。</p>
    <div class="observation-flags">
     <button type="button" class="secondary observation-download" id="downloadPlan">対象週の事前予測JSONを保存</button>
     <label class="secondary file-button sim-import-label" for="planFile">保存済み事前予測JSONを読み込む
@@ -2580,7 +2581,24 @@ function captureSimulation(input,predicted,appVersion,capturedAt){
    plannedWeekMonday:plan.week.mondayDate};
  }
 
-function makeReport(snapshot,form){
+// A manually-entered WEEKLY summary cannot exist before the entire Monday
+// 04:00 JST -> next Monday 04:00 JST period ends. Existing observations
+// without this field remain readable; recorded clocks are not trusted proof.
+function summaryRecordingTime(mondayDate,capturedAt,recordedAt){
+ if(recordedAt===undefined)return null; // legacy observation schema
+ if(!validMonday(mondayDate)||typeof recordedAt!=='string'||
+    !Number.isFinite(Date.parse(recordedAt))||
+    new Date(recordedAt).toISOString()!==recordedAt)
+  throw Error('週まとめの記録日時が不正です。ISO形式の日時が必要です。');
+ const weekEnd=Date.parse(mondayDate+'T04:00:00+09:00')+7*24*60*60*1000;
+ if(Date.parse(recordedAt)<weekEnd)
+  throw Error('実ゲームの週まとめは対象週の終了（翌月曜04:00、日本時間）後に記録してください。未終了の週は観測記録にできません。');
+ if(Date.parse(recordedAt)<Date.parse(capturedAt))
+  throw Error('実ゲーム週まとめの記録時刻が試算の保存時刻より前になっています。記録の順序を確認してください。');
+ return {recordedAt,weekCompletedByRecordedClock:true,independentlyVerified:false};
+}
+
+function makeReport(snapshot,form,recordedAt){
  if(!snapshot||!snapshot.input||!snapshot.model)throw Error('先に7日間を試算してください。');
  if(!form||!form.confirmedSummary)
   throw Error('ゲーム内の週まとめを実際に確認した場合だけ記録できます。');
@@ -2596,6 +2614,8 @@ function makeReport(snapshot,form){
  const field=snapshot.input.options.map;
  if(typeof field!=='string'||!field.trim())throw Error('フィールドが未設定です。');
  const provenance={source:'in_game_weekly_summary'};
+ const recorded=summaryRecordingTime(form.mondayDate,snapshot.capturedAt,recordedAt);
+ if(recorded)provenance.summaryRecordedAt=recorded.recordedAt;
  for(const key of flags){
   if(typeof form[key]!=='boolean')throw Error('確認項目が不正です：'+key);
   provenance[key]=form[key];
@@ -2722,6 +2742,7 @@ function preview(report){
  if(!report||report.schema!==schema||!report.capture||!report.observed)
   throw Error('観測記録が不正です。');
  validateReplayCapture(report.capture);
+ const summaryTime=summaryRecordingTime(report.week?.mondayDate,report.capture.capturedAt,report.provenance?.summaryRecordedAt);
  const model=modelStats(report.capture.modelAtCapture),o=report.observed;
  const signedDelta={
   total:o.total-model.total,
@@ -2734,6 +2755,7 @@ function preview(report){
   ...capturedDiagnosticLimitations(report.capture),
    ...timingLimitations(report.capture,report.week.mondayDate)];
  return {forecastTiming:forecastTiming(report.capture.capturedAt,report.week.mondayDate),
+   summaryRecordingTime:summaryTime,
    signedDeltaObservedMinusModel:signedDelta,
   weeklySummaryBucketsReconcile:unattributed===0,
   observedUnattributed:unattributed,
@@ -2848,6 +2870,7 @@ function reviewImportedReport(report,simulate){
  if(!report.capture||!report.capture.modelAtCapture)
   throw Error('試算時点の記録がないJSONです。v0.2.35以降に保存した観測JSONを選択してください。');
  validateReplayCapture(report.capture);
+ const summaryTime=summaryRecordingTime(report.week.mondayDate,report.capture.capturedAt,report.provenance.summaryRecordedAt);
  validateReplayInput(report.input);
  const saved=modelStats(report.capture.modelAtCapture);
  // Treat the uploaded record as untrusted; recompute from the recorded
@@ -2879,6 +2902,7 @@ function reviewImportedReport(report,simulate){
  ];
  return {
   schema,forecastTiming:forecastTiming(report.capture.capturedAt,report.week.mondayDate),
+  summaryRecordingTime:summaryTime,
   week:{mondayDate:report.week.mondayDate,field:report.week.field},
   currentModel:{...current,berryAndStrengthSkill:current.berries+current.skills},
   capturedModel:{...saved,berryAndStrengthSkill:saved.berries+saved.skills},
@@ -3034,7 +3058,7 @@ function reviewImportedReports(reports,simulate){
  };
 }
 
-const api={schema,planSchema,flags,diagnosticFields,modelDiagnostics,capturedDiagnosticLimitations,validMonday,integerInput,captureSimulation,forecastTiming,makePlan,snapshotFromPlan,makeReport,preview,knownModelLimitations,validateReplayInput,validateReplayCapture,reviewImportedReport,reviewImportedReports};
+const api={schema,planSchema,flags,diagnosticFields,modelDiagnostics,capturedDiagnosticLimitations,validMonday,integerInput,captureSimulation,forecastTiming,summaryRecordingTime,makePlan,snapshotFromPlan,makeReport,preview,knownModelLimitations,validateReplayInput,validateReplayCapture,reviewImportedReport,reviewImportedReports};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeObservation=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -3314,14 +3338,14 @@ $('downloadObservation').addEventListener('click',()=>{
    startStrengthVerified:$('obsStartStrengthVerified').checked,
    weekBoundaryReconciled:$('obsWeekBoundaryReconciled').checked
   };
-  const report=PokeObservation.makeReport(lastRunSnapshot,form);
+  const report=PokeObservation.makeReport(lastRunSnapshot,form,new Date().toISOString());
   const compared=PokeObservation.preview(report);
   const difference=n=>(n>0?'+':'')+Math.round(n).toLocaleString('ja-JP');
   const timingLabel={PRE_WEEK:'週開始前に記録した試算（端末時計上・独立証明なし）',DURING_WEEK:'週途中の試算',AFTER_WEEK:'週終了後の事後試算'};
   const note='試算の時期：'+timingLabel[compared.forecastTiming.phase]+'。実測−試算：総'+difference(compared.signedDeltaObservedMinusModel.total)+
    '／きのみ＋直接スキル'+difference(compared.signedDeltaObservedMinusModel.berryAndStrengthSkill)+
    '／料理'+difference(compared.signedDeltaObservedMinusModel.cooking)+
-   '。単週観測のため精度・編成順位は未検証（STEP2 HOLD）。';
+   '。週まとめ入力：'+compared.summaryRecordingTime.recordedAt+'（端末時計上・独立証明なし）。単週観測のため精度・編成順位は未検証（STEP2 HOLD）。';
   const concerns=[
    ...(!compared.weeklySummaryBucketsReconcile?['ゲーム週まとめの総エナジーと2欄の合計が一致しません。']:[]),
    ...(compared.unconfirmedConditions.length?['確認できていない条件が'+compared.unconfirmedConditions.length+'項目あります。']:[]),
@@ -3363,6 +3387,8 @@ $('observationFile').addEventListener('change',async ev=>{
   }
   for(const replay of batch.items){
    add('対象週：'+replay.week.mondayDate+'／'+replay.week.field);
+   if(replay.summaryRecordingTime)add('週まとめ記録日時：'+replay.summaryRecordingTime.recordedAt+'（端末時計上・独立証明なし）。');
+   else add('週まとめ記録日時：旧観測JSONでは未保存。日付は自己申告として扱います。');
    const timingLabel={PRE_WEEK:'週開始前記録（端末時計上・独立証明なし）',DURING_WEEK:'週途中記録',AFTER_WEEK:'週終了後の事後記録'};
    add('試算保存の時期：'+timingLabel[replay.forecastTiming.phase]+'／保存時刻 '+replay.forecastTiming.capturedAt);
    add('ゲーム実測：'+numeric(replay.observed.total)+'／記録時の試算：'+numeric(replay.capturedModel.total)+
