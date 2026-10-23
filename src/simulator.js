@@ -714,7 +714,7 @@ function advanceStockpileByReadyStock(state,readyStock,level){
    !Array.isArray(readyStock)||![2,3].includes(readyStock.length)||
    readyStock.some(p=>!Number.isFinite(p)||p<0)||
    Math.abs(readyStock.reduce((a,b)=>a+b,0)-1)>1e-8)
-  throw Error('たくわえるの待機ストック分布が不正です。');
+  throw Error('たくわえるの待機ストック分布が不正です。蓄積質量='+state.reduce((a,b)=>a+b,0)+'、待機質量='+readyStock.reduce((a,b)=>a+b,0)+'、蓄積最小値='+Math.min(...state)+'、待機最小値='+Math.min(...readyStock));
  const result=new Array(11).fill(0);
  let earned=0;
  for(let count=0;count<readyStock.length;count++){
