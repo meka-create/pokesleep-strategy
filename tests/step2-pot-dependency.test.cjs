@@ -21,7 +21,7 @@ function input(){
   extraMode:'none',successMode:'none'}};
 }
 function report(x,r){
- return obs.makeReport(obs.captureSimulation(x,r,'0.2.60','2026-10-21T05:00:00.000Z'),{
+ return obs.makeReport(obs.captureSimulation(x,r,'0.2.60','2026-10-18T05:00:00.000Z'),{
   mondayDate:'2026-10-19',total:'100',berryAndStrengthSkill:'60',cooking:'40',
   confirmedSummary:true,...Object.fromEntries(obs.flags.map(k=>[k,true]))});
 }

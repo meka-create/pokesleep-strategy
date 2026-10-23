@@ -588,7 +588,7 @@ test('M1 positive observed cooking with zero modeled cooking is confounded in ca
  const x=input(),pred=sim.simulate(x);
  assert.equal(pred.cooking,0);
  assert.equal(x.options.recipeId,'');
- const cap=obs.captureSimulation(x,pred,'0.2.66','2026-10-22T10:00:00.000Z');
+ const cap=obs.captureSimulation(x,pred,'0.2.66','2026-10-18T10:00:00.000Z');
  const game=obs.makeReport(cap,{mondayDate:'2026-10-19',total:'100',berryAndStrengthSkill:'60',cooking:'40',
   confirmedSummary:true,...Object.fromEntries(obs.flags.map(k=>[k,true]))});
  for(const out of [obs.preview(game),obs.reviewImportedReport(game,sim.simulate),compareSingleWeek(game)]){

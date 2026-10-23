@@ -42,7 +42,7 @@ function observation(roster,monday,edit){
  const predicted=sim.simulate(input);
  const summaryBerry=Math.round(predicted.berries+predicted.skills);
  const summaryCooking=Math.round(predicted.cooking);
- return obs.makeReport(obs.captureSimulation(input,predicted,'0.2.55','2026-10-20T10:00:00.000Z'),{
+ return obs.makeReport(obs.captureSimulation(input,predicted,'0.2.55',new Date(Date.parse(monday+'T00:00:00Z')-86400000).toISOString()),{
   mondayDate:monday,total:String(summaryBerry+summaryCooking),
   berryAndStrengthSkill:String(summaryBerry),cooking:String(summaryCooking),
   confirmedSummary:true,...allVerified

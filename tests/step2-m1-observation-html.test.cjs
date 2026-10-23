@@ -1,13 +1,17 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
-test('weekly game observation is opt-in after successful simulation and is embedded in both compiled artifacts',()=>{
+test('weekly game observation can reload pre-week plans without a visible simulation result',()=>{
  const html=read('src/index.template.html'),build=read('build.mjs');
  const app=read('src/app.js'),packageData=JSON.parse(read('package.json'));
  assert.match(packageData.version,/^\d+\.\d+\.\d+$/);
  const versionBadge='STEP 2 · v'+packageData.version;
  assert.ok(html.includes(versionBadge));
- assert.match(html,/<details class="sim-observation">/);
+ assert.match(html,/<details class="card sim-observation">/);
+ assert.match(html,/id="downloadPlan"/);
+ assert.match(html,/id="planFile"/);
+ assert.ok(html.indexOf('class="card sim-observation"')>html.indexOf('id="simResult"'));
+ assert.ok(app.includes('PokeObservation.snapshotFromPlan(plan)'));
  assert.match(html,/id="observationFile"/);
  assert.match(html,/id="observationFile"[^>]*multiple/);
  assert.match(html,/id="obsImportResult"/);

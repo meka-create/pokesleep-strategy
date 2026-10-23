@@ -3,7 +3,7 @@
 <!-- BUILD_CSS -->
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.71</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.72</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -102,9 +102,20 @@
   <div class="section-heading minor"><h3>料理履歴・食材消費</h3></div><p id="simMealSummary" class="small muted"></p><div id="simMeals"></div>
   <div class="section-heading minor"><h3>得られた食材（期待個数）</h3></div><div id="simIngredients"></div>
   <div class="section-heading minor"><h3>計算上の注意・未対応</h3></div><div id="simWarnings" class="sim-warnings"></div>
-  <details class="sim-observation">
+ </div>
+  <details class="card sim-observation">
    <summary>実ゲームの週まとめを記録して、試算と比較する（任意・M1検証用）</summary>
    <p class="small muted">ゲームの週まとめ画面に表示された数値を手入力し、この試算の<strong>ポケモン・編成・計算条件を添えたJSON</strong>を保存します。<strong>実ゲームの観測1週分だけで精度合格や最適編成を判定しません。</strong></p>
+   <p class="small muted">事前検証をする場合は、<strong>対象月曜04:00（日本時間）より前に試算を実行</strong>し、下の月曜日を指定して「事前予測JSON」を保存してください。週終了後、このファイルを読み戻してから実ゲームの数値を入力します。事後に試算し直した結果は事前予測に置き換えられません。</p>
+   <div class="observation-flags">
+    <button type="button" class="secondary observation-download" id="downloadPlan">対象週の事前予測JSONを保存</button>
+    <label class="secondary file-button sim-import-label" for="planFile">保存済み事前予測JSONを読み込む
+     <input id="planFile" type="file" accept=".json,application/json">
+    </label>
+   </div>
+   <p id="planStatus" class="small muted" role="status" aria-live="polite"></p>
+   <div id="planError" class="error" role="alert" hidden></div>
+   <p class="small muted">事前予測ファイルはこのブラウザ内のボックス・設定を上書きしません。記録時刻は端末時計に基づくため、第三者による真正性の保証ではありません。ゲーム実測や順位の合格判定は引き続き保留します。</p>
    <div class="form-grid">
     <label class="field"><span>週の開始日（月曜日）</span><input id="obsMonday" type="date" required></label>
     <label class="field"><span>週間総エナジー</span><input id="obsTotal" type="number" min="0" step="1" inputmode="numeric" required placeholder="ゲームの週まとめ"></label>
@@ -126,7 +137,6 @@
    <div id="obsError" class="error" role="alert" hidden></div>
    <p class="small muted">保存されるJSONには手持ちポケモン・ニックネーム・編成・試算条件が含まれます。外部送信はしません。第三者への共有には注意してください。入力時点の最新設定ではなく、<strong>この結果を算出したときの設定</strong>を保存します。</p>
   </details>
- </div>
  <details class="card sim-import-review">
   <summary>保存した週間観測JSONを比較する（1〜4週・任意）</summary>
   <p class="small muted">v0.2.35以降に保存したJSONを最大4件まとめて選べます。各記録をその編成・条件で再試算し、週の重複や条件差も点検します（各8MB・合計12MB以下）。重複週は独立した観測回数に数えません。現在のボックス・保存設定・試算結果は書き換えません。</p>
