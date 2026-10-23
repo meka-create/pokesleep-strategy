@@ -74,3 +74,18 @@ test('weekly Stockpile simulation stays finite and retains current scope warning
  assert.ok(output.warnings.some(x=>x.includes('たくわえる')));
  assert.equal(output.days.length,7);
 });
+
+test('level 7 Stockpile payout at stacks 8-10 follows post-v2.12.2 game values',()=>{
+ // Independent current table (2026): wikiwiki.jp/poke_sleep Stockpile skill,
+ // which explicitly preserves the older v2.12.2-and-before table separately.
+ for(const [stack,strength] of [[8,48621],[9,66629],[10,90940]]){
+  const state=Array(11).fill(0);state[stack]=1;
+  const actual=sim.advanceStockpileByReadyStock(state,[0,1,0],7);
+  approx(actual.earned,strength*(stack===10?1:.25));
+  approx(mass(actual.state),1);
+ }
+ // Earlier levels and first eight level-7 payouts are deliberately untouched.
+ const base=Array(11).fill(0);base[0]=1;
+ approx(sim.advanceStockpileByReadyStock(base,[0,1,0],6).earned,3099*.25);
+ approx(sim.advanceStockpileByReadyStock(base,[0,1,0],7).earned,4502*.25);
+});
