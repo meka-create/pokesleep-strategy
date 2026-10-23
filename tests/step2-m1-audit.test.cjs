@@ -62,8 +62,9 @@ test('CI-sourced v0.2.30 numeric baseline is archived with honest evidence grade
 });
 
 
-test('M2 rounding-only change reconstructs the frozen M1 baseline without rewriting it',()=>{
+test('M2 changes are compared against, never retroactively substituted into, frozen M1 numbers',()=>{
  const {compare}=require('../scripts/step2-m1-compare.cjs');
+ const frozen=require('../docs/STEP2_M1_BASELINE_V0230_20261017.json');
  const round=n=>Math.round(n*1e6)/1e6;
  const diff=compare(report);
  assert.equal(diff.purpose,'MODEL_CHANGE_DETECTION_ONLY');
@@ -71,17 +72,21 @@ test('M2 rounding-only change reconstructs the frozen M1 baseline without rewrit
  assert.equal(diff.baselineVersion,'0.2.30');
  assert.equal(diff.matrix.length,14);
  for(const row of diff.matrix){
+  const historic=frozen.matrix.find(x=>x.id===row.id);
   const current=report.matrix.find(x=>x.id===row.id);
-  const correction=current.directStrengthRoundingCorrection||0;
-  assert.ok(Math.abs(row.modelChange-correction)<2e-6,row.id);
+  assert.equal(row.baseline,historic.simulated);
+  assert.equal(row.current,current.simulated);
+  assert.ok(Math.abs(row.modelChange-round(row.current-row.baseline))<2e-6,row.id);
   assert.equal(row.independentlyValidated,row.evidenceGrade==='B');
  }
- assert.ok(diff.matrix.some(row=>row.modelChange>0));
+ assert.ok(diff.matrix.some(row=>Math.abs(row.modelChange)>0));
  assert.equal(diff.rankingComparisons.length,5);
  for(const row of diff.rankingComparisons){
+  const historical=frozen.rankingComparisons.find(x=>x.id===row.id);
   const current=report.rankingComparisons.find(x=>x.id===row.id);
-  assert.ok(Math.abs(round(row.currentModelDelta-row.baselineModelDelta)-
-    round(current.scoreB.directStrengthRoundingCorrection-current.scoreA.directStrengthRoundingCorrection))<2e-6,row.id);
+  assert.equal(row.baselineModelDelta,historical.modelDeltaBminusA);
+  assert.equal(row.currentModelDelta,current.modelDeltaBminusA);
+  assert.equal(row.changedModelLeader,historical.modelLeader!==current.modelLeader);
   assert.equal(row.independentRankingValidated,false);
  }
  assert.match(diff.note,/not imply improved game accuracy/);
