@@ -58,7 +58,7 @@ function modelScore(name,apples){
   cooking:round(out.cooking),skills:round(out.skills),
   estimatedMeals:out.estimatedMeals,meals:out.meals.length,
   directStrengthRoundingCorrection:round(out.directStrengthRoundingCorrection),
-  historicalTotal:round(out.total-out.directStrengthRoundingCorrection),
+  historicalTotal:round(out.total-out.directStrengthRoundingCorrection), // rounding-only counterfactual, NOT frozen v0.2.30 after v0.2.68
   historicalSkills:round(out.skills-out.directStrengthRoundingCorrection)};
 }
 function winner(n){return Math.abs(n)<1e-8?'TIE':n>0?'B':'A';}
@@ -72,12 +72,8 @@ function runScenario(mode,rateFactor){
    const a=outputs[row.configurationA],b=outputs[row.configurationB];
    assert.ok(a&&b);
    const delta=round(b.total-a.total);
-   if(mode.id==='original-140'&&rateFactor===1){
-    assert.equal(round(b.historicalTotal-a.historicalTotal),
-     row.modelDeltaBminusA,row.id+' frozen 2026-10-17 delta + isolated rounding difference');
-    assert.equal(a.historicalTotal,row.scoreA.total,row.id+' frozen score A');
-    assert.equal(b.historicalTotal,row.scoreB.total,row.id+' frozen score B');
-   }
+   // Frozen v0.2.30 remains immutable. After gameplay-rule changes beyond
+   // rounding, the current model MUST NOT be forced to reconstruct old scores.
    return {id:row.id,configA:row.configurationA,configB:row.configurationB,
     deltaBminusA:delta,modelLeader:winner(delta),
     originalRankingExternallyVerified:false};

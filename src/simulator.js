@@ -279,6 +279,91 @@ function integerPocketTransitions(occupation,completed,capacity,berryCount,ingre
  const used=Array.from(dist,([n,p])=>n*p).reduce((a,b)=>a+b,0);
  return {occupation:dist,used,berries:berry,sneaky,ingredients:foods,eligible,eligibleDistribution};
 }
+// Game-observed short transition queue: after the ordinary pocket fills,
+// up to FOUR further completed helps can still roll a Main Skill. These
+// sneaky-snacking helps yield berries (not held ingredients); no later helps
+// may roll until the pocket is opened. Community mechanic, not a cooldown.
+// The joint key is occupiedSlots * 5 + postFullRollsUsed (0..4).
+// Keep this skill eligibility distribution separate from food-kind
+// expectations, whose cross-collection correlations are not resolved.
+function queuedFullPocketTransitions(joint,completed,capacity,berryCount,ingredientRate,slots){
+ if(Object.prototype.toString.call(joint)!=='[object Map]'||
+  !Number.isInteger(completed)||completed<0||
+  !Number.isInteger(capacity)||capacity<1||
+  !Number.isInteger(berryCount)||berryCount<1||
+  !Number.isFinite(ingredientRate)||ingredientRate<0||ingredientRate>1||
+  !Array.isArray(slots)||slots.some(s=>!Number.isInteger(s.count)||s.count<1||
+   typeof s.key!=='string'||!s.key))
+  throw Error('満杯後スキル抽選キューの入力が不正です。');
+ let mass=0;
+ for(const [key,p] of joint){
+  const occupied=Math.floor(key/5),used=key%5;
+  if(!Number.isInteger(key)||key<0||occupied>capacity||
+   !Number.isFinite(p)||p<0||used<0||used>4||
+   (occupied<capacity&&used!==0))
+   throw Error('満杯後スキル抽選キューの状態が不正です。');
+  mass+=p;
+ }
+ if(Math.abs(mass-1)>1e-8)throw Error('満杯後スキル抽選キューの確率質量が不正です。');
+ const width=completed+1,choices=slots.length?slots:[{key:null,count:0}];
+ let current=new Map();
+ for(const [key,p] of joint)if(p>0)current.set(key*width,p);
+ let eligible=0;
+ for(let i=0;i<completed;i++){
+  const next=new Map();
+  const add=(key,rolls,p)=>{
+   if(p<=0)return;
+   const code=key*width+rolls;
+   next.set(code,(next.get(code)||0)+p);
+  };
+  for(const [code,p] of current){
+   const key=Math.floor(code/width),rolls=code%width;
+   const occupied=Math.floor(key/5),used=key%5;
+   if(occupied===capacity){
+    const mayRoll=used<4;
+    if(mayRoll)eligible+=p;
+    add(capacity*5+Math.min(4,used+1),rolls+(mayRoll?1:0),p);
+    continue;
+   }
+   eligible+=p;
+   const free=capacity-occupied;
+   add((occupied+Math.min(berryCount,free))*5,rolls+1,p*(1-ingredientRate));
+   for(const slot of choices)
+    add((occupied+Math.min(slot.count,free))*5,rolls+1,p*ingredientRate/choices.length);
+  }
+  current=next;
+ }
+ const nextJoint=new Map(),occupation=new Map(),eligibleDistribution=new Map();
+ for(const [code,p] of current){
+  const key=Math.floor(code/width),rolls=code%width,occupied=Math.floor(key/5);
+  nextJoint.set(key,(nextJoint.get(key)||0)+p);
+  occupation.set(occupied,(occupation.get(occupied)||0)+p);
+  eligibleDistribution.set(rolls,(eligibleDistribution.get(rolls)||0)+p);
+ }
+ return {joint:nextJoint,occupation,eligible,eligibleDistribution};
+}
+// Food collection is exact only in the dedicated full-bag joint branch.
+// For ordinary collection with an expected retained-food count, a partially
+// emptied full pocket cannot retain its hidden post-full queue covariance.
+// Be conservative: do not mint four new full-state rolls on that unknown
+// history. Empty pockets recover a fresh queue, and no-change collections
+// preserve the exact preceding queue.
+function queuedFullPocketAfterCollection(joint,oldOccupation,newOccupation,oldBerries,acceptedFood,capacity){
+ if(Object.prototype.toString.call(newOccupation)!=='[object Map]')
+  throw Error('満杯後キューの回収状態が不正です。');
+ const oldKeys=Array.from(oldOccupation.entries()).sort((a,b)=>a[0]-b[0]);
+ const newKeys=Array.from(newOccupation.entries()).sort((a,b)=>a[0]-b[0]);
+ const unchanged=oldBerries<=1e-9&&acceptedFood<=1e-9&&
+  JSON.stringify(oldKeys)===JSON.stringify(newKeys);
+ if(unchanged)return {joint:new Map(joint),approximate:false};
+ const rebuilt=new Map();
+ for(const [n,p] of newOccupation){
+  const key=n*5+(n===capacity?4:0);
+  rebuilt.set(key,(rebuilt.get(key)||0)+p);
+ }
+ const hasFullMass=newKeys.some(([n,p])=>n===capacity&&p>1e-9);
+ return {joint:rebuilt,approximate:hasFullMass};
+}
 // Sparse conditional distribution for a *single Pokemon*: (occupied slots,
 // number of FOOD items in those slots). Enabled from an empty pocket when the
 // shared ingredient bag is full. This does not model food species, or the
@@ -384,7 +469,7 @@ function expectedPocketOccupation(expectedCount,capacity){
  if(lo===hi)return new Map([[lo,1]]);
  return new Map([[lo,hi-x],[hi,x-lo]]);
 }
-function emptyPocket(){return {used:0,berries:0,ingredients:{},skillState:[1,0,0],pendingSneaky:0,occupation:new Map([[0,1]])};}
+function emptyPocket(){return {used:0,berries:0,ingredients:{},skillState:[1,0,0],pendingSneaky:0,occupation:new Map([[0,1]]),fullSkillQueue:new Map([[0,1]])};}
 // Count the model's EXTRA help carry removed by a lineup change. This is
 // explicitly an uncollected-model-queue diagnostic, not a claim that items
 // vanish in the real game. We must not silently pretend the two policies are
@@ -1050,6 +1135,14 @@ function simulate(input){
    }else standardFood=receiveFood(bag);
    const extraFood=receiveFood(extraBag);
    const remainingInPocket=standardFood.retained,uncollected=standardFood.retainedCount;
+   const ownSkillQueue=queuedFullPocketAfterCollection(
+    bag.fullSkillQueue||new Map([[0,1]]),bag.occupation,
+    exactFood?exactFood.occupation:expectedPocketOccupation(uncollected,
+      signature(pair.p,pair.sp,teamIds.map(i=>members.get(i)).filter(Boolean).map(x=>x.p),!!opts.camp,warnings).carry),
+    bag.berries,bag.used-uncollected,signature(pair.p,pair.sp,
+      teamIds.map(i=>members.get(i)).filter(Boolean).map(x=>x.p),!!opts.camp,warnings).carry);
+   if(ownSkillQueue.approximate)
+    warnings.add('所持枠が満杯のまま一部回収されると、最大4回の追加スキル抽選キューと食材の相関を再構成できません。以後の満杯状態は保守的に抽選済みとして扱います。');
    const actual=pair.sp.skill;
    const excluded=EXCLUDED_MAIN_SKILLS.has(actual);
    const blockedByFoodBag=blockedIngredientSkill(actual,bagCapacity,bagUsed());
@@ -1245,7 +1338,7 @@ function simulate(input){
    pocket.set(id,{used:uncollected,berries:0,ingredients:remainingInPocket,
      skillState:blockedByFoodBag&&triggerState?skillProcMarginal(triggerState):[1,0,0],pendingSneaky:0,
      occupation:exactFood?exactFood.occupation:expectedPocketOccupation(uncollected,signature(pair.p,pair.sp,teamIds.map(i=>members.get(i)).filter(Boolean).map(x=>x.p),!!opts.camp,warnings).carry),
-     foodJoint:exactFood?exactFood.foodJoint:undefined});
+     foodJoint:exactFood?exactFood.foodJoint:undefined,fullSkillQueue:ownSkillQueue.joint});
    extraPocket.set(id,{used:extraFood.retainedCount,berries:0,ingredients:extraFood.retained,skillState:[1,0,0]});
   }
   if(granted.size)help(teamIds,0,!!opts.camp,undefined,granted);
@@ -1277,6 +1370,12 @@ function simulate(input){
     const outcome=bag.foodJoint?
       integerFoodPocketTransitions(bag.foodJoint,remaining,x.carry,x.berryPerHelp,x.ingRate,x.ingSlots):
       integerPocketTransitions(bag.occupation,remaining,x.carry,x.berryPerHelp,x.ingRate,x.ingSlots);
+    const queued=queuedFullPocketTransitions(bag.fullSkillQueue||new Map([[0,1]]),
+      remaining,x.carry,x.berryPerHelp,x.ingRate,x.ingSlots);
+    bag.fullSkillQueue=queued.joint;
+    if(Array.from(queued.occupation).some(([count,p])=>
+      Math.abs(p-(outcome.occupation.get(count)||0))>1e-7))
+     throw Error('満杯後キューと所持数確率の計算が一致しません。');
     if(bag.foodJoint)bag.foodJoint=outcome.foodJoint;
     bag.occupation=outcome.occupation;
     bag.used=outcome.used;
@@ -1285,10 +1384,10 @@ function simulate(input){
      bag.ingredients[key]=(bag.ingredients[key]||0)+value;
     queueSneakyEnergy(bag,outcome.sneaky*berryUnit(pair.sp.type,pair.p.level,favorite,bonus));
     if(!EXCLUDED_MAIN_SKILLS.has(pair.sp.skill)){
-     status.skillEligibleHelps+=outcome.eligible;
-     if(outcome.eligible>0){
+     status.skillEligibleHelps+=queued.eligible;
+     if(queued.eligible>0){
       const previous=skillProcStates.get(id)||emptySkillProcState(x.pity,x.stockMax);
-      skillProcStates.set(id,advanceSkillProcStateByHelpCounts(previous,outcome.eligibleDistribution,x.skillRate));
+      skillProcStates.set(id,advanceSkillProcStateByHelpCounts(previous,queued.eligibleDistribution,x.skillRate));
      }
      const updated=skillProcStates.get(id)||emptySkillProcState(x.pity,x.stockMax);
      bag.skillState=skillProcMarginal(updated);
@@ -1469,7 +1568,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他の個体との相関・条件外は期待値近似です。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,directStrengthRoundingCorrection:status.directStrengthRoundingCorrection,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,pendingExtraHelpBerryEnergy,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpBerryEnergyAtSwap:status.uncollectedExtraHelpBerryEnergyAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,potDependentMeals:status.potDependentMeals,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={addTastyChanceBonus,resolveTastyChanceMeal,daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceStockpileByReadyStock,advanceSkillStock,expectedSkillStock,integerPocketTransitions,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
+const api={addTastyChanceBonus,resolveTastyChanceMeal,daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceStockpileByReadyStock,advanceSkillStock,expectedSkillStock,integerPocketTransitions,queuedFullPocketTransitions,queuedFullPocketAfterCollection,integerFoodPocketTransitions,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
