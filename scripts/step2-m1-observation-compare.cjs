@@ -71,6 +71,11 @@ function compareSingleWeek(report){
   throw Error('観測フィールドとシミュレーター設定が一致しません。');
  observation.validateReplayInput(input);
  if(report.capture!==undefined)observation.validateReplayCapture(report.capture);
+ if(report.capture===undefined&&provenance.summaryRecordedAt!==undefined)
+  throw Error('週まとめの記録日時があるJSONには試算保存時刻が必要です。');
+ const summaryTime=report.capture===undefined?null:
+  observation.summaryRecordingTime(week.mondayDate,report.capture.capturedAt,
+   provenance.summaryRecordedAt);
  const predicted=sim.simulate(input);
  // New browser-originated evidence carries the *actual model result recorded
  // at run time*. Replaying after a master or engine change must not silently
@@ -103,7 +108,8 @@ function compareSingleWeek(report){
  const modelLimitations=[...observation.knownModelLimitations(input,predicted,observed.cooking),
   ...observation.capturedDiagnosticLimitations(report.capture,predicted)];
  return {
-  schema:report.schema,week:{mondayDate:week.mondayDate,field:week.field},
+  schema:report.schema,summaryRecordingTime:summaryTime,
+  week:{mondayDate:week.mondayDate,field:week.field},
   provenance:{source:provenance.source,screenshotReviewed:false,rawSingleWeek:true},
   ...bucket,
   captureComparison,
