@@ -608,13 +608,49 @@ function collectSharedBagFoodQueues(pockets,free){
    throw Error('複数個体の共有バッグ回収の確率質量が不正です。');
   remainingFree=nextFree;
   results.push({id:entry.id,accepted,remaining,queueFoodJoint:retained,
-   foodJoint,fullSkillQueue,occupation});
+   foodJoint,fullSkillQueue,occupation,freeBefore:new Map(remainingFree)});
  }
  const expectedFree=Array.from(remainingFree,([n,p])=>n*p).reduce((a,b)=>a+b,0);
  const accepted=results.reduce((a,b)=>a+b.accepted,0);
  if(Math.abs(accepted+expectedFree-free)>1e-7)
   throw Error('複数個体の共有バッグ回収の保存則が不正です。');
  return {results,freeDistribution:remainingFree,accepted,expectedFree};
+}
+// One completed help from an empty pocket has mutually exclusive ingredient
+// outcomes. Proportional redistribution of expected HELD units across kinds
+// is wrong when those outcomes have different counts and pickup is capacity-
+// limited: choosing 3 apples OR 1 milk at 50/50, free=1, means .5/.5,
+// not proportional .75/.25. This is exact for one ordinary help conditional
+// on a supplied integer free-slot distribution; it does NOT pretend that
+// species choices or bag space are independent across an entire week.
+function collectOneHelpIngredientKinds(ingredientRate,slots,carry,freeDistribution){
+ if(!Number.isFinite(ingredientRate)||ingredientRate<0||ingredientRate>1||
+  !Array.isArray(slots)||!slots.length||slots.some(x=>!x||
+   typeof x.key!=='string'||!x.key||!Number.isSafeInteger(x.count)||x.count<1)||
+  !Number.isSafeInteger(carry)||carry<1||
+  Object.prototype.toString.call(freeDistribution)!=='[object Map]'||
+  freeDistribution.size===0)
+  throw Error('単一おてつだい食材種類の分岐入力が不正です。');
+ let mass=0;
+ for(const [free,p] of freeDistribution){
+  if(!Number.isSafeInteger(free)||free<0||!Number.isFinite(p)||p<0)
+   throw Error('単一おてつだい食材種類の空き枠確率が不正です。');
+  mass+=p;
+ }
+ if(Math.abs(mass-1)>1e-8)
+  throw Error('単一おてつだい食材種類の確率質量が不正です。');
+ const accepted={},retained={};
+ let totalAccepted=0,totalRetained=0;
+ for(const slot of slots){
+  const held=Math.min(slot.count,carry),chance=ingredientRate/slots.length;
+  const received=Array.from(freeDistribution,([free,p])=>
+   chance*p*Math.min(held,free)).reduce((a,b)=>a+b,0);
+  const leftover=chance*held-received;
+  accepted[slot.key]=(accepted[slot.key]||0)+received;
+  retained[slot.key]=(retained[slot.key]||0)+leftover;
+  totalAccepted+=received;totalRetained+=leftover;
+ }
+ return {accepted,retained,totalAccepted,totalRetained};
 }
 // Conditional on an *integer* number of free shared-bag slots, remove up to
 // that many food items after all berries have been picked up. The retained
@@ -1169,7 +1205,7 @@ function simulate(input){
  const warnings=new Set();
  if(!favorite.length)warnings.add('このフィールドの好みのきのみは未確定です。好みボーナスを計上していません。');
  const species=new Map(Master.species.map(s=>[s.name,s]));
- const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,directStrengthRoundingCorrection:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,skillHelpCompletions:0,skillEligibleHelps:0,exactFoodCarryCollections:0,exactSharedBagCollections:0,uncollectedExtraHelpItemsAtSwap:0,uncollectedExtraHelpBerryEnergyAtSwap:0,uncollectedExtraHelpSwaps:0,meals:[],potDependentMeals:0,estimatedMeals:0,initialCoveredMeals:0,expectedSourceMeals:0,expectedSourceMealEnergy:0,initialSourceMealEnergy:0,consumedIngredients:{}};
+ const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,directStrengthRoundingCorrection:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,skillHelpCompletions:0,skillEligibleHelps:0,exactFoodCarryCollections:0,exactSharedBagCollections:0,exactOneHelpKindCollections:0,uncollectedExtraHelpItemsAtSwap:0,uncollectedExtraHelpBerryEnergyAtSwap:0,uncollectedExtraHelpSwaps:0,meals:[],potDependentMeals:0,estimatedMeals:0,initialCoveredMeals:0,expectedSourceMeals:0,expectedSourceMealEnergy:0,initialSourceMealEnergy:0,consumedIngredients:{}};
  for(const p of input.box){
   energy.set(p.id,initialEnergy);
   pocket.set(p.id,emptyPocket());
@@ -1340,20 +1376,37 @@ function simulate(input){
    const available=bagCapacity?Math.max(0,bagCapacity-bagUsed()):0;
    const carry=bag.foodJoint?signature(pair.p,pair.sp,teamIds.map(i=>members.get(i)).filter(Boolean).map(x=>x.p),!!opts.camp,warnings).carry:0;
    let exactFood=sharedPlan?.get(id)||null,standardFood;
+   const oneHelpKinds=bag.oneHelpFood&&bagCapacity&&
+     (exactFood?.freeBefore||Number.isSafeInteger(available))?
+      collectOneHelpIngredientKinds(bag.oneHelpFood.rate,bag.oneHelpFood.slots,
+       bag.oneHelpFood.carry,exactFood?.freeBefore||new Map([[available,1]])):null;
+   if(oneHelpKinds)status.exactOneHelpKindCollections++;
    if(exactFood||(bag.foodJoint&&bagCapacity&&Number.isInteger(available))){
     if(!exactFood)exactFood=bag.queueFoodJoint?
       collectIntegerFoodSkillQueue(bag.queueFoodJoint,carry,available):
       collectIntegerFoodPocket(bag.foodJoint,carry,available);
     const total=Object.values(bag.ingredients).reduce((a,n)=>a+n,0);
+    if(oneHelpKinds&&Math.abs(oneHelpKinds.totalAccepted-exactFood.accepted)>1e-7)
+     throw Error('単一おてつだい食材種類と所持数分岐の回収量が一致しません。');
     const retained={};
     for(const [key,v] of Object.entries(bag.ingredients)){
-     // Retained FOOD SPECIES remain an expectation; no per-type joint state.
-     const picked=total>0?exactFood.accepted*v/total:0;
+     // Only the exactly-one-help case has a justified type-by-type pickup.
+     // For multiple helps the conditional type state is NOT retained yet.
+     const picked=oneHelpKinds?(oneHelpKinds.accepted[key]||0):
+      total>0?exactFood.accepted*v/total:0;
      if(picked>0){inventory[key]=(inventory[key]||0)+picked;status.ingredients[key]=(status.ingredients[key]||0)+picked;}
      if(v-picked>1e-9)retained[key]=v-picked;
     }
     standardFood={retained,retainedCount:exactFood.remaining};
     status.exactFoodCarryCollections++;
+   }else if(oneHelpKinds){
+    const retained={};
+    for(const [key,v] of Object.entries(bag.ingredients)){
+     const picked=oneHelpKinds.accepted[key]||0;
+     if(picked>0){inventory[key]=(inventory[key]||0)+picked;status.ingredients[key]=(status.ingredients[key]||0)+picked;}
+     if(v-picked>1e-9)retained[key]=v-picked;
+    }
+    standardFood={retained,retainedCount:oneHelpKinds.totalRetained};
    }else standardFood=receiveFood(bag);
    const extraFood=receiveFood(extraBag);
    const remainingInPocket=standardFood.retained,uncollected=standardFood.retainedCount;
@@ -1586,6 +1639,14 @@ function simulate(input){
     status.skillHelpCompletions+=remaining;
    }
    if(!forcedHelps){
+    // Keep the ORIGINAL mutually exclusive ingredient-kind outcome for
+    // exactly one help from an empty pocket, even in the normal (not-full)
+    // shared bag path. A second help invalidates this one-event shortcut.
+    if(remaining>0){
+     const empty=bag.occupation.size===1&&bag.occupation.get(0)===1;
+     bag.oneHelpFood=remaining===1&&empty&&x.ingSlots.length?
+      {rate:x.ingRate,slots:x.ingSlots.map(slot=>({...slot})),carry:x.carry}:undefined;
+    }
     // Begin exact food-total tracking only when the shared bag is already
     // full and this Pokemon starts with an empty pocket. Other situations
     // retain the v0.2.23 marginal model rather than reconstruct correlations.
@@ -1801,9 +1862,9 @@ function simulate(input){
  if(status.potDependentMeals>0)warnings.add('料理'+status.potDependentMeals+'食のレシピ選択または追加食材量がスキル期待値による鍋拡張に依存します。初期食材が十分でも、実際の発動・料理成立・げんき回復の分岐は未検証です。');
  if(status.estimatedMeals>0)warnings.add('料理'+status.estimatedMeals+'食は、必要食材の一部または全部を不確実な生産期待値に依存して計上しています。実際のレシピ成立確率と未成立時の食材・げんき・エナジー分岐は未計算です。');
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他個体との過去の相関・条件外は期待値近似です。限定条件では単一回収内の共有バッグ空きと最大5匹の食材総数を整数分岐します。');
- return {berries:status.berries,cooking:status.cooking,skills:status.skills,directStrengthRoundingCorrection:status.directStrengthRoundingCorrection,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,pendingExtraHelpBerryEnergy,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpBerryEnergyAtSwap:status.uncollectedExtraHelpBerryEnergyAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,exactSharedBagCollections:status.exactSharedBagCollections,potDependentMeals:status.potDependentMeals,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
+ return {berries:status.berries,cooking:status.cooking,skills:status.skills,directStrengthRoundingCorrection:status.directStrengthRoundingCorrection,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,pendingExtraHelpBerryEnergy,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpBerryEnergyAtSwap:status.uncollectedExtraHelpBerryEnergyAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,exactSharedBagCollections:status.exactSharedBagCollections,exactOneHelpKindCollections:status.exactOneHelpKindCollections,potDependentMeals:status.potDependentMeals,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={addTastyChanceBonus,resolveTastyChanceMeal,daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceStockpileByReadyStock,advanceSkillStock,expectedSkillStock,integerPocketTransitions,queuedFullPocketTransitions,queuedFullPocketAfterCollection,integerFoodPocketTransitions,integerFoodSkillQueueTransitions,collectIntegerFoodSkillQueue,collectSharedBagFoodQueues,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
+const api={addTastyChanceBonus,resolveTastyChanceMeal,daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceStockpileByReadyStock,advanceSkillStock,expectedSkillStock,integerPocketTransitions,queuedFullPocketTransitions,queuedFullPocketAfterCollection,integerFoodPocketTransitions,integerFoodSkillQueueTransitions,collectIntegerFoodSkillQueue,collectSharedBagFoodQueues,collectOneHelpIngredientKinds,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
