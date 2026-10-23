@@ -181,7 +181,15 @@ function advanceSkillProcStateByHelpCounts(state,helpCounts,rate){
   const branch=advanceSkillProcState(state,count,rate);
   for(let k=0;k<dist.length;k++)dist[k]+=p*branch.dist[k];
  }
- return {threshold:state.threshold,cap:state.cap,dist};
+ // Every transition is a probability-preserving stochastic matrix.
+ // Floating-point sums can drift just below 1 when the same pocket is
+ // updated thousands of times. Normalize ONLY near-one mass; reject an
+ // actual probability leak, which this rescale must never conceal.
+ const total=dist.reduce((sum,p)=>sum+p,0);
+ if(!Number.isFinite(total)||Math.abs(total-1)>1e-8)
+  throw Error('スキル抽選状態の確率質量が不正です。');
+ return {threshold:state.threshold,cap:state.cap,
+  dist:dist.map(p=>p/total)};
 }
 function skillProcMarginal(state){
  validateSkillProcState(state);
@@ -728,7 +736,13 @@ function advanceStockpileByReadyStock(state,readyStock,level){
   earned+=probability*reward;
   for(let i=0;i<result.length;i++)result[i]+=probability*branch[i];
  }
- return {state:result,earned};
+ // Prevent a per-tap floating-point loss of ~1e-10 from accumulating into
+ // a false stockpile state after hundreds of collections. The inputs above
+ // are still subject to the strict 1e-8 distribution-mass validation.
+ const total=result.reduce((sum,p)=>sum+p,0);
+ if(!Number.isFinite(total)||Math.abs(total-1)>1e-8)
+  throw Error('たくわえるの遷移後の確率質量が不正です。');
+ return {state:result.map(p=>p/total),earned};
 }
 const LUNAR_HEAL=[3,4,5,7,9,11];
 const LUNAR_BERRIES=[
