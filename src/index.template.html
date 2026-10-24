@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light"><meta name="robots" content="noindex,nofollow"><title>ポケスリ作戦室 | STEP 2</title>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light"><meta name="robots" content="noindex,nofollow"><title>ポケスリ作戦室 | STEP 3</title>
 <!-- BUILD_CSS -->
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.76</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 3 · v0.3.0</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -49,8 +49,17 @@
       <div id="pokemonList" class="pokemon-list"></div><div id="boxMore" class="muted small" hidden></div>
     </section>
     <section id="panel-simulate" class="panel" role="tabpanel" hidden>
- <div class="section-heading"><div><div class="eyebrow">WEEKLY SIMULATOR</div><h3>7日間エナジー試算</h3></div><span class="outline-tag">STEP 2 暫定</span></div>
- <div class="note"><strong>現在は編成の自動提案ではありません。</strong> 朝・昼・夜の5匹を手動指定し、ゲームマスターの基礎値を使った概算を確認します。未対応スキル・イベント効果・レシピは自動的に捏造しません。イベント固有効果はSTEP 5で対応します。</div>
+ <div class="section-heading"><div><div class="eyebrow">WEEKLY SIMULATOR</div><h3>7日間エナジー試算・自動編成</h3></div><span class="outline-tag">STEP 3 開発中</span></div>
+ <div class="note"><strong>STEP 3で自動編成の候補生成を追加しています。</strong> 朝・昼・夜の5匹を手動指定し、ゲームマスターの基礎値を使った概算を確認します。未対応スキル・イベント効果・レシピは自動的に捏造しません。イベント固有効果はSTEP 5で対応します。</div>
+ <div class="section-heading minor"><h3>朝・昼・夜の自動編成候補（S3-A）</h3></div>
+ <div class="card sim-setup step3-candidates">
+  <p><strong>睡眠パーティの5匹は固定</strong>したまま、A：朝2匹／昼夜1匹の全体回復系、B：終日1匹、C：交代を抑えた比較案を作成します。</p>
+  <p class="small muted">候補は簡易的なきのみ指標で選出します。<strong>エナジー順位や実ゲームでの最適編成を証明する機能ではありません。</strong>選択後に下の「7日間を試算する」で1候補ずつ確認してください。7:30は先に回収してから交代。12:00／18:00の交代は候補に応じて任意、0:00以降は睡眠5匹固定です。</p>
+  <button id="autoCandidates" type="button" class="secondary full">朝・昼・夜の候補を作成</button>
+  <div id="autoCandidateError" class="error" role="alert" hidden></div>
+  <p id="autoCandidateStatus" class="small muted" aria-live="polite"></p>
+  <div id="autoCandidateList" class="step3-candidate-list"></div>
+ </div>
  <div class="section-heading minor"><h3>時間帯ごとのチーム（各5匹）</h3></div>
  <div class="card sim-setup">
   <p>最初は、STEP 1で決めた<strong>睡眠用の5匹を朝・昼・夜に一括コピー</strong>できます。その後、各枠をタップして1匹ずつ変更してください。</p>
@@ -165,9 +174,9 @@
       <div class="card info-card"><h4>個人データの保存先</h4><p>ポケモン情報やイベント条件は、現在のブラウザ内に保存します。外部サーバーへ送信しません。</p><p id="storageNotice" class="small"></p></div>
       <div class="card action-stack"><button class="secondary" id="downloadBackup">データをJSONでバックアップ</button><label class="secondary file-button" for="backupFile">バックアップJSONから復元<input id="backupFile" type="file" accept=".json,application/json"></label><button class="danger-ghost" id="clearData">すべてのローカルデータを消去</button></div>
       <div class="note">バックアップファイルには手持ちポケモンの情報が含まれます。第三者に共有しないでください。</div>
-      <div class="section-heading minor"><h3>開発ステータス</h3></div><div class="card roadmap"><div class="done">✓ STEP 1　CSVと基本設定</div><div>STEP 2　暫定エナジー計算（監査待ち）</div><div>STEP 3　朝・昼・夜の自動編成</div><div>STEP 4　イベント前週の食材準備</div><div>STEP 5　イベント条件・2週間対応</div><div>STEP 6　自動更新・正式運用</div></div>
+      <div class="section-heading minor"><h3>開発ステータス</h3></div><div class="card roadmap"><div class="done">✓ STEP 1　CSVと基本設定</div><div>✓ STEP 2　条件付き機能完成（ゲーム精度はHOLD）</div><div>STEP 3　朝・昼・夜の自動編成（S3-A開発中）</div><div>STEP 4　イベント前週の食材準備</div><div>STEP 5　イベント条件・2週間対応</div><div>STEP 6　自動更新・正式運用</div></div>
     </section>
-  </main><footer>個人用プロトタイプ · STEP 2　/　概算試験版・自動編成は未実装</footer>
+  </main><footer>個人用プロトタイプ · STEP 3 S3-A　/　候補比較・自動最適化は未完成</footer>
 </div>
 <!-- BUILD_LIBS -->
 <!-- BUILD_APP -->
