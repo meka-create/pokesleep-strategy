@@ -5,6 +5,16 @@ const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0
 const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
 const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
 const validEnum=(v,choices)=>choices.includes(v);
+// This module validates localStorage on startup BEFORE master.js is loaded.
+// Keep the supported ingredient key set local and consistent with master/API.
+const INGREDIENT_KEYS=new Set(['leek','mushroom','egg','potato','apple','herb',
+ 'sausage','milk','honey','oil','ginger','tomato','cacao','tail','soy','corn',
+ 'coffee','pumpkin','avocado']);
+const canonicalDate=value=>{
+ if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+ const dt=new Date(value+'T00:00:00Z');
+ return Number.isFinite(dt.getTime())&&dt.toISOString().slice(0,10)===value;
+};
 function validateState(x){
  if(!x||x.version!==1||!Array.isArray(x.box)||!Array.isArray(x.sleepIds)||!x.event||typeof x.event!=='object'||Array.isArray(x.event))throw new Error('対応していないバックアップ形式です。');
  if(x.box.length>10000)throw new Error('ボックスが大きすぎます。');
@@ -16,7 +26,7 @@ function validateState(x){
  if(x.sleepIds.some(id=>typeof id!=='string'||!ids.has(id))||new Set(x.sleepIds).size!==x.sleepIds.length||x.sleepIds.length>5)throw new Error('睡眠パーティが不正です。');
  const e=x.event;
  if(![1,2].includes(Number(e.duration))||!validEnum(e.food1,['random','curry','salad','dessert'])||!validEnum(e.food2,['random','curry','salad','dessert'])||!cleanText(e.name,100)||!cleanText(e.start,10)||!cleanText(e.map,80)||!cleanText(e.berries,100)||!cleanText(e.effects,1000)||!['campPrep','camp1','camp2'].every(k=>typeof e[k]==='boolean'))throw new Error('イベント設定が不正です。');
- if(e.start&&!/^\d{4}-\d{2}-\d{2}$/.test(e.start))throw new Error('イベント開始日が不正です。');
+ if(e.start&&!canonicalDate(e.start))throw new Error('イベント開始日が不正です。');
  const sim=x.simulation===undefined?defaultSimulation():x.simulation;
  if(!sim||typeof sim!=='object'||!sim.teams||typeof sim.teams!=='object')throw new Error('計算設定が不正です。');
  const teams={};
@@ -26,11 +36,11 @@ function validateState(x){
   if(!Array.isArray(a)||a.length>5||new Set(chosen).size!==chosen.length||a.some(id=>typeof id!=='string'||(id!==''&&!ids.has(id))))throw new Error('計算用パーティが不正です。');
   teams[key]=[...a];
  }
- const between=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
+ const between=(v,min,max)=>Number.isInteger(v)&&v>=min&&v<=max;
  if(!between(sim.fieldBonus,0,100)||!between(sim.tapMinutes,120,180)||!between(sim.potSize,7,300)||!between(sim.bagCapacity??0,0,10000)||!Number.isInteger(sim.bagCapacity??0)||!between(sim.sleepScore,0,100)||!between(sim.initialEnergy,0,150)||!cleanText(sim.recipeId,80)||!['fixed','fallback','best'].includes(sim.recipeMode??'fixed')||!['none','fill'].includes(sim.extraMode??'none')||!['none','expected'].includes(sim.successMode??'none')||!sim.initialIngredients||typeof sim.initialIngredients!=='object'||Array.isArray(sim.initialIngredients))throw new Error('計算設定が不正です。');
  const magnet=sim.magnetIngredients??[];
- if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!['leek','mushroom','egg','potato','apple','herb','sausage','milk','honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado'].includes(k)))throw new Error('発見済み食材の設定が不正です。');
- for(const [k,v] of Object.entries(sim.initialIngredients))if(!cleanText(k,40)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
+ if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!INGREDIENT_KEYS.has(k)))throw new Error('発見済み食材の設定が不正です。');
+ for(const [k,v] of Object.entries(sim.initialIngredients))if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
  return {version:1,box:x.box,sleepIds:[...x.sleepIds],simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
 // Preserve selected individuals on a refreshed export. First match full IV-like
