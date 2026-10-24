@@ -32,7 +32,7 @@ function boot({noSleep=false,withSixth=false}={}){
   .match(/STEP 2 · v(\d+\.\d+\.\d+)/);
  assert.ok(versionMatch,'built UI must advertise a parseable version');
  const headerVersion=element('span','headerVersion');
- headerVersion.textContent='STEP 2 · v'+versionMatch[1];
+ headerVersion.textContent='STEP 3 · v'+versionMatch[1];
  const document={getElementById:id=>items.get(id)||element('input',id),querySelectorAll:s=>s==='.tab'?tabs:s==='.panel'?panels:s==='.sim-copy'?copy:[],
   querySelector:s=>{if(s==='.step-mark')return headerVersion;const m=s.match(/data-roster="([^"]+)"/);return m?rosters[m[1]]:null},createElement:tag=>element(tag),body:{appendChild(){}}};
  const one={id:'i0',pokemon:'ライチュウ',nickname:'test',level:60,skillLevel:6,ingredients:['とくせんリンゴ','あったかジンジャー','とくせんエッグ'],mainSkill:'エナジーチャージS',nature:'さみしがり',subskills:['きのみの数S','','','',''],sleepHours:1000,shiny:false};
@@ -50,7 +50,7 @@ function boot({noSleep=false,withSixth=false}={}){
   Date:TestDate,setTimeout:()=>1,clearTimeout(){}};
  ctx.globalThis=ctx;ctx.window=ctx;
  vm.createContext(ctx);
- for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','observation.js','app.js'])
+ for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','observation.js','app.js'])
   vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),ctx,{filename:name});
  return {ctx,items,rosters,callbacks,data};
 }
