@@ -20,6 +20,15 @@ function setTab(tab){for(const btn of document.querySelectorAll('.tab')){const a
 function fillEvent(){let e=state.event;const map={eventName:'name',eventStart:'start',eventDuration:'duration',eventMap:'map',eventBerries:'berries',eventEffects:'effects',food1:'food1',food2:'food2'};for(const [id,k] of Object.entries(map))$(id).value=e[k]??'';for(const id of ['campPrep','camp1','camp2'])$(id).checked=!!e[id];showDuration();}
 function showDuration(){const two=$('eventDuration').value==='2';$('food2Row').hidden=!two;$('camp2Row').hidden=!two;}
 function readEvent(){const e={name:$('eventName').value.trim(),start:$('eventStart').value,duration:Number($('eventDuration').value),map:$('eventMap').value.trim(),berries:$('eventBerries').value.trim(),effects:$('eventEffects').value.trim(),food1:$('food1').value,food2:$('food2').value};for(const id of ['campPrep','camp1','camp2'])e[id]=$(id).checked;return e;}
+// The event form is editable without committing it. Never calculate a new
+// week from *old* persisted map/food settings while the screen shows new ones.
+function hasUnsavedEventEdits(){
+ const draft=readEvent();
+ return Object.keys(draft).some(key=>draft[key]!==state.event[key]);
+}
+for(const id of ['eventName','eventStart','eventDuration','eventMap','eventBerries',
+ 'eventEffects','food1','food2','campPrep','camp1','camp2'])
+ $(id).addEventListener('change',markResultsStale);
 function status(){let name=state.event.name||'イベント未設定';$('dataState').textContent=`${state.box.length}匹登録 / 睡眠パーティ ${state.sleepIds.length}/5匹 / ${name}`;$('boxTotal').textContent=`${state.box.length}匹`;$('boxCountTab').textContent=state.box.length;}
 function renderSleep(){const ids=state.sleepIds;const selected=ids.map(id=>state.box.find(p=>p.id===id)).filter(Boolean);$('sleepCount').textContent=`${selected.length} / 5`;
  $('sleepList').innerHTML=selected.length?selected.map((p,i)=>`<div class="sleep-item"><span class="sleep-index">${i+1}</span><span class="sleep-title">${enc(p.nickname||p.pokemon)}<small>${enc(p.pokemon)} · Lv${p.level}</small></span><button data-remove="${enc(p.id)}" class="remove" aria-label="${enc(p.pokemon)}を外す">外す</button></div>`).join(''):'<div class="empty-mini">まだ選択されていません。下の一覧から5匹選んでください。</div>';
@@ -178,10 +187,14 @@ for(const btn of document.querySelectorAll('.sim-copy'))btn.addEventListener('cl
 $('runSim').addEventListener('click',()=>{
  $('simError').hidden=true;
  try{
-  const sim=readSimulation();state.simulation=sim;
-  const saved=save();if(!saved)throw Error('設定を保存できません。バックアップを取得してから再試行してください。');
+  if(hasUnsavedEventEdits())throw Error('イベント条件に未保存の変更があります。イベントタブで「イベント条件を保存」を押してから再試算してください。');
+  const sim=readSimulation();
   const runInput={box:state.box,teams:{...sim.teams,sleep:state.sleepIds},options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1,eventEffects:state.event.effects}};
+  // Do not overwrite a previously valid saved setup if this week's calculation
+  // is rejected (e.g. inventory exceeds the configured shared bag).
   const result=PokeSimulator.simulate(runInput);
+  state.simulation=sim;
+  const saved=save();if(!saved)throw Error('設定を保存できません。バックアップを取得してから再試行してください。');
   const version=document.querySelector('.step-mark')?.textContent.match(/v(\d+\.\d+\.\d+)/)?.[1];
   lastRunSnapshot=PokeObservation.captureSimulation(runInput,result,version,new Date().toISOString());
   $('planStatus').textContent='今回の試算を記録用に保持しました。事前予測として利用する場合は週開始前にJSONを保存してください。';

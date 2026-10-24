@@ -26,7 +26,13 @@ function boot({noSleep=false,withSixth=false}={}){
  const tabs=['event','box','simulate','settings'].map(k=>{const x=element('button','tab'+k);x.dataset.tab=k;return x});
  const panels=['event','box','simulate','settings'].map(k=>element('div','panel-'+k));
  const copy=['sleep','morning','noon'].map((from,i)=>{const x=element('button','copy'+i);x.dataset.copyFrom=from;x.dataset.copyTo=['morning','noon','evening'][i];return x});
- const headerVersion=element('span','headerVersion');headerVersion.textContent='STEP 2 · v0.2.44';
+ // Read the version from the actual shipped template; a hard-coded 0.2.44
+ // allowed the UI test fixture to miss regressions in saved provenance.
+ const versionMatch=fs.readFileSync(path.join(base,'index.template.html'),'utf8')
+  .match(/STEP 2 · v(\d+\.\d+\.\d+)/);
+ assert.ok(versionMatch,'built UI must advertise a parseable version');
+ const headerVersion=element('span','headerVersion');
+ headerVersion.textContent='STEP 2 · v'+versionMatch[1];
  const document={getElementById:id=>items.get(id)||element('input',id),querySelectorAll:s=>s==='.tab'?tabs:s==='.panel'?panels:s==='.sim-copy'?copy:[],
   querySelector:s=>{if(s==='.step-mark')return headerVersion;const m=s.match(/data-roster="([^"]+)"/);return m?rosters[m[1]]:null},createElement:tag=>element(tag),body:{appendChild(){}}};
  const one={id:'i0',pokemon:'ライチュウ',nickname:'test',level:60,skillLevel:6,ingredients:['とくせんリンゴ','あったかジンジャー','とくせんエッグ'],mainSkill:'エナジーチャージS',nature:'さみしがり',subskills:['きのみの数S','','','',''],sleepHours:1000,shiny:false};
@@ -185,7 +191,7 @@ test('real weekly observation button rejects unverifiable data then saves exact 
  assert.deepEqual(report.input.teams.sleep,['i0','i1','i2','i3','i4']);
  assert.equal(report.provenance.source,'in_game_weekly_summary');
  assert.equal(report.provenance.noUnmodeledEvents,false);
- assert.equal(report.capture.appVersion,'0.2.44');
+ assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP 2 · v(\d+\.\d+\.\d+)/)[1]);
  assert.equal(report.capture.screenshotReviewedByApp,false);
  assert.equal(report.observed.total,1000);
  assert.equal(report.observed.berryAndStrengthSkill,600);
@@ -356,4 +362,48 @@ test('S2-A: a duplicate after multiple valid roster edits restores the latest sa
   .simulation.teams.morning,['i5','i0','i2','i3','i4']);
  assert.equal(new Set(selects.map(x=>x.value)).size,5);
  assert.equal(app.items.get('runSim').disabled,false);
+});
+
+test('audit: a failed weekly simulation does not replace last valid local settings',()=>{
+ const app=boot();
+ app.callbacks.get('fillAllRosters:click')();
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ const before=app.data.get('pokesleep-event-planner/step1/v1');
+ app.items.get('simBagCapacity').value='5';
+ // Set enough certain initial food to exceed the five-slot shared bag.
+ const apple=app.items.get('simIngredientFields').children.find(x=>
+  x.children[0].textContent==='とくせんリンゴ');
+ assert.ok(apple);
+ apple.children[1].value='20';
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,false);
+ assert.match(app.items.get('simError').textContent,/食材バッグ容量/);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),before,
+  'invalid weekly model input cannot overwrite the previous saved configuration');
+});
+
+test('audit: editing event map or meal category without saving cannot produce a misleading new score',()=>{
+ const app=boot();
+ app.callbacks.get('fillAllRosters:click')();
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ const original=app.data.get('pokesleep-event-planner/step1/v1');
+ app.items.get('eventMap').value='ゴールド旧発電所';
+ app.callbacks.get('eventMap:change')();
+ assert.equal(app.items.get('simStaleNotice').hidden,false);
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,false);
+ assert.match(app.items.get('simError').textContent,/未保存/);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),original);
+ app.callbacks.get('saveEvent:click')();
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ assert.equal(app.items.get('simStaleNotice').hidden,true);
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(saved.event.map,'ゴールド旧発電所');
+ app.items.get('food1').value='dessert';
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,false);
+ assert.match(app.items.get('simError').textContent,/未保存/);
 });
