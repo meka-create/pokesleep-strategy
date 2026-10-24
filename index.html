@@ -3218,7 +3218,7 @@ function renderSimulator(){
       const values=Array.from(holder.querySelectorAll('select')).map(x=>x.value);
       const chosen=values.filter(Boolean);
       if(new Set(chosen).size!==chosen.length){
-        select.value=previous[i]||'';
+        select.value=state.simulation.teams[key]?.[i]||'';
         toast('同じ時間帯に同一個体を2匹指定できません。');
         return;
       }
