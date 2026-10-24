@@ -382,3 +382,28 @@ test('audit: a failed weekly simulation does not replace last valid local settin
  assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),before,
   'invalid weekly model input cannot overwrite the previous saved configuration');
 });
+
+test('audit: editing event map or meal category without saving cannot produce a misleading new score',()=>{
+ const app=boot();
+ app.callbacks.get('fillAllRosters:click')();
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ const original=app.data.get('pokesleep-event-planner/step1/v1');
+ app.items.get('eventMap').value='ゴールド旧発電所';
+ app.callbacks.get('eventMap:change')();
+ assert.equal(app.items.get('simStaleNotice').hidden,false);
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,false);
+ assert.match(app.items.get('simError').textContent,/未保存/);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),original);
+ app.callbacks.get('saveEvent:click')();
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ assert.equal(app.items.get('simStaleNotice').hidden,true);
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(saved.event.map,'ゴールド旧発電所');
+ app.items.get('food1').value='dessert';
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,false);
+ assert.match(app.items.get('simError').textContent,/未保存/);
+});
