@@ -60,6 +60,67 @@ $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0
 $('downloadBackup').addEventListener('click',()=>{download(`pokesleep_event_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2),'application/json;charset=utf-8');toast('バックアップを保存しました。');});
 $('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;storage.allowRecovery();const saved=save();fillEvent();renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
 $('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();storage.allowRecovery();const saved=save();fillEvent();$('searchPokemon').value='';renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'端末内の保存情報を消去しました。');});
+// STEP3 proposal snapshots are ephemeral: neither storage format nor fixed
+// sleep team changes until a user explicitly applies a daylight candidate.
+let step3Candidates=[],step3Source='';
+const step3Fingerprint=()=>JSON.stringify({box:state.box,sleepIds:state.sleepIds,
+ map:state.event.map,camp:state.event.camp1});
+function clearStep3Candidates(){
+ step3Candidates=[];step3Source='';
+ $('autoCandidateList').replaceChildren();
+ $('autoCandidateStatus').textContent='';
+ $('autoCandidateError').hidden=true;
+}
+function showStep3Candidates(){
+ const error=$('autoCandidateError');error.hidden=true;
+ try{
+  if(hasUnsavedEventEdits())throw Error('イベント条件に未保存の変更があります。イベント条件を保存してから候補を作成してください。');
+  const output=PokeStep3.createCandidates({box:state.box,sleepIds:state.sleepIds,map:state.event.map});
+  step3Candidates=output.candidates;step3Source=step3Fingerprint();
+  const list=$('autoCandidateList');list.replaceChildren();
+  const rosterLabel=ids=>ids.map(id=>{
+   const p=state.box.find(x=>x.id===id);
+   return p?(p.nickname||p.pokemon)+'（'+p.pokemon+' Lv'+p.level+'）':id;
+  }).join('、');
+  for(const candidate of step3Candidates){
+   const card=document.createElement('div');card.className='step3-candidate-card';
+   const title=document.createElement('h4');title.textContent=candidate.title;
+   const desc=document.createElement('p');desc.textContent=candidate.description;
+   const slots=document.createElement('p');slots.className='step3-candidate-schedule';
+   slots.textContent='朝7:30～12:00：'+rosterLabel(candidate.teams.morning)+
+    '\n昼12:00～18:00：'+rosterLabel(candidate.teams.noon)+
+    '\n夜18:00～0:00：'+rosterLabel(candidate.teams.evening);
+   const timing=document.createElement('p');timing.className='step3-candidate-timing';
+   const c=candidate.changes;
+   timing.textContent='交代数（毎日・入替個体）：7:30 '+c.morning+'、12:00 '+c.noon+
+    '、18:00 '+c.evening+'、0:00 '+c.bedtime+'。計 '+c.total+
+    '匹分／日。7:30は先に回収してから切替。0:00以降の睡眠5匹は固定。';
+   const action=document.createElement('button');
+   action.type='button';action.className='secondary';
+   action.textContent='この候補を朝・昼・夜に反映';
+   action.addEventListener('click',()=>{
+    if(step3Fingerprint()!==step3Source){
+     error.textContent='手持ち・睡眠5匹・開催フィールド等が変わりました。候補を再生成してください。';
+     error.hidden=false;return;
+    }
+    if(!confirm('朝・昼・夜の手動編成をこの候補で上書きしますか？ 睡眠パーティは変更しません。'))return;
+    for(const key of rosterKeys)state.simulation.teams[key]=[...candidate.teams[key]];
+    const saved=save();renderSimulator();markResultsStale();
+    notifySave(saved,'日中の候補を反映しました。「7日間を試算する」で評価してください。');
+    setTab('simulate');
+   });
+   card.append(title,desc,slots,timing,action);list.append(card);
+  }
+  $('autoCandidateStatus').textContent='候補 '+step3Candidates.length+'件。'+
+   output.warnings.join(' ')+' 適用するまで現在の手動編成は変更されません。';
+ }catch(e){
+  step3Candidates=[];step3Source='';
+  $('autoCandidateList').replaceChildren();
+  $('autoCandidateStatus').textContent='';
+  error.textContent=e.message||String(e);error.hidden=false;
+ }
+}
+$('autoCandidates').addEventListener('click',showStep3Candidates);
 const rosterKeys=['morning','noon','evening'];
 const ingredientEditors=Object.create(null);
 const magnetEditors=Object.create(null);
@@ -108,6 +169,7 @@ function updateRosterStatus(){
  $('runSim').disabled=missing.length>0;
 }
 function fillSimulation(){
+ clearStep3Candidates();
  const sim=state.simulation||storage.defaultSimulation();
  $('simFieldBonus').value=sim.fieldBonus;
  $('simTap').value=sim.tapMinutes;

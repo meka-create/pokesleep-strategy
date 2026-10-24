@@ -1,7 +1,7 @@
 {
   "name": "pokesleep-strategy",
   "private": true,
-  "version": "0.2.76",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
@@ -23,5 +23,5 @@
     "m2:e4-stock-pity-oracle": "node scripts/step2-m2-e4-stock-pity-oracle.cjs",
     "m2:p04-block-reopen-oracle": "node scripts/step2-p04-block-reopen-oracle.cjs"
   },
-  "description": "ポケスリ作戦室 STEP 2 manual seven-day simulator (approximate)"
+  "description": "ポケスリ作戦室 STEP 3 manual weekly simulator and automatic daytime candidate proposals (approximate)"
 }

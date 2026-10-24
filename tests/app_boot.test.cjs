@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const base=path.join(__dirname,'../src');
-function boot({noSleep=false,withSixth=false}={}){
+function boot({noSleep=false,withSixth=false,withHealers=false}={}){
  const items=new Map(),callbacks=new Map();let serial=0;
  function element(tag='div',id){
   const e={id:id||'generated-'+(++serial),tagName:tag,children:[],dataset:{},hidden:false,checked:false,disabled:false,files:[],className:'',classList:{toggle(){},add(){},remove(){}},
@@ -29,14 +29,17 @@ function boot({noSleep=false,withSixth=false}={}){
  // Read the version from the actual shipped template; a hard-coded 0.2.44
  // allowed the UI test fixture to miss regressions in saved provenance.
  const versionMatch=fs.readFileSync(path.join(base,'index.template.html'),'utf8')
-  .match(/STEP 2 · v(\d+\.\d+\.\d+)/);
+  .match(/STEP 3 · v(\d+\.\d+\.\d+)/);
  assert.ok(versionMatch,'built UI must advertise a parseable version');
  const headerVersion=element('span','headerVersion');
- headerVersion.textContent='STEP 2 · v'+versionMatch[1];
+ headerVersion.textContent='STEP 3 · v'+versionMatch[1];
  const document={getElementById:id=>items.get(id)||element('input',id),querySelectorAll:s=>s==='.tab'?tabs:s==='.panel'?panels:s==='.sim-copy'?copy:[],
   querySelector:s=>{if(s==='.step-mark')return headerVersion;const m=s.match(/data-roster="([^"]+)"/);return m?rosters[m[1]]:null},createElement:tag=>element(tag),body:{appendChild(){}}};
  const one={id:'i0',pokemon:'ライチュウ',nickname:'test',level:60,skillLevel:6,ingredients:['とくせんリンゴ','あったかジンジャー','とくせんエッグ'],mainSkill:'エナジーチャージS',nature:'さみしがり',subskills:['きのみの数S','','','',''],sleepHours:1000,shiny:false};
- const box=Array.from({length:withSixth?6:5},(_,i)=>({...one,id:'i'+i}));const ids=box.slice(0,5).map(x=>x.id);
+ const box=Array.from({length:withSixth?6:5},(_,i)=>({
+  ...one,id:'i'+i,
+  pokemon:withHealers&&i<2?(i===0?'プクリン':'サーナイト'):one.pokemon
+ }));const ids=box.slice(0,5).map(x=>x.id);
  const event={name:'test',start:'2026-10-19',duration:1,map:'シアンの砂浜',food1:'curry',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false};
  const data=new Map([['pokesleep-event-planner/step1/v1',JSON.stringify({version:1,box,sleepIds:noSleep?[]:ids,event,updatedAt:''})]]);
  const localStorage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
@@ -50,7 +53,7 @@ function boot({noSleep=false,withSixth=false}={}){
   Date:TestDate,setTimeout:()=>1,clearTimeout(){}};
  ctx.globalThis=ctx;ctx.window=ctx;
  vm.createContext(ctx);
- for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','observation.js','app.js'])
+ for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','observation.js','app.js'])
   vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),ctx,{filename:name});
  return {ctx,items,rosters,callbacks,data};
 }
@@ -191,7 +194,7 @@ test('real weekly observation button rejects unverifiable data then saves exact 
  assert.deepEqual(report.input.teams.sleep,['i0','i1','i2','i3','i4']);
  assert.equal(report.provenance.source,'in_game_weekly_summary');
  assert.equal(report.provenance.noUnmodeledEvents,false);
- assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP 2 · v(\d+\.\d+\.\d+)/)[1]);
+ assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP 3 · v(\d+\.\d+\.\d+)/)[1]);
  assert.equal(report.capture.screenshotReviewedByApp,false);
  assert.equal(report.observed.total,1000);
  assert.equal(report.observed.berryAndStrengthSkill,600);
@@ -406,4 +409,57 @@ test('audit: editing event map or meal category without saving cannot produce a 
  app.callbacks.get('runSim:click')();
  assert.equal(app.items.get('simError').hidden,false);
  assert.match(app.items.get('simError').textContent,/未保存/);
+});
+
+test('S3-A browser: generate A/B/C, apply daylight-only and retain fixed sleep five',()=>{
+ const app=boot({withSixth:true,withHealers:true});
+ const before=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(app.items.get('autoCandidateList').children.length,0);
+ app.callbacks.get('autoCandidates:click')();
+ assert.equal(app.items.get('autoCandidateError').hidden,true,app.items.get('autoCandidateError').textContent);
+ const cards=app.items.get('autoCandidateList').children;
+ assert.ok(cards.length>=3,cards.length);
+ const titles=cards.map(c=>c.children[0].textContent);
+ assert.ok(titles.some(t=>t.startsWith('A：')),titles.join('; '));
+ assert.ok(titles.some(t=>t.startsWith('B：')),titles.join('; '));
+ assert.ok(titles.some(t=>t.startsWith('C')),titles.join('; '));
+ assert.match(app.items.get('autoCandidateStatus').textContent,/7日比較は未実施/);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),JSON.stringify(before),
+  'suggestions must not change any persisted personal settings');
+ const candidate=cards.find(c=>c.children[0].textContent.startsWith('A：'));
+ const apply=candidate.children[candidate.children.length-1];
+ app.callbacks.get(apply.id+':click')();
+ const after=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.deepEqual(after.sleepIds,before.sleepIds);
+ const skills=app.ctx.PokeMaster.species;
+ const healed=ids=>ids.filter(id=>{
+  const p=after.box.find(p=>p.id===id);
+  return app.ctx.PokeSimulator.isAllHealerSkill(skills.find(s=>s.name===p.pokemon)?.skill);
+ }).length;
+ assert.equal(healed(after.simulation.teams.morning),2);
+ assert.equal(healed(after.simulation.teams.noon),1);
+ assert.equal(healed(after.simulation.teams.evening),1);
+ assert.equal(app.items.get('runSim').disabled,false);
+});
+test('S3-A browser: refuse stale candidate after sleep change and refuse unsaved event edits',()=>{
+ const app=boot({withSixth:true,withHealers:true});
+ app.items.get('eventMap').value='ワカクサ本島';
+ app.callbacks.get('autoCandidates:click')();
+ assert.equal(app.items.get('autoCandidateError').hidden,false);
+ assert.match(app.items.get('autoCandidateError').textContent,/未保存/);
+ app.callbacks.get('saveEvent:click')();
+ app.callbacks.get('autoCandidates:click')();
+ assert.equal(app.items.get('autoCandidateError').hidden,true);
+ const cards=app.items.get('autoCandidateList').children;
+ assert.ok(cards.length);
+ const before=app.data.get('pokesleep-event-planner/step1/v1');
+ app.callbacks.get('pokemonList-virtual-add-i0:click')();
+ const afterSleep=app.data.get('pokesleep-event-planner/step1/v1');
+ assert.notEqual(before,afterSleep);
+ const apply=cards[0].children.at(-1);
+ app.callbacks.get(apply.id+':click')();
+ assert.equal(app.items.get('autoCandidateError').hidden,false);
+ assert.match(app.items.get('autoCandidateError').textContent,/再生成/);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),afterSleep,
+  'stale candidate must not overwrite user manual daytime teams');
 });
