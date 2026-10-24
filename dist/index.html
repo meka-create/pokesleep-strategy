@@ -38,7 +38,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.75</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.76</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -310,6 +310,16 @@ const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0
 const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
 const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
 const validEnum=(v,choices)=>choices.includes(v);
+// This module validates localStorage on startup BEFORE master.js is loaded.
+// Keep the supported ingredient key set local and consistent with master/API.
+const INGREDIENT_KEYS=new Set(['leek','mushroom','egg','potato','apple','herb',
+ 'sausage','milk','honey','oil','ginger','tomato','cacao','tail','soy','corn',
+ 'coffee','pumpkin','avocado']);
+const canonicalDate=value=>{
+ if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+ const dt=new Date(value+'T00:00:00Z');
+ return Number.isFinite(dt.getTime())&&dt.toISOString().slice(0,10)===value;
+};
 function validateState(x){
  if(!x||x.version!==1||!Array.isArray(x.box)||!Array.isArray(x.sleepIds)||!x.event||typeof x.event!=='object'||Array.isArray(x.event))throw new Error('対応していないバックアップ形式です。');
  if(x.box.length>10000)throw new Error('ボックスが大きすぎます。');
@@ -321,7 +331,7 @@ function validateState(x){
  if(x.sleepIds.some(id=>typeof id!=='string'||!ids.has(id))||new Set(x.sleepIds).size!==x.sleepIds.length||x.sleepIds.length>5)throw new Error('睡眠パーティが不正です。');
  const e=x.event;
  if(![1,2].includes(Number(e.duration))||!validEnum(e.food1,['random','curry','salad','dessert'])||!validEnum(e.food2,['random','curry','salad','dessert'])||!cleanText(e.name,100)||!cleanText(e.start,10)||!cleanText(e.map,80)||!cleanText(e.berries,100)||!cleanText(e.effects,1000)||!['campPrep','camp1','camp2'].every(k=>typeof e[k]==='boolean'))throw new Error('イベント設定が不正です。');
- if(e.start&&!/^\d{4}-\d{2}-\d{2}$/.test(e.start))throw new Error('イベント開始日が不正です。');
+ if(e.start&&!canonicalDate(e.start))throw new Error('イベント開始日が不正です。');
  const sim=x.simulation===undefined?defaultSimulation():x.simulation;
  if(!sim||typeof sim!=='object'||!sim.teams||typeof sim.teams!=='object')throw new Error('計算設定が不正です。');
  const teams={};
@@ -331,11 +341,11 @@ function validateState(x){
   if(!Array.isArray(a)||a.length>5||new Set(chosen).size!==chosen.length||a.some(id=>typeof id!=='string'||(id!==''&&!ids.has(id))))throw new Error('計算用パーティが不正です。');
   teams[key]=[...a];
  }
- const between=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
+ const between=(v,min,max)=>Number.isInteger(v)&&v>=min&&v<=max;
  if(!between(sim.fieldBonus,0,100)||!between(sim.tapMinutes,120,180)||!between(sim.potSize,7,300)||!between(sim.bagCapacity??0,0,10000)||!Number.isInteger(sim.bagCapacity??0)||!between(sim.sleepScore,0,100)||!between(sim.initialEnergy,0,150)||!cleanText(sim.recipeId,80)||!['fixed','fallback','best'].includes(sim.recipeMode??'fixed')||!['none','fill'].includes(sim.extraMode??'none')||!['none','expected'].includes(sim.successMode??'none')||!sim.initialIngredients||typeof sim.initialIngredients!=='object'||Array.isArray(sim.initialIngredients))throw new Error('計算設定が不正です。');
  const magnet=sim.magnetIngredients??[];
- if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!['leek','mushroom','egg','potato','apple','herb','sausage','milk','honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado'].includes(k)))throw new Error('発見済み食材の設定が不正です。');
- for(const [k,v] of Object.entries(sim.initialIngredients))if(!cleanText(k,40)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
+ if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!INGREDIENT_KEYS.has(k)))throw new Error('発見済み食材の設定が不正です。');
+ for(const [k,v] of Object.entries(sim.initialIngredients))if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
  return {version:1,box:x.box,sleepIds:[...x.sleepIds],simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
 // Preserve selected individuals on a refreshed export. First match full IV-like
@@ -3165,6 +3175,15 @@ function setTab(tab){for(const btn of document.querySelectorAll('.tab')){const a
 function fillEvent(){let e=state.event;const map={eventName:'name',eventStart:'start',eventDuration:'duration',eventMap:'map',eventBerries:'berries',eventEffects:'effects',food1:'food1',food2:'food2'};for(const [id,k] of Object.entries(map))$(id).value=e[k]??'';for(const id of ['campPrep','camp1','camp2'])$(id).checked=!!e[id];showDuration();}
 function showDuration(){const two=$('eventDuration').value==='2';$('food2Row').hidden=!two;$('camp2Row').hidden=!two;}
 function readEvent(){const e={name:$('eventName').value.trim(),start:$('eventStart').value,duration:Number($('eventDuration').value),map:$('eventMap').value.trim(),berries:$('eventBerries').value.trim(),effects:$('eventEffects').value.trim(),food1:$('food1').value,food2:$('food2').value};for(const id of ['campPrep','camp1','camp2'])e[id]=$(id).checked;return e;}
+// The event form is editable without committing it. Never calculate a new
+// week from *old* persisted map/food settings while the screen shows new ones.
+function hasUnsavedEventEdits(){
+ const draft=readEvent();
+ return Object.keys(draft).some(key=>draft[key]!==state.event[key]);
+}
+for(const id of ['eventName','eventStart','eventDuration','eventMap','eventBerries',
+ 'eventEffects','food1','food2','campPrep','camp1','camp2'])
+ $(id).addEventListener('change',markResultsStale);
 function status(){let name=state.event.name||'イベント未設定';$('dataState').textContent=`${state.box.length}匹登録 / 睡眠パーティ ${state.sleepIds.length}/5匹 / ${name}`;$('boxTotal').textContent=`${state.box.length}匹`;$('boxCountTab').textContent=state.box.length;}
 function renderSleep(){const ids=state.sleepIds;const selected=ids.map(id=>state.box.find(p=>p.id===id)).filter(Boolean);$('sleepCount').textContent=`${selected.length} / 5`;
  $('sleepList').innerHTML=selected.length?selected.map((p,i)=>`<div class="sleep-item"><span class="sleep-index">${i+1}</span><span class="sleep-title">${enc(p.nickname||p.pokemon)}<small>${enc(p.pokemon)} · Lv${p.level}</small></span><button data-remove="${enc(p.id)}" class="remove" aria-label="${enc(p.pokemon)}を外す">外す</button></div>`).join(''):'<div class="empty-mini">まだ選択されていません。下の一覧から5匹選んでください。</div>';
@@ -3323,10 +3342,14 @@ for(const btn of document.querySelectorAll('.sim-copy'))btn.addEventListener('cl
 $('runSim').addEventListener('click',()=>{
  $('simError').hidden=true;
  try{
-  const sim=readSimulation();state.simulation=sim;
-  const saved=save();if(!saved)throw Error('設定を保存できません。バックアップを取得してから再試行してください。');
+  if(hasUnsavedEventEdits())throw Error('イベント条件に未保存の変更があります。イベントタブで「イベント条件を保存」を押してから再試算してください。');
+  const sim=readSimulation();
   const runInput={box:state.box,teams:{...sim.teams,sleep:state.sleepIds},options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1,eventEffects:state.event.effects}};
+  // Do not overwrite a previously valid saved setup if this week's calculation
+  // is rejected (e.g. inventory exceeds the configured shared bag).
   const result=PokeSimulator.simulate(runInput);
+  state.simulation=sim;
+  const saved=save();if(!saved)throw Error('設定を保存できません。バックアップを取得してから再試行してください。');
   const version=document.querySelector('.step-mark')?.textContent.match(/v(\d+\.\d+\.\d+)/)?.[1];
   lastRunSnapshot=PokeObservation.captureSimulation(runInput,result,version,new Date().toISOString());
   $('planStatus').textContent='今回の試算を記録用に保持しました。事前予測として利用する場合は週開始前にJSONを保存してください。';
