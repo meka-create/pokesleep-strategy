@@ -5,7 +5,7 @@ test('weekly game observation can reload pre-week plans without a visible simula
  const html=read('src/index.template.html'),build=read('build.mjs');
  const app=read('src/app.js'),packageData=JSON.parse(read('package.json'));
  assert.match(packageData.version,/^\d+\.\d+\.\d+$/);
- const versionBadge='STEP 2 · v'+packageData.version;
+ const versionBadge='STEP 3 · v'+packageData.version;
  assert.ok(html.includes(versionBadge));
  assert.match(html,/<details class="card sim-observation">/);
  assert.match(html,/id="downloadPlan"/);
@@ -23,7 +23,7 @@ test('weekly game observation can reload pre-week plans without a visible simula
  assert.match(html,/id="obsWeekBoundaryReconciled"/);
  assert.match(html,/id="obsTotal"/);
  assert.match(html,/id="obsCooking"/);
- assert.ok(build.includes("'simulator.js','observation.js'"));
+ assert.ok(build.includes("'simulator.js','step3.js','observation.js'"));
  assert.ok(app.indexOf('lastRunSnapshot=PokeObservation.captureSimulation')>app.indexOf('PokeSimulator.simulate(runInput)'));
  assert.ok(app.includes("PokeObservation.makeReport(lastRunSnapshot,form,new Date().toISOString())"));
  assert.ok(app.includes("PokeObservation.preview(report)"));
