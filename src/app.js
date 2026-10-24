@@ -178,10 +178,13 @@ for(const btn of document.querySelectorAll('.sim-copy'))btn.addEventListener('cl
 $('runSim').addEventListener('click',()=>{
  $('simError').hidden=true;
  try{
-  const sim=readSimulation();state.simulation=sim;
-  const saved=save();if(!saved)throw Error('設定を保存できません。バックアップを取得してから再試行してください。');
+  const sim=readSimulation();
   const runInput={box:state.box,teams:{...sim.teams,sleep:state.sleepIds},options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1,eventEffects:state.event.effects}};
+  // Do not overwrite a previously valid saved setup if this week's calculation
+  // is rejected (e.g. inventory exceeds the configured shared bag).
   const result=PokeSimulator.simulate(runInput);
+  state.simulation=sim;
+  const saved=save();if(!saved)throw Error('設定を保存できません。バックアップを取得してから再試行してください。');
   const version=document.querySelector('.step-mark')?.textContent.match(/v(\d+\.\d+\.\d+)/)?.[1];
   lastRunSnapshot=PokeObservation.captureSimulation(runInput,result,version,new Date().toISOString());
   $('planStatus').textContent='今回の試算を記録用に保持しました。事前予測として利用する場合は週開始前にJSONを保存してください。';
