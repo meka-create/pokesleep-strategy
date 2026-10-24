@@ -1,7 +1,12 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const storage=require('../src/storage.js');
+// package.json uses type=module, while the legacy browser storage adapter
+// intentionally attaches to globalThis. Load it exactly as browser script,
+ // rather than require() an ESM .js file from a CommonJS test.
+const storageContext=vm.createContext({globalThis:{}});
+vm.runInContext(fs.readFileSync(path.join(__dirname,'../src/storage.js'),'utf8'),storageContext);
+const storage=storageContext.globalThis.PokeStorage;
 function fixture(){
  const state=storage.newState();
  const box=Array.from({length:5},(_,i)=>({
