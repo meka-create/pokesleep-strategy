@@ -29,7 +29,7 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
  // Read the version from the actual shipped template; a hard-coded 0.2.44
  // allowed the UI test fixture to miss regressions in saved provenance.
  const versionMatch=fs.readFileSync(path.join(base,'index.template.html'),'utf8')
-  .match(/STEP 2 · v(\d+\.\d+\.\d+)/);
+  .match(/STEP 3 · v(\d+\.\d+\.\d+)/);
  assert.ok(versionMatch,'built UI must advertise a parseable version');
  const headerVersion=element('span','headerVersion');
  headerVersion.textContent='STEP 3 · v'+versionMatch[1];
@@ -194,7 +194,7 @@ test('real weekly observation button rejects unverifiable data then saves exact 
  assert.deepEqual(report.input.teams.sleep,['i0','i1','i2','i3','i4']);
  assert.equal(report.provenance.source,'in_game_weekly_summary');
  assert.equal(report.provenance.noUnmodeledEvents,false);
- assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP 2 · v(\d+\.\d+\.\d+)/)[1]);
+ assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP 3 · v(\d+\.\d+\.\d+)/)[1]);
  assert.equal(report.capture.screenshotReviewedByApp,false);
  assert.equal(report.observed.total,1000);
  assert.equal(report.observed.berryAndStrengthSkill,600);
