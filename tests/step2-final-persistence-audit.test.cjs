@@ -30,7 +30,7 @@ test('audit: roundtrip valid saved state and all 19 actual master ingredient key
  state.simulation.magnetIngredients=[...keys];
  const restored=storage.validateState(JSON.parse(JSON.stringify(state)));
  assert.deepEqual(restored.simulation.initialIngredients,state.simulation.initialIngredients);
- assert.deepEqual(restored.simulation.magnetIngredients,keys);
+ assert.deepEqual(Array.from(restored.simulation.magnetIngredients),keys);
  assert.equal(restored.sleepIds.length,5);
 });
 test('audit: rejects invalid saved integer controls rather than failing only when user taps simulate',()=>{
