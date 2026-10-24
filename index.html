@@ -38,7 +38,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.74</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 2 · v0.2.75</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -126,6 +126,7 @@
  <button class="primary full" id="runSim" disabled>7日間を試算する</button>
  <div id="simError" class="error" role="alert" hidden></div>
  <div id="simResult" class="card sim-result" hidden aria-live="polite">
+  <p id="simStaleNotice" class="small warn" role="status" hidden><strong>条件が変更されました。</strong>以下は変更前に計算した7日間の結果です。現在の設定を評価するには「7日間を試算する」を再実行してください。週間観測用の保存済み試算時点の記録は維持しています。</p>
   <div class="eyebrow">REFERENCE RESULT / 暫定概算</div>
   <h3 id="simTotal">—</h3>
   <div id="simBreakdown" class="sim-breakdown"></div>
@@ -3149,6 +3150,12 @@ const storage=window.PokeStorage;
 let state=storage.load();
 // Each exported observation belongs to the *successful run*, never to subsequently edited settings.
 let lastRunSnapshot=null;
+// Keep an earlier successful simulation/observation snapshot intact but never
+// present its scores as if they had been calculated from newly changed inputs.
+function markResultsStale(){
+ const result=$('simResult'),warning=$('simStaleNotice');
+ if(!result.hidden)warning.hidden=false;
+}
 const save=()=>{try{storage.save(state);$('storageNotice').textContent='このブラウザ内への保存：利用可能';$('storageNotice').className='small ok';$('criticalNotice').hidden=true;return true;}catch(e){
 $('storageNotice').textContent=storage.getLoadError()||'保存に失敗しました。現在の変更は未保存です。設定・保存からJSONバックアップを取得してください。';$('storageNotice').className='small warn';$('criticalNotice').textContent=$('storageNotice').textContent;$('criticalNotice').hidden=false;return false;}};
 const notifySave=(success,ok)=>toast(success?(ok||'保存しました。'):'保存に失敗しました。設定・保存からJSONバックアップを取得してください。');
@@ -3161,14 +3168,18 @@ function readEvent(){const e={name:$('eventName').value.trim(),start:$('eventSta
 function status(){let name=state.event.name||'イベント未設定';$('dataState').textContent=`${state.box.length}匹登録 / 睡眠パーティ ${state.sleepIds.length}/5匹 / ${name}`;$('boxTotal').textContent=`${state.box.length}匹`;$('boxCountTab').textContent=state.box.length;}
 function renderSleep(){const ids=state.sleepIds;const selected=ids.map(id=>state.box.find(p=>p.id===id)).filter(Boolean);$('sleepCount').textContent=`${selected.length} / 5`;
  $('sleepList').innerHTML=selected.length?selected.map((p,i)=>`<div class="sleep-item"><span class="sleep-index">${i+1}</span><span class="sleep-title">${enc(p.nickname||p.pokemon)}<small>${enc(p.pokemon)} · Lv${p.level}</small></span><button data-remove="${enc(p.id)}" class="remove" aria-label="${enc(p.pokemon)}を外す">外す</button></div>`).join(''):'<div class="empty-mini">まだ選択されていません。下の一覧から5匹選んでください。</div>';
- for(const btn of $('sleepList').querySelectorAll('[data-remove]'))btn.addEventListener('click',()=>{state.sleepIds=state.sleepIds.filter(id=>id!==btn.dataset.remove);notifySave(save(),'睡眠パーティを変更しました。');renderBox();renderSimulator();});}
+ for(const btn of $('sleepList').querySelectorAll('[data-remove]'))btn.addEventListener('click',()=>{state.sleepIds=state.sleepIds.filter(id=>id!==btn.dataset.remove);notifySave(save(),'睡眠パーティを変更しました。');renderBox();renderSimulator();markResultsStale();});}
 function renderBox(){status();renderSleep();let q=$('searchPokemon').value.toLocaleLowerCase('ja');const found=state.box.filter(p=>[p.nickname,p.pokemon].some(s=>(s||'').toLocaleLowerCase('ja').includes(q)));const view=found.slice(0,120);
  $('pokemonList').innerHTML=view.length?view.map(p=>{const selected=state.sleepIds.includes(p.id);return `<div class="pokemon-row"><div class="pokemon-symbol">${enc((p.pokemon||'?').slice(0,1))}</div><div class="pokemon-info"><b>${enc(p.nickname||p.pokemon)}</b><div>${enc(p.pokemon)} · Lv${p.level} · スキルLv${p.skillLevel}</div><div class="pokemon-details">${enc(p.nature||'せいかく未設定')} / ${enc(p.ingredients.filter(Boolean).join('・')||'食材未設定')}</div></div><button class="pick ${selected?'selected':''}" data-add="${enc(p.id)}" ${!selected&&state.sleepIds.length>=5?'disabled':''}>${selected?'選択中':'睡眠用に追加'}</button></div>`;}).join(''):'<div class="card empty">'+(state.box.length?'該当するポケモンがありません。':'CSVを読み込むとここに一覧が表示されます。')+'</div>';
  $('boxMore').hidden=found.length<=120;$('boxMore').textContent=found.length>120?`検索結果 ${found.length}匹のうち、先頭120匹を表示しています。検索して絞り込んでください。`:'';
- for(const btn of $('pokemonList').querySelectorAll('[data-add]'))btn.addEventListener('click',()=>{let id=btn.dataset.add;if(state.sleepIds.includes(id)){state.sleepIds=state.sleepIds.filter(x=>x!==id);}else if(state.sleepIds.length<5)state.sleepIds.push(id);notifySave(save(),'睡眠パーティを変更しました。');renderBox();});}
+ for(const btn of $('pokemonList').querySelectorAll('[data-add]'))btn.addEventListener('click',()=>{let id=btn.dataset.add;if(state.sleepIds.includes(id)){state.sleepIds=state.sleepIds.filter(x=>x!==id);}else if(state.sleepIds.length<5)state.sleepIds.push(id);notifySave(save(),'睡眠パーティを変更しました。');renderBox();markResultsStale();});
+ // Sleep-party completion happens on the box tab; immediately sync the simulator
+ // readiness gate rather than waiting for a new roster edit or a page reload.
+ updateRosterStatus();
+}
 function download(filename,data,type){const blob=new Blob([data],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 $('eventDuration').addEventListener('change',showDuration);
-$('saveEvent').addEventListener('click',()=>{state.event=readEvent();state.updatedAt=new Date().toISOString();const saved=save();status();notifySave(saved,'イベント条件を保存しました。');});
+$('saveEvent').addEventListener('click',()=>{state.event=readEvent();state.updatedAt=new Date().toISOString();const saved=save();status();markResultsStale();notifySave(saved,'イベント条件を保存しました。');});
 for(const btn of document.querySelectorAll('.tab'))btn.addEventListener('click',()=>setTab(btn.dataset.tab));
 $('searchPokemon').addEventListener('input',renderBox);
 $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;$('importError').hidden=true;try{
@@ -3207,13 +3218,13 @@ function renderSimulator(){
       const values=Array.from(holder.querySelectorAll('select')).map(x=>x.value);
       const chosen=values.filter(Boolean);
       if(new Set(chosen).size!==chosen.length){
-        select.value=previous[i]||'';
+        select.value=state.simulation.teams[key]?.[i]||'';
         toast('同じ時間帯に同一個体を2匹指定できません。');
         return;
       }
       state.simulation.teams[key]=values;
       notifySave(save(),'試算用パーティを保存しました。');
-      updateRosterStatus();
+      updateRosterStatus();markResultsStale();
     });
     line.append(index,select);holder.append(line);
   }
@@ -3292,16 +3303,22 @@ function readSimulation(){
  if(state.sleepIds.length!==5)throw Error('ボックスタブで睡眠パーティ5匹を指定してください。');
  return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,bagCapacity:data.simBagCapacity,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,recipeMode:$('simRecipeMode').value,extraMode:$('simExtraMode').value,successMode:$('simSuccessMode').value,initialIngredients,magnetIngredients};
 }
+// Native form changes must not leave a previous 7-day result looking current.
+for(const id of ['simFieldBonus','simTap','simPot','simBagCapacity','simSleepScore',
+ 'simInitialEnergy','simRecipeMode','simRecipe','simExtraMode','simSuccessMode'])
+ $(id).addEventListener('change',markResultsStale);
+$('simIngredientFields').addEventListener('change',markResultsStale);
+$('simMagnetFields').addEventListener('change',markResultsStale);
 $('fillAllRosters').addEventListener('click',()=>{
  if(state.sleepIds.length!==5){toast('先にボックスタブで睡眠用5匹を選択してください。');setTab('box');return;}
  for(const key of rosterKeys)state.simulation.teams[key]=[...state.sleepIds];
- const saved=save();renderSimulator();notifySave(saved,'睡眠パーティを朝・昼・夜に一括設定しました。');
+ const saved=save();renderSimulator();markResultsStale();notifySave(saved,'睡眠パーティを朝・昼・夜に一括設定しました。');
 });
 for(const btn of document.querySelectorAll('.sim-copy'))btn.addEventListener('click',()=>{
  const from=btn.dataset.copyFrom,to=btn.dataset.copyTo;
  const ids=from==='sleep'?state.sleepIds:state.simulation.teams[from];
  if(ids.length!==5||ids.some(id=>!id)){toast('コピー元の5匹が揃っていません。');return;}
- state.simulation.teams[to]=[...ids];notifySave(save(),'5匹の編成をコピーしました。');renderSimulator();
+ state.simulation.teams[to]=[...ids];notifySave(save(),'5匹の編成をコピーしました。');renderSimulator();markResultsStale();
 });
 $('runSim').addEventListener('click',()=>{
  $('simError').hidden=true;
@@ -3360,6 +3377,7 @@ $('runSim').addEventListener('click',()=>{
   if(!entries.length)$('simIngredients').textContent='食材獲得なし／未計上';
   const note=$('simWarnings');note.replaceChildren();for(const warning of result.warnings){const p=document.createElement('p');p.textContent=warning;note.append(p);}
   $('simResult').hidden=false;
+  $('simStaleNotice').hidden=true;
   for(const id of ['obsMonday','obsTotal','obsBerry','obsCooking','obsScreenshot'])$(id).value='';
   for(const id of ['obsNoUnmodeledEvents','obsSameCollectionSchedule','obsNoUntrackedItems','obsStartStrengthVerified','obsWeekBoundaryReconciled','obsConfirmedSummary'])$(id).checked=false;
   $('obsError').hidden=true;
