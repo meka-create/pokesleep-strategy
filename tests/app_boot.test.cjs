@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const base=path.join(__dirname,'../src');
-function boot({noSleep=false}={}){
+function boot({noSleep=false,withSixth=false}={}){
  const items=new Map(),callbacks=new Map();let serial=0;
  function element(tag='div',id){
   const e={id:id||'generated-'+(++serial),tagName:tag,children:[],dataset:{},hidden:false,checked:false,disabled:false,files:[],className:'',classList:{toggle(){},add(){},remove(){}},
@@ -30,7 +30,7 @@ function boot({noSleep=false}={}){
  const document={getElementById:id=>items.get(id)||element('input',id),querySelectorAll:s=>s==='.tab'?tabs:s==='.panel'?panels:s==='.sim-copy'?copy:[],
   querySelector:s=>{if(s==='.step-mark')return headerVersion;const m=s.match(/data-roster="([^"]+)"/);return m?rosters[m[1]]:null},createElement:tag=>element(tag),body:{appendChild(){}}};
  const one={id:'i0',pokemon:'ライチュウ',nickname:'test',level:60,skillLevel:6,ingredients:['とくせんリンゴ','あったかジンジャー','とくせんエッグ'],mainSkill:'エナジーチャージS',nature:'さみしがり',subskills:['きのみの数S','','','',''],sleepHours:1000,shiny:false};
- const box=Array.from({length:5},(_,i)=>({...one,id:'i'+i}));const ids=box.map(x=>x.id);
+ const box=Array.from({length:withSixth?6:5},(_,i)=>({...one,id:'i'+i}));const ids=box.slice(0,5).map(x=>x.id);
  const event={name:'test',start:'2026-10-19',duration:1,map:'シアンの砂浜',food1:'curry',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false};
  const data=new Map([['pokesleep-event-planner/step1/v1',JSON.stringify({version:1,box,sleepIds:noSleep?[]:ids,event,updatedAt:''})]]);
  const localStorage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
@@ -341,4 +341,19 @@ test('S2-B: CSV16-col import -> sleep five -> day rosters -> 7-day result -> JSO
  assert.equal(recovered.box.length,5);
  assert.equal(recovered.sleepIds.length,5);
  assert.deepEqual(recovered.simulation.teams,state.simulation.teams);
+});
+
+test('S2-A: a duplicate after multiple valid roster edits restores the latest saved slot',()=>{
+ const app=boot({withSixth:true});
+ app.callbacks.get('fillAllRosters:click')();
+ const selects=app.rosters.morning.querySelectorAll('select');
+ const change=index=>app.callbacks.get(selects[index].id+':change')();
+ selects[0].value='i5';change(0); // originally i0
+ selects[1].value='i0';change(1); // originally i1
+ selects[0].value='i0';change(0); // duplicate with slot 2: reject
+ assert.equal(selects[0].value,'i5','must revert to latest valid i5, not original i0');
+ assert.deepEqual(JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'))
+  .simulation.teams.morning,['i5','i0','i2','i3','i4']);
+ assert.equal(new Set(selects.map(x=>x.value)).size,5);
+ assert.equal(app.items.get('runSim').disabled,false);
 });
