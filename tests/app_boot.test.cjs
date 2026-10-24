@@ -325,4 +325,20 @@ test('S2-B: CSV16-col import -> sleep five -> day rosters -> 7-day result -> JSO
  assert.equal(state.sleepIds.length,5);
  for(const name of ['morning','noon','evening'])assert.equal(state.simulation.teams[name].length,5);
  assert.equal(app.ctx.PokeStorage.validateState(state).box.length,5);
+ // Exercise actual backup download, clear and restoration through UI handlers.
+ const blobs=[];
+ app.ctx.URL={createObjectURL(blob){blobs.push(blob);return 'blob:smoke-backup';},revokeObjectURL(){}};
+ app.callbacks.get('downloadBackup:click')();
+ assert.equal(blobs.length,1);
+ const backedUp=await blobs[0].text();
+ assert.equal(JSON.parse(backedUp).box.length,5);
+ app.callbacks.get('clearData:click')();
+ assert.match(app.items.get('dataState').textContent,/0匹登録/);
+ const restoredFile=app.items.get('backupFile');
+ restoredFile.files=[{size:backedUp.length,text:async()=>backedUp}];
+ await app.callbacks.get('backupFile:change')({target:restoredFile});
+ const recovered=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(recovered.box.length,5);
+ assert.equal(recovered.sleepIds.length,5);
+ assert.deepEqual(recovered.simulation.teams,state.simulation.teams);
 });
