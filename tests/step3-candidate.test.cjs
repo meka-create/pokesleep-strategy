@@ -88,7 +88,7 @@ test('S3-A: no duplicate A/B/C plans, deterministic repeated generation, no game
  assert.deepEqual(a,b);
  const keys=a.candidates.map(c=>JSON.stringify(c.teams));
  assert.equal(new Set(keys).size,keys.length);
- assert.ok(a.warnings.some(x=>x.includes('7日比較は未実施')));
+ assert.ok(a.warnings.some(x=>x.includes('別途STEP2計算器')));
  assert.ok(a.candidates.every(x=>!('energy' in x)&&!('rank' in x)));
 });
 
@@ -135,4 +135,24 @@ test('S3-B: invalid simulator output or roster fails closed; impossible true ran
   options:{},simulate:()=>({total:1,berries:1,cooking:0,skills:0})}),/編成が不正/);
  assert.throws(()=>api.orderEvaluations([],0.5),/不正/);
  assert.equal(api.orderEvaluations([]).length,0);
+});
+
+test('audit S3: reject finite but internally inconsistent weekly component totals',()=>{
+ const d=input(),c=api.createCandidates(d).candidates[0];
+ assert.throws(()=>api.evaluateCandidate({candidate:c,box:d.box,sleepIds:d.sleepIds,
+  options:{},simulate:()=>({total:1000,berries:500,cooking:250,skills:249,warnings:[]})}),
+  /合計と内訳が一致/);
+ assert.throws(()=>api.evaluateCandidate({candidate:c,box:d.box,sleepIds:d.sleepIds,
+  options:{},simulate:()=>({total:'100',berries:20,cooking:30,skills:50,warnings:[]})}),
+  /内訳が不正/);
+});
+test('audit S3: preserve every simulator warning verbatim in the scored result',()=>{
+ const d=input(),c=api.createCandidates(d).candidates[0];
+ const warns=['レシピと料理カテゴリが一致しません。料理エナジーを計上していません。',
+  'げんきオールS 2匹の発動時刻は未検証','イベント効果はSTEP5まで計算に反映しません。'];
+ const row=api.evaluateCandidate({candidate:c,box:d.box,sleepIds:d.sleepIds,
+  options:{},simulate:()=>({total:100,berries:40,cooking:30,skills:30,warnings:warns})});
+ assert.deepEqual(asPlain(row.warnings),warns);
+ assert.equal(row.warningCount,3);
+ assert.ok(row.caveats.some(w=>w.includes('未対応・未検証')));
 });
