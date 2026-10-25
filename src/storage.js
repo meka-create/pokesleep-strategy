@@ -2,7 +2,8 @@
 'use strict';
 const KEY='pokesleep-event-planner/step1/v1';
 const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,sleepScore:88,initialEnergy:100,recipeId:'',recipeMode:'fixed',extraMode:'none',successMode:'none',magnetIngredients:[],initialIngredients:{}});
-const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
+const defaultPreparation=()=>({recipeId:'',meals:21,priority:'stock',bagCapacity:0,carryover:{}});
+const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),preparation:defaultPreparation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
 const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
 const validEnum=(v,choices)=>choices.includes(v);
 // This module validates localStorage on startup BEFORE master.js is loaded.
@@ -27,6 +28,22 @@ function validateState(x){
  const e=x.event;
  if(![1,2].includes(Number(e.duration))||!validEnum(e.food1,['random','curry','salad','dessert'])||!validEnum(e.food2,['random','curry','salad','dessert'])||!cleanText(e.name,100)||!cleanText(e.start,10)||!cleanText(e.map,80)||!cleanText(e.berries,100)||!cleanText(e.effects,1000)||!['campPrep','camp1','camp2'].every(k=>typeof e[k]==='boolean'))throw new Error('イベント設定が不正です。');
  if(e.start&&!canonicalDate(e.start))throw new Error('イベント開始日が不正です。');
+ const prep=x.preparation??defaultPreparation();
+ if(!prep||typeof prep!=='object'||Array.isArray(prep)||
+    !cleanText(prep.recipeId,80)||
+    !Number.isInteger(prep.meals)||prep.meals<1||prep.meals>21||
+    !['energy','stock'].includes(prep.priority)||
+    !Number.isInteger(prep.bagCapacity)||prep.bagCapacity<0||prep.bagCapacity>10000||
+    !prep.carryover||Object.prototype.toString.call(prep.carryover)!=='[object Object]')
+  throw Error('準備週の設定が不正です。');
+ const carryover={};
+ for(const [k,v] of Object.entries(prep.carryover)){
+  if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)
+   throw Error('準備週の持ち越し食材数が不正です。');
+  carryover[k]=v;
+ }
+ if(Object.values(carryover).reduce((n,v)=>n+v,0)>prep.bagCapacity&&prep.bagCapacity!==0)
+  throw Error('準備週の持ち越し食材数がバッグ容量を超えています。');
  const sim=x.simulation===undefined?defaultSimulation():x.simulation;
  if(!sim||typeof sim!=='object'||!sim.teams||typeof sim.teams!=='object')throw new Error('計算設定が不正です。');
  const teams={};
@@ -41,7 +58,7 @@ function validateState(x){
  const magnet=sim.magnetIngredients??[];
  if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!INGREDIENT_KEYS.has(k)))throw new Error('発見済み食材の設定が不正です。');
  for(const [k,v] of Object.entries(sim.initialIngredients))if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
- return {version:1,box:x.box,sleepIds:[...x.sleepIds],simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
+ return {version:1,box:x.box,sleepIds:[...x.sleepIds],preparation:{recipeId:prep.recipeId,meals:prep.meals,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
 // Preserve selected individuals on a refreshed export. First match full IV-like
 // fingerprints; only fall back to nickname+species when BOTH boxes are unique.
@@ -67,7 +84,7 @@ function save(state){if(loadError)throw new Error(loadError);localStorage.setIte
 function allowRecovery(){loadError='';}
 function getLoadError(){return loadError;}
 function available(){try{const k=KEY+'/probe';localStorage.setItem(k,'1');localStorage.removeItem(k);return true;}catch(e){return false;}}
-const api={newState,defaultSimulation,validateState,reconcileSleepIds,load,save,available,getLoadError,allowRecovery,KEY};
+const api={newState,defaultSimulation,defaultPreparation,validateState,reconcileSleepIds,load,save,available,getLoadError,allowRecovery,KEY};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeStorage=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
