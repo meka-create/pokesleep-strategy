@@ -2,12 +2,12 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const base=path.join(__dirname,'../src');
 function boot({noSleep=false,withSixth=false,withHealers=false}={}){
- const items=new Map(),callbacks=new Map(),timers=[];let serial=0,failWrites=false;
+ const items=new Map(),callbacks=new Map(),callbackOwners=new Map(),timers=[];let serial=0,failWrites=false;
  function element(tag='div',id){
   const e={id:id||'generated-'+(++serial),tagName:tag,children:[],dataset:{},hidden:false,checked:false,disabled:false,files:[],className:'',classList:{toggle(){},add(){},remove(){}},
    _value:'',get value(){return this._value},set value(v){this._value=String(v)},
    _html:'',get innerHTML(){return this._html},set innerHTML(v){this._html=String(v);this.children=[]},
-   textContent:'',setAttribute(){},addEventListener(n,f){const key=this.id+':'+n,previous=callbacks.get(key);callbacks.set(key,previous?(...args)=>{previous(...args);f(...args);}:f)},append(...a){this.children.push(...a)},appendChild(v){this.children.push(v)},replaceChildren(...a){this.children=[...a]},
+   textContent:'',setAttribute(){},addEventListener(n,f){const key=this.id+':'+n,previous=callbackOwners.get(key)===this?callbacks.get(key):null;callbacks.set(key,previous?(...args)=>{previous(...args);f(...args);}:f);callbackOwners.set(key,this)},append(...a){this.children.push(...a)},appendChild(v){this.children.push(v)},replaceChildren(...a){this.children=[...a]},
    querySelectorAll(q){
     if(q==='select')return this.children.flatMap(x=>x.children.filter(y=>y.tagName==='select'));
     if(q==='[data-add]'||q==='[data-remove]'){
