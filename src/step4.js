@@ -13,9 +13,29 @@ function integer(value,min,max,label){
 function plan(input){
  if(!input||typeof input!=='object')throw Error('準備条件がありません。');
  if(!Array.isArray(Recipes)||!Master?.ingredients)throw Error('料理・食材マスターが不足しています。');
- const recipe=Recipes.find(r=>r.id===input.recipeId);
- if(!recipe)throw Error('イベント週に作る料理を1品選択してください。');
- const meals=integer(input.meals,1,21,'予定食数');
+ const targets=input.recipeTargets===undefined?
+  [{recipeId:input.recipeId,meals:input.meals}]:input.recipeTargets;
+ if(!Array.isArray(targets)||targets.length<1||targets.length>21)
+  throw Error('イベント週に作る料理を1品以上選択してください。');
+ const recipes=[],seen=new Set(),required={};
+ let meals=0;
+ for(const item of targets){
+  if(!item||typeof item!=='object'||Array.isArray(item))throw Error('料理の内訳が不正です。');
+  const recipe=Recipes.find(r=>r.id===item.recipeId);
+  if(!recipe)throw Error('イベント週に作る料理を選択してください。');
+  if(seen.has(recipe.id))throw Error('同じ料理が重複しています。食数をまとめて入力してください。');
+  seen.add(recipe.id);
+  const count=integer(item.meals,1,21,'料理ごとの予定食数');
+  meals+=count;
+  if(meals>21)throw Error('複数料理の予定食数の合計は21食以内にしてください。');
+  for(const [k,v] of Object.entries(recipe.requirements)){
+   if(!KEYS.includes(k))throw Error('レシピに未登録の食材があります。');
+   required[k]=(required[k]||0)+integer(v,1,1000,'1食の必要食材')*count;
+  }
+  recipes.push({id:recipe.id,name:recipe.name,type:recipe.type,
+   meals:count,perMeal:Object.values(recipe.requirements).reduce((n,v)=>n+v,0),
+   energy70:recipe.strength70});
+ }
  const capacity=integer(input.bagCapacity,1,10000,'食材バッグ容量');
  const mode=input.priority;
  if(!['energy','stock'].includes(mode))throw Error('備蓄方針が不正です。');
@@ -25,17 +45,12 @@ function plan(input){
  for(const value of Object.values(carry))integer(value,0,10000,'持ち越し個数');
  const carried=KEYS.reduce((n,k)=>n+(carry[k]||0),0);
  if(carried>capacity)throw Error('持ち越し予定食材の合計がバッグ容量を超えています。');
- const required={};
- for(const [k,v] of Object.entries(recipe.requirements)){
-  if(!KEYS.includes(k))throw Error('レシピに未登録の食材があります。');
-  required[k]=integer(v,1,1000,'1食の必要食材')*meals;
- }
- const perMeal=Object.values(recipe.requirements).reduce((n,v)=>n+v,0);
  const warnings=['21食は7日間×3食の上限です。実際の調理成立や食材の獲得確率を保証する計算ではありません。'];
- if(perMeal>input.potSize && Number.isInteger(input.potSize) && input.potSize>=7)
-  warnings.push('選んだ料理の必要枠数が現在の通常鍋容量を超えています。鍋拡張などがない通常日の成立を保証できません。');
+ if(recipes.length>1)warnings.push('複数料理の食数を合算しています。各料理を作る曜日・時間帯や、食事間の在庫補充は計算していません。');
+ if(Number.isInteger(input.potSize)&&input.potSize>=7&&recipes.some(r=>r.perMeal>input.potSize))
+  warnings.push('選んだ料理の一部は必要枠数が現在の通常鍋容量を超えています。鍋拡張などがない通常日の成立を保証できません。');
  if(input.foodMode==='random')warnings.push('料理カテゴリがランダムです。このレシピは採用されたカテゴリの場合だけの仮定です。');
- else if(input.foodMode&&input.foodMode!==recipe.type)warnings.push('設定中の料理カテゴリとレシピの種類が異なるため、カテゴリを確認してください。');
+ else if(input.foodMode&&recipes.some(r=>r.type!==input.foodMode))warnings.push('設定中の料理カテゴリと異なる料理が含まれます。カテゴリを確認してください。');
  if(input.eventEffects)warnings.push('イベント補正メモは食材必要個数へ自動換算していません。');
  const quotaRatio=mode==='stock'?0.9:0.3;
  // These fractions are USER PRIORITY HEURISTICS, not game rules. A manual
@@ -63,14 +78,13 @@ function plan(input){
  const rows=KEYS.filter(k=>(required[k]||0)>0||(carry[k]||0)>0).map(key=>{
   const start=carry[key]||0,newStock=additions[key]||0,need=required[key]||0;
   const half=Math.ceil(newStock*3/7);
-  return {key,name:Master.ingredients[key],perMeal:recipe.requirements[key]||0,
+  return {key,name:Master.ingredients[key],perMeal:recipes.length===1?(Recipes.find(r=>r.id===recipes[0].id).requirements[key]||0):null,
    required:need,carryover:start,toGather:newStock,target:start+newStock,
    firstHalf:half,secondHalf:newStock-half,
    uncovered:Math.max(0,need-start-newStock)};
  });
  const packed=carried+available;
- const result={recipe:{id:recipe.id,name:recipe.name,type:recipe.type,
-  perMeal,energy70:recipe.strength70},
+ const result={recipe:recipes.length===1?recipes[0]:null,recipes,
   meals,capacity,mode,quotaRatio,initialCount:carried,plannedNew:available,
   eventStartStock:packed,uncovered:rows.reduce((n,x)=>n+x.uncovered,0),
   rows,warnings,exact:false};

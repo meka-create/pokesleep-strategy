@@ -1,12 +1,12 @@
 {
   "name": "pokesleep-strategy",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.4.1",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
     "test": "node --test tests/*.test.cjs",
-    "check": "npm run test && npm run build",
+    "check": "npm run build && npm run test",
     "m1:audit": "node scripts/step2-m1-audit.cjs",
     "m1:mixed-meal-provenance": "node scripts/step2-m1-mixed-meal-provenance.cjs",
     "m1:compare": "node scripts/step2-m1-compare.cjs",
@@ -23,5 +23,5 @@
     "m2:e4-stock-pity-oracle": "node scripts/step2-m2-e4-stock-pity-oracle.cjs",
     "m2:p04-block-reopen-oracle": "node scripts/step2-p04-block-reopen-oracle.cjs"
   },
-  "description": "ポケスリ作戦室 STEP 4 recipe preparation and pre-event week stocking planner (approximate)"
+  "description": "ポケスリ作戦室 STEP 4 multi-recipe ingredient preparation and pre-event stocking planner (approximate)"
 }

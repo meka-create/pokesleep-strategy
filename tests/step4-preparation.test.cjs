@@ -19,6 +19,35 @@ test('S4-A: exact 21-meal ingredient reversal with existing carryover',()=>{
  assert.equal(p.eventStartStock,147);
  assert.equal(p.rows.find(x=>x.key==='apple').firstHalf+p.rows.find(x=>x.key==='apple').secondHalf,127);
 });
+test('S4-A: distinct recipe targets aggregate exactly within one 21-meal week',()=>{
+ const p=api.plan(data({recipeTargets:[
+  {recipeId:'apple_curry',meals:10},{recipeId:'curry_03',meals:11}
+ ],carryover:{apple:5},bagCapacity:600}));
+ assert.equal(p.recipe,null);
+ assert.equal(p.recipes.length,2);
+ assert.equal(p.meals,21);
+ assert.equal(p.rows.find(r=>r.key==='apple').required,70);
+ assert.equal(p.rows.find(r=>r.key==='tomato').required,110);
+ assert.equal(p.rows.find(r=>r.key==='herb').required,55);
+ assert.equal(p.plannedNew,230);
+ assert.equal(p.initialCount,5);
+ assert.equal(p.uncovered,0);
+ assert.equal(p.rows.reduce((n,r)=>n+r.required,0),235);
+ assert.ok(p.warnings.some(w=>w.includes('曜日・時間帯')));
+});
+test('S4-A: multi-recipe validation and selected category remain conservative',()=>{
+ const targets=[{recipeId:'apple_curry',meals:10},{recipeId:'curry_03',meals:11}];
+ assert.throws(()=>api.plan(data({recipeTargets:[...targets,{recipeId:'curry_02',meals:1}]})),/21食以内/);
+ assert.throws(()=>api.plan(data({recipeTargets:[targets[0],targets[0]]})),/重複/);
+ assert.throws(()=>api.plan(data({recipeTargets:[{recipeId:'apple_curry',meals:0}]})),/不正/);
+ assert.throws(()=>api.plan(data({recipeTargets:[]})),/1品以上/);
+ assert.throws(()=>api.plan(data({recipeTargets:[{recipeId:'absent',meals:1}]})),/選択/);
+ const mixed=api.plan(data({recipeTargets:[{recipeId:'apple_curry',meals:1},
+  {recipeId:'dessert_78',meals:1}],foodMode:'curry',potSize:7}));
+ assert.ok(mixed.warnings.some(w=>w.includes('カテゴリと異なる')));
+ assert.ok(mixed.warnings.some(w=>w.includes('通常鍋容量')));
+ assert.equal(mixed.exact,false);
+});
 test('S4-B: two priorities use explicit bag share, not a game-energy score',()=>{
  const stocked=api.plan(data({bagCapacity:100,carryover:{},priority:'stock'}));
  const current=api.plan(data({bagCapacity:100,carryover:{},priority:'energy'}));
@@ -107,4 +136,17 @@ test('S4 backward compatibility: v1 JSON without prep settings gains safe defaul
  assert.equal(saved.preparation.carryover.apple,15);
  assert.deepEqual(plain(saved.sleepIds),plain(copy.sleepIds));
  assert.throws(()=>store.PokeStorage.validateState({...copy,preparation:{...copy.preparation,carryover:{notIngredient:2}}}));
+});
+test('S4 old one-recipe backups migrate to new targets and multi-recipe targets round-trip',()=>{
+ const store=vm.createContext({});store.globalThis=store;
+ vm.runInContext(fs.readFileSync(path.join(__dirname,'../src/storage.js'),'utf8'),store);
+ const old=store.PokeStorage.newState();
+ old.preparation={recipeId:'apple_curry',meals:7,priority:'stock',bagCapacity:250,carryover:{apple:12}};
+ const migrated=store.PokeStorage.validateState(old);
+ assert.deepEqual(plain(migrated.preparation.recipeTargets),[{recipeId:'apple_curry',meals:7}]);
+ migrated.preparation.recipeTargets=[{recipeId:'apple_curry',meals:7},{recipeId:'curry_03',meals:14}];
+ const restored=store.PokeStorage.validateState(JSON.parse(JSON.stringify(migrated)));
+ assert.deepEqual(plain(restored.preparation.recipeTargets),plain(migrated.preparation.recipeTargets));
+ assert.throws(()=>store.PokeStorage.validateState({...restored,
+  preparation:{...restored.preparation,recipeTargets:[...restored.preparation.recipeTargets,{recipeId:'curry_02',meals:1}]} }),/21食以内/);
 });

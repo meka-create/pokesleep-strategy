@@ -83,8 +83,36 @@ with sync_playwright() as p:
     page.locator('#csvFile').set_input_files({'name':'bad.csv','mimeType':'text/csv','buffer':b'x,y\na,b'})
     assert page.locator('#boxTotal').inner_text()=='7匹'
     assert page.locator('#importError').is_visible()
+    # STEP4: mixed recipes must survive real mobile DOM handling and reload.
+    page.locator('[data-tab="prep"]').click()
+    page.locator('#prepRecipe').select_option('apple_curry')
+    page.locator('#prepMeals').fill('10')
+    page.locator('#prepCapacity').fill('600')
+    page.locator('#prepAddRecipe').click()
+    assert page.locator('.step4-recipe-row').count()==1
+    page.locator('.step4-recipe-row select').select_option('curry_03')
+    page.locator('.step4-recipe-row input').fill('11')
+    page.locator('#prepCalculate').click()
+    assert not page.locator('#prepError').is_visible(),page.locator('#prepError').inner_text()
+    assert '2品・合計21食分' in page.locator('#prepSummary').inner_text()
+    assert '必要食材 235個' in page.locator('#prepCoverage').inner_text()
+    live=page.evaluate('window.__readStored()')
+    page.evaluate("""(arg)=>{
+      const {html,state}=arg;
+      Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem:k=>state[k]??null,setItem:(k,v)=>state[k]=String(v),removeItem:k=>delete state[k]}});
+      document.open();document.write(html);document.close();
+    }""", {'html':html,'state':live})
+    page.locator('[data-tab="prep"]').click()
+    assert page.locator('.step4-recipe-row').count()==1
+    assert page.locator('.step4-recipe-row select').input_value()=='curry_03'
+    assert page.locator('.step4-recipe-row input').input_value()=='11'
+    page.locator('.step4-remove-recipe').click()
+    assert page.locator('.step4-recipe-row').count()==0
+    page.locator('#prepCalculate').click()
+    assert not page.locator('#prepError').is_visible(),page.locator('#prepError').inner_text()
+    assert '10食分' in page.locator('#prepSummary').inner_text()
     assert not errors,errors
     page.screenshot(path=str(root/'dist'/'step1-mobile-preview.png'),full_page=True)
-    print('PASS: mobile CSV, XSS safety, 5-member cap, reordered reimport, JSON backup/restore, persistence, 2-week settings, rollback, errors 0')
+    print('PASS: mobile CSV, XSS safety, 5-member cap, backup/restore, STEP4 mixed recipes/reload/remove, errors 0')
     browser.close()
 

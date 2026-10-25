@@ -631,6 +631,31 @@ test('S4 browser: 21 apple curry meals produce saved prep goals but do not alter
  assert.deepEqual(saved.simulation.teams,before.simulation?.teams||{morning:[],noon:[],evening:[]});
  assert.ok(app.items.get('prepTeams').textContent.includes('朝7:30～12:00'));
 });
+test('S4 browser: adding a second recipe sums meals, persists targets and rejects duplicates safely',()=>{
+ const app=boot({withSixth:true});
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepMeals').value='10';
+ app.items.get('prepCapacity').value='600';
+ app.callbacks.get('prepAddRecipe:click')();
+ const extra=app.items.get('prepExtraRecipes').children[0];
+ assert.ok(extra);
+ const choice=extra.children[0].children[1],count=extra.children[1].children[1];
+ choice.value='curry_03';count.value='11';
+ app.callbacks.get('prepCalculate:click')();
+ assert.equal(app.items.get('prepError').hidden,true,app.items.get('prepError').textContent);
+ assert.match(app.items.get('prepSummary').textContent,/2品・合計21食分/);
+ assert.match(app.items.get('prepCoverage').textContent,/必要食材 235個/);
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.deepEqual(saved.preparation.recipeTargets,[{recipeId:'apple_curry',meals:10},{recipeId:'curry_03',meals:11}]);
+ assert.equal(saved.preparation.recipeId,'apple_curry');
+ const before=app.data.get('pokesleep-event-planner/step1/v1');
+ choice.value='apple_curry';
+ app.callbacks.get(choice.id+':change')();
+ assert.equal(app.items.get('prepStale').hidden,false);
+ app.callbacks.get('prepCalculate:click')();
+ assert.match(app.items.get('prepError').textContent,/重複/);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),before);
+});
 test('S4 browser: invalid/incomplete prep never overwrites saved plans',()=>{
  const app=boot();
  const before=app.data.get('pokesleep-event-planner/step1/v1');

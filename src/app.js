@@ -587,21 +587,51 @@ if(storage.getLoadError()){$('storageNotice').className='small warn';$('critical
 // STEP4: preparation is a separate stored plan, not an edit to the event
 // week roster, fixed sleeping party, or the STEP2 energy calculation.
 const prepCarryEditors=Object.create(null);
+let prepExtraEditors=[];
 function stalePreparation(){
  if(!$('prepResult').hidden)$('prepStale').hidden=false;
 }
-function fillPreparation(){
- const prep=state.preparation||storage.defaultPreparation();
- const recipes=$('prepRecipe');recipes.replaceChildren();
- const empty=document.createElement('option');empty.value='';empty.textContent='料理を選択';recipes.append(empty);
+function fillPrepRecipeOptions(select){
+ select.replaceChildren();
+ const empty=document.createElement('option');empty.value='';empty.textContent='料理を選択';select.append(empty);
  for(const r of PokeRecipes){
   const option=document.createElement('option');option.value=r.id;
   option.textContent=({curry:'カレー',salad:'サラダ',dessert:'デザート'}[r.type]||r.type)+
    '｜'+r.name+'（'+Object.values(r.requirements).reduce((a,b)=>a+b,0)+'個／食）';
-  recipes.append(option);
+  select.append(option);
  }
- recipes.value=prep.recipeId;
- $('prepMeals').value=prep.meals;
+}
+function appendPrepRecipeEditor(target={recipeId:'',meals:1}){
+ if(prepExtraEditors.length>=20)return;
+ const row=document.createElement('div');row.className='step4-recipe-row';
+ const recipeLabel=document.createElement('label');recipeLabel.className='field';
+ const recipeTitle=document.createElement('span');recipeTitle.textContent='追加する料理';
+ const recipe=document.createElement('select');fillPrepRecipeOptions(recipe);
+ recipe.value=target.recipeId;recipeLabel.append(recipeTitle,recipe);
+ const countLabel=document.createElement('label');countLabel.className='field';
+ const countTitle=document.createElement('span');countTitle.textContent='予定食数';
+ const count=document.createElement('input');count.type='number';count.min='1';count.max='21';count.step='1';count.value=target.meals;
+ countLabel.append(countTitle,count);
+ const remove=document.createElement('button');remove.type='button';remove.className='secondary step4-remove-recipe';
+ remove.textContent='この料理を外す';
+ const entry={row,recipe,count};
+ remove.addEventListener('click',()=>{
+  prepExtraEditors=prepExtraEditors.filter(x=>x!==entry);
+  $('prepExtraRecipes').replaceChildren(...prepExtraEditors.map(x=>x.row));
+  stalePreparation();
+ });
+ recipe.addEventListener('change',stalePreparation);count.addEventListener('change',stalePreparation);
+ row.append(recipeLabel,countLabel,remove);
+ prepExtraEditors.push(entry);$('prepExtraRecipes').append(row);
+}
+function fillPreparation(){
+ const prep=state.preparation||storage.defaultPreparation();
+ const targets=prep.recipeTargets?.length?prep.recipeTargets:[{recipeId:prep.recipeId,meals:prep.meals}];
+ fillPrepRecipeOptions($('prepRecipe'));
+ $('prepRecipe').value=targets[0].recipeId;
+ $('prepMeals').value=targets[0].meals;
+ prepExtraEditors=[];$('prepExtraRecipes').replaceChildren();
+ for(const target of targets.slice(1))appendPrepRecipeEditor(target);
  $('prepCapacity').value=prep.bagCapacity||state.simulation?.bagCapacity||0;
  $('prepPriority').value=prep.priority;
  const holder=$('prepCarryFields');holder.replaceChildren();
@@ -627,7 +657,19 @@ function readPreparation(){
    throw Error((PokeMaster.ingredients[key]||key)+' の持ち越し予定数を確認してください。');
   if(number)carryover[key]=number;
  }
- return {recipeId:$('prepRecipe').value,meals:getInt('prepMeals',1,21),
+ const recipeTargets=[{recipeId:$('prepRecipe').value,meals:getInt('prepMeals',1,21)},
+  ...prepExtraEditors.map(({recipe,count})=>{
+   const raw=String(count.value).trim(),meals=Number(raw);
+   if(raw===''||!Number.isSafeInteger(meals)||meals<1||meals>21)
+    throw Error('追加料理の予定食数を1～21の整数で入力してください。');
+   return {recipeId:recipe.value,meals};
+  })];
+ if(recipeTargets.some(r=>!r.recipeId))throw Error('すべての料理を選択してください。');
+ if(new Set(recipeTargets.map(r=>r.recipeId)).size!==recipeTargets.length)
+  throw Error('同じ料理が重複しています。食数をまとめて入力してください。');
+ if(recipeTargets.reduce((n,r)=>n+r.meals,0)>21)
+  throw Error('予定食数の合計は21食以内にしてください。');
+ return {recipeId:recipeTargets[0].recipeId,meals:recipeTargets[0].meals,recipeTargets,
   bagCapacity:getInt('prepCapacity',1,10000),priority:$('prepPriority').value,
   carryover};
 }
@@ -643,7 +685,10 @@ function calculatePreparation(){
   const previous=state.preparation;state.preparation=prep;
   if(!save()){state.preparation=previous;throw Error('準備計画を保存できませんでした。保存領域を確認してください。');}
   const format=n=>n.toLocaleString('ja-JP');
-  $('prepSummary').textContent='「'+result.recipe.name+'」'+result.meals+'食分の計画';
+  $('prepSummary').textContent=result.recipe?
+   '「'+result.recipe.name+'」'+result.meals+'食分の計画':
+   result.recipes.length+'品・合計'+result.meals+'食分の計画';
+  $('prepRecipeBreakdown').textContent='料理内訳：'+result.recipes.map(r=>r.name+' × '+r.meals+'食').join('／');
   $('prepCoverage').textContent='必要食材 '+format(result.rows.reduce((n,r)=>n+r.required,0))+
    '個／現在の持ち越し予定 '+format(result.initialCount)+
    '個／準備週で新たに集める目標 '+format(result.plannedNew)+
@@ -684,6 +729,7 @@ function calculatePreparation(){
 }
 for(const id of ['prepRecipe','prepMeals','prepCapacity','prepPriority'])
  $(id).addEventListener('change',stalePreparation);
+$('prepAddRecipe').addEventListener('click',()=>{appendPrepRecipeEditor();stalePreparation();});
 $('prepCarryFields').addEventListener('change',stalePreparation);
 for(const id of ['eventStart','eventMap','food1','eventEffects','campPrep'])
  $(id).addEventListener('change',stalePreparation);
