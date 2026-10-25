@@ -586,3 +586,24 @@ test('audit S3 UI: invalid mid-run settings discard partial comparison and show 
   !card.children.some(x=>x.textContent.includes('週間モデル予測'))));
  assert.equal(app.items.get('autoCompare').disabled,false);
 });
+
+test('audit S3 P1: native change Event argument never preserves a stale scored comparison',()=>{
+ const app=boot({withSixth:true,withHealers:true});
+ app.ctx.PokeSimulator.simulate=()=>({
+  total:1000,berries:500,cooking:300,skills:200,warnings:[]});
+ app.callbacks.get('autoCandidates:click')();
+ app.callbacks.get('autoCompare:click')();app.flushTimers();
+ assert.ok(app.items.get('autoCandidateList').children.every(card=>
+  card.children.some(x=>x.textContent.includes('週間モデル予測'))));
+ app.items.get('simFieldBonus').value='30';
+ app.callbacks.get('simFieldBonus:change')({type:'change',target:app.items.get('simFieldBonus')});
+ assert.ok(app.items.get('autoCandidateList').children.every(card=>
+  !card.children.some(x=>x.textContent.includes('週間モデル予測'))));
+ app.callbacks.get('autoCompare:click')();app.flushTimers();
+ assert.ok(app.items.get('autoCandidateList').children.every(card=>
+  card.children.some(x=>x.textContent.includes('週間モデル予測'))));
+ app.items.get('food1').value='salad';
+ app.callbacks.get('food1:change')({type:'change',target:app.items.get('food1')});
+ assert.ok(app.items.get('autoCandidateList').children.every(card=>
+  !card.children.some(x=>x.textContent.includes('週間モデル予測'))));
+});
