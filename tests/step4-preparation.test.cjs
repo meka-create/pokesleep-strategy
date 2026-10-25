@@ -67,12 +67,12 @@ test('S4-A: randomized event category and pot shortages are disclosed, never pro
 });
 test('S4-C: propose ingredient matching five without editing fixed sleep or day rosters',()=>{
  const species=context.PokeMaster.species;
- const picks=species.filter(sp=>(sp.ings||[]).some(ing=>ing.name==='apple'&&ing.c1>0)).slice(0,3);
+ const picks=species.filter(sp=>(sp.ings||[]).some(ing=>ing?.name==='apple'&&ing.c1>0)).slice(0,3);
  const remainder=species.filter(sp=>!picks.includes(sp)).slice(0,6);
  assert.equal(picks.length,3);
  const box=[...picks,...remainder].map((sp,i)=>({
   id:'p'+i,pokemon:sp.name,level:60,
-  ingredients:sp.ings?.slice(0,3).map(x=>context.PokeMaster.ingredients[x.name])||[]
+  ingredients:sp.ings?.slice(0,3).map(x=>x?context.PokeMaster.ingredients[x.name]:'')||[]
  }));
  const sleepIds=box.slice(0,5).map(p=>p.id),before=JSON.stringify({box,sleepIds});
  const p=api.plan(data({carryover:{},bagCapacity:600,priority:'stock'}));
