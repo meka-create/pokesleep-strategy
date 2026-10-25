@@ -35,4 +35,10 @@
 ## 5. 検証記録
 
 - 修正版：`v0.3.2`。新規テストは変更イベントのEventオブジェクト、保存失敗、警告全件とXSS無害化、中断復旧、内部不整合の拒否、**実STEP2計算器との出力一致**を含む。
-- 最終のPR・GitHub CI・main SHAはCI後に追加する。本文だけでは未実行の試験をPASS扱いにしない。
+- **修正コードのCI証拠（PR #86、コードを含むhead `b4a6b41acd1053267af7a1754b537568520be069`）**：
+  - [Validate PokeSleep Strategy](https://github.com/meka-create/pokesleep-strategy/actions/runs/40175361070)：**457 PASS / 0 FAIL**。ビルド成功、配信HTML一致PASS。
+  - [Validate STEP 2](https://github.com/meka-create/pokesleep-strategy/actions/runs/40175361059)：**457 PASS / 0 FAIL**。ビルド成功、配信HTML一致PASS。
+  - 双方は重なる同じ457件を走らせており、**914種類の独立テストではない**。実ゲーム観測でもない。
+  - Node 22、生成HTML `index.html` / `dist/index.html` ともに386,281バイト、Git blob SHA `6cdb83a9a50ac6ddefa401719ff9927dc97b717b`。
+  - 実計算器との同入力・同結果照合は単一の代表例を対象。すべてのゲーム状態や相関の証明ではない。
+- 完全な最終mainコミットとPRマージ結果は、PRのマージ履歴およびユーザーへの最終報告で確定する。
