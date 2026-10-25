@@ -88,7 +88,7 @@ test('S3-A: no duplicate A/B/C plans, deterministic repeated generation, no game
  assert.deepEqual(a,b);
  const keys=a.candidates.map(c=>JSON.stringify(c.teams));
  assert.equal(new Set(keys).size,keys.length);
- assert.ok(a.warnings.some(x=>x.includes('7日比較は未実施')));
+ assert.ok(a.warnings.some(x=>x.includes('別途STEP2計算器')));
  assert.ok(a.candidates.every(x=>!('energy' in x)&&!('rank' in x)));
 });
 
@@ -135,4 +135,56 @@ test('S3-B: invalid simulator output or roster fails closed; impossible true ran
   options:{},simulate:()=>({total:1,berries:1,cooking:0,skills:0})}),/編成が不正/);
  assert.throws(()=>api.orderEvaluations([],0.5),/不正/);
  assert.equal(api.orderEvaluations([]).length,0);
+});
+
+test('audit S3: reject finite but internally inconsistent weekly component totals',()=>{
+ const d=input(),c=api.createCandidates(d).candidates[0];
+ assert.throws(()=>api.evaluateCandidate({candidate:c,box:d.box,sleepIds:d.sleepIds,
+  options:{},simulate:()=>({total:1000,berries:500,cooking:250,skills:249,warnings:[]})}),
+  /合計と内訳が一致/);
+ assert.throws(()=>api.evaluateCandidate({candidate:c,box:d.box,sleepIds:d.sleepIds,
+  options:{},simulate:()=>({total:'100',berries:20,cooking:30,skills:50,warnings:[]})}),
+  /内訳が不正/);
+});
+test('audit S3: preserve every simulator warning verbatim in the scored result',()=>{
+ const d=input(),c=api.createCandidates(d).candidates[0];
+ const warns=['レシピと料理カテゴリが一致しません。料理エナジーを計上していません。',
+  'げんきオールS 2匹の発動時刻は未検証','イベント効果はSTEP5まで計算に反映しません。'];
+ const row=api.evaluateCandidate({candidate:c,box:d.box,sleepIds:d.sleepIds,
+  options:{},simulate:()=>({total:100,berries:40,cooking:30,skills:30,warnings:warns})});
+ assert.deepEqual(asPlain(row.warnings),warns);
+ assert.equal(row.warningCount,3);
+ assert.ok(row.caveats.some(w=>w.includes('未対応・未検証')));
+});
+
+test('audit S3: candidate wrapper equals untouched real STEP2 week engine totals and warnings',()=>{
+ const root={};root.globalThis=root;vm.createContext(root);
+ for(const name of ['master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js'])
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../src/'+name),'utf8'),root,{filename:name});
+ const sp=['プクリン','サーナイト','ライチュウ','ライチュウ','ライチュウ','ライチュウ','ライチュウ'];
+ const box=sp.map((pokemon,i)=>{
+  const ref=root.PokeMaster.species.find(x=>x.name===pokemon);
+  assert.ok(ref,'real species master includes '+pokemon);
+  return {id:'r'+i,pokemon,nickname:'sample'+i,level:60,skillLevel:6,
+   ingredients:ref.ings.map(x=>root.PokeMaster.ingredients[x.name]).slice(0,3),
+   subskills:['','','','',''],mainSkill:ref.skillName||'',nature:'まじめ',sleepHours:300,shiny:false};
+ });
+ const sleepIds=box.slice(0,5).map(x=>x.id);
+ const generated=root.PokeStep3.createCandidates({box,sleepIds,map:'シアンの砂浜'});
+ const candidate=generated.candidates.find(c=>c.code==='A');
+ assert.ok(candidate,'real master should offer A');
+ const options={fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,
+  sleepScore:88,initialEnergy:100,recipeId:'',recipeMode:'fixed',
+  extraMode:'none',successMode:'none',magnetIngredients:[],initialIngredients:{},
+  map:'シアンの砂浜',camp:false,foodMode:'curry',eventEffects:''};
+ const manual=root.PokeSimulator.simulate({box,teams:{...candidate.teams,sleep:sleepIds},options});
+ const automated=root.PokeStep3.evaluateCandidate({box,sleepIds,candidate,options});
+ assert.ok(Number.isFinite(manual.total));
+ assert.equal(automated.score.total,manual.total);
+ assert.equal(automated.score.berries,manual.berries);
+ assert.equal(automated.score.cooking,manual.cooking);
+ assert.equal(automated.score.skills,manual.skills);
+ assert.deepEqual(asPlain(automated.warnings),asPlain(manual.warnings));
+ assert.deepEqual(asPlain(automated.changes),asPlain(root.PokeStep3.changes(sleepIds,candidate.teams)));
+ assert.equal(automated.weekRankValidated,false);
 });
