@@ -54,10 +54,15 @@
 #autoCompareProgress{white-space:pre-line;line-height:1.75;margin:9px 0 0}
 .step3-candidate-card button:disabled{opacity:.5;cursor:not-allowed}
 
+/* STEP3 final audit: full simulator warnings are collapsed, not discarded. */
+.step3-model-warnings{margin:10px 0;border:1px solid #e5cf9f;border-radius:9px;padding:10px;background:#fffaf0}
+.step3-model-warnings summary{font-size:12px;font-weight:700;color:#75541c;cursor:pointer;line-height:1.5}
+.step3-model-warnings p{font-size:11px;line-height:1.65;color:#765727;border-top:1px solid #eddfc2;padding-top:8px;overflow-wrap:anywhere}
+
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 3 · v0.3.1</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 3 · v0.3.2</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -2552,7 +2557,7 @@ function createCandidates({box,sleepIds,map}){
  }).filter(Boolean);
  known.sort((a,b)=>b.score-a.score||a.index-b.index);
  const healer=known.filter(x=>x.healer),other=known.filter(x=>!x.healer);
- const warnings=['候補選出には簡易的なきのみ生産指標を使っています。料理・回復・スキル・げんきの7日比較は未実施で、表示順は推奨順位ではありません。'];
+ const warnings=['候補抽出の簡易きのみ指標には料理・回復・スキル・げんきの影響を含めません。7日間の数値比較は別途STEP2計算器で行います。比較前の候補順は順位ではありません。'];
  if(known.length<box.length)warnings.push('種族マスター未登録または基礎値不明の個体は自動候補への新規選出対象外です。睡眠用5匹の固定編成は維持します。');
  if(!favorite.length)warnings.push('フィールドの好みのきのみが未確定のため、好み補正なしで候補を選びました。');
  const candidates=[],seen=new Set();
@@ -2614,7 +2619,13 @@ function evaluateCandidate({candidate,box,sleepIds,options,simulate}){
  const input={box,teams,options:{...options}};
  const result=fn(input);
  if(!result||!['total','berries','cooking','skills'].every(k=>
-  Number.isFinite(result[k])&&result[k]>=0))throw Error('7日間計算結果の内訳が不正です。');
+  typeof result[k]==='number'&&Number.isFinite(result[k])&&result[k]>=0))
+  throw Error('7日間計算結果の内訳が不正です。');
+ const sum=result.berries+result.cooking+result.skills;
+ // A malformed calculator result must never enter the score-comparison UI.
+ // Permit tiny floating-point rounding, not missing energy or double counting.
+ if(Math.abs(sum-result.total)>Math.max(1e-6,result.total*1e-9))
+  throw Error('7日間計算結果の合計と内訳が一致しません。');
  const count=changes(sleepIds,candidate.teams);
  const caveats=[];
  if(result.estimatedMeals>0||result.expectedSourceMeals>0)
@@ -2624,12 +2635,13 @@ function evaluateCandidate({candidate,box,sleepIds,options,simulate}){
    (result.healingCapNonlinearEvents||0)>0)caveats.push('回復スキルとげんき・発動確率の相関');
  if((result.uncollectedExtraHelpItemsAtSwap||0)>0)
   caveats.push('編成交代時の未回収追加おてつだい');
- if(Array.isArray(result.warnings)&&result.warnings.some(w=>
-  /未対応のメインスキル|未計上|未再現|未検証/.test(w)))
-  caveats.push('未対応または独立未検証のスキル・料理等');
+ const notices=Array.isArray(result.warnings)?
+  result.warnings.filter(w=>typeof w==='string'):[]; 
+ if(notices.some(w=>/未対応|未計上|未再現|未検証|未確定|近似/.test(w)))
+  caveats.push('計算器が指摘した未対応・未検証・近似条件');
  return {candidate,score:{total:result.total,berries:result.berries,
   cooking:result.cooking,skills:result.skills},
-  changes:count,warningCount:Array.isArray(result.warnings)?result.warnings.length:0,
+  changes:count,warningCount:notices.length,warnings:notices,
   caveats,estimatedMeals:result.estimatedMeals||0,
   weekRankValidated:false,status:'REFERENCE_ONLY'};
 }
@@ -3349,7 +3361,9 @@ let lastRunSnapshot=null;
 function markResultsStale(keepComparison=false){
  const result=$('simResult'),warning=$('simStaleNotice');
  if(!result.hidden)warning.hidden=false;
- if(!keepComparison)clearStep3Evaluations();
+ // Native change listeners pass an Event object; only the deliberate literal
+ // boolean true (after applying a candidate) may preserve comparison values.
+ if(keepComparison!==true)clearStep3Evaluations();
 }
 const save=()=>{try{storage.save(state);$('storageNotice').textContent='このブラウザ内への保存：利用可能';$('storageNotice').className='small ok';$('criticalNotice').hidden=true;return true;}catch(e){
 $('storageNotice').textContent=storage.getLoadError()||'保存に失敗しました。現在の変更は未保存です。設定・保存からJSONバックアップを取得してください。';$('storageNotice').className='small warn';$('criticalNotice').textContent=$('storageNotice').textContent;$('criticalNotice').hidden=false;return false;}};
@@ -3443,6 +3457,18 @@ function renderStep3Candidates(){
    caution.textContent='参考値・実ゲーム順位未検証。'+(scored.caveats.length?
     '要注意：'+scored.caveats.join('、')+'。':'計算式の全体精度は未実証。');
    card.append(numbers,caution);
+   if(scored.warnings.length){
+    const details=document.createElement('details');
+    details.className='step3-model-warnings';
+    const summary=document.createElement('summary');
+    summary.textContent='計算器の警告をすべて確認（'+scored.warnings.length+'件）';
+    details.append(summary);
+    for(const warning of scored.warnings){
+     const entry=document.createElement('p');entry.textContent=warning;
+     details.append(entry);
+    }
+    card.append(details);
+   }
   }
   const slots=document.createElement('p');slots.className='step3-candidate-schedule';
   slots.textContent='朝7:30～12:00：'+rosterLabel(candidate.teams.morning)+
@@ -3462,9 +3488,19 @@ function renderStep3Candidates(){
     error.hidden=false;return;
    }
    if(!confirm('朝・昼・夜の手動編成をこの候補で上書きしますか？ 睡眠パーティは変更しません。'))return;
-   for(const key of rosterKeys)state.simulation.teams[key]=[...candidate.teams[key]];
-   const saved=save();renderSimulator();markResultsStale(true);
-   notifySave(saved,'日中の候補を反映しました。下の7日間試算で詳細を確認できます。');
+   // A failed localStorage write must not leave a falsely applied day team.
+   const previous=state.simulation.teams;
+   state.simulation.teams={...previous,
+    morning:[...candidate.teams.morning],noon:[...candidate.teams.noon],
+    evening:[...candidate.teams.evening]};
+   if(!save()){
+    state.simulation.teams=previous;
+    error.textContent='編成の保存に失敗しました。手動編成は変更していません。保存領域を確認してください。';
+    error.hidden=false;
+    return;
+   }
+   renderSimulator();markResultsStale(true);
+   notifySave(true,'日中の候補を反映しました。下の7日間試算で詳細を確認できます。');
    setTab('simulate');
   });
   card.append(title,desc,slots,timing,action);list.append(card);
@@ -3518,7 +3554,7 @@ function compareStep3Candidates(){
      if(success)renderStep3Candidates();
      progress.textContent=(complete?'比較終了':'45秒の安全上限に達したため比較を中断')+
       '：'+success+'/'+candidates.length+'件成功。'+
-      (complete&&failed.length===0?'全候補の週間モデル予測を参考表示（3%以内は入替数で表示順調整）。':'計算できない候補があるため全候補の比較は未完成です。')+
+      (complete&&failed.length===0?'全候補の週間モデル予測を参考表示（3%以内は入替数で表示順調整）。':!complete?'未評価候補が残っているため全候補の比較は未完成です。':'計算できない候補があるため全候補の比較は未完成です。')+
       (failed.length?' 計算できなかった候補：'+failed.join('、')+'。':'')+
       ' 実ゲーム順位は未検証です。';
      $('autoCompare').disabled=false;return;
@@ -3534,7 +3570,9 @@ function compareStep3Candidates(){
     progress.textContent=index+'/'+candidates.length+'件を評価しました。';
     setTimeout(next,0); // one expensive weekly evaluation per event-loop turn
    }catch(e){
-    progress.textContent='比較を中断しました：'+(e.message||String(e));
+    step3Evaluations=[];
+    renderStep3Candidates();
+    progress.textContent='比較を中断し、途中の結果を破棄しました：'+(e.message||String(e));
     $('autoCompare').disabled=false;
    }
   }
