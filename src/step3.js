@@ -41,7 +41,7 @@ function createCandidates({box,sleepIds,map}){
  }).filter(Boolean);
  known.sort((a,b)=>b.score-a.score||a.index-b.index);
  const healer=known.filter(x=>x.healer),other=known.filter(x=>!x.healer);
- const warnings=['候補選出には簡易的なきのみ生産指標を使っています。料理・回復・スキル・げんきの7日比較は未実施で、表示順は推奨順位ではありません。'];
+ const warnings=['候補抽出の簡易きのみ指標には料理・回復・スキル・げんきの影響を含めません。7日間の数値比較は別途STEP2計算器で行います。比較前の候補順は順位ではありません。'];
  if(known.length<box.length)warnings.push('種族マスター未登録または基礎値不明の個体は自動候補への新規選出対象外です。睡眠用5匹の固定編成は維持します。');
  if(!favorite.length)warnings.push('フィールドの好みのきのみが未確定のため、好み補正なしで候補を選びました。');
  const candidates=[],seen=new Set();
@@ -103,7 +103,13 @@ function evaluateCandidate({candidate,box,sleepIds,options,simulate}){
  const input={box,teams,options:{...options}};
  const result=fn(input);
  if(!result||!['total','berries','cooking','skills'].every(k=>
-  Number.isFinite(result[k])&&result[k]>=0))throw Error('7日間計算結果の内訳が不正です。');
+  typeof result[k]==='number'&&Number.isFinite(result[k])&&result[k]>=0))
+  throw Error('7日間計算結果の内訳が不正です。');
+ const sum=result.berries+result.cooking+result.skills;
+ // A malformed calculator result must never enter the score-comparison UI.
+ // Permit tiny floating-point rounding, not missing energy or double counting.
+ if(Math.abs(sum-result.total)>Math.max(1e-6,result.total*1e-9))
+  throw Error('7日間計算結果の合計と内訳が一致しません。');
  const count=changes(sleepIds,candidate.teams);
  const caveats=[];
  if(result.estimatedMeals>0||result.expectedSourceMeals>0)
@@ -113,12 +119,13 @@ function evaluateCandidate({candidate,box,sleepIds,options,simulate}){
    (result.healingCapNonlinearEvents||0)>0)caveats.push('回復スキルとげんき・発動確率の相関');
  if((result.uncollectedExtraHelpItemsAtSwap||0)>0)
   caveats.push('編成交代時の未回収追加おてつだい');
- if(Array.isArray(result.warnings)&&result.warnings.some(w=>
-  /未対応のメインスキル|未計上|未再現|未検証/.test(w)))
-  caveats.push('未対応または独立未検証のスキル・料理等');
+ const notices=Array.isArray(result.warnings)?
+  result.warnings.filter(w=>typeof w==='string'):[]; 
+ if(notices.some(w=>/未対応|未計上|未再現|未検証|未確定|近似/.test(w)))
+  caveats.push('計算器が指摘した未対応・未検証・近似条件');
  return {candidate,score:{total:result.total,berries:result.berries,
   cooking:result.cooking,skills:result.skills},
-  changes:count,warningCount:Array.isArray(result.warnings)?result.warnings.length:0,
+  changes:count,warningCount:notices.length,warnings:notices,
   caveats,estimatedMeals:result.estimatedMeals||0,
   weekRankValidated:false,status:'REFERENCE_ONLY'};
 }
