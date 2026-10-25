@@ -55,3 +55,15 @@
 .step3-model-warnings{margin:10px 0;border:1px solid #e5cf9f;border-radius:9px;padding:10px;background:#fffaf0}
 .step3-model-warnings summary{font-size:12px;font-weight:700;color:#75541c;cursor:pointer;line-height:1.5}
 .step3-model-warnings p{font-size:11px;line-height:1.65;color:#765727;border-top:1px solid #eddfc2;padding-top:8px;overflow-wrap:anywhere}
+
+/* STEP4: narrow-screen-first ingredient target rows and readable day guidance. */
+.step4-ingredient-table{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.step4-ingredient-line{display:flex;flex-direction:column;gap:5px;padding:11px 12px;
+ border:1px solid #dce7f3;background:#f6f9fd;border-radius:10px;overflow-wrap:anywhere}
+.step4-ingredient-line strong{color:#164b7b;font-size:13px}
+.step4-ingredient-line span{color:#405c75;font-size:12px;line-height:1.7}
+.step4-teams{white-space:pre-line;overflow-wrap:anywhere;line-height:1.9}
+#prepResult{margin-top:14px}
+#prepResult h4{font-size:15px;margin:0}
+#prepCoverage{font-size:13px;line-height:1.8;margin-top:9px}
+#prepWarnings{margin-top:12px}
