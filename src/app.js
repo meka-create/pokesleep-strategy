@@ -61,8 +61,8 @@ $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0
  state.box=result.items;state.sleepIds=kept;state.simulation.teams=simTeams;state.updatedAt=new Date().toISOString();const saved=save();renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`);
  }catch(e){$('importError').textContent=e.message||String(e);$('importError').hidden=false;}finally{ev.target.value='';}});
 $('downloadBackup').addEventListener('click',()=>{download(`pokesleep_event_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2),'application/json;charset=utf-8');toast('バックアップを保存しました。');});
-$('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;storage.allowRecovery();const saved=save();fillEvent();renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
-$('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();storage.allowRecovery();const saved=save();fillEvent();$('searchPokemon').value='';renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'端末内の保存情報を消去しました。');});
+$('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;storage.allowRecovery();const saved=save();fillEvent();renderBox();fillSimulation();fillPreparation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
+$('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();storage.allowRecovery();const saved=save();fillEvent();$('searchPokemon').value='';renderBox();fillSimulation();fillPreparation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'端末内の保存情報を消去しました。');});
 // STEP3 candidate scores stay ephemeral; only explicit apply changes daytime teams.
 let step3Candidates=[],step3Source='',step3Evaluations=[],step3EvaluationToken=0;
 const step3Fingerprint=()=>JSON.stringify({box:state.box,sleepIds:state.sleepIds,
@@ -584,5 +584,110 @@ $('shareObservationFile').addEventListener('change',async ev=>{
 
 $('storageNotice').textContent=storage.getLoadError()|| (storage.available()?'このブラウザ内への保存：利用可能':'この環境は保存が制限されています。必ずJSONバックアップをご利用ください。');
 if(storage.getLoadError()){$('storageNotice').className='small warn';$('criticalNotice').textContent=storage.getLoadError();$('criticalNotice').hidden=false;}
-fillEvent();renderBox();fillSimulation();setTab('event');
+// STEP4: preparation is a separate stored plan, not an edit to the event
+// week roster, fixed sleeping party, or the STEP2 energy calculation.
+const prepCarryEditors=Object.create(null);
+function stalePreparation(){
+ if(!$('prepResult').hidden)$('prepStale').hidden=false;
+}
+function fillPreparation(){
+ const prep=state.preparation||storage.defaultPreparation();
+ const recipes=$('prepRecipe');recipes.replaceChildren();
+ const empty=document.createElement('option');empty.value='';empty.textContent='料理を選択';recipes.append(empty);
+ for(const r of PokeRecipes){
+  const option=document.createElement('option');option.value=r.id;
+  option.textContent=({curry:'カレー',salad:'サラダ',dessert:'デザート'}[r.type]||r.type)+
+   '｜'+r.name+'（'+Object.values(r.requirements).reduce((a,b)=>a+b,0)+'個／食）';
+  recipes.append(option);
+ }
+ recipes.value=prep.recipeId;
+ $('prepMeals').value=prep.meals;
+ $('prepCapacity').value=prep.bagCapacity||state.simulation?.bagCapacity||0;
+ $('prepPriority').value=prep.priority;
+ const holder=$('prepCarryFields');holder.replaceChildren();
+ for(const [key,name] of Object.entries(PokeMaster.ingredients)){
+  const label=document.createElement('label');label.className='field';
+  const title=document.createElement('span');title.textContent=name;
+  const input=document.createElement('input');input.type='number';input.min='0';input.max='10000';input.step='1';
+  input.value=prep.carryover[key]||0;input.setAttribute('aria-label',name+' の持ち越し予定数');
+  label.append(title,input);holder.append(label);prepCarryEditors[key]=input;
+ }
+ $('prepResult').hidden=true;$('prepStale').hidden=true;$('prepError').hidden=true;
+}
+function readPreparation(){
+ const getInt=(id,min,max)=>{
+  const raw=String($(id).value).trim(),num=Number(raw);
+  if(raw===''||!Number.isSafeInteger(num)||num<min||num>max)throw Error(id+' の整数入力値を確認してください。');
+  return num;
+ };
+ const carryover={};
+ for(const [key,input] of Object.entries(prepCarryEditors)){
+  const raw=String(input.value).trim(),number=Number(raw);
+  if(raw===''||!Number.isSafeInteger(number)||number<0||number>10000)
+   throw Error((PokeMaster.ingredients[key]||key)+' の持ち越し予定数を確認してください。');
+  if(number)carryover[key]=number;
+ }
+ return {recipeId:$('prepRecipe').value,meals:getInt('prepMeals',1,21),
+  bagCapacity:getInt('prepCapacity',1,10000),priority:$('prepPriority').value,
+  carryover};
+}
+function calculatePreparation(){
+ const error=$('prepError');error.hidden=true;
+ try{
+  if(hasUnsavedEventEdits())throw Error('イベント条件が未保存です。イベントタブで「イベント条件を保存」を押してください。');
+  const prep=readPreparation();
+  const result=PokeStep4.plan({...prep,potSize:state.simulation.potSize,
+   foodMode:state.event.food1,eventEffects:state.event.effects});
+  const guide=PokeStep4.ingredientGuide({box:state.box,sleepIds:state.sleepIds,
+   dayTeams:state.simulation.teams,plan:result});
+  const previous=state.preparation;state.preparation=prep;
+  if(!save()){state.preparation=previous;throw Error('準備計画を保存できませんでした。保存領域を確認してください。');}
+  const format=n=>n.toLocaleString('ja-JP');
+  $('prepSummary').textContent='「'+result.recipe.name+'」'+result.meals+'食分の計画';
+  $('prepCoverage').textContent='必要食材 '+format(result.rows.reduce((n,r)=>n+r.required,0))+
+   '個／現在の持ち越し予定 '+format(result.initialCount)+
+   '個／準備週で新たに集める目標 '+format(result.plannedNew)+
+   '個／イベント開始時の計画在庫 '+format(result.eventStartStock)+' / '+format(result.capacity)+
+   '個（未充足 '+format(result.uncovered)+'個）。';
+  const display=$('prepIngredients');display.replaceChildren();
+  const summary=document.createElement('p');summary.className='small muted';
+  summary.textContent='食材別：必要総数／既存持ち越し／前半の新規目標／後半の新規目標／イベント開始時の見込数／未充足数';
+  display.append(summary);
+  for(const row of result.rows){
+   const line=document.createElement('div');line.className='step4-ingredient-line';
+   const title=document.createElement('strong');title.textContent=row.name;
+   const detail=document.createElement('span');
+   detail.textContent='必要 '+row.required+'／既存 '+row.carryover+'／前半 +'+
+    row.firstHalf+'／後半 +'+row.secondHalf+'／開始時 '+row.target+'／不足 '+row.uncovered;
+   line.append(title,detail);display.append(line);
+  }
+  const early=result.rows.reduce((n,r)=>n+r.firstHalf,0);
+  const late=result.rows.reduce((n,r)=>n+r.secondHalf,0);
+  $('prepPhases').textContent='月曜7:30～木曜7:30ごろ（最初の3日相当）に新規'+format(early)+
+   '個、残る4日相当に新規'+format(late)+'個を目標として配分。進捗区分は便宜的な比率で、収集速度や週境界をシミュレーションした結果ではありません。';
+  const names=ids=>ids.map(id=>{
+   const p=state.box.find(x=>x.id===id);
+   return p?(p.nickname||p.pokemon)+'（'+p.pokemon+'）':'不明';
+  }).join('、');
+  $('prepTeams').textContent=guide.teams?
+   '朝7:30～12:00：'+names(guide.teams.morning)+
+   '\n昼12:00～18:00：'+names(guide.teams.noon)+
+   '\n夜18:00～0:00：'+names(guide.teams.evening):
+   '5匹の編成ガイドを作成できません。';
+  const warnings=$('prepWarnings');warnings.replaceChildren();
+  for(const text of [...result.warnings,...guide.warnings]){
+   const paragraph=document.createElement('p');paragraph.textContent='・'+text;warnings.append(paragraph);
+  }
+  $('prepResult').hidden=false;$('prepStale').hidden=true;
+  toast('備蓄計画を保存しました。計算は参考目標です。');
+ }catch(e){error.textContent=e.message||String(e);error.hidden=false;stalePreparation();}
+}
+for(const id of ['prepRecipe','prepMeals','prepCapacity','prepPriority'])
+ $(id).addEventListener('change',stalePreparation);
+$('prepCarryFields').addEventListener('change',stalePreparation);
+for(const id of ['eventStart','eventMap','food1','eventEffects','campPrep'])
+ $(id).addEventListener('change',stalePreparation);
+$('prepCalculate').addEventListener('click',calculatePreparation);
+
+fillEvent();renderBox();fillSimulation();fillPreparation();setTab('event');
 })();
