@@ -63,6 +63,12 @@
 .step4-ingredient-line strong{color:#164b7b;font-size:13px}
 .step4-ingredient-line span{color:#405c75;font-size:12px;line-height:1.7}
 .step4-teams{white-space:pre-line;overflow-wrap:anywhere;line-height:1.9}
+.prep-extra-recipes{display:flex;flex-direction:column;gap:12px}
+.step4-recipe-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(90px,120px);gap:10px;
+ border-top:1px solid #dce7f3;padding-top:12px;align-items:end}
+.step4-recipe-row .step4-remove-recipe{grid-column:1/-1;justify-self:end;font-size:12px;padding:8px 12px}
+.step4-recipe-row select{min-width:0}
+@media(max-width:450px){.step4-recipe-row{grid-template-columns:minmax(0,1fr) 92px;gap:8px}}
 #prepResult{margin-top:14px}
 #prepResult h4{font-size:15px;margin:0}
 #prepCoverage{font-size:13px;line-height:1.8;margin-top:9px}
