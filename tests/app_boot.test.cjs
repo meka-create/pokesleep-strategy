@@ -2,12 +2,12 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const base=path.join(__dirname,'../src');
 function boot({noSleep=false,withSixth=false,withHealers=false}={}){
- const items=new Map(),callbacks=new Map(),timers=[];let serial=0,failWrites=false;
+ const items=new Map(),callbacks=new Map(),callbackOwners=new Map(),timers=[];let serial=0,failWrites=false;
  function element(tag='div',id){
   const e={id:id||'generated-'+(++serial),tagName:tag,children:[],dataset:{},hidden:false,checked:false,disabled:false,files:[],className:'',classList:{toggle(){},add(){},remove(){}},
    _value:'',get value(){return this._value},set value(v){this._value=String(v)},
    _html:'',get innerHTML(){return this._html},set innerHTML(v){this._html=String(v);this.children=[]},
-   textContent:'',setAttribute(){},addEventListener(n,f){callbacks.set(this.id+':'+n,f)},append(...a){this.children.push(...a)},appendChild(v){this.children.push(v)},replaceChildren(...a){this.children=[...a]},
+   textContent:'',setAttribute(){},addEventListener(n,f){const key=this.id+':'+n,previous=callbackOwners.get(key)===this?callbacks.get(key):null;callbacks.set(key,previous?(...args)=>{previous(...args);f(...args);}:f);callbackOwners.set(key,this)},append(...a){this.children.push(...a)},appendChild(v){this.children.push(v)},replaceChildren(...a){this.children=[...a]},
    querySelectorAll(q){
     if(q==='select')return this.children.flatMap(x=>x.children.filter(y=>y.tagName==='select'));
     if(q==='[data-add]'||q==='[data-remove]'){
@@ -23,16 +23,16 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
   if(id)items.set(id,e);return e;
  }
  const rosters=Object.fromEntries(['morning','noon','evening'].map(k=>[k,element('div','roster-'+k)]));
- const tabs=['event','box','simulate','settings'].map(k=>{const x=element('button','tab'+k);x.dataset.tab=k;return x});
- const panels=['event','box','simulate','settings'].map(k=>element('div','panel-'+k));
+ const tabs=['event','box','simulate','prep','settings'].map(k=>{const x=element('button','tab'+k);x.dataset.tab=k;return x});
+ const panels=['event','box','simulate','prep','settings'].map(k=>element('div','panel-'+k));
  const copy=['sleep','morning','noon'].map((from,i)=>{const x=element('button','copy'+i);x.dataset.copyFrom=from;x.dataset.copyTo=['morning','noon','evening'][i];return x});
  // Read the version from the actual shipped template; a hard-coded 0.2.44
  // allowed the UI test fixture to miss regressions in saved provenance.
  const versionMatch=fs.readFileSync(path.join(base,'index.template.html'),'utf8')
-  .match(/STEP 3 · v(\d+\.\d+\.\d+)/);
+  .match(/STEP 4 · v(\d+\.\d+\.\d+)/);
  assert.ok(versionMatch,'built UI must advertise a parseable version');
  const headerVersion=element('span','headerVersion');
- headerVersion.textContent='STEP 3 · v'+versionMatch[1];
+ headerVersion.textContent='STEP 4 · v'+versionMatch[1];
  const document={getElementById:id=>items.get(id)||element('input',id),querySelectorAll:s=>s==='.tab'?tabs:s==='.panel'?panels:s==='.sim-copy'?copy:[],
   querySelector:s=>{if(s==='.step-mark')return headerVersion;const m=s.match(/data-roster="([^"]+)"/);return m?rosters[m[1]]:null},createElement:tag=>element(tag),body:{appendChild(){}}};
  const one={id:'i0',pokemon:'ライチュウ',nickname:'test',level:60,skillLevel:6,ingredients:['とくせんリンゴ','あったかジンジャー','とくせんエッグ'],mainSkill:'エナジーチャージS',nature:'さみしがり',subskills:['きのみの数S','','','',''],sleepHours:1000,shiny:false};
@@ -53,7 +53,7 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
   Date:TestDate,setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout(){}};
  ctx.globalThis=ctx;ctx.window=ctx;
  vm.createContext(ctx);
- for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','observation.js','app.js'])
+ for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','step4.js','observation.js','app.js'])
   vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),ctx,{filename:name});
  return {ctx,items,rosters,callbacks,data,
   setFailWrites:value=>{failWrites=value;},
@@ -198,7 +198,7 @@ test('real weekly observation button rejects unverifiable data then saves exact 
  assert.deepEqual(report.input.teams.sleep,['i0','i1','i2','i3','i4']);
  assert.equal(report.provenance.source,'in_game_weekly_summary');
  assert.equal(report.provenance.noUnmodeledEvents,false);
- assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP 3 · v(\d+\.\d+\.\d+)/)[1]);
+ assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP 4 · v(\d+\.\d+\.\d+)/)[1]);
  assert.equal(report.capture.screenshotReviewedByApp,false);
  assert.equal(report.observed.total,1000);
  assert.equal(report.observed.berryAndStrengthSkill,600);
@@ -606,4 +606,78 @@ test('audit S3 P1: native change Event argument never preserves a stale scored c
  app.callbacks.get('food1:change')({type:'change',target:app.items.get('food1')});
  assert.ok(app.items.get('autoCandidateList').children.every(card=>
   !card.children.some(x=>x.textContent.includes('週間モデル予測'))));
+});
+
+test('S4 browser: 21 apple curry meals produce saved prep goals but do not alter STEP3/daytime/sleep',()=>{
+ const app=boot({withSixth:true,withHealers:true});
+ const before=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepMeals').value='21';
+ app.items.get('prepCapacity').value='200';
+ app.items.get('prepPriority').value='stock';
+ const apple=app.items.get('prepCarryFields').children.find(x=>x.children[0].textContent==='とくせんリンゴ');
+ assert.ok(apple);
+ apple.children[1].value='20';
+ app.callbacks.get('prepCalculate:click')();
+ assert.equal(app.items.get('prepError').hidden,true,app.items.get('prepError').textContent);
+ assert.equal(app.items.get('prepResult').hidden,false);
+ assert.match(app.items.get('prepSummary').textContent,/21食分/);
+ assert.match(app.items.get('prepCoverage').textContent,/必要食材 147個/);
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(saved.preparation.recipeId,'apple_curry');
+ assert.equal(saved.preparation.bagCapacity,200);
+ assert.equal(saved.preparation.carryover.apple,20);
+ assert.deepEqual(saved.sleepIds,before.sleepIds);
+ assert.deepEqual(saved.simulation.teams,before.simulation?.teams||{morning:[],noon:[],evening:[]});
+ assert.ok(app.items.get('prepTeams').textContent.includes('朝7:30～12:00'));
+});
+test('S4 browser: invalid/incomplete prep never overwrites saved plans',()=>{
+ const app=boot();
+ const before=app.data.get('pokesleep-event-planner/step1/v1');
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepCapacity').value='0';
+ app.callbacks.get('prepCalculate:click')();
+ assert.equal(app.items.get('prepError').hidden,false);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),before);
+ app.items.get('prepCapacity').value='100';
+ const apple=app.items.get('prepCarryFields').children.find(x=>x.children[0].textContent==='とくせんリンゴ');
+ apple.children[1].value='101';
+ app.callbacks.get('prepCalculate:click')();
+ assert.match(app.items.get('prepError').textContent,/バッグ容量を超え/);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),before);
+});
+test('S4 browser: saved preparation is preserved across reload and priority switch',()=>{
+ const app=boot();
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepCapacity').value='100';
+ app.items.get('prepPriority').value='energy';
+ app.callbacks.get('prepCalculate:click')();
+ const p=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1')).preparation;
+ assert.equal(p.priority,'energy');
+ assert.match(app.items.get('prepCoverage').textContent,/新たに集める目標 30個/);
+ app.items.get('prepPriority').value='stock';
+ app.callbacks.get('prepPriority:change')({type:'change'});
+ assert.equal(app.items.get('prepStale').hidden,false);
+ app.callbacks.get('prepCalculate:click')();
+ const changed=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(changed.preparation.priority,'stock');
+ assert.match(app.items.get('prepCoverage').textContent,/新たに集める目標 90個/);
+ assert.equal(app.items.get('prepStale').hidden,true);
+ const storage=app.ctx.PokeStorage.validateState(changed);
+ assert.equal(storage.preparation.priority,'stock');
+});
+test('S4 browser: storage failure rolls preparation state back without false success',()=>{
+ const app=boot();
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepCapacity').value='150';
+ const before=app.data.get('pokesleep-event-planner/step1/v1');
+ app.setFailWrites(true);
+ app.callbacks.get('prepCalculate:click')();
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),before);
+ assert.equal(app.items.get('prepError').hidden,false);
+ assert.match(app.items.get('prepError').textContent,/保存できません/);
+ assert.equal(app.items.get('prepResult').hidden,true);
+ app.setFailWrites(false);
+ app.callbacks.get('prepCalculate:click')();
+ assert.equal(app.items.get('prepError').hidden,true);
 });
