@@ -59,7 +59,7 @@ test('S4-A: reject malformed recipe, mode, ingredient keys, counts and over-21 t
  ])assert.throws(()=>api.plan(data(invalid)));
 });
 test('S4-A: randomized event category and pot shortages are disclosed, never promised',()=>{
- const p=api.plan(data({foodMode:'random',potSize:6,eventEffects:'event bonus'}));
+ const p=api.plan(data({recipeId:'curry_03',foodMode:'random',potSize:7,eventEffects:'event bonus'}));
  assert.ok(p.warnings.some(x=>x.includes('ランダム')));
  assert.ok(p.warnings.some(x=>x.includes('通常鍋容量')));
  assert.ok(p.warnings.some(x=>x.includes('イベント補正')));
