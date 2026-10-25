@@ -42,3 +42,11 @@
 .step3-candidate-timing{color:#2f506a}
 .step3-candidate-list .small{overflow-wrap:anywhere}
 @media(min-width:900px){.step3-candidate-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* STEP3 S3-B/C: readable comparison feedback without implying verified ranking. */
+.step3-score{font-size:14px!important;font-weight:760;color:#16558a;line-height:1.65}
+.step3-uncertainty{padding:9px 10px;border-radius:9px;background:#fff7e7;
+ border:1px solid #e4c68f;color:#73551b;font-size:11px!important}
+#autoCompare{margin-top:10px;border-color:#4784b6}
+#autoCompareProgress{white-space:pre-line;line-height:1.75;margin:9px 0 0}
+.step3-candidate-card button:disabled{opacity:.5;cursor:not-allowed}

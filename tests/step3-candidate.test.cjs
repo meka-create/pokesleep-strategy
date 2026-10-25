@@ -91,3 +91,48 @@ test('S3-A: no duplicate A/B/C plans, deterministic repeated generation, no game
  assert.ok(a.warnings.some(x=>x.includes('7日比較は未実施')));
  assert.ok(a.candidates.every(x=>!('energy' in x)&&!('rank' in x)));
 });
+
+test('S3-B: weekly evaluator sends EXACT sleeping and 3 daytime teams into unchanged simulator API',()=>{
+ const data=input(),candidate=asPlain(api.createCandidates(data).candidates[0]),snapshot=JSON.stringify(data);
+ const received=[];
+ const row=api.evaluateCandidate({candidate,box:data.box,sleepIds:data.sleepIds,
+  options:{fieldBonus:35,foodMode:'curry',tapMinutes:150},simulate:input=>{
+   received.push(input);
+   return {total:15000,berries:6000,cooking:4000,skills:5000,estimatedMeals:5,
+    warnings:['げんきオールSの回復時刻は未検証']};
+  }});
+ assert.equal(received.length,1);
+ assert.deepEqual(asPlain(received[0].teams.sleep),data.sleepIds);
+ assert.deepEqual(asPlain(received[0].teams.morning),candidate.teams.morning);
+ assert.deepEqual(asPlain(received[0].teams.noon),candidate.teams.noon);
+ assert.deepEqual(asPlain(received[0].teams.evening),candidate.teams.evening);
+ assert.equal(received[0].options.fieldBonus,35);
+ assert.equal(row.score.total,15000);
+ assert.equal(row.weekRankValidated,false);
+ assert.equal(row.status,'REFERENCE_ONLY');
+ assert.ok(row.caveats.some(x=>x.includes('食材生産')));
+ assert.equal(JSON.stringify(data),snapshot,'evaluating candidates does not change the user input');
+});
+test('S3-B: 3%-close groups prefer fewer transitions; distant scores keep energy group ordering',()=>{
+ const row=(code,total,swaps)=>({
+  candidate:{code},score:{total,berries:total,cooking:0,skills:0},changes:{total:swaps}
+ });
+ const result=asPlain(api.orderEvaluations([
+  row('A',100000,8),row('B',98000,2),row('C',92000,0),row('D',99000,4)
+ ]));
+ assert.deepEqual(result.map(x=>x.candidate.code),['B','D','A','C']);
+ assert.ok(result.slice(0,3).every(x=>x.closeScoreGroup));
+ assert.equal(result[3].closeScoreGroup,false);
+ assert.equal(result[0].weekRankValidated,undefined);
+ assert.ok(result.every(x=>x.preference.includes('参考表示')));
+});
+test('S3-B: invalid simulator output or roster fails closed; impossible true ranking never returned',()=>{
+ const d=input(),c=api.createCandidates(d).candidates[0];
+ assert.throws(()=>api.evaluateCandidate({candidate:c,box:d.box,sleepIds:d.sleepIds,
+  options:{},simulate:()=>({total:NaN,berries:1,cooking:2,skills:3})}),/不正/);
+ const changed=asPlain(c);changed.teams.morning[0]='UNKNOWN';
+ assert.throws(()=>api.evaluateCandidate({candidate:changed,box:d.box,sleepIds:d.sleepIds,
+  options:{},simulate:()=>({total:1,berries:1,cooking:0,skills:0})}),/編成が不正/);
+ assert.throws(()=>api.orderEvaluations([],0.5),/不正/);
+ assert.equal(api.orderEvaluations([]).length,0);
+});

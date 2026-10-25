@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const base=path.join(__dirname,'../src');
 function boot({noSleep=false,withSixth=false,withHealers=false}={}){
- const items=new Map(),callbacks=new Map();let serial=0;
+ const items=new Map(),callbacks=new Map(),timers=[];let serial=0;
  function element(tag='div',id){
   const e={id:id||'generated-'+(++serial),tagName:tag,children:[],dataset:{},hidden:false,checked:false,disabled:false,files:[],className:'',classList:{toggle(){},add(){},remove(){}},
    _value:'',get value(){return this._value},set value(v){this._value=String(v)},
@@ -50,12 +50,14 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
   static now(){return Date.parse('2026-11-10T00:00:00.000Z');}
  }
  const ctx={document,localStorage,confirm:()=>true,alert:()=>{},URL,Blob,
-  Date:TestDate,setTimeout:()=>1,clearTimeout(){}};
+  Date:TestDate,setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout(){}};
  ctx.globalThis=ctx;ctx.window=ctx;
  vm.createContext(ctx);
  for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','observation.js','app.js'])
   vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),ctx,{filename:name});
- return {ctx,items,rosters,callbacks,data};
+ return {ctx,items,rosters,callbacks,data,
+  flushTimers:(limit=50)=>{let count=0;while(timers.length&&count++<limit)timers.shift()();
+   assert.ok(count<=limit,'scheduled UI work must be bounded');}};
 }
 test('STEP2 browser startup and one-tap team setup produce results',()=>{
  const app=boot();
@@ -462,4 +464,66 @@ test('S3-A browser: refuse stale candidate after sleep change and refuse unsaved
  assert.match(app.items.get('autoCandidateError').textContent,/再生成/);
  assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),afterSleep,
   'stale candidate must not overwrite user manual daytime teams');
+});
+
+test('S3-B browser: comparison runs bounded real-engine-shaped trials without mutating storage or observation',()=>{
+ const app=boot({withSixth:true,withHealers:true});
+ const seen=[];
+ app.ctx.PokeSimulator.simulate=input=>{
+  seen.push(JSON.parse(JSON.stringify(input)));
+  const morning=input.teams.morning.filter(id=>['i0','i1'].includes(id)).length;
+  const total=100000+morning*1000+input.options.fieldBonus*100;
+  return {total,berries:total*.5,cooking:total*.3,skills:total*.2,
+   estimatedMeals:1,warningCount:1,warnings:['料理の独立確率は未検証']};
+ };
+ app.callbacks.get('autoCandidates:click')();
+ const oldData=app.data.get('pokesleep-event-planner/step1/v1');
+ const count=app.items.get('autoCandidateList').children.length;
+ assert.ok(count>=3);
+ app.callbacks.get('autoCompare:click')();
+ assert.equal(app.items.get('autoCompare').disabled,true);
+ app.flushTimers();
+ assert.equal(app.items.get('autoCompare').disabled,false);
+ assert.equal(seen.length,count);
+ assert.ok(seen.length<=6);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),oldData);
+ assert.match(app.items.get('autoCompareProgress').textContent,/比較終了/);
+ assert.match(app.items.get('autoCompareProgress').textContent,/実ゲーム順位は未検証/);
+ const cards=app.items.get('autoCandidateList').children;
+ assert.ok(cards.every(c=>c.children.some(x=>/週間モデル予測/.test(x.textContent))));
+ assert.ok(cards.every(c=>c.children.some(x=>/参考値・実ゲーム順位未検証/.test(x.textContent))));
+ assert.ok(seen.every(x=>x.teams.sleep.length===5));
+ assert.ok(seen.every(x=>x.options.tapMinutes===150));
+});
+test('S3-C browser: updating ingredients invalidates compared scores without clearing candidate roster',()=>{
+ const app=boot({withSixth:true,withHealers:true});
+ app.ctx.PokeSimulator.simulate=()=>({
+  total:100,berries:50,cooking:30,skills:20,warnings:[]});
+ app.callbacks.get('autoCandidates:click')();
+ app.callbacks.get('autoCompare:click')();
+ app.flushTimers();
+ const count=app.items.get('autoCandidateList').children.length;
+ assert.ok(count>0);
+ assert.ok(app.items.get('autoCandidateList').children.every(c=>
+  c.children.some(x=>x.textContent.includes('週間モデル予測'))));
+ app.items.get('simFieldBonus').value='20';
+ app.callbacks.get('simFieldBonus:change')();
+ assert.equal(app.items.get('autoCandidateList').children.length,count);
+ assert.ok(app.items.get('autoCandidateList').children.every(c=>
+  !c.children.some(x=>x.textContent.includes('週間モデル予測'))));
+ assert.equal(app.items.get('autoCompare').disabled,false);
+ app.callbacks.get('autoCompare:click')();
+ app.flushTimers();
+ assert.match(app.items.get('autoCompareProgress').textContent,/比較終了/);
+});
+test('S3-B browser: not-yet-filled daytime rosters do not block candidate comparison',()=>{
+ const app=boot({withSixth:true,withHealers:true});
+ assert.equal(app.items.get('runSim').disabled,true,'manual day roster starts unset');
+ app.ctx.PokeSimulator.simulate=()=>({
+  total:500,berries:200,cooking:100,skills:200,warnings:[]});
+ app.callbacks.get('autoCandidates:click')();
+ app.callbacks.get('autoCompare:click')();
+ app.flushTimers();
+ assert.match(app.items.get('autoCompareProgress').textContent,/比較終了/);
+ assert.equal(app.items.get('runSim').disabled,true,'automated comparison must not alter manual rosters');
 });

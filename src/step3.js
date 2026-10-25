@@ -87,7 +87,65 @@ function createCandidates({box,sleepIds,map}){
   sleepIds,sleepIds,sleepIds);
  return {candidates,warnings,eligibleKnown:known.length,healers:healer.length};
 }
-const api={createCandidates,countChanges,changes};
+// S3-B: run precisely the *same* STEP2 weekly engine as the manual trial.
+// Scores are model outputs, not independently validated game ranking.
+function evaluateCandidate({candidate,box,sleepIds,options,simulate}){
+ if(!candidate||!candidate.teams||!Array.isArray(box)||!Array.isArray(sleepIds)||
+   sleepIds.length!==5||new Set(sleepIds).size!==5)throw Error('候補評価の睡眠5匹・手持ちが不正です。');
+ const ids=new Set(box.map(p=>p.id));
+ if(HOURS.some(k=>!Array.isArray(candidate.teams[k])||candidate.teams[k].length!==5||
+  new Set(candidate.teams[k]).size!==5||candidate.teams[k].some(id=>!ids.has(id)))||
+  sleepIds.some(id=>!ids.has(id)))throw Error('候補評価の編成が不正です。');
+ const fn=simulate||Sim?.simulate;
+ if(typeof fn!=='function')throw Error('7日間計算エンジンを利用できません。');
+ const teams={sleep:[...sleepIds]};
+ for(const key of HOURS)teams[key]=[...candidate.teams[key]];
+ const input={box,teams,options:{...options}};
+ const result=fn(input);
+ if(!result||!['total','berries','cooking','skills'].every(k=>
+  Number.isFinite(result[k])&&result[k]>=0))throw Error('7日間計算結果の内訳が不正です。');
+ const count=changes(sleepIds,candidate.teams);
+ const caveats=[];
+ if(result.estimatedMeals>0||result.expectedSourceMeals>0)
+  caveats.push('食材生産の期待値に依存する料理');
+ if(result.potDependentMeals>0)caveats.push('鍋拡張スキルの期待値に依存する料理');
+ if((result.healingTimerCorrelationEvents||0)>0||
+   (result.healingCapNonlinearEvents||0)>0)caveats.push('回復スキルとげんき・発動確率の相関');
+ if((result.uncollectedExtraHelpItemsAtSwap||0)>0)
+  caveats.push('編成交代時の未回収追加おてつだい');
+ if(Array.isArray(result.warnings)&&result.warnings.some(w=>
+  /未対応のメインスキル|未計上|未再現|未検証/.test(w)))
+  caveats.push('未対応または独立未検証のスキル・料理等');
+ return {candidate,score:{total:result.total,berries:result.berries,
+  cooking:result.cooking,skills:result.skills},
+  changes:count,warningCount:Array.isArray(result.warnings)?result.warnings.length:0,
+  caveats,estimatedMeals:result.estimatedMeals||0,
+  weekRankValidated:false,status:'REFERENCE_ONLY'};
+}
+// Scores are first sorted by model energy, then *within a fixed 3% band*
+// relative to the band's highest score by fewest swaps. The algorithm is
+// deterministic and groups scores rather than using a non-transitive sorter.
+function orderEvaluations(rows,nearPct=0.03){
+ if(!Array.isArray(rows)||!Number.isFinite(nearPct)||nearPct<0||nearPct>0.2)
+  throw Error('候補比較の入力が不正です。');
+ const sorted=rows.map((x,i)=>({...x,originalIndex:i})).sort((a,b)=>
+  b.score.total-a.score.total||a.originalIndex-b.originalIndex);
+ const best=sorted[0]?.score.total||0,ordered=[];
+ while(sorted.length){
+  const high=sorted[0].score.total;
+  const group=[];
+  while(sorted.length&&high-sorted[0].score.total<=high*nearPct+1e-9)
+   group.push(sorted.shift());
+  group.sort((a,b)=>a.changes.total-b.changes.total||
+   b.score.total-a.score.total||a.originalIndex-b.originalIndex);
+  for(const row of group)ordered.push({...row,
+   modelGapPct:best>0?(best-row.score.total)/best*100:0,
+   closeScoreGroup:group.length>1,
+   preference:'参考表示順（僅差時は入替が少ない案を前に表示）'});
+ }
+ return ordered;
+}
+const api={createCandidates,countChanges,changes,evaluateCandidate,orderEvaluations};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeStep3=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

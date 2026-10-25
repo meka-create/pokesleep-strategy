@@ -7,9 +7,10 @@ let state=storage.load();
 let lastRunSnapshot=null;
 // Keep an earlier successful simulation/observation snapshot intact but never
 // present its scores as if they had been calculated from newly changed inputs.
-function markResultsStale(){
+function markResultsStale(keepComparison=false){
  const result=$('simResult'),warning=$('simStaleNotice');
  if(!result.hidden)warning.hidden=false;
+ if(!keepComparison)clearStep3Evaluations();
 }
 const save=()=>{try{storage.save(state);$('storageNotice').textContent='このブラウザ内への保存：利用可能';$('storageNotice').className='small ok';$('criticalNotice').hidden=true;return true;}catch(e){
 $('storageNotice').textContent=storage.getLoadError()||'保存に失敗しました。現在の変更は未保存です。設定・保存からJSONバックアップを取得してください。';$('storageNotice').className='small warn';$('criticalNotice').textContent=$('storageNotice').textContent;$('criticalNotice').hidden=false;return false;}};
@@ -60,67 +61,149 @@ $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0
 $('downloadBackup').addEventListener('click',()=>{download(`pokesleep_event_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2),'application/json;charset=utf-8');toast('バックアップを保存しました。');});
 $('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;storage.allowRecovery();const saved=save();fillEvent();renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
 $('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;state=storage.newState();storage.allowRecovery();const saved=save();fillEvent();$('searchPokemon').value='';renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'端末内の保存情報を消去しました。');});
-// STEP3 proposal snapshots are ephemeral: neither storage format nor fixed
-// sleep team changes until a user explicitly applies a daylight candidate.
-let step3Candidates=[],step3Source='';
+// STEP3 candidate scores stay ephemeral; only explicit apply changes daytime teams.
+let step3Candidates=[],step3Source='',step3Evaluations=[],step3EvaluationToken=0;
 const step3Fingerprint=()=>JSON.stringify({box:state.box,sleepIds:state.sleepIds,
- map:state.event.map,camp:state.event.camp1});
+ event:state.event});
+function clearStep3Evaluations(){
+ step3EvaluationToken++;
+ step3Evaluations=[];
+ $('autoCompare').disabled=step3Candidates.length===0;
+ $('autoCompareProgress').textContent='';
+ if(step3Candidates.length)renderStep3Candidates();
+}
 function clearStep3Candidates(){
  step3Candidates=[];step3Source='';
+ clearStep3Evaluations();
  $('autoCandidateList').replaceChildren();
  $('autoCandidateStatus').textContent='';
  $('autoCandidateError').hidden=true;
 }
+function renderStep3Candidates(){
+ const error=$('autoCandidateError'),list=$('autoCandidateList');
+ list.replaceChildren();
+ const evaluated=new Map(step3Evaluations.map(row=>[row.candidate.code,row]));
+ const ordered=step3Evaluations.length===step3Candidates.length?
+  PokeStep3.orderEvaluations(step3Evaluations).map(x=>x.candidate):
+  step3Candidates;
+ const rosterLabel=ids=>ids.map(id=>{
+  const p=state.box.find(x=>x.id===id);
+  return p?(p.nickname||p.pokemon)+'（'+p.pokemon+' Lv'+p.level+'）':id;
+ }).join('、');
+ const fmt=n=>Math.round(n).toLocaleString('ja-JP');
+ for(const candidate of ordered){
+  const card=document.createElement('div');card.className='step3-candidate-card';
+  const title=document.createElement('h4');title.textContent=candidate.title;
+  const desc=document.createElement('p');desc.textContent=candidate.description;
+  const scored=evaluated.get(candidate.code);
+  if(scored){
+   const numbers=document.createElement('p');numbers.className='step3-score';
+   numbers.textContent='週間モデル予測 '+fmt(scored.score.total)+' エナジー（きのみ '+fmt(scored.score.berries)+
+    '／料理 '+fmt(scored.score.cooking)+'／直接スキル '+fmt(scored.score.skills)+'）';
+   const caution=document.createElement('p');caution.className='step3-uncertainty';
+   caution.textContent='参考値・実ゲーム順位未検証。'+(scored.caveats.length?
+    '要注意：'+scored.caveats.join('、')+'。':'計算式の全体精度は未実証。');
+   card.append(numbers,caution);
+  }
+  const slots=document.createElement('p');slots.className='step3-candidate-schedule';
+  slots.textContent='朝7:30～12:00：'+rosterLabel(candidate.teams.morning)+
+   '\n昼12:00～18:00：'+rosterLabel(candidate.teams.noon)+
+   '\n夜18:00～0:00：'+rosterLabel(candidate.teams.evening);
+  const timing=document.createElement('p');timing.className='step3-candidate-timing';
+  const c=candidate.changes;
+  timing.textContent='交代数（毎日・入替個体）：7:30 '+c.morning+'、12:00 '+c.noon+
+   '、18:00 '+c.evening+'、0:00 '+c.bedtime+'。計 '+c.total+
+   '匹分／日。7:30は先に回収してから切替。0:00以降の睡眠5匹は固定。';
+  const action=document.createElement('button');
+  action.type='button';action.className='secondary';
+  action.textContent='この候補を朝・昼・夜に反映';
+  action.addEventListener('click',()=>{
+   if(step3Fingerprint()!==step3Source||hasUnsavedEventEdits()){
+    error.textContent='手持ち・睡眠5匹・イベント条件が変わりました。候補を再生成してください。';
+    error.hidden=false;return;
+   }
+   if(!confirm('朝・昼・夜の手動編成をこの候補で上書きしますか？ 睡眠パーティは変更しません。'))return;
+   for(const key of rosterKeys)state.simulation.teams[key]=[...candidate.teams[key]];
+   const saved=save();renderSimulator();markResultsStale(true);
+   notifySave(saved,'日中の候補を反映しました。下の7日間試算で詳細を確認できます。');
+   setTab('simulate');
+  });
+  card.append(title,desc,slots,timing,action);list.append(card);
+ }
+}
 function showStep3Candidates(){
+ clearStep3Candidates();
  const error=$('autoCandidateError');error.hidden=true;
  try{
   if(hasUnsavedEventEdits())throw Error('イベント条件に未保存の変更があります。イベント条件を保存してから候補を作成してください。');
   const output=PokeStep3.createCandidates({box:state.box,sleepIds:state.sleepIds,map:state.event.map});
   step3Candidates=output.candidates;step3Source=step3Fingerprint();
-  const list=$('autoCandidateList');list.replaceChildren();
-  const rosterLabel=ids=>ids.map(id=>{
-   const p=state.box.find(x=>x.id===id);
-   return p?(p.nickname||p.pokemon)+'（'+p.pokemon+' Lv'+p.level+'）':id;
-  }).join('、');
-  for(const candidate of step3Candidates){
-   const card=document.createElement('div');card.className='step3-candidate-card';
-   const title=document.createElement('h4');title.textContent=candidate.title;
-   const desc=document.createElement('p');desc.textContent=candidate.description;
-   const slots=document.createElement('p');slots.className='step3-candidate-schedule';
-   slots.textContent='朝7:30～12:00：'+rosterLabel(candidate.teams.morning)+
-    '\n昼12:00～18:00：'+rosterLabel(candidate.teams.noon)+
-    '\n夜18:00～0:00：'+rosterLabel(candidate.teams.evening);
-   const timing=document.createElement('p');timing.className='step3-candidate-timing';
-   const c=candidate.changes;
-   timing.textContent='交代数（毎日・入替個体）：7:30 '+c.morning+'、12:00 '+c.noon+
-    '、18:00 '+c.evening+'、0:00 '+c.bedtime+'。計 '+c.total+
-    '匹分／日。7:30は先に回収してから切替。0:00以降の睡眠5匹は固定。';
-   const action=document.createElement('button');
-   action.type='button';action.className='secondary';
-   action.textContent='この候補を朝・昼・夜に反映';
-   action.addEventListener('click',()=>{
-    if(step3Fingerprint()!==step3Source){
-     error.textContent='手持ち・睡眠5匹・開催フィールド等が変わりました。候補を再生成してください。';
-     error.hidden=false;return;
-    }
-    if(!confirm('朝・昼・夜の手動編成をこの候補で上書きしますか？ 睡眠パーティは変更しません。'))return;
-    for(const key of rosterKeys)state.simulation.teams[key]=[...candidate.teams[key]];
-    const saved=save();renderSimulator();markResultsStale();
-    notifySave(saved,'日中の候補を反映しました。「7日間を試算する」で評価してください。');
-    setTab('simulate');
-   });
-   card.append(title,desc,slots,timing,action);list.append(card);
-  }
+  $('autoCompare').disabled=!step3Candidates.length;
+  renderStep3Candidates();
   $('autoCandidateStatus').textContent='候補 '+step3Candidates.length+'件。'+
    output.warnings.join(' ')+' 適用するまで現在の手動編成は変更されません。';
  }catch(e){
-  step3Candidates=[];step3Source='';
-  $('autoCandidateList').replaceChildren();
-  $('autoCandidateStatus').textContent='';
-  error.textContent=e.message||String(e);error.hidden=false;
+  clearStep3Candidates();error.textContent=e.message||String(e);error.hidden=false;
  }
 }
+function compareStep3Candidates(){
+ const error=$('autoCandidateError');error.hidden=true;
+ try{
+  if(!step3Candidates.length)throw Error('先に候補を作成してください。');
+  if(step3Fingerprint()!==step3Source||hasUnsavedEventEdits())
+   throw Error('手持ち・睡眠5匹・イベント条件が変わりました。候補を再生成してください。');
+  // The settings are read from CURRENT controls without requiring an existing
+  // complete manual daytime team. Never save these trial-only inputs.
+  const settings=readSimulation(true);
+  const fingerprint=JSON.stringify({source:step3Fingerprint(),settings});
+  clearStep3Evaluations();
+  const token=step3EvaluationToken;
+  const candidates=step3Candidates.slice(0,6),failed=[];
+  const started=Date.now();
+  let index=0;
+  $('autoCompare').disabled=true;
+  const progress=$('autoCompareProgress');
+  progress.textContent='0/'+candidates.length+'件の7日間試算を開始しています。';
+  function next(){
+   if(token!==step3EvaluationToken)return;
+   try{
+    if(hasUnsavedEventEdits()||JSON.stringify({source:step3Fingerprint(),
+      settings:readSimulation(true)})!==fingerprint){
+     step3Evaluations=[];
+     progress.textContent='入力条件が変更されました。旧比較結果は破棄しました。再比較してください。';
+     $('autoCompare').disabled=false;renderStep3Candidates();return;
+    }
+    if(index>=candidates.length||(index>0&&Date.now()-started>45000)){
+     const complete=index===candidates.length;
+     const success=step3Evaluations.length;
+     if(success)renderStep3Candidates();
+     progress.textContent=(complete?'比較終了':'45秒の安全上限に達したため比較を中断')+
+      '：'+success+'/'+candidates.length+'件成功。'+
+      (complete&&failed.length===0?'全候補の週間モデル予測を参考表示（3%以内は入替数で表示順調整）。':'計算できない候補があるため全候補の比較は未完成です。')+
+      (failed.length?' 計算できなかった候補：'+failed.join('、')+'。':'')+
+      ' 実ゲーム順位は未検証です。';
+     $('autoCompare').disabled=false;return;
+    }
+    const c=candidates[index];index++;
+    try{
+     step3Evaluations.push(PokeStep3.evaluateCandidate({
+      candidate:c,box:state.box,sleepIds:state.sleepIds,
+      options:{...settings,map:state.event.map,camp:state.event.camp1,
+       foodMode:state.event.food1,eventEffects:state.event.effects}
+     }));
+    }catch(e){failed.push(c.title+'（'+(e.message||String(e))+'）');}
+    progress.textContent=index+'/'+candidates.length+'件を評価しました。';
+    setTimeout(next,0); // one expensive weekly evaluation per event-loop turn
+   }catch(e){
+    progress.textContent='比較を中断しました：'+(e.message||String(e));
+    $('autoCompare').disabled=false;
+   }
+  }
+  setTimeout(next,0);
+ }catch(e){error.textContent=e.message||String(e);error.hidden=false;}
+}
 $('autoCandidates').addEventListener('click',showStep3Candidates);
+$('autoCompare').addEventListener('click',compareStep3Candidates);
 const rosterKeys=['morning','noon','evening'];
 const ingredientEditors=Object.create(null);
 const magnetEditors=Object.create(null);
@@ -207,7 +290,7 @@ function fillSimulation(){
  }
  renderSimulator();
 }
-function readSimulation(){
+function readSimulation(forCandidates=false){
  const numbers=[['simFieldBonus',0,100],['simTap',120,180],['simPot',7,300],['simBagCapacity',0,10000],['simSleepScore',0,100],['simInitialEnergy',0,150]];
  const data={};
  for(const [id,min,max] of numbers){
@@ -221,12 +304,14 @@ function readSimulation(){
   if(v!==0)initialIngredients[key]=v;
  }
  const magnetIngredients=Object.entries(magnetEditors).filter(([key,input])=>input.checked).map(([key])=>key);
- const teams={};for(const key of rosterKeys){
+ const teams={};
+ if(state.sleepIds.length!==5)throw Error('ボックスタブで睡眠パーティ5匹を指定してください。');
+ for(const key of rosterKeys){
+  if(forCandidates){teams[key]=[...state.sleepIds];continue;}
   const values=Array.from(document.querySelector('[data-roster="'+key+'"]').querySelectorAll('select')).map(x=>x.value);
   if(values.length!==5||values.some(v=>!v)||new Set(values).size!==5)throw Error('朝・昼・夜のすべての枠に異なる5匹を指定してください。');
   teams[key]=values;
  }
- if(state.sleepIds.length!==5)throw Error('ボックスタブで睡眠パーティ5匹を指定してください。');
  return {teams,fieldBonus:data.simFieldBonus,tapMinutes:data.simTap,potSize:data.simPot,bagCapacity:data.simBagCapacity,sleepScore:data.simSleepScore,initialEnergy:data.simInitialEnergy,recipeId:$('simRecipe').value,recipeMode:$('simRecipeMode').value,extraMode:$('simExtraMode').value,successMode:$('simSuccessMode').value,initialIngredients,magnetIngredients};
 }
 // Native form changes must not leave a previous 7-day result looking current.
