@@ -104,6 +104,18 @@ function renderStep3Candidates(){
    caution.textContent='参考値・実ゲーム順位未検証。'+(scored.caveats.length?
     '要注意：'+scored.caveats.join('、')+'。':'計算式の全体精度は未実証。');
    card.append(numbers,caution);
+   if(scored.warnings.length){
+    const details=document.createElement('details');
+    details.className='step3-model-warnings';
+    const summary=document.createElement('summary');
+    summary.textContent='計算器の警告をすべて確認（'+scored.warnings.length+'件）';
+    details.append(summary);
+    for(const warning of scored.warnings){
+     const entry=document.createElement('p');entry.textContent=warning;
+     details.append(entry);
+    }
+    card.append(details);
+   }
   }
   const slots=document.createElement('p');slots.className='step3-candidate-schedule';
   slots.textContent='朝7:30～12:00：'+rosterLabel(candidate.teams.morning)+
@@ -123,9 +135,19 @@ function renderStep3Candidates(){
     error.hidden=false;return;
    }
    if(!confirm('朝・昼・夜の手動編成をこの候補で上書きしますか？ 睡眠パーティは変更しません。'))return;
-   for(const key of rosterKeys)state.simulation.teams[key]=[...candidate.teams[key]];
-   const saved=save();renderSimulator();markResultsStale(true);
-   notifySave(saved,'日中の候補を反映しました。下の7日間試算で詳細を確認できます。');
+   // A failed localStorage write must not leave a falsely applied day team.
+   const previous=state.simulation.teams;
+   state.simulation.teams={...previous,
+    morning:[...candidate.teams.morning],noon:[...candidate.teams.noon],
+    evening:[...candidate.teams.evening]};
+   if(!save()){
+    state.simulation.teams=previous;
+    error.textContent='編成の保存に失敗しました。手動編成は変更していません。保存領域を確認してください。';
+    error.hidden=false;
+    return;
+   }
+   renderSimulator();markResultsStale(true);
+   notifySave(true,'日中の候補を反映しました。下の7日間試算で詳細を確認できます。');
    setTab('simulate');
   });
   card.append(title,desc,slots,timing,action);list.append(card);
@@ -179,7 +201,7 @@ function compareStep3Candidates(){
      if(success)renderStep3Candidates();
      progress.textContent=(complete?'比較終了':'45秒の安全上限に達したため比較を中断')+
       '：'+success+'/'+candidates.length+'件成功。'+
-      (complete&&failed.length===0?'全候補の週間モデル予測を参考表示（3%以内は入替数で表示順調整）。':'計算できない候補があるため全候補の比較は未完成です。')+
+      (complete&&failed.length===0?'全候補の週間モデル予測を参考表示（3%以内は入替数で表示順調整）。':!complete?'未評価候補が残っているため全候補の比較は未完成です。':'計算できない候補があるため全候補の比較は未完成です。')+
       (failed.length?' 計算できなかった候補：'+failed.join('、')+'。':'')+
       ' 実ゲーム順位は未検証です。';
      $('autoCompare').disabled=false;return;
@@ -195,7 +217,9 @@ function compareStep3Candidates(){
     progress.textContent=index+'/'+candidates.length+'件を評価しました。';
     setTimeout(next,0); // one expensive weekly evaluation per event-loop turn
    }catch(e){
-    progress.textContent='比較を中断しました：'+(e.message||String(e));
+    step3Evaluations=[];
+    renderStep3Candidates();
+    progress.textContent='比較を中断し、途中の結果を破棄しました：'+(e.message||String(e));
     $('autoCompare').disabled=false;
    }
   }
