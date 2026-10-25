@@ -10,7 +10,9 @@ let lastRunSnapshot=null;
 function markResultsStale(keepComparison=false){
  const result=$('simResult'),warning=$('simStaleNotice');
  if(!result.hidden)warning.hidden=false;
- if(!keepComparison)clearStep3Evaluations();
+ // Native change listeners pass an Event object; only the deliberate literal
+ // boolean true (after applying a candidate) may preserve comparison values.
+ if(keepComparison!==true)clearStep3Evaluations();
 }
 const save=()=>{try{storage.save(state);$('storageNotice').textContent='このブラウザ内への保存：利用可能';$('storageNotice').className='small ok';$('criticalNotice').hidden=true;return true;}catch(e){
 $('storageNotice').textContent=storage.getLoadError()||'保存に失敗しました。現在の変更は未保存です。設定・保存からJSONバックアップを取得してください。';$('storageNotice').className='small warn';$('criticalNotice').textContent=$('storageNotice').textContent;$('criticalNotice').hidden=false;return false;}};
