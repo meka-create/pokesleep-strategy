@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const base=path.join(__dirname,'../src');
 function boot({noSleep=false,withSixth=false,withHealers=false}={}){
- const items=new Map(),callbacks=new Map(),timers=[];let serial=0;
+ const items=new Map(),callbacks=new Map(),timers=[];let serial=0,failWrites=false;
  function element(tag='div',id){
   const e={id:id||'generated-'+(++serial),tagName:tag,children:[],dataset:{},hidden:false,checked:false,disabled:false,files:[],className:'',classList:{toggle(){},add(){},remove(){}},
    _value:'',get value(){return this._value},set value(v){this._value=String(v)},
@@ -42,7 +42,7 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
  }));const ids=box.slice(0,5).map(x=>x.id);
  const event={name:'test',start:'2026-10-19',duration:1,map:'シアンの砂浜',food1:'curry',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false};
  const data=new Map([['pokesleep-event-planner/step1/v1',JSON.stringify({version:1,box,sleepIds:noSleep?[]:ids,event,updatedAt:''})]]);
- const localStorage={getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};
+ const localStorage={getItem:k=>data.get(k)||null,setItem:(k,v)=>{if(failWrites)throw Error('quota');data.set(k,String(v));},removeItem:k=>data.delete(k)};
  // Freeze the browser clock AFTER the fixture's target game week (Oct 19-26).
  // CI must not depend on the wall-clock date of this test run.
  class TestDate extends Date{
@@ -56,6 +56,8 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
  for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','observation.js','app.js'])
   vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),ctx,{filename:name});
  return {ctx,items,rosters,callbacks,data,
+  setFailWrites:value=>{failWrites=value;},
+  tickTimer:()=>{const callback=timers.shift();if(callback)callback();},
   flushTimers:(limit=50)=>{let count=0;while(timers.length&&count++<limit)timers.shift()();
    assert.ok(count<=limit,'scheduled UI work must be bounded');}};
 }
@@ -425,7 +427,7 @@ test('S3-A browser: generate A/B/C, apply daylight-only and retain fixed sleep f
  assert.ok(titles.some(t=>t.startsWith('A：')),titles.join('; '));
  assert.ok(titles.some(t=>t.startsWith('B：')),titles.join('; '));
  assert.ok(titles.some(t=>t.startsWith('C')),titles.join('; '));
- assert.match(app.items.get('autoCandidateStatus').textContent,/7日比較は未実施/);
+ assert.match(app.items.get('autoCandidateStatus').textContent,/別途STEP2計算器/);
  assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),JSON.stringify(before),
   'suggestions must not change any persisted personal settings');
  const candidate=cards.find(c=>c.children[0].textContent.startsWith('A：'));
@@ -526,4 +528,61 @@ test('S3-B browser: not-yet-filled daytime rosters do not block candidate compar
  app.flushTimers();
  assert.match(app.items.get('autoCompareProgress').textContent,/比較終了/);
  assert.equal(app.items.get('runSim').disabled,true,'automated comparison must not alter manual rosters');
+});
+
+test('audit S3 UI: full weekly simulator warning list is visible on demand',()=>{
+ const app=boot({withSixth:true,withHealers:true});
+ const messages=[
+  'レシピと料理カテゴリが一致しません。料理エナジーを計上していません。',
+  'フィールドの好みのきのみは未確定',
+  '<img src=x onerror=alert(1)> HTML-like message must be plain text'
+ ];
+ app.ctx.PokeSimulator.simulate=()=>({
+  total:1000,berries:500,cooking:300,skills:200,
+  warnings:messages
+ });
+ app.callbacks.get('autoCandidates:click')();
+ app.callbacks.get('autoCompare:click')();app.flushTimers();
+ const cards=app.items.get('autoCandidateList').children;
+ assert.ok(cards.length>0);
+ for(const card of cards){
+  const details=card.children.find(child=>child.tagName==='details');
+  assert.ok(details,'all scored cards expose complete simulator warning details');
+  assert.match(details.children[0].textContent,/3件/);
+  assert.deepEqual(details.children.slice(1).map(p=>p.textContent),messages);
+  assert.ok(details.children.every(x=>x.innerHTML===''));
+ }
+});
+test('audit S3 UI: failing to persist proposed teams keeps previous in-memory and visible roster',()=>{
+ const app=boot({withSixth:true,withHealers:true});
+ app.callbacks.get('autoCandidates:click')();
+ const cards=app.items.get('autoCandidateList').children;
+ const candidate=cards.find(c=>c.children[0].textContent.startsWith('A：'));
+ assert.ok(candidate);
+ const before=app.data.get('pokesleep-event-planner/step1/v1');
+ const beforeDisplayed=app.rosters.morning.querySelectorAll('select').map(x=>x.value);
+ app.setFailWrites(true);
+ app.callbacks.get(candidate.children.at(-1).id+':click')();
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),before);
+ assert.deepEqual(app.rosters.morning.querySelectorAll('select').map(x=>x.value),beforeDisplayed);
+ assert.match(app.items.get('autoCandidateError').textContent,/編成の保存に失敗/);
+ app.setFailWrites(false);
+ app.callbacks.get(candidate.children.at(-1).id+':click')();
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.deepEqual(saved.sleepIds,JSON.parse(before).sleepIds);
+ assert.equal(saved.simulation.teams.morning.length,5);
+});
+test('audit S3 UI: invalid mid-run settings discard partial comparison and show explicit interruption',()=>{
+ const app=boot({withSixth:true,withHealers:true});
+ app.ctx.PokeSimulator.simulate=()=>({
+  total:1000,berries:500,cooking:300,skills:200,warnings:[]});
+ app.callbacks.get('autoCandidates:click')();
+ app.callbacks.get('autoCompare:click')();
+ app.tickTimer(); // one successful candidate evaluated
+ app.items.get('simFieldBonus').value='not-a-number'; // intentionally no change event
+ app.tickTimer(); // errors while re-reading the current input controls
+ assert.match(app.items.get('autoCompareProgress').textContent,/途中の結果を破棄/);
+ assert.ok(app.items.get('autoCandidateList').children.every(card=>
+  !card.children.some(x=>x.textContent.includes('週間モデル予測'))));
+ assert.equal(app.items.get('autoCompare').disabled,false);
 });
