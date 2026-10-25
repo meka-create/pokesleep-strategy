@@ -607,3 +607,77 @@ test('audit S3 P1: native change Event argument never preserves a stale scored c
  assert.ok(app.items.get('autoCandidateList').children.every(card=>
   !card.children.some(x=>x.textContent.includes('週間モデル予測'))));
 });
+
+test('S4 browser: 21 apple curry meals produce saved prep goals but do not alter STEP3/daytime/sleep',()=>{
+ const app=boot({withSixth:true,withHealers:true});
+ const before=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepMeals').value='21';
+ app.items.get('prepCapacity').value='200';
+ app.items.get('prepPriority').value='stock';
+ const apple=app.items.get('prepCarryFields').children.find(x=>x.children[0].textContent==='とくせんリンゴ');
+ assert.ok(apple);
+ apple.children[1].value='20';
+ app.callbacks.get('prepCalculate:click')();
+ assert.equal(app.items.get('prepError').hidden,true,app.items.get('prepError').textContent);
+ assert.equal(app.items.get('prepResult').hidden,false);
+ assert.match(app.items.get('prepSummary').textContent,/21食分/);
+ assert.match(app.items.get('prepCoverage').textContent,/必要食材 147個/);
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(saved.preparation.recipeId,'apple_curry');
+ assert.equal(saved.preparation.bagCapacity,200);
+ assert.equal(saved.preparation.carryover.apple,20);
+ assert.deepEqual(saved.sleepIds,before.sleepIds);
+ assert.deepEqual(saved.simulation.teams,before.simulation?.teams||{morning:[],noon:[],evening:[]});
+ assert.ok(app.items.get('prepTeams').textContent.includes('朝7:30～12:00'));
+});
+test('S4 browser: invalid/incomplete prep never overwrites saved plans',()=>{
+ const app=boot();
+ const before=app.data.get('pokesleep-event-planner/step1/v1');
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepCapacity').value='0';
+ app.callbacks.get('prepCalculate:click')();
+ assert.equal(app.items.get('prepError').hidden,false);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),before);
+ app.items.get('prepCapacity').value='100';
+ const apple=app.items.get('prepCarryFields').children.find(x=>x.children[0].textContent==='とくせんリンゴ');
+ apple.children[1].value='101';
+ app.callbacks.get('prepCalculate:click')();
+ assert.match(app.items.get('prepError').textContent,/バッグ容量を超え/);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),before);
+});
+test('S4 browser: saved preparation is preserved across reload and priority switch',()=>{
+ const app=boot();
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepCapacity').value='100';
+ app.items.get('prepPriority').value='energy';
+ app.callbacks.get('prepCalculate:click')();
+ const p=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1')).preparation;
+ assert.equal(p.priority,'energy');
+ assert.match(app.items.get('prepCoverage').textContent,/新たに集める目標 30個/);
+ app.items.get('prepPriority').value='stock';
+ app.callbacks.get('prepPriority:change')({type:'change'});
+ assert.equal(app.items.get('prepStale').hidden,false);
+ app.callbacks.get('prepCalculate:click')();
+ const changed=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(changed.preparation.priority,'stock');
+ assert.match(app.items.get('prepCoverage').textContent,/新たに集める目標 90個/);
+ assert.equal(app.items.get('prepStale').hidden,true);
+ const storage=app.ctx.PokeStorage.validateState(changed);
+ assert.equal(storage.preparation.priority,'stock');
+});
+test('S4 browser: storage failure rolls preparation state back without false success',()=>{
+ const app=boot();
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepCapacity').value='150';
+ const before=app.data.get('pokesleep-event-planner/step1/v1');
+ app.setFailWrites(true);
+ app.callbacks.get('prepCalculate:click')();
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),before);
+ assert.equal(app.items.get('prepError').hidden,false);
+ assert.match(app.items.get('prepError').textContent,/保存できません/);
+ assert.equal(app.items.get('prepResult').hidden,true);
+ app.setFailWrites(false);
+ app.callbacks.get('prepCalculate:click')();
+ assert.equal(app.items.get('prepError').hidden,true);
+});
