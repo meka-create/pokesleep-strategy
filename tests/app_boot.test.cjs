@@ -23,16 +23,16 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
   if(id)items.set(id,e);return e;
  }
  const rosters=Object.fromEntries(['morning','noon','evening'].map(k=>[k,element('div','roster-'+k)]));
- const tabs=['event','box','simulate','settings'].map(k=>{const x=element('button','tab'+k);x.dataset.tab=k;return x});
- const panels=['event','box','simulate','settings'].map(k=>element('div','panel-'+k));
+ const tabs=['event','box','simulate','prep','settings'].map(k=>{const x=element('button','tab'+k);x.dataset.tab=k;return x});
+ const panels=['event','box','simulate','prep','settings'].map(k=>element('div','panel-'+k));
  const copy=['sleep','morning','noon'].map((from,i)=>{const x=element('button','copy'+i);x.dataset.copyFrom=from;x.dataset.copyTo=['morning','noon','evening'][i];return x});
  // Read the version from the actual shipped template; a hard-coded 0.2.44
  // allowed the UI test fixture to miss regressions in saved provenance.
  const versionMatch=fs.readFileSync(path.join(base,'index.template.html'),'utf8')
-  .match(/STEP 3 · v(\d+\.\d+\.\d+)/);
+  .match(/STEP 4 · v(\d+\.\d+\.\d+)/);
  assert.ok(versionMatch,'built UI must advertise a parseable version');
  const headerVersion=element('span','headerVersion');
- headerVersion.textContent='STEP 3 · v'+versionMatch[1];
+ headerVersion.textContent='STEP 4 · v'+versionMatch[1];
  const document={getElementById:id=>items.get(id)||element('input',id),querySelectorAll:s=>s==='.tab'?tabs:s==='.panel'?panels:s==='.sim-copy'?copy:[],
   querySelector:s=>{if(s==='.step-mark')return headerVersion;const m=s.match(/data-roster="([^"]+)"/);return m?rosters[m[1]]:null},createElement:tag=>element(tag),body:{appendChild(){}}};
  const one={id:'i0',pokemon:'ライチュウ',nickname:'test',level:60,skillLevel:6,ingredients:['とくせんリンゴ','あったかジンジャー','とくせんエッグ'],mainSkill:'エナジーチャージS',nature:'さみしがり',subskills:['きのみの数S','','','',''],sleepHours:1000,shiny:false};
@@ -53,7 +53,7 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
   Date:TestDate,setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout(){}};
  ctx.globalThis=ctx;ctx.window=ctx;
  vm.createContext(ctx);
- for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','observation.js','app.js'])
+ for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','step4.js','observation.js','app.js'])
   vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),ctx,{filename:name});
  return {ctx,items,rosters,callbacks,data,
   setFailWrites:value=>{failWrites=value;},
@@ -198,7 +198,7 @@ test('real weekly observation button rejects unverifiable data then saves exact 
  assert.deepEqual(report.input.teams.sleep,['i0','i1','i2','i3','i4']);
  assert.equal(report.provenance.source,'in_game_weekly_summary');
  assert.equal(report.provenance.noUnmodeledEvents,false);
- assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP 3 · v(\d+\.\d+\.\d+)/)[1]);
+ assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP 4 · v(\d+\.\d+\.\d+)/)[1]);
  assert.equal(report.capture.screenshotReviewedByApp,false);
  assert.equal(report.observed.total,1000);
  assert.equal(report.observed.berryAndStrengthSkill,600);
