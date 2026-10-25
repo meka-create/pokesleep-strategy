@@ -2841,7 +2841,7 @@ function ingredientGuide({box,sleepIds,dayTeams,plan:prepared}){
   let score=0;const matches=[];
   if(sp)for(let j=0;j<slots;j++){
    const key=KEYS.find(k=>Master.ingredients[k]===p.ingredients?.[j]);
-   const entry=(sp.mythIng||sp.ings||[]).find(x=>x.name===key&&x['c'+(j+1)]>0);
+   const entry=(sp.mythIng||sp.ings||[]).find(x=>x&&x.name===key&&x['c'+(j+1)]>0);
    if(entry&&weights.has(key)){
     score+=Math.min(10,entry['c'+(j+1)])*weights.get(key);
     matches.push(key);
