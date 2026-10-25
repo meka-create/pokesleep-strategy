@@ -156,3 +156,35 @@ test('audit S3: preserve every simulator warning verbatim in the scored result',
  assert.equal(row.warningCount,3);
  assert.ok(row.caveats.some(w=>w.includes('未対応・未検証')));
 });
+
+test('audit S3: candidate wrapper equals untouched real STEP2 week engine totals and warnings',()=>{
+ const root={};root.globalThis=root;vm.createContext(root);
+ for(const name of ['master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js'])
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../src/'+name),'utf8'),root,{filename:name});
+ const sp=['プクリン','サーナイト','ライチュウ','ライチュウ','ライチュウ','ライチュウ','ライチュウ'];
+ const box=sp.map((pokemon,i)=>{
+  const ref=root.PokeMaster.species.find(x=>x.name===pokemon);
+  assert.ok(ref,'real species master includes '+pokemon);
+  return {id:'r'+i,pokemon,nickname:'sample'+i,level:60,skillLevel:6,
+   ingredients:ref.ings.map(x=>root.PokeMaster.ingredients[x.name]).slice(0,3),
+   subskills:['','','','',''],mainSkill:ref.skillName||'',nature:'まじめ',sleepHours:300,shiny:false};
+ });
+ const sleepIds=box.slice(0,5).map(x=>x.id);
+ const generated=root.PokeStep3.createCandidates({box,sleepIds,map:'シアンの砂浜'});
+ const candidate=generated.candidates.find(c=>c.code==='A');
+ assert.ok(candidate,'real master should offer A');
+ const options={fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,
+  sleepScore:88,initialEnergy:100,recipeId:'',recipeMode:'fixed',
+  extraMode:'none',successMode:'none',magnetIngredients:[],initialIngredients:{},
+  map:'シアンの砂浜',camp:false,foodMode:'curry',eventEffects:''};
+ const manual=root.PokeSimulator.simulate({box,teams:{...candidate.teams,sleep:sleepIds},options});
+ const automated=root.PokeStep3.evaluateCandidate({box,sleepIds,candidate,options});
+ assert.ok(Number.isFinite(manual.total));
+ assert.equal(automated.score.total,manual.total);
+ assert.equal(automated.score.berries,manual.berries);
+ assert.equal(automated.score.cooking,manual.cooking);
+ assert.equal(automated.score.skills,manual.skills);
+ assert.deepEqual(asPlain(automated.warnings),asPlain(manual.warnings));
+ assert.deepEqual(asPlain(automated.changes),asPlain(root.PokeStep3.changes(sleepIds,candidate.teams)));
+ assert.equal(automated.weekRankValidated,false);
+});
