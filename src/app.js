@@ -179,7 +179,7 @@ function compareStep3Candidates(){
      if(success)renderStep3Candidates();
      progress.textContent=(complete?'比較終了':'45秒の安全上限に達したため比較を中断')+
       '：'+success+'/'+candidates.length+'件成功。'+
-      (complete?'全候補の週間モデル予測を参考表示（3%以内は入替数で表示順調整）。':'未評価候補があるため順位比較は未完成です。')+
+      (complete&&failed.length===0?'全候補の週間モデル予測を参考表示（3%以内は入替数で表示順調整）。':'計算できない候補があるため全候補の比較は未完成です。')+
       (failed.length?' 計算できなかった候補：'+failed.join('、')+'。':'')+
       ' 実ゲーム順位は未検証です。';
      $('autoCompare').disabled=false;return;
