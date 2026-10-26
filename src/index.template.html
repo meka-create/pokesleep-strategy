@@ -3,7 +3,7 @@
 <!-- BUILD_CSS -->
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 4 · v0.4.1</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 4 · v0.4.2</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -174,7 +174,7 @@
 </section>
 <section id="panel-prep" class="panel" role="tabpanel" hidden>
  <div class="section-heading"><div><div class="eyebrow">EVENT PREPARATION / STEP 4</div><h3>イベント前週の食材準備計画</h3></div><span class="outline-tag">参考計画</span></div>
- <div class="note"><strong>料理ごとに何食作りたいか</strong>から合計の必要食材数を逆算します。合計21食が上限です。実際に調理できる確率や時刻別の在庫推移、イベント補正・食材ドロップ分布・今週の獲得エナジーを算出する画面ではありません。</div>
+ <div class="note"><strong>料理ごとに何食作りたいか</strong>から合計の必要食材数を逆算します。合計21食が上限です。別途、準備週のフィールドを入力すれば食材獲得期待値の限定参考試算ができます。実際に調理できる確率や食事ごとの在庫遷移、イベント補正・獲得確率分布は計算しません。</div>
  <div class="card form-grid">
   <label class="field wide"><span>イベント週に準備する料理（78品）</span><select id="prepRecipe"></select></label>
   <label class="field"><span>この料理の予定食数（1～21食）</span><input id="prepMeals" type="number" min="1" max="21" step="1" value="21"></label>
@@ -193,6 +193,14 @@
  <button class="primary full" type="button" id="prepCalculate">必要食材・備蓄計画を計算して保存</button>
  <div id="prepError" class="error" role="alert" hidden></div>
  <p id="prepStale" class="small warn" role="status" hidden>条件が変更されています。表示中の計画は変更前の結果です。再計算してください。</p>
+ <div class="card form-grid">
+  <div class="wide"><h4>準備週の食材獲得・7日間参考試算</h4><p class="small muted">現在のイベント開催フィールドとは別に、<strong>準備週に滞在するフィールド</strong>を指定してください。既存のSTEP2計算器で表示中の参考編成を試算します。</p></div>
+  <label class="field wide"><span>準備週のフィールド（必須）</span><input id="prepField" list="maps" maxlength="80" placeholder="準備週のフィールドを選択"></label>
+  <label class="field"><span>準備週のフィールドボーナス（0～100%）</span><input id="prepFieldBonus" type="number" min="0" max="100" step="1" value="0"></label>
+  <p class="small muted wide">モデル比較の仮定：入力した持ち越し予定数を週初めの在庫とし、準備週は料理を一切しません。実際の準備週と異なる場合があります。睡眠5匹・日中編成の保存内容は変更しません。</p>
+  <button class="secondary wide" type="button" id="prepForecast">参考編成の7日間食材獲得量を試算</button>
+  <p class="small muted wide" id="prepForecastStatus" role="status" aria-live="polite"></p>
+ </div>
  <div id="prepResult" class="card sim-result" hidden>
   <h4 id="prepSummary"></h4>
   <p id="prepRecipeBreakdown" class="small muted"></p>
@@ -202,6 +210,12 @@
   <p id="prepPhases" class="small muted"></p>
   <div class="section-heading minor"><h3>準備週の朝・昼・夜パーティ案</h3></div>
   <p id="prepTeams" class="small step4-teams"></p>
+  <div id="prepForecastResult" hidden>
+   <div class="section-heading minor"><h3>準備週の食材獲得・参考期待値</h3></div>
+   <p class="small" id="prepForecastSummary"></p>
+   <div id="prepForecastIngredients" class="step4-ingredient-table"></div>
+   <div id="prepForecastWarnings" class="sim-warnings"></div>
+  </div>
   <div id="prepWarnings" class="sim-warnings"></div>
   <p class="small muted">これは<strong>準備週専用の参考ガイド</strong>です。選んだ睡眠5匹とイベント週の編成は自動変更しません。日中の変更はゲーム内で操作してください。</p>
  </div>
