@@ -706,3 +706,44 @@ test('S4 browser: storage failure rolls preparation state back without false suc
  app.callbacks.get('prepCalculate:click')();
  assert.equal(app.items.get('prepError').hidden,true);
 });
+test('S4 browser: preparation field forecast computes on demand and never edits event teams or sleep',()=>{
+ const app=boot({withSixth:true});
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepMeals').value='7';
+ app.items.get('prepCapacity').value='200';
+ app.items.get('prepField').value='シアンの砂浜';
+ app.items.get('prepFieldBonus').value='18';
+ const original=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ app.callbacks.get('prepForecast:click')();
+ assert.equal(app.items.get('prepForecast').disabled,true);
+ assert.match(app.items.get('prepForecastStatus').textContent,/試算中/);
+ app.flushTimers();
+ assert.equal(app.items.get('prepForecast').disabled,false);
+ assert.equal(app.items.get('prepForecastResult').hidden,false,app.items.get('prepForecastStatus').textContent);
+ assert.match(app.items.get('prepForecastSummary').textContent,/シアンの砂浜.*18%/);
+ assert.match(app.items.get('prepForecastSummary').textContent,/期待値/);
+ assert.ok(app.items.get('prepForecastWarnings').children.some(x=>x.textContent.includes('料理を一切せず')));
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(saved.preparation.field,'シアンの砂浜');
+ assert.equal(saved.preparation.fieldBonus,18);
+ assert.deepEqual(saved.sleepIds,original.sleepIds);
+ assert.deepEqual(saved.simulation.teams,original.simulation?.teams||{morning:[],noon:[],evening:[]});
+ app.items.get('prepFieldBonus').value='19';
+ app.callbacks.get('prepFieldBonus:change')({type:'change'});
+ assert.equal(app.items.get('prepForecastResult').hidden,true);
+ assert.equal(app.items.get('prepStale').hidden,false);
+ app.items.get('prepFieldBonus').value='18';
+ app.callbacks.get('prepForecast:click')();app.flushTimers();
+ assert.equal(app.items.get('prepForecastResult').hidden,false);
+ // The reference forecast also depends on the STEP2 collection settings.
+ app.callbacks.get('simTap:change')({type:'change'});
+ assert.equal(app.items.get('prepForecastResult').hidden,true);
+});
+test('S4 browser: preparation forecast refuses missing field without false completion',()=>{
+ const app=boot();
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepCapacity').value='100';
+ app.callbacks.get('prepForecast:click')();app.flushTimers();
+ assert.equal(app.items.get('prepForecastResult').hidden,true);
+ assert.match(app.items.get('prepForecastStatus').textContent,/フィールドを指定/);
+});

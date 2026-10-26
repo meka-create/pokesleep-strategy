@@ -2,7 +2,7 @@
 'use strict';
 const KEY='pokesleep-event-planner/step1/v1';
 const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,sleepScore:88,initialEnergy:100,recipeId:'',recipeMode:'fixed',extraMode:'none',successMode:'none',magnetIngredients:[],initialIngredients:{}});
-const defaultPreparation=()=>({recipeId:'',meals:21,recipeTargets:[],priority:'stock',bagCapacity:0,carryover:{}});
+const defaultPreparation=()=>({recipeId:'',meals:21,recipeTargets:[],priority:'stock',bagCapacity:0,carryover:{},field:'',fieldBonus:0});
 const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),preparation:defaultPreparation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
 const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
 const validEnum=(v,choices)=>choices.includes(v);
@@ -34,6 +34,8 @@ function validateState(x){
     !Number.isInteger(prep.meals)||prep.meals<1||prep.meals>21||
     !['energy','stock'].includes(prep.priority)||
     !Number.isInteger(prep.bagCapacity)||prep.bagCapacity<0||prep.bagCapacity>10000||
+    !cleanText(prep.field??'',80)||!Number.isInteger(prep.fieldBonus??0)||
+    (prep.fieldBonus??0)<0||(prep.fieldBonus??0)>100||
     !prep.carryover||Object.prototype.toString.call(prep.carryover)!=='[object Object]')
   throw Error('準備週の設定が不正です。');
  // Older v1 backups contain only recipeId/meals. Preserve that single recipe
@@ -72,7 +74,7 @@ function validateState(x){
  const magnet=sim.magnetIngredients??[];
  if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!INGREDIENT_KEYS.has(k)))throw new Error('発見済み食材の設定が不正です。');
  for(const [k,v] of Object.entries(sim.initialIngredients))if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
- return {version:1,box:x.box,sleepIds:[...x.sleepIds],preparation:{recipeId:prep.recipeId,meals:prep.meals,recipeTargets,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
+ return {version:1,box:x.box,sleepIds:[...x.sleepIds],preparation:{recipeId:prep.recipeId,meals:prep.meals,recipeTargets,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover,field:prep.field??'',fieldBonus:prep.fieldBonus??0},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
 // Preserve selected individuals on a refreshed export. First match full IV-like
 // fingerprints; only fall back to nickname+species when BOTH boxes are unique.
