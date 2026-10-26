@@ -214,7 +214,36 @@ function forecast({box,sleepIds,teams,plan:prepared,weeklyOptions,field,fieldBon
    '結果は確率的な獲得・残存在庫の期待値近似であり、整数の保証数、目標達成確率、最適編成の証明ではありません。'
   ],exact:false};
 }
-const api={plan,ingredientGuide,forecast};
+// Compare two explicitly labelled *heuristics* under the same week settings.
+// Required-ingredient shortfall is measured against the same event recipe demand,
+// not each mode's different bag-share target. Never infer a winning strategy.
+function compareModes({planInput,box,sleepIds,dayTeams,weeklyOptions,field,fieldBonus,camp,
+ cookingMode='none',foodMode='random',inventorySource='carryover'},simulate){
+ if(!planInput||typeof planInput!=='object'||Array.isArray(planInput))
+  throw Error('比較する備蓄計画がありません。');
+ const scenarios={};
+ for(const priority of ['energy','stock']){
+  const prepared=plan({...planInput,priority});
+  const guide=ingredientGuide({box,sleepIds,dayTeams,plan:prepared});
+  if(!guide.teams)throw Error('比較に必要な準備週の5匹編成を作成できません。');
+  const estimate=forecast({box,sleepIds,teams:guide.teams,plan:prepared,weeklyOptions,
+   field,fieldBonus,camp,cookingMode,foodMode,inventorySource},simulate);
+  const finalByKey=new Map(estimate.rows.map(r=>[r.key,r.expectedFinal]));
+  const expectedRequiredShortfall=prepared.rows.reduce((sum,r)=>
+   sum+Math.max(0,r.required-(finalByKey.get(r.key)||0)),0);
+  scenarios[priority]={priority,teams:guide.teams,forecast:estimate,
+   plannedNew:prepared.plannedNew,expectedRequiredShortfall,
+   warnings:[...prepared.warnings,...guide.warnings],exact:false};
+ }
+ const sameTeams=['morning','noon','evening'].every(key=>
+  scenarios.energy.teams[key].every((id,i)=>id===scenarios.stock.teams[key][i]));
+ return {scenarios,sameTeams,exact:false,assumptions:[
+  '二つの方針は新規備蓄の暫定配分比率（30%／90%）と参考編成を比較したものです。最適化の証明や推奨順位ではありません。',
+  '不足は両方とも同じイベント週の料理必要総数から週末期待在庫を引いた参考値です。実際の整数在庫・成立確率は保証されません。',
+  '今週のエナジーは同じ既存7日モデルで計算しています。備蓄との交換比率を評価した総合スコアではありません。'
+ ]};
+}
+const api={plan,ingredientGuide,forecast,compareModes};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeStep4=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

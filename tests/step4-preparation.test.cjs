@@ -192,6 +192,39 @@ test('S4-D: cooking scenario uses explicitly saved recipe and inventory without 
  assert.throws(()=>api.forecast({...source,foodMode:'salad'},()=>({})),/一致しません/);
  assert.throws(()=>api.forecast({...source,inventorySource:'unknown'},()=>({})),/不正/);
 });
+test('S4-E: compare both priorities against identical event recipe demand without choosing a winner',()=>{
+ const box=Array.from({length:6},(_,i)=>({id:'p'+i,pokemon:'ライチュウ',level:30,ingredients:['とくせんリンゴ']}));
+ const sleepIds=box.slice(0,5).map(p=>p.id),dayTeams={
+  morning:['p1','p2','p3','p4','p5'],noon:[...sleepIds],evening:[...sleepIds]
+ };
+ const options={planInput:data({bagCapacity:100,priority:'stock',carryover:{}}),box,sleepIds,dayTeams,
+  field:'シアンの砂浜',fieldBonus:20,camp:false,weeklyOptions:{initialIngredients:{}},
+  cookingMode:'none',foodMode:'random',inventorySource:'carryover'};
+ const before=JSON.stringify(options),seen=[];
+ const result=api.compareModes(options,input=>{
+  seen.push(plain(input));
+  return {ingredients:{apple:12},inventory:{apple:12},total:1000,cooking:0,warnings:[]};
+ });
+ assert.equal(seen.length,2);
+ assert.equal(seen[0].options.map,seen[1].options.map);
+ assert.deepEqual(seen[0].options.initialIngredients,seen[1].options.initialIngredients);
+ assert.equal(result.scenarios.energy.plannedNew,30);
+ assert.equal(result.scenarios.stock.plannedNew,90);
+ assert.equal(result.scenarios.energy.expectedRequiredShortfall,135);
+ assert.equal(result.scenarios.stock.expectedRequiredShortfall,135);
+ assert.equal(result.scenarios.energy.forecast.weeklyEnergy,1000);
+ assert.equal(result.exact,false);
+ assert.ok(result.assumptions.some(x=>x.includes('最適化の証明')));
+ assert.equal(JSON.stringify(options),before);
+ assert.deepEqual(plain(sleepIds),['p0','p1','p2','p3','p4']);
+});
+test('S4-E: invalid compare input rejects without a disguised fallback',()=>{
+ const box=Array.from({length:4},(_,i)=>({id:'p'+i,pokemon:'ライチュウ'}));
+ assert.throws(()=>api.compareModes({planInput:data(),box,
+  sleepIds:box.map(p=>p.id),dayTeams:{},field:'ワカクサ本島',fieldBonus:0,
+  weeklyOptions:{}},()=>({ingredients:{},inventory:{}})),/5匹編成/);
+ assert.throws(()=>api.compareModes({planInput:null},()=>({})),/備蓄計画/);
+});
 test('S4 backward compatibility: v1 JSON without prep settings gains safe defaults',()=>{
  const store=vm.createContext({});store.globalThis=store;
  vm.runInContext(fs.readFileSync(path.join(__dirname,'../src/storage.js'),'utf8'),store);

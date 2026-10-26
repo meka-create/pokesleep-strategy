@@ -3,7 +3,7 @@
 <!-- BUILD_CSS -->
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 4 · v0.4.3</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 4 · v0.4.4</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -203,6 +203,8 @@
   <p class="small muted wide">料理ありを選ぶ場合は、先に「7日試算」タブで料理レシピ・方式・初期食材等を保存してください。カテゴリは準備週のものを指定します。料理成立と週末残数は期待値近似で、実ゲームの確率や持ち越し数を保証しません。</p>
   <button class="secondary wide" type="button" id="prepForecast">参考編成の7日間食材獲得量を試算</button>
   <p class="small muted wide" id="prepForecastStatus" role="status" aria-live="polite"></p>
+  <button class="secondary wide" type="button" id="prepCompare">備蓄優先／今週のエナジー優先を比較</button>
+  <p class="small muted wide" id="prepCompareStatus" role="status" aria-live="polite"></p>
  </div>
  <div id="prepResult" class="card sim-result" hidden>
   <h4 id="prepSummary"></h4>
@@ -218,6 +220,11 @@
    <p class="small" id="prepForecastSummary"></p>
    <div id="prepForecastIngredients" class="step4-ingredient-table"></div>
    <div id="prepForecastWarnings" class="sim-warnings"></div>
+  </div>
+  <div id="prepCompareResult" hidden>
+   <div class="section-heading minor"><h3>準備週の2方針・同一条件での参考比較</h3></div>
+   <div id="prepCompareRows" class="step4-ingredient-table"></div>
+   <div id="prepCompareWarnings" class="sim-warnings"></div>
   </div>
   <div id="prepWarnings" class="sim-warnings"></div>
   <p class="small muted">これは<strong>準備週専用の参考ガイド</strong>です。選んだ睡眠5匹とイベント週の編成は自動変更しません。日中の変更はゲーム内で操作してください。</p>
