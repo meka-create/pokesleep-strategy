@@ -769,3 +769,26 @@ test('S4 browser: saved cooking scenario shows modeled week-end stock and energy
  assert.equal(saved.preparation.forecastFoodMode,'curry');
  assert.equal(saved.preparation.forecastInventorySource,'simulation');
 });
+test('S4 browser: two-mode comparison displays both reference outcomes and invalidates on edits',()=>{
+ const app=boot({withSixth:true});
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepCapacity').value='100';
+ app.items.get('prepField').value='シアンの砂浜';
+ const original=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ app.callbacks.get('prepCompare:click')();
+ assert.equal(app.items.get('prepCompare').disabled,true);
+ assert.match(app.items.get('prepCompareStatus').textContent,/比較|試算中/);
+ app.flushTimers();
+ assert.equal(app.items.get('prepCompare').disabled,false);
+ assert.equal(app.items.get('prepCompareResult').hidden,false,app.items.get('prepCompareStatus').textContent);
+ assert.equal(app.items.get('prepCompareRows').children.length,2);
+ assert.match(app.items.get('prepCompareRows').children[0].children[0].textContent,/今週のエナジー優先/);
+ assert.match(app.items.get('prepCompareRows').children[0].children[1].textContent,/準備週エナジー参考値/);
+ assert.ok(app.items.get('prepCompareWarnings').children.some(x=>x.textContent.includes('最適化の証明')));
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.deepEqual(saved.sleepIds,original.sleepIds);
+ assert.deepEqual(saved.simulation.teams,original.simulation?.teams||{morning:[],noon:[],evening:[]});
+ app.items.get('prepCapacity').value='101';
+ app.callbacks.get('prepCapacity:change')({type:'change'});
+ assert.equal(app.items.get('prepCompareResult').hidden,true);
+});

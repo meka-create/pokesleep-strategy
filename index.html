@@ -80,7 +80,7 @@
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 4 · v0.4.3</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 4 · v0.4.4</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -280,6 +280,8 @@
   <p class="small muted wide">料理ありを選ぶ場合は、先に「7日試算」タブで料理レシピ・方式・初期食材等を保存してください。カテゴリは準備週のものを指定します。料理成立と週末残数は期待値近似で、実ゲームの確率や持ち越し数を保証しません。</p>
   <button class="secondary wide" type="button" id="prepForecast">参考編成の7日間食材獲得量を試算</button>
   <p class="small muted wide" id="prepForecastStatus" role="status" aria-live="polite"></p>
+  <button class="secondary wide" type="button" id="prepCompare">備蓄優先／今週のエナジー優先を比較</button>
+  <p class="small muted wide" id="prepCompareStatus" role="status" aria-live="polite"></p>
  </div>
  <div id="prepResult" class="card sim-result" hidden>
   <h4 id="prepSummary"></h4>
@@ -295,6 +297,11 @@
    <p class="small" id="prepForecastSummary"></p>
    <div id="prepForecastIngredients" class="step4-ingredient-table"></div>
    <div id="prepForecastWarnings" class="sim-warnings"></div>
+  </div>
+  <div id="prepCompareResult" hidden>
+   <div class="section-heading minor"><h3>準備週の2方針・同一条件での参考比較</h3></div>
+   <div id="prepCompareRows" class="step4-ingredient-table"></div>
+   <div id="prepCompareWarnings" class="sim-warnings"></div>
   </div>
   <div id="prepWarnings" class="sim-warnings"></div>
   <p class="small muted">これは<strong>準備週専用の参考ガイド</strong>です。選んだ睡眠5匹とイベント週の編成は自動変更しません。日中の変更はゲーム内で操作してください。</p>
@@ -2997,7 +3004,36 @@ function forecast({box,sleepIds,teams,plan:prepared,weeklyOptions,field,fieldBon
    '結果は確率的な獲得・残存在庫の期待値近似であり、整数の保証数、目標達成確率、最適編成の証明ではありません。'
   ],exact:false};
 }
-const api={plan,ingredientGuide,forecast};
+// Compare two explicitly labelled *heuristics* under the same week settings.
+// Required-ingredient shortfall is measured against the same event recipe demand,
+// not each mode's different bag-share target. Never infer a winning strategy.
+function compareModes({planInput,box,sleepIds,dayTeams,weeklyOptions,field,fieldBonus,camp,
+ cookingMode='none',foodMode='random',inventorySource='carryover'},simulate){
+ if(!planInput||typeof planInput!=='object'||Array.isArray(planInput))
+  throw Error('比較する備蓄計画がありません。');
+ const scenarios={};
+ for(const priority of ['energy','stock']){
+  const prepared=plan({...planInput,priority});
+  const guide=ingredientGuide({box,sleepIds,dayTeams,plan:prepared});
+  if(!guide.teams)throw Error('比較に必要な準備週の5匹編成を作成できません。');
+  const estimate=forecast({box,sleepIds,teams:guide.teams,plan:prepared,weeklyOptions,
+   field,fieldBonus,camp,cookingMode,foodMode,inventorySource},simulate);
+  const finalByKey=new Map(estimate.rows.map(r=>[r.key,r.expectedFinal]));
+  const expectedRequiredShortfall=prepared.rows.reduce((sum,r)=>
+   sum+Math.max(0,r.required-(finalByKey.get(r.key)||0)),0);
+  scenarios[priority]={priority,teams:guide.teams,forecast:estimate,
+   plannedNew:prepared.plannedNew,expectedRequiredShortfall,
+   warnings:[...prepared.warnings,...guide.warnings],exact:false};
+ }
+ const sameTeams=['morning','noon','evening'].every(key=>
+  scenarios.energy.teams[key].every((id,i)=>id===scenarios.stock.teams[key][i]));
+ return {scenarios,sameTeams,exact:false,assumptions:[
+  '二つの方針は新規備蓄の暫定配分比率（30%／90%）と参考編成を比較したものです。最適化の証明や推奨順位ではありません。',
+  '不足は両方とも同じイベント週の料理必要総数から週末期待在庫を引いた参考値です。実際の整数在庫・成立確率は保証されません。',
+  '今週のエナジーは同じ既存7日モデルで計算しています。備蓄との交換比率を評価した総合スコアではありません。'
+ ]};
+}
+const api={plan,ingredientGuide,forecast,compareModes};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeStep4=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -4273,8 +4309,11 @@ let prepForecastToken=0;
 function stalePreparation(){
  prepForecastToken++;
  $('prepForecast').disabled=false;
+ $('prepCompare').disabled=false;
  $('prepForecastResult').hidden=true;
  $('prepForecastStatus').textContent='';
+ $('prepCompareResult').hidden=true;
+ $('prepCompareStatus').textContent='';
  if(!$('prepResult').hidden)$('prepStale').hidden=false;
 }
 function fillPrepRecipeOptions(select){
@@ -4335,8 +4374,10 @@ function fillPreparation(){
  }
  prepForecastToken++;
  $('prepForecast').disabled=false;
+ $('prepCompare').disabled=false;
  $('prepResult').hidden=true;$('prepStale').hidden=true;$('prepError').hidden=true;
  $('prepForecastResult').hidden=true;$('prepForecastStatus').textContent='';
+ $('prepCompareResult').hidden=true;$('prepCompareStatus').textContent='';
 }
 function readPreparation(){
  const getInt=(id,min,max)=>{
@@ -4383,7 +4424,9 @@ function calculatePreparation(){
   if(!save()){state.preparation=previous;throw Error('準備計画を保存できませんでした。保存領域を確認してください。');}
   prepForecastToken++;
   $('prepForecast').disabled=false;
+  $('prepCompare').disabled=false;
   $('prepForecastResult').hidden=true;$('prepForecastStatus').textContent='';
+  $('prepCompareResult').hidden=true;$('prepCompareStatus').textContent='';
   const format=n=>n.toLocaleString('ja-JP');
   $('prepSummary').textContent=result.recipe?
    '「'+result.recipe.name+'」'+result.meals+'食分の計画':
@@ -4477,6 +4520,56 @@ function forecastPreparation(){
   }finally{if(token===prepForecastToken)button.disabled=false;}
  },0);
 }
+function comparePreparation(){
+ const prepared=calculatePreparation();
+ if(!prepared)return;
+ const token=++prepForecastToken;
+ const status=$('prepCompareStatus'),button=$('prepCompare');
+ button.disabled=true;status.textContent='同じ準備週条件で2つの参考編成を試算中…';
+ setTimeout(()=>{
+  try{
+   if(token!==prepForecastToken)return;
+   const comparison=PokeStep4.compareModes({
+    planInput:{...prepared.prep,potSize:state.simulation.potSize,
+     foodMode:state.event.food1,eventEffects:state.event.effects},
+    box:state.box,sleepIds:state.sleepIds,dayTeams:state.simulation.teams,
+    weeklyOptions:state.simulation,field:prepared.prep.field,
+    fieldBonus:prepared.prep.fieldBonus,camp:state.event.campPrep,
+    cookingMode:prepared.prep.forecastCooking,
+    foodMode:prepared.prep.forecastFoodMode,
+    inventorySource:prepared.prep.forecastInventorySource
+   },PokeSimulator.simulate);
+   if(token!==prepForecastToken)return;
+   const one=n=>n.toLocaleString('ja-JP',{maximumFractionDigits:1,minimumFractionDigits:1});
+   const display=$('prepCompareRows');display.replaceChildren();
+   for(const [priority,label] of [['energy','今週のエナジー優先'],['stock','イベント備蓄優先']]){
+    const scenario=comparison.scenarios[priority];
+    const line=document.createElement('div');line.className='step4-ingredient-line';
+    const title=document.createElement('strong');title.textContent=label;
+    const detail=document.createElement('span');
+    detail.textContent='新規備蓄の配分目標 '+scenario.plannedNew+'個／'+
+     '料理必要総数に対する週末不足の期待値 '+one(scenario.expectedRequiredShortfall)+'個／'+
+     '週末バッグ期待値 '+one(scenario.forecast.expectedBagEnd)+'個／'+
+     '準備週エナジー参考値 '+(scenario.forecast.weeklyEnergy===null?'計算不可':
+      Math.round(scenario.forecast.weeklyEnergy).toLocaleString('ja-JP'));
+    line.append(title,detail);display.append(line);
+   }
+   const warnings=$('prepCompareWarnings');warnings.replaceChildren();
+   for(const message of [comparison.sameTeams?
+    '両方の方針で日中の参考編成は同じです。数値が同じでも異常とは限りません。':
+    '日中の参考編成は方針により異なります。睡眠5匹とイベント週の編成は変更していません。',
+    ...comparison.assumptions,...comparison.scenarios.energy.forecast.assumptions,
+    ...comparison.scenarios.energy.forecast.modelWarnings,
+    ...comparison.scenarios.stock.forecast.modelWarnings]){
+    const line=document.createElement('p');line.textContent='・'+message;warnings.append(line);
+   }
+   $('prepCompareResult').hidden=false;
+   status.textContent='2方針の参考比較が完了しました。最適順位や実ゲーム精度の判定ではありません。';
+  }catch(e){
+   if(token===prepForecastToken)status.textContent='2方針の比較ができませんでした：'+(e.message||String(e));
+  }finally{if(token===prepForecastToken)button.disabled=false;}
+ },0);
+}
 for(const id of ['prepRecipe','prepMeals','prepCapacity','prepPriority'])
  $(id).addEventListener('change',stalePreparation);
 for(const id of ['prepField','prepFieldBonus','prepForecastCooking','prepForecastFoodMode','prepForecastStockSource'])
@@ -4487,6 +4580,7 @@ for(const id of ['eventStart','eventMap','food1','eventEffects','campPrep'])
  $(id).addEventListener('change',stalePreparation);
 $('prepCalculate').addEventListener('click',calculatePreparation);
 $('prepForecast').addEventListener('click',forecastPreparation);
+$('prepCompare').addEventListener('click',comparePreparation);
 
 fillEvent();renderBox();fillSimulation();fillPreparation();setTab('event');
 })();

@@ -593,8 +593,11 @@ let prepForecastToken=0;
 function stalePreparation(){
  prepForecastToken++;
  $('prepForecast').disabled=false;
+ $('prepCompare').disabled=false;
  $('prepForecastResult').hidden=true;
  $('prepForecastStatus').textContent='';
+ $('prepCompareResult').hidden=true;
+ $('prepCompareStatus').textContent='';
  if(!$('prepResult').hidden)$('prepStale').hidden=false;
 }
 function fillPrepRecipeOptions(select){
@@ -655,8 +658,10 @@ function fillPreparation(){
  }
  prepForecastToken++;
  $('prepForecast').disabled=false;
+ $('prepCompare').disabled=false;
  $('prepResult').hidden=true;$('prepStale').hidden=true;$('prepError').hidden=true;
  $('prepForecastResult').hidden=true;$('prepForecastStatus').textContent='';
+ $('prepCompareResult').hidden=true;$('prepCompareStatus').textContent='';
 }
 function readPreparation(){
  const getInt=(id,min,max)=>{
@@ -703,7 +708,9 @@ function calculatePreparation(){
   if(!save()){state.preparation=previous;throw Error('準備計画を保存できませんでした。保存領域を確認してください。');}
   prepForecastToken++;
   $('prepForecast').disabled=false;
+  $('prepCompare').disabled=false;
   $('prepForecastResult').hidden=true;$('prepForecastStatus').textContent='';
+  $('prepCompareResult').hidden=true;$('prepCompareStatus').textContent='';
   const format=n=>n.toLocaleString('ja-JP');
   $('prepSummary').textContent=result.recipe?
    '「'+result.recipe.name+'」'+result.meals+'食分の計画':
@@ -797,6 +804,56 @@ function forecastPreparation(){
   }finally{if(token===prepForecastToken)button.disabled=false;}
  },0);
 }
+function comparePreparation(){
+ const prepared=calculatePreparation();
+ if(!prepared)return;
+ const token=++prepForecastToken;
+ const status=$('prepCompareStatus'),button=$('prepCompare');
+ button.disabled=true;status.textContent='同じ準備週条件で2つの参考編成を試算中…';
+ setTimeout(()=>{
+  try{
+   if(token!==prepForecastToken)return;
+   const comparison=PokeStep4.compareModes({
+    planInput:{...prepared.prep,potSize:state.simulation.potSize,
+     foodMode:state.event.food1,eventEffects:state.event.effects},
+    box:state.box,sleepIds:state.sleepIds,dayTeams:state.simulation.teams,
+    weeklyOptions:state.simulation,field:prepared.prep.field,
+    fieldBonus:prepared.prep.fieldBonus,camp:state.event.campPrep,
+    cookingMode:prepared.prep.forecastCooking,
+    foodMode:prepared.prep.forecastFoodMode,
+    inventorySource:prepared.prep.forecastInventorySource
+   },PokeSimulator.simulate);
+   if(token!==prepForecastToken)return;
+   const one=n=>n.toLocaleString('ja-JP',{maximumFractionDigits:1,minimumFractionDigits:1});
+   const display=$('prepCompareRows');display.replaceChildren();
+   for(const [priority,label] of [['energy','今週のエナジー優先'],['stock','イベント備蓄優先']]){
+    const scenario=comparison.scenarios[priority];
+    const line=document.createElement('div');line.className='step4-ingredient-line';
+    const title=document.createElement('strong');title.textContent=label;
+    const detail=document.createElement('span');
+    detail.textContent='新規備蓄の配分目標 '+scenario.plannedNew+'個／'+
+     '料理必要総数に対する週末不足の期待値 '+one(scenario.expectedRequiredShortfall)+'個／'+
+     '週末バッグ期待値 '+one(scenario.forecast.expectedBagEnd)+'個／'+
+     '準備週エナジー参考値 '+(scenario.forecast.weeklyEnergy===null?'計算不可':
+      Math.round(scenario.forecast.weeklyEnergy).toLocaleString('ja-JP'));
+    line.append(title,detail);display.append(line);
+   }
+   const warnings=$('prepCompareWarnings');warnings.replaceChildren();
+   for(const message of [comparison.sameTeams?
+    '両方の方針で日中の参考編成は同じです。数値が同じでも異常とは限りません。':
+    '日中の参考編成は方針により異なります。睡眠5匹とイベント週の編成は変更していません。',
+    ...comparison.assumptions,...comparison.scenarios.energy.forecast.assumptions,
+    ...comparison.scenarios.energy.forecast.modelWarnings,
+    ...comparison.scenarios.stock.forecast.modelWarnings]){
+    const line=document.createElement('p');line.textContent='・'+message;warnings.append(line);
+   }
+   $('prepCompareResult').hidden=false;
+   status.textContent='2方針の参考比較が完了しました。最適順位や実ゲーム精度の判定ではありません。';
+  }catch(e){
+   if(token===prepForecastToken)status.textContent='2方針の比較ができませんでした：'+(e.message||String(e));
+  }finally{if(token===prepForecastToken)button.disabled=false;}
+ },0);
+}
 for(const id of ['prepRecipe','prepMeals','prepCapacity','prepPriority'])
  $(id).addEventListener('change',stalePreparation);
 for(const id of ['prepField','prepFieldBonus','prepForecastCooking','prepForecastFoodMode','prepForecastStockSource'])
@@ -807,6 +864,7 @@ for(const id of ['eventStart','eventMap','food1','eventEffects','campPrep'])
  $(id).addEventListener('change',stalePreparation);
 $('prepCalculate').addEventListener('click',calculatePreparation);
 $('prepForecast').addEventListener('click',forecastPreparation);
+$('prepCompare').addEventListener('click',comparePreparation);
 
 fillEvent();renderBox();fillSimulation();fillPreparation();setTab('event');
 })();
