@@ -747,3 +747,25 @@ test('S4 browser: preparation forecast refuses missing field without false compl
  assert.equal(app.items.get('prepForecastResult').hidden,true);
  assert.match(app.items.get('prepForecastStatus').textContent,/フィールドを指定/);
 });
+test('S4 browser: saved cooking scenario shows modeled week-end stock and energy separately',()=>{
+ const app=boot();
+ app.callbacks.get('fillAllRosters:click')();
+ app.items.get('simRecipe').value='apple_curry';
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepCapacity').value='600';
+ app.items.get('prepField').value='シアンの砂浜';
+ app.items.get('prepForecastCooking').value='saved';
+ app.items.get('prepForecastFoodMode').value='curry';
+ app.items.get('prepForecastStockSource').value='simulation';
+ app.callbacks.get('prepForecast:click')();app.flushTimers();
+ assert.equal(app.items.get('prepForecastResult').hidden,false,app.items.get('prepForecastStatus').textContent);
+ assert.match(app.items.get('prepForecastSummary').textContent,/料理あり/);
+ assert.match(app.items.get('prepForecastSummary').textContent,/週間エナジー参考値/);
+ assert.ok(app.items.get('prepForecastIngredients').children.some(x=>x.children[1]?.textContent.includes('週末在庫期待')));
+ const saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(saved.preparation.forecastCooking,'saved');
+ assert.equal(saved.preparation.forecastFoodMode,'curry');
+ assert.equal(saved.preparation.forecastInventorySource,'simulation');
+});

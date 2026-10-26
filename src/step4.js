@@ -139,7 +139,8 @@ function ingredientGuide({box,sleepIds,dayTeams,plan:prepared}){
 // do not manufacture a second ingredient-production formula or infer the
 // preparation field from the *event* field. This is not a forecast of the
 // user's real cooking/stock movements during the preparation week.
-function forecast({box,sleepIds,teams,plan:prepared,weeklyOptions,field,fieldBonus,camp},simulate){
+function forecast({box,sleepIds,teams,plan:prepared,weeklyOptions,field,fieldBonus,camp,
+ cookingMode='none',foodMode='random',inventorySource='carryover'},simulate){
  if(typeof simulate!=='function')throw Error('週間計算器を利用できません。');
  if(typeof field!=='string'||!field.trim()||field.length>80)
   throw Error('準備週のフィールドを指定してください。');
@@ -151,39 +152,66 @@ function forecast({box,sleepIds,teams,plan:prepared,weeklyOptions,field,fieldBon
   throw Error('準備週の参考編成と固定睡眠5匹を先に用意してください。');
  if(!weeklyOptions||typeof weeklyOptions!=='object'||Array.isArray(weeklyOptions))
   throw Error('週間試算条件がありません。');
+ if(!['none','saved'].includes(cookingMode)||
+    !['random','curry','salad','dessert'].includes(foodMode)||
+    !['carryover','simulation'].includes(inventorySource))
+  throw Error('準備週の参考試算条件が不正です。');
+ if(cookingMode==='saved'&&foodMode==='random')
+  throw Error('料理ありの試算では準備週の料理カテゴリを指定してください。');
+ if(cookingMode==='saved'&&weeklyOptions.recipeMode!=='best'&&!weeklyOptions.recipeId)
+  throw Error('7日試算タブで料理レシピを選択して保存してください。');
+ if(cookingMode==='saved'&&weeklyOptions.recipeMode!=='best'){
+  const recipe=Recipes.find(r=>r.id===weeklyOptions.recipeId);
+  if(!recipe||recipe.type!==foodMode)
+   throw Error('7日試算のレシピと準備週の料理カテゴリが一致しません。');
+ }
  const initialIngredients={};
- for(const r of prepared.rows){
-  if(!KEYS.includes(r.key))throw Error('備蓄計画の食材が不正です。');
-  if(r.carryover)initialIngredients[r.key]=integer(r.carryover,0,10000,'持ち越し予定数');
+ const source=inventorySource==='carryover'?
+  Object.fromEntries(prepared.rows.map(r=>[r.key,r.carryover])):
+  (weeklyOptions.initialIngredients||{});
+ for(const [key,value] of Object.entries(source)){
+  if(!KEYS.includes(key))throw Error('週初在庫の食材が不正です。');
+  const count=integer(value,0,10000,'週初在庫');
+  if(count)initialIngredients[key]=count;
  }
  const runInput={box,teams:{...teams,sleep:[...sleepIds]},options:{
   ...weeklyOptions,map:field.trim(),fieldBonus,camp:camp===true,
   bagCapacity:prepared.capacity,initialIngredients,
-  // Cooking is intentionally OFF; no imagined intermediate inventory refill.
-  recipeId:'',recipeMode:'fixed',foodMode:'random',extraMode:'none',
-  successMode:'none',eventEffects:''
+  recipeId:cookingMode==='saved'?weeklyOptions.recipeId:'',
+  recipeMode:cookingMode==='saved'?weeklyOptions.recipeMode:'fixed',
+  foodMode:cookingMode==='saved'?foodMode:'random',
+  extraMode:cookingMode==='saved'?weeklyOptions.extraMode:'none',
+  successMode:cookingMode==='saved'?weeklyOptions.successMode:'none',
+  eventEffects:''
  }};
  const result=simulate(runInput);
- if(!result||!result.ingredients||typeof result.ingredients!=='object'||Array.isArray(result.ingredients))
+ if(!result||!result.ingredients||typeof result.ingredients!=='object'||Array.isArray(result.ingredients)||
+    !result.inventory||typeof result.inventory!=='object'||Array.isArray(result.inventory))
   throw Error('週間計算器の食材出力が不正です。');
- for(const [key,value] of Object.entries(result.ingredients))
+ for(const [key,value] of [...Object.entries(result.ingredients),...Object.entries(result.inventory)])
   if(!KEYS.includes(key)||!Number.isFinite(value)||value<0)
    throw Error('週間計算器の食材出力が不正です。');
- const rows=prepared.rows.filter(r=>r.toGather>0).map(r=>{
-  const expected=result.ingredients[r.key]||0;
+ const rows=prepared.rows.filter(r=>r.required>0||r.target>0).map(r=>{
+  const expected=result.ingredients[r.key]||0,final=result.inventory[r.key]||0;
   return {key:r.key,name:r.name,targetNew:r.toGather,expectedNew:expected,
-   expectedShortfall:Math.max(0,r.toGather-expected)};
+   expectedFinal:final,targetFinal:r.target,
+   expectedShortfall:Math.max(0,r.target-final)};
  });
- return {field:field.trim(),fieldBonus,camp:camp===true,
+ return {field:field.trim(),fieldBonus,camp:camp===true,cookingMode,foodMode,inventorySource,
   targetNew:rows.reduce((sum,r)=>sum+r.targetNew,0),
   expectedNew:rows.reduce((sum,r)=>sum+r.expectedNew,0),
   rows,allExpectedNew:Object.values(result.ingredients).reduce((sum,v)=>sum+v,0),
+  expectedBagEnd:Object.values(result.inventory).reduce((sum,v)=>sum+v,0),
+  weeklyEnergy:Number.isFinite(result.total)?result.total:null,
+  cookingEnergy:Number.isFinite(result.cooking)?result.cooking:null,
   modelWarnings:Array.isArray(result.warnings)?[...result.warnings]:[],
   assumptions:[
-   'イベント週へ持ち越す予定の食材を、準備週の開始時点ですでに所持している仮定です。実際の現在庫とは限りません。',
-   '準備週は料理を一切せず、バッグ容量内で食材を回収する仮定です。食事による消費・空き枠増加・げんき回復・料理エナジーは含みません。',
+   inventorySource==='carryover'? 'イベント週へ持ち越す予定の食材を準備週の開始時点で所持している仮定です。実際の現在庫とは限りません。':
+    '週初在庫は「7日試算」で最後に保存した初期食材数です。準備週の現在庫として正しいか確認が必要です。',
+   cookingMode==='none'?'準備週は料理を一切せず、バッグ容量内で食材を回収する仮定です。食事の消費・回復・エナジーは含みません。':
+    '準備週の料理は「7日試算」で保存したレシピ・料理方式を使います。成立は期待食材数に依存する近似で、失敗分岐・実際の食事時刻を検証していません。',
    '回収間隔・睡眠スコア・初期げんき・食材ゲット系の抽選候補は「7日試算」の保存設定を利用します。',
-   '結果は確率的な獲得期待値の近似であり、整数の保証数、目標達成確率、最適編成の証明ではありません。'
+   '結果は確率的な獲得・残存在庫の期待値近似であり、整数の保証数、目標達成確率、最適編成の証明ではありません。'
   ],exact:false};
 }
 const api={plan,ingredientGuide,forecast};

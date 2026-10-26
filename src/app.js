@@ -642,6 +642,9 @@ function fillPreparation(){
  $('prepPriority').value=prep.priority;
  $('prepField').value=prep.field||'';
  $('prepFieldBonus').value=prep.fieldBonus??0;
+ $('prepForecastCooking').value=prep.forecastCooking||'none';
+ $('prepForecastFoodMode').value=prep.forecastFoodMode||'random';
+ $('prepForecastStockSource').value=prep.forecastInventorySource||'carryover';
  const holder=$('prepCarryFields');holder.replaceChildren();
  for(const [key,name] of Object.entries(PokeMaster.ingredients)){
   const label=document.createElement('label');label.className='field';
@@ -682,7 +685,10 @@ function readPreparation(){
   throw Error('予定食数の合計は21食以内にしてください。');
  return {recipeId:recipeTargets[0].recipeId,meals:recipeTargets[0].meals,recipeTargets,
   bagCapacity:getInt('prepCapacity',1,10000),priority:$('prepPriority').value,
-  carryover,field:$('prepField').value.trim(),fieldBonus:getInt('prepFieldBonus',0,100)};
+  carryover,field:$('prepField').value.trim(),fieldBonus:getInt('prepFieldBonus',0,100),
+  forecastCooking:$('prepForecastCooking').value,
+  forecastFoodMode:$('prepForecastFoodMode').value,
+  forecastInventorySource:$('prepForecastStockSource').value};
 }
 function calculatePreparation(){
  const error=$('prepError');error.hidden=true;
@@ -755,21 +761,29 @@ function forecastPreparation(){
     box:state.box,sleepIds:state.sleepIds,teams:prepared.guide.teams,
     plan:prepared.result,weeklyOptions:state.simulation,
     field:prepared.prep.field,fieldBonus:prepared.prep.fieldBonus,
-    camp:state.event.campPrep
+    camp:state.event.campPrep,
+    cookingMode:prepared.prep.forecastCooking,
+    foodMode:prepared.prep.forecastFoodMode,
+    inventorySource:prepared.prep.forecastInventorySource
    },PokeSimulator.simulate);
    if(token!==prepForecastToken)return;
    const one=n=>n.toLocaleString('ja-JP',{maximumFractionDigits:1,minimumFractionDigits:1});
    $('prepForecastSummary').textContent='準備週 '+forecast.field+'（FB '+forecast.fieldBonus+'%、いいキャンプ'+
-    (forecast.camp?'ON':'OFF')+'）／目標の新規備蓄 '+forecast.targetNew+
-    '個／対象食材の7日獲得期待値 '+one(forecast.expectedNew)+
-    '個（全食材の獲得期待値 '+one(forecast.allExpectedNew)+'個）。';
+    (forecast.camp?'ON':'OFF')+'）／'+
+    (forecast.cookingMode==='none'?'料理なし':'料理あり')+
+    '／新規備蓄目標 '+forecast.targetNew+
+    '個／対象食材の獲得期待値 '+one(forecast.expectedNew)+
+    '個／週末バッグ合計期待値 '+one(forecast.expectedBagEnd)+'個'+
+    (forecast.cookingMode==='saved'&&forecast.weeklyEnergy!==null?
+     '／週間エナジー参考値 '+Math.round(forecast.weeklyEnergy).toLocaleString('ja-JP')+
+      '（料理 '+Math.round(forecast.cookingEnergy||0).toLocaleString('ja-JP')+'）':'')+'。';
    const items=$('prepForecastIngredients');items.replaceChildren();
    for(const r of forecast.rows){
     const line=document.createElement('div');line.className='step4-ingredient-line';
     const name=document.createElement('strong');name.textContent=r.name;
     const detail=document.createElement('span');
-    detail.textContent='新規目標 '+r.targetNew+'／期待獲得 '+one(r.expectedNew)+
-     '／期待値上の不足 '+one(r.expectedShortfall);
+    detail.textContent='イベント開始目標 '+r.targetFinal+'／獲得期待 '+one(r.expectedNew)+
+     '／週末在庫期待 '+one(r.expectedFinal)+'／期待値上の不足 '+one(r.expectedShortfall);
     line.append(name,detail);items.append(line);
    }
    const warnings=$('prepForecastWarnings');warnings.replaceChildren();
@@ -785,7 +799,8 @@ function forecastPreparation(){
 }
 for(const id of ['prepRecipe','prepMeals','prepCapacity','prepPriority'])
  $(id).addEventListener('change',stalePreparation);
-for(const id of ['prepField','prepFieldBonus'])$(id).addEventListener('change',stalePreparation);
+for(const id of ['prepField','prepFieldBonus','prepForecastCooking','prepForecastFoodMode','prepForecastStockSource'])
+ $(id).addEventListener('change',stalePreparation);
 $('prepAddRecipe').addEventListener('click',()=>{appendPrepRecipeEditor();stalePreparation();});
 $('prepCarryFields').addEventListener('change',stalePreparation);
 for(const id of ['eventStart','eventMap','food1','eventEffects','campPrep'])
