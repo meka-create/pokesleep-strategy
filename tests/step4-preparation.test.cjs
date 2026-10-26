@@ -133,7 +133,7 @@ test('S4-C: preparation week forecast reuses one weekly engine with explicit no-
  const forecast=api.forecast({box,sleepIds,teams,plan:prepared,field:'シアンの砂浜',fieldBonus:25,camp:true,
   weeklyOptions:{tapMinutes:150,sleepScore:88,initialEnergy:100,initialIngredients:{apple:999},
    recipeId:'curry_03',recipeMode:'best',extraMode:'fill',successMode:'expected',eventEffects:'bonus'}},
-  input=>{captured=input;return {ingredients:{apple:12.5,tomato:4},warnings:['モデル警告']};});
+  input=>{captured=input;return {ingredients:{apple:12.5,tomato:4},inventory:{apple:22.5,tomato:4},warnings:['モデル警告']};});
  assert.equal(captured.options.map,'シアンの砂浜');
  assert.equal(captured.options.fieldBonus,25);
  assert.equal(captured.options.camp,true);
@@ -147,8 +147,9 @@ test('S4-C: preparation week forecast reuses one weekly engine with explicit no-
  assert.equal(captured.options.eventEffects,'');
  assert.deepEqual(plain(captured.teams.sleep),sleepIds);
  assert.equal(forecast.rows[0].expectedNew,12.5);
- assert.equal(forecast.rows[0].expectedShortfall,Math.max(0,forecast.rows[0].targetNew-12.5));
+ assert.equal(forecast.rows[0].expectedShortfall,Math.max(0,forecast.rows[0].targetFinal-22.5));
  assert.equal(forecast.allExpectedNew,16.5);
+ assert.equal(forecast.expectedBagEnd,26.5);
  assert.equal(forecast.exact,false);
  assert.deepEqual(plain(forecast.modelWarnings),['モデル警告']);
  assert.equal(JSON.stringify({prepared,teams}),before);
@@ -157,10 +158,39 @@ test('S4-C: forecast refuses unknown field and malformed model output, never cla
  const prepared=api.plan(data()),box=Array.from({length:5},(_,i)=>({id:'p'+i}));
  const sleepIds=box.map(p=>p.id),teams={morning:[...sleepIds],noon:[...sleepIds],evening:[...sleepIds]};
  const args={box,sleepIds,teams,plan:prepared,weeklyOptions:{},field:'',fieldBonus:0,camp:false};
- assert.throws(()=>api.forecast(args,()=>({ingredients:{}})),/フィールド/);
- assert.throws(()=>api.forecast({...args,field:'ワカクサ本島',fieldBonus:101},()=>({ingredients:{}})),/ボーナス/);
- assert.throws(()=>api.forecast({...args,field:'ワカクサ本島'},()=>({ingredients:{apple:NaN}})),/食材出力/);
- assert.throws(()=>api.forecast({...args,field:'ワカクサ本島'},()=>({ingredients:{INVALID:5}})),/食材出力/);
+ assert.throws(()=>api.forecast(args,()=>({ingredients:{},inventory:{}})),/フィールド/);
+ assert.throws(()=>api.forecast({...args,field:'ワカクサ本島',fieldBonus:101},()=>({ingredients:{},inventory:{}})),/ボーナス/);
+ assert.throws(()=>api.forecast({...args,field:'ワカクサ本島'},()=>({ingredients:{apple:NaN},inventory:{}})),/食材出力/);
+ assert.throws(()=>api.forecast({...args,field:'ワカクサ本島'},()=>({ingredients:{INVALID:5},inventory:{}})),/食材出力/);
+});
+test('S4-D: cooking scenario uses explicitly saved recipe and inventory without changing event settings',()=>{
+ const prepared=api.plan(data()),box=Array.from({length:5},(_,i)=>({id:'p'+i}));
+ const sleepIds=box.map(p=>p.id),teams={morning:[...sleepIds],noon:[...sleepIds],evening:[...sleepIds]};
+ let captured;
+ const source={box,sleepIds,teams,plan:prepared,field:'シアンの砂浜',fieldBonus:40,camp:false,
+  cookingMode:'saved',foodMode:'curry',inventorySource:'simulation',weeklyOptions:{
+   initialIngredients:{apple:30},recipeId:'apple_curry',recipeMode:'fixed',
+   extraMode:'fill',successMode:'expected',tapMinutes:150}};
+ const before=JSON.stringify(source);
+ const f=api.forecast(source,input=>{
+  captured=input;
+  return {ingredients:{apple:20},inventory:{apple:17},total:12345,cooking:3456,warnings:['料理の未保証']};
+ });
+ assert.equal(captured.options.recipeId,'apple_curry');
+ assert.equal(captured.options.foodMode,'curry');
+ assert.equal(captured.options.recipeMode,'fixed');
+ assert.equal(captured.options.extraMode,'fill');
+ assert.equal(captured.options.successMode,'expected');
+ assert.deepEqual(plain(captured.options.initialIngredients),{apple:30});
+ assert.equal(f.cookingMode,'saved');
+ assert.equal(f.weeklyEnergy,12345);
+ assert.equal(f.cookingEnergy,3456);
+ assert.equal(f.rows[0].expectedFinal,17);
+ assert.equal(f.rows[0].expectedShortfall,Math.max(0,f.rows[0].targetFinal-17));
+ assert.equal(JSON.stringify(source),before);
+ assert.throws(()=>api.forecast({...source,foodMode:'random'},()=>({})),/料理カテゴリ/);
+ assert.throws(()=>api.forecast({...source,foodMode:'salad'},()=>({})),/一致しません/);
+ assert.throws(()=>api.forecast({...source,inventorySource:'unknown'},()=>({})),/不正/);
 });
 test('S4 backward compatibility: v1 JSON without prep settings gains safe defaults',()=>{
  const store=vm.createContext({});store.globalThis=store;
@@ -183,12 +213,19 @@ test('S4 old one-recipe backups migrate to new targets and multi-recipe targets 
  assert.deepEqual(plain(migrated.preparation.recipeTargets),[{recipeId:'apple_curry',meals:7}]);
  assert.equal(migrated.preparation.field,'');
  assert.equal(migrated.preparation.fieldBonus,0);
+ assert.equal(migrated.preparation.forecastCooking,'none');
+ assert.equal(migrated.preparation.forecastInventorySource,'carryover');
  migrated.preparation.recipeTargets=[{recipeId:'apple_curry',meals:7},{recipeId:'curry_03',meals:14}];
  migrated.preparation.field='ラピスラズリ湖畔';migrated.preparation.fieldBonus=42;
+ migrated.preparation.forecastCooking='saved';migrated.preparation.forecastFoodMode='curry';
+ migrated.preparation.forecastInventorySource='simulation';
  const restored=store.PokeStorage.validateState(JSON.parse(JSON.stringify(migrated)));
  assert.deepEqual(plain(restored.preparation.recipeTargets),plain(migrated.preparation.recipeTargets));
  assert.equal(restored.preparation.field,'ラピスラズリ湖畔');
  assert.equal(restored.preparation.fieldBonus,42);
+ assert.equal(restored.preparation.forecastCooking,'saved');
+ assert.equal(restored.preparation.forecastFoodMode,'curry');
+ assert.equal(restored.preparation.forecastInventorySource,'simulation');
  assert.throws(()=>store.PokeStorage.validateState({...restored,preparation:{...restored.preparation,fieldBonus:101}}),/準備週/);
  assert.throws(()=>store.PokeStorage.validateState({...restored,
   preparation:{...restored.preparation,recipeTargets:[...restored.preparation.recipeTargets,{recipeId:'curry_02',meals:1}]} }),/21食以内/);
