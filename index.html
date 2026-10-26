@@ -3656,6 +3656,7 @@ let lastRunSnapshot=null;
 function markResultsStale(keepComparison=false){
  const result=$('simResult'),warning=$('simStaleNotice');
  if(!result.hidden)warning.hidden=false;
+ stalePreparation();
  // Native change listeners pass an Event object; only the deliberate literal
  // boolean true (after applying a candidate) may preserve comparison values.
  if(keepComparison!==true)clearStep3Evaluations();
@@ -3704,7 +3705,7 @@ $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0
  for(const key of ['morning','noon','evening']){
   simTeams[key]=storage.reconcileSleepIds({box:state.box,sleepIds:state.simulation.teams[key]||[]},result.items);
  }
- state.box=result.items;state.sleepIds=kept;state.simulation.teams=simTeams;state.updatedAt=new Date().toISOString();const saved=save();renderBox();fillSimulation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`);
+ state.box=result.items;state.sleepIds=kept;state.simulation.teams=simTeams;state.updatedAt=new Date().toISOString();const saved=save();renderBox();fillSimulation();stalePreparation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`);
  }catch(e){$('importError').textContent=e.message||String(e);$('importError').hidden=false;}finally{ev.target.value='';}});
 $('downloadBackup').addEventListener('click',()=>{download(`pokesleep_event_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2),'application/json;charset=utf-8');toast('バックアップを保存しました。');});
 $('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;state=data;storage.allowRecovery();const saved=save();fillEvent();renderBox();fillSimulation();fillPreparation();lastRunSnapshot=null;$('simResult').hidden=true;notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
@@ -4296,6 +4297,7 @@ function fillPreparation(){
   label.append(title,input);holder.append(label);prepCarryEditors[key]=input;
  }
  prepForecastToken++;
+ $('prepForecast').disabled=false;
  $('prepResult').hidden=true;$('prepStale').hidden=true;$('prepError').hidden=true;
  $('prepForecastResult').hidden=true;$('prepForecastStatus').textContent='';
 }
@@ -4340,6 +4342,7 @@ function calculatePreparation(){
   const previous=state.preparation;state.preparation=prep;
   if(!save()){state.preparation=previous;throw Error('準備計画を保存できませんでした。保存領域を確認してください。');}
   prepForecastToken++;
+  $('prepForecast').disabled=false;
   $('prepForecastResult').hidden=true;$('prepForecastStatus').textContent='';
   const format=n=>n.toLocaleString('ja-JP');
   $('prepSummary').textContent=result.recipe?
