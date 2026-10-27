@@ -44,6 +44,7 @@ function renderBox(){status();renderSleep();let q=$('searchPokemon').value.toLoc
  // Sleep-party completion happens on the box tab; immediately sync the simulator
  // readiness gate rather than waiting for a new roster edit or a page reload.
  updateRosterStatus();
+ renderWeekPlan();
 }
 function download(filename,data,type){const blob=new Blob([data],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 $('eventDuration').addEventListener('change',showDuration);
