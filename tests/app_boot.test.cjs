@@ -989,3 +989,51 @@ test('W4 browser: editing unsaved selector after weekly search invalidates old p
  assert.deepEqual(JSON.parse(app.data.get(key)).weeklyPlan,baseline);
  assert.equal(app.items.get('weekProposal').hidden,true,'editing invalidates the old candidate');
 });
+
+
+test('W4 browser: sleep ON proposal applies seven autonomous nights and OFF restores manual nightly edits',()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ app.callbacks.get('fillAllRosters:click')();
+ app.callbacks.get('weekFillSleep:click')();
+ app.items.get('weekEditDay').value='4';app.items.get('weekEditSlot').value='sleep';
+ app.callbacks.get('weekEditDay:change')();app.callbacks.get('weekEditSlot:change')();
+ app.items.get('weekFiveEditors').children[4].value='i5';
+ app.callbacks.get('weekSaveSlot:click')();
+ const manual=JSON.parse(app.data.get(key)).weeklyPlan.manualSleepTeams;
+ app.items.get('weekAutoSleep').checked=true;
+ app.callbacks.get('weekAutoSleep:change')();
+ app.ctx.PokeWeekOptimizer.createSession=config=>{
+  const baseline={score:{total:600,berries:600,cooking:0,skills:0},
+   swaps:{total:7},teamsByDay:config.teamsByDay,
+   sleepTeamsByDay:config.sleepTeamsByDay};
+  const best=JSON.parse(JSON.stringify(baseline));
+  best.score.total=650;best.score.berries=650;
+  best.sleepTeamsByDay[1][4]='i5';best.sleepTeamsByDay[4][4]='i4';
+  return {step:()=>({done:true,evaluations:1,maxEvaluations:12,baseline,best})};
+ };
+ app.callbacks.get('weekSearch:click')();app.flushTimers();
+ assert.equal(app.items.get('weekError').hidden,true,app.items.get('weekError').textContent);
+ assert.equal(app.items.get('weekProposal').hidden,false);
+ app.callbacks.get('weekApplyProposal:click')();
+ let saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.sleepAuto,true);
+ assert.equal(saved.weeklyPlan.autoSleepTeams[1][4],'i5');
+ assert.equal(saved.weeklyPlan.autoSleepTeams[4][4],'i4');
+ assert.deepEqual(saved.weeklyPlan.manualSleepTeams,manual);
+ app.items.get('weekAutoSleep').checked=false;
+ app.callbacks.get('weekAutoSleep:change')();
+ saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.sleepAuto,false);
+ assert.deepEqual(saved.weeklyPlan.manualSleepTeams,manual);
+ assert.equal(saved.weeklyPlan.manualSleepTeams[4][4],'i5');
+});
+test('W4 browser: failed localStorage write rolls back weekly sleep bulk action',()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ const before=app.data.get(key);
+ app.setFailWrites(true);
+ app.callbacks.get('weekFillSleep:click')();
+ app.setFailWrites(false);
+ assert.equal(app.data.get(key),before);
+ assert.deepEqual(JSON.parse(app.data.get(key)).weeklyPlan,undefined);
+ assert.equal(app.items.get('weekAutoSleep').checked,false);
+});
