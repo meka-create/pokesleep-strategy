@@ -982,6 +982,12 @@ function renderWeekPlan(){
   '現在の週間計画を表示しています。編集した曜日・時間帯だけ保存します。';
  renderWeekEditor();
 }
+$('weekFiveEditors').addEventListener('change',()=>{
+ if(unsavedWeekSlot()&&(weekPreview||$('weekSearch').disabled)){
+  invalidateWeekProposal();
+  $('weekProgress').textContent='5匹の未保存変更があるため、以前の週間提案を破棄しました。編成を保存してから再探索してください。';
+ }
+});
 function switchWeekEditor(){
  if(unsavedWeekSlot()&&!confirm('編集中の5匹をまだ保存していません。変更を破棄して切り替えますか？')){
   $('weekEditDay').value=String(weekEditorBaseline.day);
