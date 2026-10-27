@@ -982,7 +982,10 @@ test('W4 browser: editing unsaved selector after weekly search invalidates old p
  app.flushTimers();
  assert.equal(app.items.get('weekProposal').hidden,false);
  app.items.get('weekFiveEditors').children[4].value='i5';
+ app.callbacks.get('weekFiveEditors:change')();
+ assert.equal(app.items.get('weekProposal').hidden,true);
+ assert.match(app.items.get('weekProgress').textContent,/未保存変更/);
  app.callbacks.get('weekApplyProposal:click')();
  assert.deepEqual(JSON.parse(app.data.get(key)).weeklyPlan,baseline);
- assert.equal(app.items.get('weekProposal').hidden,false,'candidate remains for later controlled re-evaluation');
+ assert.equal(app.items.get('weekProposal').hidden,true,'editing invalidates the old candidate');
 });
