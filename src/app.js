@@ -867,5 +867,140 @@ $('prepCalculate').addEventListener('click',calculatePreparation);
 $('prepForecast').addEventListener('click',forecastPreparation);
 $('prepCompare').addEventListener('click',comparePreparation);
 
-fillEvent();renderBox();fillSimulation();fillPreparation();setTab('event');
+
+/* W3: compact day-by-day editing. Keep seven manual nights independent
+ * from opt-in automatic nights, and never mutate them on a mere toggle.
+ */
+const weekNames=['月','火','水','木','金','土','日'];
+const weekPeriods=['morning','noon','evening','sleep'];
+const weekPeriodNames={morning:'朝',noon:'昼',evening:'夜',sleep:'睡眠'};
+let weekPreview=null,weekSearchToken=0,weekSearchConfig=null;
+function cloneWeekDay(row){
+ return {morning:[...row.morning],noon:[...row.noon],evening:[...row.evening]};
+}
+function currentWeekPlan(){
+ const plan=state.weeklyPlan||storage.defaultWeeklyPlan();
+ const dayTeams=plan.dayTeams.length===7?plan.dayTeams.map(cloneWeekDay):
+  Array.from({length:7},()=>Object.fromEntries(rosterKeys.map(k=>[k,[...(state.simulation.teams[k]||[])]])));
+ const manual=plan.manualSleepTeams.length===7?plan.manualSleepTeams.map(row=>[...row]):
+  Array.from({length:7},()=>[...state.sleepIds]);
+ const auto=plan.autoSleepTeams.length===7?plan.autoSleepTeams.map(row=>[...row]):[];
+ return {plan,dayTeams,manual,auto};
+}
+function weekTeamName(id){
+ const p=state.box.find(x=>x.id===id);
+ return p?(p.nickname||p.pokemon):'未登録';
+}
+function invalidateWeekProposal(){
+ ++weekSearchToken;weekPreview=null;weekSearchConfig=null;
+ $('weekProposal').hidden=true;$('weekProgress').textContent='';
+ $('weekSearch').disabled=false;
+}
+function updateWeekPlan(next,message){
+ const previous=state.weeklyPlan;
+ state.weeklyPlan=next;
+ const ok=save();
+ if(!ok)state.weeklyPlan=previous;
+ if(ok){invalidateWeekProposal();markResultsStale();}
+ renderWeekPlan();
+ notifySave(ok,message);
+}
+function renderWeekEditor(){
+ const index=Number($('weekEditDay').value)||0;
+ const period=weekPeriods.includes($('weekEditSlot').value)?$('weekEditSlot').value:'morning';
+ const data=currentWeekPlan();
+ const active=data.plan.sleepAuto&&data.auto.length===7?data.auto:data.manual;
+ const ids=period==='sleep'?active[index]:data.dayTeams[index][period];
+ const holder=$('weekFiveEditors');holder.replaceChildren();
+ for(let slot=0;slot<5;slot++){
+  const sel=document.createElement('select');sel.setAttribute('aria-label',weekNames[index]+'曜日 '+weekPeriodNames[period]+' '+(slot+1)+'匹目');
+  const empty=document.createElement('option');empty.value='';empty.textContent=(slot+1)+'匹目を選ぶ';
+  sel.append(empty);
+  for(const p of state.box){
+   const option=document.createElement('option');option.value=p.id;
+   option.textContent=(p.nickname||p.pokemon)+' ｜ '+p.pokemon+' Lv'+p.level;
+   sel.append(option);
+  }
+  sel.value=ids[slot]||'';holder.append(sel);
+ }
+ $('weekCopyPrevious').disabled=period!=='sleep'||index===0;
+}
+function renderWeekPlan(){
+ const data=currentWeekPlan();
+ $('weekAutoSleep').checked=!!data.plan.sleepAuto;
+ const active=data.plan.sleepAuto&&data.auto.length===7?data.auto:data.manual;
+ const rows=[];
+ for(let d=0;d<7;d++){
+  const base=data.dayTeams[d];
+  const night=active[d];
+  const changed=JSON.stringify(data.manual[d])!==JSON.stringify(state.sleepIds);
+  rows.push('<div class="week-overview-day"><strong>'+weekNames[d]+'曜日</strong>'+
+   weekPeriods.map(period=>{
+    const ids=period==='sleep'?night:base[period];
+    const names=ids.map(weekTeamName);
+    const label=weekPeriodNames[period]+(period==='sleep'&&!data.plan.sleepAuto&&changed?'（変更）':'');
+    return '<div class="week-overview-period"><b>'+label+'</b><span>'+enc(names.join('、')||'未設定')+'</span></div>';
+   }).join('')+'</div>');
+ }
+ $('weekOverview').innerHTML=rows.join('');
+ $('weekStatus').textContent=data.plan.sleepAuto&&data.auto.length!==7?
+  '睡眠自動提案ON：7晩分の自動提案は未作成です。週間自動提案を実行してください。':
+  '現在の週間計画を表示しています。編集した曜日・時間帯だけ保存します。';
+ renderWeekEditor();
+}
+$('weekEditDay').addEventListener('change',renderWeekEditor);
+$('weekEditSlot').addEventListener('change',renderWeekEditor);
+$('weekAutoSleep').addEventListener('change',()=>{
+ const old=state.weeklyPlan||storage.defaultWeeklyPlan();
+ updateWeekPlan({...old,sleepAuto:$('weekAutoSleep').checked},
+  $('weekAutoSleep').checked?'睡眠7晩の自動提案を有効にしました。':'手動の睡眠7晩に戻しました。');
+});
+$('weekFillDays').addEventListener('click',()=>{
+ try{
+  const source=Object.fromEntries(rosterKeys.map(key=>[key,[...(state.simulation.teams[key]||[])]]));
+  if(rosterKeys.some(key=>source[key].length!==5||source[key].some(id=>!id)||
+    new Set(source[key]).size!==5))throw Error('先に下の朝・昼・夜の基本5匹を揃えてください。');
+  const old=state.weeklyPlan||storage.defaultWeeklyPlan();
+  if(old.dayTeams.length&& !confirm('曜日別に設定済みの日中21枠を、基本3編成で上書きしますか？'))return;
+  updateWeekPlan({...old,dayTeams:Array.from({length:7},()=>cloneWeekDay(source))},'日中21枠を一括設定しました。');
+ }catch(e){toast(e.message);}
+});
+$('weekFillSleep').addEventListener('click',()=>{
+ if(state.sleepIds.length!==5){toast('ボックスタブで基本の睡眠5匹を揃えてください。');return;}
+ const old=state.weeklyPlan||storage.defaultWeeklyPlan();
+ if(old.manualSleepTeams.length&&!confirm('編集済みの手動睡眠7晩を基本5匹で上書きしますか？'))return;
+ updateWeekPlan({...old,manualSleepTeams:Array.from({length:7},()=>[...state.sleepIds])},'手動睡眠7晩を一括設定しました。');
+});
+$('weekSaveSlot').addEventListener('click',()=>{
+ try{
+  const index=Number($('weekEditDay').value)||0,period=$('weekEditSlot').value||'morning';
+  const values=Array.from($('weekFiveEditors').querySelectorAll('select')).map(el=>el.value);
+  if(values.length!==5||values.some(id=>!id)||new Set(values).size!==5)
+   throw Error('この時間帯には異なるポケモン5匹を選んでください。');
+  const ids=new Set(state.box.map(p=>p.id));
+  if(values.some(id=>!ids.has(id)))throw Error('未登録のポケモンが含まれています。');
+  const current=currentWeekPlan(),next={...current.plan};
+  if(period==='sleep'){
+   const property=next.sleepAuto?'autoSleepTeams':'manualSleepTeams';
+   const roster=next.sleepAuto?(current.auto.length?current.auto:current.manual):current.manual;
+   next[property]=roster.map(row=>[...row]);next[property][index]=values;
+  }else{
+   next.dayTeams=current.dayTeams.map(cloneWeekDay);
+   next.dayTeams[index][period]=values;
+  }
+  updateWeekPlan(next,weekNames[index]+'曜日の'+weekPeriodNames[period]+'を保存しました。');
+ }catch(e){toast(e.message);}
+});
+$('weekCopyPrevious').addEventListener('click',()=>{
+ const index=Number($('weekEditDay').value)||0;
+ if(index===0||$('weekEditSlot').value!=='sleep')return;
+ const current=currentWeekPlan(),next={...current.plan};
+ const key=next.sleepAuto?'autoSleepTeams':'manualSleepTeams';
+ const source=next.sleepAuto?(current.auto.length?current.auto:current.manual):current.manual;
+ next[key]=source.map(row=>[...row]);next[key][index]=[...source[index-1]];
+ if(next[key][index].length!==5){toast('前夜の睡眠5匹が揃っていません。');return;}
+ updateWeekPlan(next,weekNames[index]+'曜夜を前夜の編成からコピーしました。');
+});
+
+fillEvent();renderBox();fillSimulation();fillPreparation();renderWeekPlan();setTab('event');
 })();
