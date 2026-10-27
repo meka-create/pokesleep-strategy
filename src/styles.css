@@ -73,3 +73,20 @@
 #prepResult h4{font-size:15px;margin:0}
 #prepCoverage{font-size:13px;line-height:1.8;margin-top:9px}
 #prepWarnings{margin-top:12px}
+
+
+/* W3 weekly roster planner, compact enough for Android Chrome portrait */
+.week-plan{margin:14px 0}.week-plan>summary{cursor:pointer;font-size:14px;font-weight:850;color:#1d5f94;line-height:1.5}
+.week-plan>p{line-height:1.65}.week-plan .switch-line{margin:10px 0;border-bottom:1px solid #eaf0f5}
+.week-actions{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.week-actions button{flex:1 1 190px;font-size:12px;min-height:44px}
+.week-overview{display:flex;flex-direction:column;gap:10px;margin:12px 0}
+.week-overview-day{border:1px solid #dde7f0;background:#f9fcff;border-radius:12px;padding:12px}
+.week-overview-day>strong{font-size:13px;display:block;color:#285c82;margin-bottom:9px}
+.week-overview-period{display:grid;grid-template-columns:54px minmax(0,1fr);gap:10px;align-items:start;font-size:12px;line-height:1.55;border-top:1px solid #e8edf3;padding:7px 0}
+.week-overview-period b{color:#657f98}.week-overview-period span{min-width:0;overflow-wrap:anywhere;color:#3a4d61}
+.week-editor{border:1px solid #dce8f1;border-radius:13px;background:#fff;padding:13px;margin-top:13px}
+.week-five-editors{display:grid;grid-template-columns:1fr;gap:7px;margin-top:13px}
+.week-five-editors select{width:100%}.week-proposal{padding:12px 0;border-top:1px solid #e1e9f1}
+.week-proposal .secondary.full{width:100%;margin-top:12px}
+@media(max-width:420px){.week-plan{padding:14px}.week-overview-period{grid-template-columns:45px minmax(0,1fr);gap:7px}.week-actions button{flex-basis:100%}}
