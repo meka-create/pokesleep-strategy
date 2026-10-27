@@ -23,7 +23,8 @@ function countSwaps(days){
   return next.filter(id=>!prior.has(id)).length;
  };
  days.forEach((day,i)=>{
-  const morning=added(i?days[i-1].sleep:day.sleep,day.morning);
+  // Previous Sunday night belongs to another week and is unknown to W1.
+  const morning=i?added(days[i-1].sleep,day.morning):0;
   const noon=added(day.morning,day.noon);
   const evening=added(day.noon,day.evening);
   const bedtime=added(day.evening,day.sleep);
