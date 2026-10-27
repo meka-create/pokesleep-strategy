@@ -1030,7 +1030,8 @@ function weekSearchInput(){
 }
 function weekSearchSignature(){
  return JSON.stringify({box:state.box,week:state.weeklyPlan,
-  sleep:state.sleepIds,event:state.event,form:{
+  sleep:state.sleepIds,roster:state.simulation.teams,
+  event:state.event,eventDraft:readEvent(),form:{
    fieldBonus:$('simFieldBonus').value,tap:$('simTap').value,
    pot:$('simPot').value,bag:$('simBagCapacity').value,
    sleepScore:$('simSleepScore').value,energy:$('simInitialEnergy').value,
