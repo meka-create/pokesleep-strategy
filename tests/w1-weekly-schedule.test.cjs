@@ -87,3 +87,28 @@ test('W1 storage accepts optional manual nights, preserves defaults, rejects cor
  s.weeklyPlan.manualSleepTeams[0][2]='p0';
  assert.throws(()=>storage.validateState(s),/5匹/);
 });
+
+
+test('W1 CSV reimport reconciles every weekly night and rejects ambiguous lost slots',()=>{
+ const s=storage.newState();s.box=fixture().box;s.sleepIds=fixture().teams.sleep;
+ s.weeklyPlan.dayTeams=Array.from({length:7},()=>fullDay(fixture()));
+ s.weeklyPlan.manualSleepTeams=Array.from({length:7},()=>validNight(fixture()));
+ s.weeklyPlan.autoSleepTeams=Array.from({length:7},()=>validNight(fixture()));
+ s.weeklyPlan.manualSleepTeams[4][4]='p5';
+ s.weeklyPlan.autoSleepTeams[3][3]='p5';
+ s.weeklyPlan.sleepAuto=true;
+ const replacement=s.box.map(p=>({...p,id:'imported-'+p.id}));
+ const migrated=storage.reconcileWeeklyPlan(s,replacement);
+ assert.deepEqual(asPlain(migrated.invalidated),[]);
+ assert.equal(migrated.plan.sleepAuto,true);
+ assert.equal(migrated.plan.manualSleepTeams[4][4],'imported-p5');
+ assert.equal(migrated.plan.autoSleepTeams[3][3],'imported-p5');
+ assert.equal(migrated.plan.dayTeams[0].morning[0],'imported-p0');
+ const missing=storage.reconcileWeeklyPlan(s,replacement.filter(p=>p.id!=='imported-p5'));
+ assert.ok(missing.invalidated.includes('手動睡眠7晩'));
+ assert.ok(missing.invalidated.includes('睡眠自動提案7晩'));
+ assert.ok(missing.invalidated.includes('睡眠自動提案ON'));
+ assert.equal(missing.plan.manualSleepTeams.length,0);
+ assert.equal(missing.plan.autoSleepTeams.length,0);
+ assert.equal(missing.plan.sleepAuto,false);
+});
