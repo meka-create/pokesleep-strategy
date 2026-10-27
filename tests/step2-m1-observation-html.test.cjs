@@ -23,7 +23,8 @@ test('weekly game observation can reload pre-week plans without a visible simula
  assert.match(html,/id="obsWeekBoundaryReconciled"/);
  assert.match(html,/id="obsTotal"/);
  assert.match(html,/id="obsCooking"/);
- assert.ok(build.includes("'simulator.js','step3.js','step4.js','observation.js'"));
+ assert.ok(build.includes("'simulator.js','step3.js','week-optimizer.js','step4.js','observation.js'"),
+  'build must include the W2 weekly optimizer before observation wiring, without dropping earlier modules');
  assert.ok(app.indexOf('lastRunSnapshot=PokeObservation.captureSimulation')>app.indexOf('PokeSimulator.simulate(runInput)'));
  assert.ok(app.includes("PokeObservation.makeReport(lastRunSnapshot,form,new Date().toISOString())"));
  assert.ok(app.includes("PokeObservation.preview(report)"));
