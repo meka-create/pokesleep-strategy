@@ -419,8 +419,9 @@
 'use strict';
 const KEY='pokesleep-event-planner/step1/v1';
 const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,sleepScore:88,initialEnergy:100,recipeId:'',recipeMode:'fixed',extraMode:'none',successMode:'none',magnetIngredients:[],initialIngredients:{}});
+const defaultWeeklyPlan=()=>({sleepAuto:false,dayTeams:[],manualSleepTeams:[],autoSleepTeams:[]});
 const defaultPreparation=()=>({recipeId:'',meals:21,recipeTargets:[],priority:'stock',bagCapacity:0,carryover:{},field:'',fieldBonus:0,forecastCooking:'none',forecastFoodMode:'random',forecastInventorySource:'carryover'});
-const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),preparation:defaultPreparation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
+const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),weeklyPlan:defaultWeeklyPlan(),preparation:defaultPreparation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
 const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
 const validEnum=(v,choices)=>choices.includes(v);
 // This module validates localStorage on startup BEFORE master.js is loaded.
@@ -433,6 +434,49 @@ const canonicalDate=value=>{
  const dt=new Date(value+'T00:00:00Z');
  return Number.isFinite(dt.getTime())&&dt.toISOString().slice(0,10)===value;
 };
+// W1: Persist optional 7x(day) and 7x(night) schedules while remaining JSON v1.
+// An empty schedule means use the established legacy daytime/sleep rosters.
+// A non-empty schedule must contain all seven days with complete five-member teams.
+function validateWeeklyPlan(raw,ids){
+ const p=raw===undefined?defaultWeeklyPlan():raw;
+ if(!p||typeof p!=='object'||Array.isArray(p)||typeof p.sleepAuto!=='boolean')
+  throw Error('週間パーティ設定が不正です。');
+ const validateTeam=(team,label)=>{
+  if(!Array.isArray(team)||team.length!==5||new Set(team).size!==5||
+    team.some(id=>typeof id!=='string'||!ids.has(id)))
+   throw Error(label+'の5匹パーティが不正です。');
+  return [...team];
+ };
+ const weeklyArray=(value,label,part)=>{
+  if(!Array.isArray(value)||![0,7].includes(value.length))
+   throw Error(label+'は7日分のパーティを指定してください。');
+  return value.map((row,d)=>{
+   if(part){
+    if(!row||typeof row!=='object'||Array.isArray(row))
+     throw Error(label+(d+1)+'日目が不正です。');
+    return Object.fromEntries(['morning','noon','evening'].map(key=>
+     [key,validateTeam(row[key],label+(d+1)+'日目'+key)]));
+   }
+   return validateTeam(row,label+(d+1)+'日目');
+  });
+ };
+ return {sleepAuto:p.sleepAuto,
+  dayTeams:weeklyArray(p.dayTeams,'日中曜日別パーティ',true),
+  manualSleepTeams:weeklyArray(p.manualSleepTeams,'手動睡眠パーティ',false),
+  autoSleepTeams:weeklyArray(p.autoSleepTeams,'自動睡眠パーティ',false)};
+}
+function resolveWeeklyPlan(state){
+ const plan=validateWeeklyPlan(state.weeklyPlan,new Set(state.box.map(p=>p.id)));
+ const daytime=plan.dayTeams.length?plan.dayTeams:
+  Array.from({length:7},()=>Object.fromEntries(['morning','noon','evening'].map(key=>
+   [key,[...state.simulation.teams[key]]])));
+ const nights=plan.sleepAuto?plan.autoSleepTeams:plan.manualSleepTeams;
+ if(plan.sleepAuto&&!nights.length)
+  throw Error('睡眠自動提案ONですが、7晩の提案が未作成です。');
+ return {teamsByDay:daytime,
+  sleepTeamsByDay:nights.length?nights:Array.from({length:7},()=>[...state.sleepIds]),
+  sleepAuto:plan.sleepAuto};
+}
 function validateState(x){
  if(!x||x.version!==1||!Array.isArray(x.box)||!Array.isArray(x.sleepIds)||!x.event||typeof x.event!=='object'||Array.isArray(x.event))throw new Error('対応していないバックアップ形式です。');
  if(x.box.length>10000)throw new Error('ボックスが大きすぎます。');
@@ -480,6 +524,7 @@ function validateState(x){
  }
  if(Object.values(carryover).reduce((n,v)=>n+v,0)>prep.bagCapacity&&prep.bagCapacity!==0)
   throw Error('準備週の持ち越し食材数がバッグ容量を超えています。');
+ const weeklyPlan=validateWeeklyPlan(x.weeklyPlan,ids);
  const sim=x.simulation===undefined?defaultSimulation():x.simulation;
  if(!sim||typeof sim!=='object'||!sim.teams||typeof sim.teams!=='object')throw new Error('計算設定が不正です。');
  const teams={};
@@ -494,7 +539,7 @@ function validateState(x){
  const magnet=sim.magnetIngredients??[];
  if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!INGREDIENT_KEYS.has(k)))throw new Error('発見済み食材の設定が不正です。');
  for(const [k,v] of Object.entries(sim.initialIngredients))if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
- return {version:1,box:x.box,sleepIds:[...x.sleepIds],preparation:{recipeId:prep.recipeId,meals:prep.meals,recipeTargets,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover,field:prep.field??'',fieldBonus:prep.fieldBonus??0,forecastCooking:prep.forecastCooking??'none',forecastFoodMode:prep.forecastFoodMode??'random',forecastInventorySource:prep.forecastInventorySource??'carryover'},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
+ return {version:1,box:x.box,sleepIds:[...x.sleepIds],weeklyPlan,preparation:{recipeId:prep.recipeId,meals:prep.meals,recipeTargets,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover,field:prep.field??'',fieldBonus:prep.fieldBonus??0,forecastCooking:prep.forecastCooking??'none',forecastFoodMode:prep.forecastFoodMode??'random',forecastInventorySource:prep.forecastInventorySource??'carryover'},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
 // Preserve selected individuals on a refreshed export. First match full IV-like
 // fingerprints; only fall back to nickname+species when BOTH boxes are unique.
@@ -514,13 +559,45 @@ function reconcileSleepIds(previous, next){
  }
  return result;
 }
+// A CSV reimport changes internal IDs. Remap *every* stored slot before
+// persisting the replacement box; never retain dangling IDs or silently
+// choose an ambiguous replacement individual. Incomplete weekly plans are
+// invalidated as a whole and surfaced to the user for reconfiguration.
+function reconcileWeeklyPlan(previous,nextBox){
+ const old=validateWeeklyPlan(previous.weeklyPlan,new Set(previous.box.map(p=>p.id)));
+ const invalidated=[];
+ function remap(team){
+  return reconcileSleepIds({box:previous.box,sleepIds:team},nextBox);
+ }
+ function remapNights(source,label){
+  if(!source.length)return [];
+  const rows=source.map(remap);
+  if(rows.some(ids=>ids.length!==5)){invalidated.push(label);return [];}
+  return rows;
+ }
+ function remapDays(source){
+  if(!source.length)return [];
+  const result=source.map(row=>Object.fromEntries(['morning','noon','evening'].map(key=>
+   [key,remap(row[key])])));
+  if(result.some(row=>['morning','noon','evening'].some(key=>row[key].length!==5))){
+   invalidated.push('曜日別の日中パーティ');return [];
+  }
+  return result;
+ }
+ const dayTeams=remapDays(old.dayTeams);
+ const manualSleepTeams=remapNights(old.manualSleepTeams,'手動睡眠7晩');
+ const autoSleepTeams=remapNights(old.autoSleepTeams,'睡眠自動提案7晩');
+ const sleepAuto=old.sleepAuto&&autoSleepTeams.length===7;
+ if(old.sleepAuto&&!sleepAuto)invalidated.push('睡眠自動提案ON');
+ return {plan:{dayTeams,manualSleepTeams,autoSleepTeams,sleepAuto},invalidated};
+}
 let loadError='';
 function load(){try{const s=localStorage.getItem(KEY);loadError='';return s?validateState(JSON.parse(s)):newState();}catch(e){loadError='保存済みデータを読み込めません。上書きを防止しています。バックアップから復元するか、すべてのローカルデータを消去してください。';return newState();}}
 function save(state){if(loadError)throw new Error(loadError);localStorage.setItem(KEY,JSON.stringify(validateState(state)));}
 function allowRecovery(){loadError='';}
 function getLoadError(){return loadError;}
 function available(){try{const k=KEY+'/probe';localStorage.setItem(k,'1');localStorage.removeItem(k);return true;}catch(e){return false;}}
-const api={newState,defaultSimulation,defaultPreparation,validateState,reconcileSleepIds,load,save,available,getLoadError,allowRecovery,KEY};
+const api={newState,defaultSimulation,defaultPreparation,defaultWeeklyPlan,validateWeeklyPlan,resolveWeeklyPlan,validateState,reconcileSleepIds,reconcileWeeklyPlan,load,save,available,getLoadError,allowRecovery,KEY};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeStorage=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -1928,15 +2005,44 @@ function daytimeSchedule(tapMinutes){
  const times=[...boundaries].sort((a,b)=>a-b);
  return times.slice(0,-1).map((minute,i)=>({minute,duration:times[i+1]-minute,tap:taps.has(minute)}));
 }
-function simulate(input){
+// W1: explicitly normalize all 21 daytime and 7 night slots before computing.
+// Omitting both weekly arrays is the precise legacy 3-day-slot + fixed-sleep
+// model. A weekly input is all-or-nothing; malformed days must never fall
+// back silently to another team's five IDs.
+function normalizeWeeklyTeams(input){
  if(!input||!Array.isArray(input.box))throw Error('ボックスがありません。');
+ const ids=new Set(input.box.map(p=>p.id));
+ const base=input.teams||{},dayKeys=['morning','noon','evening'];
+ const hasDay=input.teamsByDay!==undefined,hasSleep=input.sleepTeamsByDay!==undefined;
+ const valid=(team,label)=>{
+  if(!Array.isArray(team)||team.length!==5||new Set(team).size!==5||
+   team.some(id=>typeof id!=='string'||!ids.has(id)))
+   throw Error(label+'の5匹パーティが不正です。');
+  return [...team];
+ };
+ if(hasDay&&(!Array.isArray(input.teamsByDay)||input.teamsByDay.length!==7))
+  throw Error('曜日別の日中パーティは月曜～日曜の7日分を指定してください。');
+ if(hasSleep&&(!Array.isArray(input.sleepTeamsByDay)||input.sleepTeamsByDay.length!==7))
+  throw Error('曜日別の睡眠パーティは月曜夜～日曜夜の7回分を指定してください。');
+ const fixedDay=hasDay?null:Object.fromEntries(dayKeys.map(key=>
+  [key,valid(base[key],'日中'+key)]));
+ const fixedSleep=hasSleep?null:valid(base.sleep,'睡眠');
+ const days=Array.from({length:7},(_,d)=>{
+  const raw=hasDay?input.teamsByDay[d]:fixedDay;
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))
+   throw Error((d+1)+'日目の曜日別パーティが不正です。');
+  const row={};
+  for(const key of dayKeys)row[key]=hasDay?valid(raw[key],(d+1)+'日目'+key):[...raw[key]];
+  row.sleep=hasSleep?valid(input.sleepTeamsByDay[d],(d+1)+'日目の睡眠'):[...fixedSleep];
+  return row;
+ });
+ return {days,hasDay,hasSleep};
+}
+function simulate(input){
+ const weekly=normalizeWeeklyTeams(input);
  const byId=new Map(input.box.map(p=>[p.id,p]));
  const teams=input.teams||{};
  const periods=['morning','noon','evening','sleep'];
- for(const key of periods){
-  const ids=teams[key];
-  if(!Array.isArray(ids)||ids.length!==5||new Set(ids).size!==5||ids.some(id=>!byId.has(id)))throw Error('朝・昼・夜・睡眠の各パーティに別々の5匹を指定してください。');
- }
  const opts=input.options||{};
  // The UI already rejects invalid integers. Enforce the same contract in
  // the simulator so imported/saved or direct API inputs cannot turn 0-minute
@@ -1959,6 +2065,8 @@ function simulate(input){
  if(bonus<0||bonus>100||tapMinutes<120||tapMinutes>180||pot<7||pot>300||score<0||score>100||initialEnergy<0||initialEnergy>150)throw Error('フィールド補正・回収間隔・鍋容量・睡眠スコアなどの入力値を確認してください。');
  const favorite=FAVORITES[opts.map]||[];
  const warnings=new Set();
+ if(weekly.hasSleep&&weekly.days.slice(1).some((day,d)=>day.sleep.some((id,i)=>id!==weekly.days[d].sleep[i])))
+  warnings.add('曜日ごとの睡眠パーティ交代は、試算上0:00の境界で切り替えた近似です。実際には就寝前の最後の操作で変更し、0:00～7:30の操作は不要です。就寝前に切り替えた時刻による生産差は未計算です。');
  if(!favorite.length)warnings.add('このフィールドの好みのきのみは未確定です。好みボーナスを計上していません。');
  const species=new Map(Master.species.map(s=>[s.name,s]));
  const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,directStrengthRoundingCorrection:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,skillHelpCompletions:0,skillEligibleHelps:0,exactFoodCarryCollections:0,exactSharedBagCollections:0,exactOneHelpKindCollections:0,uncollectedExtraHelpItemsAtSwap:0,uncollectedExtraHelpBerryEnergyAtSwap:0,uncollectedExtraHelpSwaps:0,meals:[],potDependentMeals:0,estimatedMeals:0,initialCoveredMeals:0,expectedSourceMeals:0,expectedSourceMealEnergy:0,initialSourceMealEnergy:0,consumedIngredients:{}};
@@ -1967,7 +2075,7 @@ function simulate(input){
   pocket.set(p.id,emptyPocket());
   extraPocket.set(p.id,emptyPocket());
  }
- for(const key of periods)for(const id of teams[key]){
+ for(const day of weekly.days)for(const key of periods)for(const id of day[key]){
   if(!members.has(id)){
    const p=byId.get(id),sp=species.get(p.pokemon);
    if(!sp){warnings.add('未登録の種族は計算対象外です：'+p.pokemon);members.set(id,null);}
@@ -1978,8 +2086,8 @@ function simulate(input){
  // R02 demonstrated that the prototype's one-vs-two E4 healer ordering can
  // invert under an artificial skill-rate sensitivity test. Never present
  // the numeric weekly estimate as an independently verified optimal ranking.
- const simultaneousAllHealers=['morning','noon','evening'].some(period=>
-  teams[period].filter(id=>isAllHealerSkill(members.get(id)?.sp?.skill)).length>=2);
+ const simultaneousAllHealers=weekly.days.some(day=>['morning','noon','evening'].some(period=>
+  day[period].filter(id=>isAllHealerSkill(members.get(id)?.sp?.skill)).length>=2));
  if(simultaneousAllHealers)
   warnings.add('げんきオールSを2匹以上同時編成した場合、回復スキルの発動時刻・複数個体のげんき相関は未検証です。試算エナジーだけでヒーラー1匹と2匹の優劣を確定しないでください。');
  // Input files may reach the simulator without going through the browser UI.
@@ -2537,40 +2645,41 @@ function simulate(input){
  const daySummaries=[],nightEnergy=[],daySchedule=daytimeSchedule(tapMinutes);
  
  for(let d=0;d<7;d++){
+  const dayTeams=weekly.days[d],previousSleep=d?weekly.days[d-1].sleep:[];
   const before={berries:status.berries,cooking:status.cooking,skills:status.skills,sneaky:status.sneaky};
   let current=null;
   for(const step of daySchedule){
     const t=step.minute/60;
-    const key=t<12?'morning':t<18?'noon':'evening',ids=teams[key];
+    const key=t<12?'morning':t<18?'noon':'evening',ids=dayTeams[key];
     if(current!==key){
-      if(current)collect(teams[current]);
-      resetStockpileLeaving(current?teams[current]:d===0?[]:teams.sleep,ids);
+      if(current)collect(dayTeams[current]);
+      resetStockpileLeaving(current?dayTeams[current]:previousSleep,ids);
       current=key;collect(ids);
       if([7.5,12,18].includes(t))cook(d,t===7.5?'朝':t===12?'昼':'夜',ids);
     }
     if(step.tap)collect(ids);
     tickActive(ids,step.duration,!!opts.camp,true);
   }
-  collect(teams.evening);
-  resetStockpileLeaving(teams.evening,teams.sleep);
+  collect(dayTeams.evening);
+  resetStockpileLeaving(dayTeams.evening,dayTeams.sleep);
   // No interaction from 00:00 until 07:30. Sunday -> Monday only 00:00-04:00 counts for this week.
   // Helpers DO lose Energy while asleep: -1 Energy per 10 minutes, as when awake.
   const sleepHours=d===6?4:7.5;
-  const beforeSleep=Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]));
-  for(let h=0;h<sleepHours-1e-9;h+=.25)tickActive(teams.sleep,15,!!opts.camp,true);
-  const beforeRecovery=Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]));
+  const beforeSleep=Object.fromEntries(dayTeams.sleep.map(id=>[id,energy.get(id)]));
+  for(let h=0;h<sleepHours-1e-9;h+=.25)tickActive(dayTeams.sleep,15,!!opts.camp,true);
+  const beforeRecovery=Object.fromEntries(dayTeams.sleep.map(id=>[id,energy.get(id)]));
   // Recovery happens at the next 07:30 research/collection, not while asleep.
   // Only the fixed sleeping five recover. The user's box 5% recovery is intentionally excluded.
   if(d<6){
-   const recoverBonuses=teams.sleep.filter(id=>activeSkills(byId.get(id)).includes('げんき回復ボーナス')).length;
-   for(const id of teams.sleep){
+   const recoverBonuses=dayTeams.sleep.filter(id=>activeSkills(byId.get(id)).includes('げんき回復ボーナス')).length;
+   for(const id of dayTeams.sleep){
     const p=byId.get(id),f=recoveryNatureFactor(p.nature);
     const selfHasBonus=activeSkills(p).includes('げんき回復ボーナス');
     applyEnergyRecovery(energy,energyDecayTimers,id,recoverFromSleep(energy.get(id),score,f,recoverBonuses,selfHasBonus));
    }
-   collect(teams.sleep);
+   collect(dayTeams.sleep);
   }
-  nightEnergy.push({day:d+1,hours:sleepHours,beforeSleep,beforeRecovery,afterRecovery:Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]))});
+  nightEnergy.push({day:d+1,hours:sleepHours,beforeSleep,beforeRecovery,afterRecovery:Object.fromEntries(dayTeams.sleep.map(id=>[id,energy.get(id)]))});
   // The next Monday 04:00 is a field reset, NOT an interaction.
   // Do not credit the still-carried berries/ingredients or skill stock to the old week.
   daySummaries.push({day:d+1,berries:status.berries-before.berries,cooking:status.cooking-before.cooking,skills:status.skills-before.skills});
@@ -2620,7 +2729,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他個体との過去の相関・条件外は期待値近似です。限定条件では単一回収内の共有バッグ空きと最大5匹の食材総数を整数分岐します。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,directStrengthRoundingCorrection:status.directStrengthRoundingCorrection,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,pendingExtraHelpBerryEnergy,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpBerryEnergyAtSwap:status.uncollectedExtraHelpBerryEnergyAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,exactSharedBagCollections:status.exactSharedBagCollections,exactOneHelpKindCollections:status.exactOneHelpKindCollections,potDependentMeals:status.potDependentMeals,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={addTastyChanceBonus,resolveTastyChanceMeal,daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceStockpileByReadyStock,advanceSkillStock,expectedSkillStock,integerPocketTransitions,queuedFullPocketTransitions,queuedFullPocketAfterCollection,integerFoodPocketTransitions,integerFoodSkillQueueTransitions,collectIntegerFoodSkillQueue,collectSharedBagFoodQueues,collectOneHelpIngredientKinds,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
+const api={normalizeWeeklyTeams,addTastyChanceBonus,resolveTastyChanceMeal,daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceStockpileByReadyStock,advanceSkillStock,expectedSkillStock,integerPocketTransitions,queuedFullPocketTransitions,queuedFullPocketAfterCollection,integerFoodPocketTransitions,integerFoodSkillQueueTransitions,collectIntegerFoodSkillQueue,collectSharedBagFoodQueues,collectOneHelpIngredientKinds,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -3772,12 +3881,13 @@ $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0
  if(file.size>8*1024*1024)throw new Error('ファイルが8MBを超えています。');
  const text=await file.text();const result=PokeCsv.parseBoxText(text);
  const kept=storage.reconcileSleepIds(state,result.items);
+ const reconciledWeekly=storage.reconcileWeeklyPlan(state,result.items);
  if(state.box.length&&!confirm(`ボックスを${result.items.length}匹で置き換えますか？ 睡眠パーティは一致する個体のみ引き継ぎます（${kept.length}/${state.sleepIds.length}匹）。`))return;
  const simTeams={};
  for(const key of ['morning','noon','evening']){
   simTeams[key]=storage.reconcileSleepIds({box:state.box,sleepIds:state.simulation.teams[key]||[]},result.items);
  }
- const previous=state;state={...state,box:result.items,sleepIds:kept,simulation:{...state.simulation,teams:simTeams},updatedAt:new Date().toISOString()};const saved=save();if(!saved)state=previous;renderBox();fillSimulation();if(saved){stalePreparation();lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`);
+ const previous=state;state={...state,box:result.items,sleepIds:kept,weeklyPlan:reconciledWeekly.plan,simulation:{...state.simulation,teams:simTeams},updatedAt:new Date().toISOString()};const saved=save();if(!saved)state=previous;renderBox();fillSimulation();if(saved){stalePreparation();lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`+(reconciledWeekly.invalidated.length?' 再設定が必要：'+reconciledWeekly.invalidated.join('、'):' '));
  }catch(e){$('importError').textContent=e.message||String(e);$('importError').hidden=false;}finally{ev.target.value='';}});
 $('downloadBackup').addEventListener('click',()=>{download(`pokesleep_event_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2),'application/json;charset=utf-8');toast('バックアップを保存しました。');});
 $('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;const previous=state;state=data;storage.allowRecovery();const saved=save();if(!saved)state=previous;fillEvent();renderBox();fillSimulation();fillPreparation();if(saved){lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
