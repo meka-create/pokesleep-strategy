@@ -1232,6 +1232,8 @@ function simulate(input){
  if(bonus<0||bonus>100||tapMinutes<120||tapMinutes>180||pot<7||pot>300||score<0||score>100||initialEnergy<0||initialEnergy>150)throw Error('フィールド補正・回収間隔・鍋容量・睡眠スコアなどの入力値を確認してください。');
  const favorite=FAVORITES[opts.map]||[];
  const warnings=new Set();
+ if(weekly.hasSleep&&weekly.days.slice(1).some((day,d)=>day.sleep.some((id,i)=>id!==weekly.days[d].sleep[i])))
+  warnings.add('曜日ごとの睡眠パーティ交代は、試算上0:00の境界で切り替えた近似です。実際には就寝前の最後の操作で変更し、0:00～7:30の操作は不要です。就寝前に切り替えた時刻による生産差は未計算です。');
  if(!favorite.length)warnings.add('このフィールドの好みのきのみは未確定です。好みボーナスを計上していません。');
  const species=new Map(Master.species.map(s=>[s.name,s]));
  const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,directStrengthRoundingCorrection:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,skillHelpCompletions:0,skillEligibleHelps:0,exactFoodCarryCollections:0,exactSharedBagCollections:0,exactOneHelpKindCollections:0,uncollectedExtraHelpItemsAtSwap:0,uncollectedExtraHelpBerryEnergyAtSwap:0,uncollectedExtraHelpSwaps:0,meals:[],potDependentMeals:0,estimatedMeals:0,initialCoveredMeals:0,expectedSourceMeals:0,expectedSourceMealEnergy:0,initialSourceMealEnergy:0,consumedIngredients:{}};
