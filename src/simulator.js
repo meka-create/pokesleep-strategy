@@ -1172,15 +1172,44 @@ function daytimeSchedule(tapMinutes){
  const times=[...boundaries].sort((a,b)=>a-b);
  return times.slice(0,-1).map((minute,i)=>({minute,duration:times[i+1]-minute,tap:taps.has(minute)}));
 }
-function simulate(input){
+// W1: explicitly normalize all 21 daytime and 7 night slots before computing.
+// Omitting both weekly arrays is the precise legacy 3-day-slot + fixed-sleep
+// model. A weekly input is all-or-nothing; malformed days must never fall
+// back silently to another team's five IDs.
+function normalizeWeeklyTeams(input){
  if(!input||!Array.isArray(input.box))throw Error('ボックスがありません。');
+ const ids=new Set(input.box.map(p=>p.id));
+ const base=input.teams||{},dayKeys=['morning','noon','evening'];
+ const hasDay=input.teamsByDay!==undefined,hasSleep=input.sleepTeamsByDay!==undefined;
+ const valid=(team,label)=>{
+  if(!Array.isArray(team)||team.length!==5||new Set(team).size!==5||
+   team.some(id=>typeof id!=='string'||!ids.has(id)))
+   throw Error(label+'の5匹パーティが不正です。');
+  return [...team];
+ };
+ if(hasDay&&(!Array.isArray(input.teamsByDay)||input.teamsByDay.length!==7))
+  throw Error('曜日別の日中パーティは月曜～日曜の7日分を指定してください。');
+ if(hasSleep&&(!Array.isArray(input.sleepTeamsByDay)||input.sleepTeamsByDay.length!==7))
+  throw Error('曜日別の睡眠パーティは月曜夜～日曜夜の7回分を指定してください。');
+ const fixedDay=hasDay?null:Object.fromEntries(dayKeys.map(key=>
+  [key,valid(base[key],'日中'+key)]));
+ const fixedSleep=hasSleep?null:valid(base.sleep,'睡眠');
+ const days=Array.from({length:7},(_,d)=>{
+  const raw=hasDay?input.teamsByDay[d]:fixedDay;
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))
+   throw Error((d+1)+'日目の曜日別パーティが不正です。');
+  const row={};
+  for(const key of dayKeys)row[key]=hasDay?valid(raw[key],(d+1)+'日目'+key):[...raw[key]];
+  row.sleep=hasSleep?valid(input.sleepTeamsByDay[d],(d+1)+'日目の睡眠'):[...fixedSleep];
+  return row;
+ });
+ return {days,hasDay,hasSleep};
+}
+function simulate(input){
+ const weekly=normalizeWeeklyTeams(input);
  const byId=new Map(input.box.map(p=>[p.id,p]));
  const teams=input.teams||{};
  const periods=['morning','noon','evening','sleep'];
- for(const key of periods){
-  const ids=teams[key];
-  if(!Array.isArray(ids)||ids.length!==5||new Set(ids).size!==5||ids.some(id=>!byId.has(id)))throw Error('朝・昼・夜・睡眠の各パーティに別々の5匹を指定してください。');
- }
  const opts=input.options||{};
  // The UI already rejects invalid integers. Enforce the same contract in
  // the simulator so imported/saved or direct API inputs cannot turn 0-minute
@@ -1203,6 +1232,8 @@ function simulate(input){
  if(bonus<0||bonus>100||tapMinutes<120||tapMinutes>180||pot<7||pot>300||score<0||score>100||initialEnergy<0||initialEnergy>150)throw Error('フィールド補正・回収間隔・鍋容量・睡眠スコアなどの入力値を確認してください。');
  const favorite=FAVORITES[opts.map]||[];
  const warnings=new Set();
+ if(weekly.hasSleep&&weekly.days.slice(1).some((day,d)=>day.sleep.some((id,i)=>id!==weekly.days[d].sleep[i])))
+  warnings.add('曜日ごとの睡眠パーティ交代は、試算上0:00の境界で切り替えた近似です。実際には就寝前の最後の操作で変更し、0:00～7:30の操作は不要です。就寝前に切り替えた時刻による生産差は未計算です。');
  if(!favorite.length)warnings.add('このフィールドの好みのきのみは未確定です。好みボーナスを計上していません。');
  const species=new Map(Master.species.map(s=>[s.name,s]));
  const members=new Map(), energy=new Map(),pocket=new Map(),extraPocket=new Map(),status={berries:0,skills:0,cooking:0,sneaky:0,directStrengthRoundingCorrection:0,ingredients:{},skillIngredients:{},unassignedMagnet:0,days:[],skillCount:0,extraHelps:0,stockpileResets:0,stockpileExpectedLost:0,conditionalPlusIngredients:0,conditionalMinusRecovery:0,skillHelpCompletions:0,skillEligibleHelps:0,exactFoodCarryCollections:0,exactSharedBagCollections:0,exactOneHelpKindCollections:0,uncollectedExtraHelpItemsAtSwap:0,uncollectedExtraHelpBerryEnergyAtSwap:0,uncollectedExtraHelpSwaps:0,meals:[],potDependentMeals:0,estimatedMeals:0,initialCoveredMeals:0,expectedSourceMeals:0,expectedSourceMealEnergy:0,initialSourceMealEnergy:0,consumedIngredients:{}};
@@ -1211,7 +1242,7 @@ function simulate(input){
   pocket.set(p.id,emptyPocket());
   extraPocket.set(p.id,emptyPocket());
  }
- for(const key of periods)for(const id of teams[key]){
+ for(const day of weekly.days)for(const key of periods)for(const id of day[key]){
   if(!members.has(id)){
    const p=byId.get(id),sp=species.get(p.pokemon);
    if(!sp){warnings.add('未登録の種族は計算対象外です：'+p.pokemon);members.set(id,null);}
@@ -1222,8 +1253,8 @@ function simulate(input){
  // R02 demonstrated that the prototype's one-vs-two E4 healer ordering can
  // invert under an artificial skill-rate sensitivity test. Never present
  // the numeric weekly estimate as an independently verified optimal ranking.
- const simultaneousAllHealers=['morning','noon','evening'].some(period=>
-  teams[period].filter(id=>isAllHealerSkill(members.get(id)?.sp?.skill)).length>=2);
+ const simultaneousAllHealers=weekly.days.some(day=>['morning','noon','evening'].some(period=>
+  day[period].filter(id=>isAllHealerSkill(members.get(id)?.sp?.skill)).length>=2));
  if(simultaneousAllHealers)
   warnings.add('げんきオールSを2匹以上同時編成した場合、回復スキルの発動時刻・複数個体のげんき相関は未検証です。試算エナジーだけでヒーラー1匹と2匹の優劣を確定しないでください。');
  // Input files may reach the simulator without going through the browser UI.
@@ -1781,40 +1812,41 @@ function simulate(input){
  const daySummaries=[],nightEnergy=[],daySchedule=daytimeSchedule(tapMinutes);
  
  for(let d=0;d<7;d++){
+  const dayTeams=weekly.days[d],previousSleep=d?weekly.days[d-1].sleep:[];
   const before={berries:status.berries,cooking:status.cooking,skills:status.skills,sneaky:status.sneaky};
   let current=null;
   for(const step of daySchedule){
     const t=step.minute/60;
-    const key=t<12?'morning':t<18?'noon':'evening',ids=teams[key];
+    const key=t<12?'morning':t<18?'noon':'evening',ids=dayTeams[key];
     if(current!==key){
-      if(current)collect(teams[current]);
-      resetStockpileLeaving(current?teams[current]:d===0?[]:teams.sleep,ids);
+      if(current)collect(dayTeams[current]);
+      resetStockpileLeaving(current?dayTeams[current]:previousSleep,ids);
       current=key;collect(ids);
       if([7.5,12,18].includes(t))cook(d,t===7.5?'朝':t===12?'昼':'夜',ids);
     }
     if(step.tap)collect(ids);
     tickActive(ids,step.duration,!!opts.camp,true);
   }
-  collect(teams.evening);
-  resetStockpileLeaving(teams.evening,teams.sleep);
+  collect(dayTeams.evening);
+  resetStockpileLeaving(dayTeams.evening,dayTeams.sleep);
   // No interaction from 00:00 until 07:30. Sunday -> Monday only 00:00-04:00 counts for this week.
   // Helpers DO lose Energy while asleep: -1 Energy per 10 minutes, as when awake.
   const sleepHours=d===6?4:7.5;
-  const beforeSleep=Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]));
-  for(let h=0;h<sleepHours-1e-9;h+=.25)tickActive(teams.sleep,15,!!opts.camp,true);
-  const beforeRecovery=Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]));
+  const beforeSleep=Object.fromEntries(dayTeams.sleep.map(id=>[id,energy.get(id)]));
+  for(let h=0;h<sleepHours-1e-9;h+=.25)tickActive(dayTeams.sleep,15,!!opts.camp,true);
+  const beforeRecovery=Object.fromEntries(dayTeams.sleep.map(id=>[id,energy.get(id)]));
   // Recovery happens at the next 07:30 research/collection, not while asleep.
   // Only the fixed sleeping five recover. The user's box 5% recovery is intentionally excluded.
   if(d<6){
-   const recoverBonuses=teams.sleep.filter(id=>activeSkills(byId.get(id)).includes('げんき回復ボーナス')).length;
-   for(const id of teams.sleep){
+   const recoverBonuses=dayTeams.sleep.filter(id=>activeSkills(byId.get(id)).includes('げんき回復ボーナス')).length;
+   for(const id of dayTeams.sleep){
     const p=byId.get(id),f=recoveryNatureFactor(p.nature);
     const selfHasBonus=activeSkills(p).includes('げんき回復ボーナス');
     applyEnergyRecovery(energy,energyDecayTimers,id,recoverFromSleep(energy.get(id),score,f,recoverBonuses,selfHasBonus));
    }
-   collect(teams.sleep);
+   collect(dayTeams.sleep);
   }
-  nightEnergy.push({day:d+1,hours:sleepHours,beforeSleep,beforeRecovery,afterRecovery:Object.fromEntries(teams.sleep.map(id=>[id,energy.get(id)]))});
+  nightEnergy.push({day:d+1,hours:sleepHours,beforeSleep,beforeRecovery,afterRecovery:Object.fromEntries(dayTeams.sleep.map(id=>[id,energy.get(id)]))});
   // The next Monday 04:00 is a field reset, NOT an interaction.
   // Do not credit the still-carried berries/ingredients or skill stock to the old week.
   daySummaries.push({day:d+1,berries:status.berries-before.berries,cooking:status.cooking-before.cooking,skills:status.skills-before.skills});
@@ -1864,7 +1896,7 @@ function simulate(input){
  if(bagCapacity)warnings.add('食材バッグ満杯で所持品0から始まる場合は食材合計数と所持枠を区間内で結合計算します。共有バッグの空きが整数の場合に限り残留食材総数を確率分布で回収しますが、食材の種類別内訳・他個体との過去の相関・条件外は期待値近似です。限定条件では単一回収内の共有バッグ空きと最大5匹の食材総数を整数分岐します。');
  return {berries:status.berries,cooking:status.cooking,skills:status.skills,directStrengthRoundingCorrection:status.directStrengthRoundingCorrection,total:status.berries+status.cooking+status.skills,sneaky:status.sneaky,pendingSneaky,pendingExtraHelpItems,pendingExtraHelpBerryEnergy,uncollectedExtraHelpItemsAtSwap:status.uncollectedExtraHelpItemsAtSwap,uncollectedExtraHelpBerryEnergyAtSwap:status.uncollectedExtraHelpBerryEnergyAtSwap,uncollectedExtraHelpSwaps:status.uncollectedExtraHelpSwaps,healingTimerCorrelationEvents:status.healingTimerCorrelationEvents||0,healingCapNonlinearEvents:status.healingCapNonlinearEvents||0,healingCapLocalGapSum:status.healingCapLocalGapSum||0,skillTriggers:status.skillCount,skillHelpCompletions:status.skillHelpCompletions,skillEligibleHelps:status.skillEligibleHelps,exactFoodCarryCollections:status.exactFoodCarryCollections,exactSharedBagCollections:status.exactSharedBagCollections,exactOneHelpKindCollections:status.exactOneHelpKindCollections,potDependentMeals:status.potDependentMeals,estimatedMeals:status.estimatedMeals,initialCoveredMeals:status.initialCoveredMeals,expectedSourceMeals:status.expectedSourceMeals,expectedSourceMealEnergy:status.expectedSourceMealEnergy,initialSourceMealEnergy:status.initialSourceMealEnergy,extraHelps:status.extraHelps,stockpileResets:status.stockpileResets,stockpileExpectedLost:status.stockpileExpectedLost,stockpilePending,ingredients:status.ingredients,skillIngredients:status.skillIngredients,conditionalPlusIngredients:status.conditionalPlusIngredients,conditionalMinusRecovery:status.conditionalMinusRecovery,unassignedMagnet:status.unassignedMagnet,potBonus,successBonus,inventory,meals:status.meals,consumedIngredients:status.consumedIngredients,nightEnergy,days:daySummaries,warnings:[...warnings],models:members.size};
 }
-const api={addTastyChanceBonus,resolveTastyChanceMeal,daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceStockpileByReadyStock,advanceSkillStock,expectedSkillStock,integerPocketTransitions,queuedFullPocketTransitions,queuedFullPocketAfterCollection,integerFoodPocketTransitions,integerFoodSkillQueueTransitions,collectIntegerFoodSkillQueue,collectSharedBagFoodQueues,collectOneHelpIngredientKinds,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
+const api={normalizeWeeklyTeams,addTastyChanceBonus,resolveTastyChanceMeal,daytimeSchedule,isAllHealerSkill,unmodeledStrengthSkillEffect,needsMagnetIngredientPool,roundedDirectStrength,expectedRandomChargeStrength,directStrengthPerActivation,cappedHealFromStock,simulate,RECIPES,FAVORITES,berryUnit,energySpeed,baseCarryCapacity,effectivePotCapacity,calculateMealEnergy,chooseRecipe,mealRecovery,cheerWeights,healPulseRecipientExpectation,recoveryNatureFactor,recoverFromSleep,lunarBerryCounts,dracoBerryCounts,teamSpeciesCount,helperBoostCount,STOCKPILE_REWARDS,emptyStockpile,advanceStockpile,advanceStockpileByReadyStock,advanceSkillStock,expectedSkillStock,integerPocketTransitions,queuedFullPocketTransitions,queuedFullPocketAfterCollection,integerFoodPocketTransitions,integerFoodSkillQueueTransitions,collectIntegerFoodSkillQueue,collectSharedBagFoodQueues,collectOneHelpIngredientKinds,collectIntegerFoodPocket,blockedIngredientSkill,advanceSkillProcStateByHelpCounts,expectedPocketOccupation,queueSneakyEnergy,releaseSneakyEnergy,weightedHelpMinutes,advanceEnergyTimer,applyEnergyRecovery,completeHelpProgress,clearDepartingHelpProgress,emptySkillProcState,advanceSkillProcState,skillProcMarginal,clearSkillProcStock,clearPartySkillStocks,clearDepartingPockets,uncollectedExtraHelpOnSwap,hasPlusMinusPartner,plusExtraIngredient,uniformExpectedHeal,uniformExpectedHealFromStock,EXCLUDED_MAIN_SKILLS};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeSimulator=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

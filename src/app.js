@@ -54,12 +54,13 @@ $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0
  if(file.size>8*1024*1024)throw new Error('ファイルが8MBを超えています。');
  const text=await file.text();const result=PokeCsv.parseBoxText(text);
  const kept=storage.reconcileSleepIds(state,result.items);
+ const reconciledWeekly=storage.reconcileWeeklyPlan(state,result.items);
  if(state.box.length&&!confirm(`ボックスを${result.items.length}匹で置き換えますか？ 睡眠パーティは一致する個体のみ引き継ぎます（${kept.length}/${state.sleepIds.length}匹）。`))return;
  const simTeams={};
  for(const key of ['morning','noon','evening']){
   simTeams[key]=storage.reconcileSleepIds({box:state.box,sleepIds:state.simulation.teams[key]||[]},result.items);
  }
- const previous=state;state={...state,box:result.items,sleepIds:kept,simulation:{...state.simulation,teams:simTeams},updatedAt:new Date().toISOString()};const saved=save();if(!saved)state=previous;renderBox();fillSimulation();if(saved){stalePreparation();lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`);
+ const previous=state;state={...state,box:result.items,sleepIds:kept,weeklyPlan:reconciledWeekly.plan,simulation:{...state.simulation,teams:simTeams},updatedAt:new Date().toISOString()};const saved=save();if(!saved)state=previous;renderBox();fillSimulation();if(saved){stalePreparation();lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`+(reconciledWeekly.invalidated.length?' 再設定が必要：'+reconciledWeekly.invalidated.join('、'):' '));
  }catch(e){$('importError').textContent=e.message||String(e);$('importError').hidden=false;}finally{ev.target.value='';}});
 $('downloadBackup').addEventListener('click',()=>{download(`pokesleep_event_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2),'application/json;charset=utf-8');toast('バックアップを保存しました。');});
 $('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;const previous=state;state=data;storage.allowRecovery();const saved=save();if(!saved)state=previous;fillEvent();renderBox();fillSimulation();fillPreparation();if(saved){lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
