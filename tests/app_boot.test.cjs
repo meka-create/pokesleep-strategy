@@ -926,3 +926,20 @@ test('W3 browser: weekly auto proposals can start with only box and manually sel
  assert.ok(received.sleepTeamsByDay.every(night=>night.length===5));
  assert.equal(app.items.get('weekProposal').hidden,false);
 });
+
+
+test('W3 browser: complete weekday plan runs even if legacy three rosters were never filled',()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ assert.equal(app.items.get('runSim').disabled,true);
+ app.items.get('weekEditDay').value='1';
+ app.items.get('weekEditSlot').value='morning';
+ app.callbacks.get('weekEditDay:change')();
+ app.callbacks.get('weekSaveSlot:click')();
+ const saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.dayTeams.length,7);
+ assert.equal(app.items.get('runSim').disabled,false,'valid full weekly schedule bypasses legacy day rosters');
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ assert.equal(app.items.get('simResult').hidden,false);
+ assert.equal(app.items.get('simDaily').children.length,7);
+});
