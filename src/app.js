@@ -369,6 +369,7 @@ $('runSim').addEventListener('click',()=>{
  $('simError').hidden=true;
  try{
   if(hasUnsavedEventEdits())throw Error('イベント条件に未保存の変更があります。イベントタブで「イベント条件を保存」を押してから再試算してください。');
+  ensureWeekSlotSaved();
   const weekly=state.weeklyPlan||storage.defaultWeeklyPlan();
   const weekSet=weekly.dayTeams.length===7;
   const noBasicTeam=rosterKeys.some(key=>(state.simulation.teams[key]||[]).filter(Boolean).length!==5);
@@ -894,6 +895,16 @@ const weekNames=['月','火','水','木','金','土','日'];
 const weekPeriods=['morning','noon','evening','sleep'];
 const weekPeriodNames={morning:'朝',noon:'昼',evening:'夜',sleep:'睡眠'};
 let weekPreview=null,weekSearchToken=0,weekSearchConfig=null;
+let weekEditorBaseline=null;
+function unsavedWeekSlot(){
+ if(!weekEditorBaseline)return false;
+ const active=Array.from($('weekFiveEditors').querySelectorAll('select')).map(el=>el.value);
+ return active.length===5&&JSON.stringify(active)!==JSON.stringify(weekEditorBaseline.ids);
+}
+function ensureWeekSlotSaved(){
+ if(unsavedWeekSlot())
+  throw Error('編集中の5匹がまだ保存されていません。「この曜日・時間帯だけ保存」を押すか、変更を破棄してから操作してください。');
+}
 function cloneWeekDay(row){
  return {morning:[...row.morning],noon:[...row.noon],evening:[...row.evening]};
 }
@@ -945,6 +956,7 @@ function renderWeekEditor(){
   }
   sel.value=ids[slot]||'';holder.append(sel);
  }
+ weekEditorBaseline={day:index,period,ids:[...ids]};
  $('weekCopyPrevious').disabled=period!=='sleep'||index===0;
 }
 function renderWeekPlan(){
@@ -970,9 +982,20 @@ function renderWeekPlan(){
   '現在の週間計画を表示しています。編集した曜日・時間帯だけ保存します。';
  renderWeekEditor();
 }
-$('weekEditDay').addEventListener('change',renderWeekEditor);
-$('weekEditSlot').addEventListener('change',renderWeekEditor);
+function switchWeekEditor(){
+ if(unsavedWeekSlot()&&!confirm('編集中の5匹をまだ保存していません。変更を破棄して切り替えますか？')){
+  $('weekEditDay').value=String(weekEditorBaseline.day);
+  $('weekEditSlot').value=weekEditorBaseline.period;return;
+ }
+ renderWeekEditor();
+}
+$('weekEditDay').addEventListener('change',switchWeekEditor);
+$('weekEditSlot').addEventListener('change',switchWeekEditor);
 $('weekAutoSleep').addEventListener('change',()=>{
+ if(unsavedWeekSlot()&&!confirm('編集中の5匹を保存していません。変更を破棄して自動提案ON/OFFを変更しますか？')){
+  $('weekAutoSleep').checked=!!(state.weeklyPlan||storage.defaultWeeklyPlan()).sleepAuto;
+  return;
+ }
  const old=state.weeklyPlan||storage.defaultWeeklyPlan();
  updateWeekPlan({...old,sleepAuto:$('weekAutoSleep').checked},
   $('weekAutoSleep').checked?'睡眠7晩の自動提案を有効にしました。':'手動の睡眠7晩に戻しました。');
@@ -1026,6 +1049,7 @@ $('weekCopyPrevious').addEventListener('click',()=>{
 
 
 function weekSearchInput(){
+ ensureWeekSlotSaved();
  if(hasUnsavedEventEdits())
   throw Error('イベント設定に未保存の変更があります。イベント条件を保存してから週間自動提案を実行してください。');
  const needBaseline=rosterKeys.some(k=>(state.simulation.teams[k]||[]).filter(Boolean).length!==5);
@@ -1044,7 +1068,8 @@ function weekSearchInput(){
 function weekSearchSignature(){
  return JSON.stringify({box:state.box,week:state.weeklyPlan,
   sleep:state.sleepIds,roster:state.simulation.teams,
-  event:state.event,eventDraft:readEvent(),form:{
+  event:state.event,eventDraft:readEvent(),
+  weekEditor:weekEditorBaseline?Array.from($('weekFiveEditors').querySelectorAll('select')).map(el=>el.value):[],form:{
    fieldBonus:$('simFieldBonus').value,tap:$('simTap').value,
    pot:$('simPot').value,bag:$('simBagCapacity').value,
    sleepScore:$('simSleepScore').value,energy:$('simInitialEnergy').value,
@@ -1110,6 +1135,7 @@ $('weekSearch').addEventListener('click',()=>{
  }catch(e){error.textContent=e.message||String(e);error.hidden=false;$('weekSearch').disabled=false;}
 });
 $('weekApplyProposal').addEventListener('click',()=>{
+ try{ensureWeekSlotSaved();}catch(e){toast(e.message);return;}
  const preview=weekPreview;
  if(!preview||weekSearchSignature()!==preview.source){
   toast('設定が変更されています。週間自動提案を実行し直してください。');invalidateWeekProposal();return;
