@@ -893,7 +893,10 @@ function cloneWeekDay(row){
 function currentWeekPlan(){
  const plan=state.weeklyPlan||storage.defaultWeeklyPlan();
  const dayTeams=plan.dayTeams.length===7?plan.dayTeams.map(cloneWeekDay):
-  Array.from({length:7},()=>Object.fromEntries(rosterKeys.map(k=>[k,[...(state.simulation.teams[k]||[])]])));
+  Array.from({length:7},()=>Object.fromEntries(rosterKeys.map(k=>{
+   const original=state.simulation.teams[k]||[];
+   return [k,[...(original.length===5&&original.every(Boolean)?original:state.sleepIds)]];
+  })));
  const manual=plan.manualSleepTeams.length===7?plan.manualSleepTeams.map(row=>[...row]):
   Array.from({length:7},()=>[...state.sleepIds]);
  const auto=plan.autoSleepTeams.length===7?plan.autoSleepTeams.map(row=>[...row]):[];
@@ -1018,10 +1021,13 @@ $('weekCopyPrevious').addEventListener('click',()=>{
 function weekSearchInput(){
  if(hasUnsavedEventEdits())
   throw Error('イベント設定に未保存の変更があります。イベント条件を保存してから週間自動提案を実行してください。');
- const sim=readSimulation(),week=currentWeekPlan();
+ const needBaseline=rosterKeys.some(k=>(state.simulation.teams[k]||[]).filter(Boolean).length!==5);
+ const sim=readSimulation(needBaseline),week=currentWeekPlan();
  const useNight=week.plan.sleepAuto&&week.auto.length===7?week.auto:week.manual;
+ const planDays=week.plan.dayTeams.length===7?week.dayTeams:
+  Array.from({length:7},()=>Object.fromEntries(rosterKeys.map(k=>[k,[...sim.teams[k]]])));
  const teams={...sim.teams,sleep:[...state.sleepIds]};
- const input={box:state.box,teams,teamsByDay:week.dayTeams,
+ const input={box:state.box,teams,teamsByDay:planDays,
   sleepTeamsByDay:useNight,sleepAuto:week.plan.sleepAuto,
   options:{...sim,map:state.event.map,camp:state.event.camp1,
    foodMode:state.event.food1,eventEffects:state.event.effects}};
