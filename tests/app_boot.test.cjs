@@ -821,7 +821,7 @@ test('failed sleep and daytime bulk edits restore previously saved rosters',()=>
  const key='pokesleep-event-planner/step1/v1';
  const before=JSON.parse(app.data.get(key));
  app.setFailWrites(true);
- app.callbacks.get('pokemonList-virtual-add-i0:click')?.();
+ app.callbacks.get('pokemonList-virtual-add-i0:click')();
  app.callbacks.get('fillAllRosters:click')();
  app.setFailWrites(false);
  const after=JSON.parse(app.data.get(key));
