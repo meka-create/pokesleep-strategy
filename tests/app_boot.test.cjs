@@ -826,7 +826,7 @@ test('failed sleep and daytime bulk edits restore previously saved rosters',()=>
  app.setFailWrites(false);
  const after=JSON.parse(app.data.get(key));
  assert.deepEqual(after.sleepIds,before.sleepIds);
- assert.deepEqual(after.simulation.teams,before.simulation?.teams);
+ assert.deepEqual(after,before,'failed edits must not change persistent backup');
 });
 
 test('failed destructive clear retains stored box, sleep team and event in active UI',()=>{
