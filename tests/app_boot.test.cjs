@@ -943,3 +943,46 @@ test('W3 browser: complete weekday plan runs even if legacy three rosters were n
  assert.equal(app.items.get('simResult').hidden,false);
  assert.equal(app.items.get('simDaily').children.length,7);
 });
+
+
+test('W4 browser: unsaved weekday 5-member edits never enter weekly energy evaluations',()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ app.callbacks.get('fillAllRosters:click')();
+ app.items.get('weekEditDay').value='4';
+ app.items.get('weekEditSlot').value='sleep';
+ app.callbacks.get('weekEditDay:change')();
+ app.callbacks.get('weekEditSlot:change')();
+ const old=app.data.get(key);
+ app.items.get('weekFiveEditors').children[4].value='i5';
+ app.callbacks.get('weekSearch:click')();
+ assert.equal(app.items.get('weekError').hidden,false);
+ assert.match(app.items.get('weekError').textContent,/保存されていません/);
+ assert.equal(app.items.get('weekProposal').hidden,true);
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,false);
+ assert.match(app.items.get('simError').textContent,/保存されていません/);
+ assert.equal(app.data.get(key),old);
+ app.callbacks.get('weekSaveSlot:click')();
+ const saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.manualSleepTeams[4][4],'i5');
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+});
+test('W4 browser: editing unsaved selector after weekly search invalidates old preview',()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ app.callbacks.get('fillAllRosters:click')();
+ const baseline=JSON.parse(app.data.get(key)).weeklyPlan;
+ app.ctx.PokeWeekOptimizer.createSession=config=>{
+  const first={score:{total:100,berries:100,skills:0,cooking:0},
+   swaps:{total:0},teamsByDay:config.teamsByDay,
+   sleepTeamsByDay:config.sleepTeamsByDay};
+  return {step:()=>({done:true,evaluations:1,maxEvaluations:12,baseline:first,best:first})};
+ };
+ app.callbacks.get('weekSearch:click')();
+ app.flushTimers();
+ assert.equal(app.items.get('weekProposal').hidden,false);
+ app.items.get('weekFiveEditors').children[4].value='i5';
+ app.callbacks.get('weekApplyProposal:click')();
+ assert.deepEqual(JSON.parse(app.data.get(key)).weeklyPlan,baseline);
+ assert.equal(app.items.get('weekProposal').hidden,false,'candidate remains for later controlled re-evaluation');
+});
