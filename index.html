@@ -3973,9 +3973,12 @@ function renderSimulator(){
         toast('同じ時間帯に同一個体を2匹指定できません。');
         return;
       }
-      state.simulation.teams[key]=values;
-      notifySave(save(),'試算用パーティを保存しました。');
-      updateRosterStatus();markResultsStale();
+      const previousTeams=state.simulation.teams;
+      state.simulation.teams={...previousTeams,[key]:values};
+      const saved=save();
+      if(!saved){state.simulation.teams=previousTeams;select.value=previous[i]||'';renderSimulator();}
+      notifySave(saved,'試算用パーティを保存しました。');
+      updateRosterStatus();if(saved)markResultsStale();
     });
     line.append(index,select);holder.append(line);
   }
