@@ -904,3 +904,25 @@ test('W3 browser: ON without seven-night proposal refuses to claim a valid simul
  assert.equal(app.items.get('simError').hidden,false);
  assert.match(app.items.get('simError').textContent,/まだ7晩の提案がありません/);
 });
+
+
+test('W3 browser: weekly auto proposals can start with only box and manually selected sleep5',()=>{
+ const app=boot({withSixth:true});
+ let received=null;
+ app.ctx.PokeWeekOptimizer.createSession=config=>{
+  received=JSON.parse(JSON.stringify(config));
+  const baseline={score:{total:500,berries:500,cooking:0,skills:0},
+   swaps:{total:0},teamsByDay:config.teamsByDay,sleepTeamsByDay:config.sleepTeamsByDay};
+  return {step:()=>({done:true,evaluations:1,maxEvaluations:12,baseline,best:baseline})};
+ };
+ assert.equal(app.items.get('runSim').disabled,true,'legacy manual three teams are unfilled');
+ app.callbacks.get('weekSearch:click')();
+ app.flushTimers();
+ assert.equal(app.items.get('weekError').hidden,true,app.items.get('weekError').textContent);
+ assert.ok(received);
+ assert.equal(received.teamsByDay.length,7);
+ assert.equal(received.sleepTeamsByDay.length,7);
+ assert.ok(received.teamsByDay.every(day=>day.morning.length===5&&day.noon.length===5&&day.evening.length===5));
+ assert.ok(received.sleepTeamsByDay.every(night=>night.length===5));
+ assert.equal(app.items.get('weekProposal').hidden,false);
+});
