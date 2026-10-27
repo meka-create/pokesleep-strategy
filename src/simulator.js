@@ -1172,15 +1172,44 @@ function daytimeSchedule(tapMinutes){
  const times=[...boundaries].sort((a,b)=>a-b);
  return times.slice(0,-1).map((minute,i)=>({minute,duration:times[i+1]-minute,tap:taps.has(minute)}));
 }
-function simulate(input){
+// W1: explicitly normalize all 21 daytime and 7 night slots before computing.
+// Omitting both weekly arrays is the precise legacy 3-day-slot + fixed-sleep
+// model. A weekly input is all-or-nothing; malformed days must never fall
+// back silently to another team's five IDs.
+function normalizeWeeklyTeams(input){
  if(!input||!Array.isArray(input.box))throw Error('ボックスがありません。');
+ const ids=new Set(input.box.map(p=>p.id));
+ const base=input.teams||{},dayKeys=['morning','noon','evening'];
+ const hasDay=input.teamsByDay!==undefined,hasSleep=input.sleepTeamsByDay!==undefined;
+ const valid=(team,label)=>{
+  if(!Array.isArray(team)||team.length!==5||new Set(team).size!==5||
+   team.some(id=>typeof id!=='string'||!ids.has(id)))
+   throw Error(label+'の5匹パーティが不正です。');
+  return [...team];
+ };
+ if(hasDay&&(!Array.isArray(input.teamsByDay)||input.teamsByDay.length!==7))
+  throw Error('曜日別の日中パーティは月曜～日曜の7日分を指定してください。');
+ if(hasSleep&&(!Array.isArray(input.sleepTeamsByDay)||input.sleepTeamsByDay.length!==7))
+  throw Error('曜日別の睡眠パーティは月曜夜～日曜夜の7回分を指定してください。');
+ const fixedDay=hasDay?null:Object.fromEntries(dayKeys.map(key=>
+  [key,valid(base[key],'日中'+key)]));
+ const fixedSleep=hasSleep?null:valid(base.sleep,'睡眠');
+ const days=Array.from({length:7},(_,d)=>{
+  const raw=hasDay?input.teamsByDay[d]:fixedDay;
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))
+   throw Error((d+1)+'日目の曜日別パーティが不正です。');
+  const row={};
+  for(const key of dayKeys)row[key]=hasDay?valid(raw[key],(d+1)+'日目'+key):[...raw[key]];
+  row.sleep=hasSleep?valid(input.sleepTeamsByDay[d],(d+1)+'日目の睡眠'):[...fixedSleep];
+  return row;
+ });
+ return {days,hasDay,hasSleep};
+}
+function simulate(input){
+ const weekly=normalizeWeeklyTeams(input);
  const byId=new Map(input.box.map(p=>[p.id,p]));
  const teams=input.teams||{};
  const periods=['morning','noon','evening','sleep'];
- for(const key of periods){
-  const ids=teams[key];
-  if(!Array.isArray(ids)||ids.length!==5||new Set(ids).size!==5||ids.some(id=>!byId.has(id)))throw Error('朝・昼・夜・睡眠の各パーティに別々の5匹を指定してください。');
- }
  const opts=input.options||{};
  // The UI already rejects invalid integers. Enforce the same contract in
  // the simulator so imported/saved or direct API inputs cannot turn 0-minute
