@@ -5,7 +5,7 @@ test('weekly game observation can reload pre-week plans without a visible simula
  const html=read('src/index.template.html'),build=read('build.mjs');
  const app=read('src/app.js'),packageData=JSON.parse(read('package.json'));
  assert.match(packageData.version,/^\d+\.\d+\.\d+$/);
- const versionBadge='STEP W3 · v'+packageData.version;
+ const versionBadge='STEP W4 · v'+packageData.version;
  assert.ok(html.includes(versionBadge));
  assert.match(html,/<details class="card sim-observation">/);
  assert.match(html,/id="downloadPlan"/);

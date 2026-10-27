@@ -11,6 +11,12 @@ function markResultsStale(keepComparison=false){
  const result=$('simResult'),warning=$('simStaleNotice');
  if(!result.hidden)warning.hidden=false;
  stalePreparation();
+ // An older weekly proposal must not remain actionable (or appear current)
+ // after event, simulator, basic-roster or inventory settings change.
+ if(weekPreview||weekSearchConfig){
+  invalidateWeekProposal();
+  $('weekProgress').textContent='入力条件が変更されたため、以前の週間提案を破棄しました。';
+ }
  // Native change listeners pass an Event object; only the deliberate literal
  // boolean true (after applying a candidate) may preserve comparison values.
  if(keepComparison!==true)clearStep3Evaluations();
@@ -61,11 +67,11 @@ $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0
  for(const key of ['morning','noon','evening']){
   simTeams[key]=storage.reconcileSleepIds({box:state.box,sleepIds:state.simulation.teams[key]||[]},result.items);
  }
- const previous=state;state={...state,box:result.items,sleepIds:kept,weeklyPlan:reconciledWeekly.plan,simulation:{...state.simulation,teams:simTeams},updatedAt:new Date().toISOString()};const saved=save();if(!saved)state=previous;renderBox();fillSimulation();if(saved){stalePreparation();lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`+(reconciledWeekly.invalidated.length?' 再設定が必要：'+reconciledWeekly.invalidated.join('、'):' '));
+ const previous=state;state={...state,box:result.items,sleepIds:kept,weeklyPlan:reconciledWeekly.plan,simulation:{...state.simulation,teams:simTeams},updatedAt:new Date().toISOString()};const saved=save();if(!saved)state=previous;renderBox();fillSimulation();if(saved){invalidateWeekProposal();stalePreparation();lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,`${result.items.length}匹を読み込みました。睡眠パーティは${kept.length}匹を引き継ぎました。`+(reconciledWeekly.invalidated.length?' 再設定が必要：'+reconciledWeekly.invalidated.join('、'):' '));
  }catch(e){$('importError').textContent=e.message||String(e);$('importError').hidden=false;}finally{ev.target.value='';}});
 $('downloadBackup').addEventListener('click',()=>{download(`pokesleep_event_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(state,null,2),'application/json;charset=utf-8');toast('バックアップを保存しました。');});
-$('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;const previous=state;state=data;storage.allowRecovery();const saved=save();if(!saved)state=previous;fillEvent();renderBox();fillSimulation();fillPreparation();if(saved){lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
-$('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;const previous=state;state=storage.newState();storage.allowRecovery();const saved=save();if(!saved)state=previous;fillEvent();if(saved)$('searchPokemon').value='';renderBox();fillSimulation();fillPreparation();if(saved){lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,'端末内の保存情報を消去しました。');});
+$('backupFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;try{if(file.size>10*1024*1024)throw new Error('ファイルが大きすぎます。');const data=storage.validateState(JSON.parse(await file.text()));if(!confirm(`バックアップを復元し、現在の${state.box.length}匹と設定を置き換えますか？`))return;const previous=state;state=data;storage.allowRecovery();const saved=save();if(!saved)state=previous;fillEvent();renderBox();fillSimulation();fillPreparation();if(saved){invalidateWeekProposal();lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,'バックアップを復元しました。');}catch(e){alert('復元できませんでした：'+e.message);}finally{ev.target.value='';}});
+$('clearData').addEventListener('click',()=>{if(!confirm('ボックス・睡眠パーティ・イベント条件をすべて削除します。実行しますか？'))return;const previous=state;state=storage.newState();storage.allowRecovery();const saved=save();if(!saved)state=previous;fillEvent();if(saved)$('searchPokemon').value='';renderBox();fillSimulation();fillPreparation();if(saved){invalidateWeekProposal();lastRunSnapshot=null;$('simResult').hidden=true;}notifySave(saved,'端末内の保存情報を消去しました。');});
 // STEP3 candidate scores stay ephemeral; only explicit apply changes daytime teams.
 let step3Candidates=[],step3Source='',step3Evaluations=[],step3EvaluationToken=0;
 const step3Fingerprint=()=>JSON.stringify({box:state.box,sleepIds:state.sleepIds,
@@ -899,11 +905,17 @@ let weekEditorBaseline=null;
 function unsavedWeekSlot(){
  if(!weekEditorBaseline)return false;
  const active=Array.from($('weekFiveEditors').querySelectorAll('select')).map(el=>el.value);
- return active.length===5&&JSON.stringify(active)!==JSON.stringify(weekEditorBaseline.ids);
+ // An unconfigured basic sleep/team slot has five visible empty selectors,
+ // but its fallback roster can be [] until the player selects five members.
+ const original=Array.from({length:5},(_,i)=>weekEditorBaseline.ids[i]||'');
+ return active.length===5&&JSON.stringify(active)!==JSON.stringify(original);
 }
 function ensureWeekSlotSaved(){
  if(unsavedWeekSlot())
   throw Error('編集中の5匹がまだ保存されていません。「この曜日・時間帯だけ保存」を押すか、変更を破棄してから操作してください。');
+}
+function confirmDiscardWeekSlot(action){
+ return !unsavedWeekSlot()||confirm('編集中の5匹はまだ保存されていません。変更を破棄して'+action+'しますか？');
 }
 function cloneWeekDay(row){
  return {morning:[...row.morning],noon:[...row.noon],evening:[...row.evening]};
@@ -956,7 +968,7 @@ function renderWeekEditor(){
   }
   sel.value=ids[slot]||'';holder.append(sel);
  }
- weekEditorBaseline={day:index,period,ids:[...ids]};
+ weekEditorBaseline={day:index,period,ids:[...ids],plan:state.weeklyPlan,box:state.box};
  $('weekCopyPrevious').disabled=period!=='sleep'||index===0;
 }
 function renderWeekPlan(){
@@ -980,13 +992,20 @@ function renderWeekPlan(){
  $('weekStatus').textContent=data.plan.sleepAuto&&data.auto.length!==7?
   '睡眠自動提案ON：7晩分の自動提案は未作成です。週間自動提案を実行してください。':
   '現在の週間計画を表示しています。編集した曜日・時間帯だけ保存します。';
- renderWeekEditor();
+ // Box searches and unrelated UI refreshes must not erase a draft roster.
+ // A replacement box or successfully saved weekly plan does require a fresh
+ // editor, so identity changes explicitly invalidate this draft baseline.
+ if(!weekEditorBaseline||weekEditorBaseline.plan!==state.weeklyPlan||
+    weekEditorBaseline.box!==state.box||!unsavedWeekSlot())renderWeekEditor();
 }
 $('weekFiveEditors').addEventListener('change',()=>{
  if(unsavedWeekSlot()&&(weekPreview||$('weekSearch').disabled)){
   invalidateWeekProposal();
   $('weekProgress').textContent='5匹の未保存変更があるため、以前の週間提案を破棄しました。編成を保存してから再探索してください。';
  }
+ // A changed, unsaved weekly roster also makes the visible ordinary 7-day
+ // simulation result stale, even though evaluation remains blocked until save.
+ if(unsavedWeekSlot())markResultsStale();
 });
 function switchWeekEditor(){
  if(unsavedWeekSlot()&&!confirm('編集中の5匹をまだ保存していません。変更を破棄して切り替えますか？')){
@@ -1008,6 +1027,7 @@ $('weekAutoSleep').addEventListener('change',()=>{
 });
 $('weekFillDays').addEventListener('click',()=>{
  try{
+  if(!confirmDiscardWeekSlot('日中21枠を一括設定'))return;
   const source=Object.fromEntries(rosterKeys.map(key=>[key,[...(state.simulation.teams[key]||[])]]));
   if(rosterKeys.some(key=>source[key].length!==5||source[key].some(id=>!id)||
     new Set(source[key]).size!==5))throw Error('先に下の朝・昼・夜の基本5匹を揃えてください。');
@@ -1017,6 +1037,7 @@ $('weekFillDays').addEventListener('click',()=>{
  }catch(e){toast(e.message);}
 });
 $('weekFillSleep').addEventListener('click',()=>{
+ if(!confirmDiscardWeekSlot('手動睡眠7晩を一括設定'))return;
  if(state.sleepIds.length!==5){toast('ボックスタブで基本の睡眠5匹を揃えてください。');return;}
  const old=state.weeklyPlan||storage.defaultWeeklyPlan();
  if(old.manualSleepTeams.length&&!confirm('編集済みの手動睡眠7晩を基本5匹で上書きしますか？'))return;
@@ -1045,6 +1066,7 @@ $('weekSaveSlot').addEventListener('click',()=>{
 $('weekCopyPrevious').addEventListener('click',()=>{
  const index=Number($('weekEditDay').value)||0;
  if(index===0||$('weekEditSlot').value!=='sleep')return;
+ if(!confirmDiscardWeekSlot('前夜の睡眠編成をコピー'))return;
  const current=currentWeekPlan(),next={...current.plan};
  const key=next.sleepAuto?'autoSleepTeams':'manualSleepTeams';
  const source=next.sleepAuto?(current.auto.length?current.auto:current.manual):current.manual;
