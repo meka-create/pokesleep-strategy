@@ -2,8 +2,9 @@
 'use strict';
 const KEY='pokesleep-event-planner/step1/v1';
 const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,sleepScore:88,initialEnergy:100,recipeId:'',recipeMode:'fixed',extraMode:'none',successMode:'none',magnetIngredients:[],initialIngredients:{}});
+const defaultWeeklyPlan=()=>({sleepAuto:false,dayTeams:[],manualSleepTeams:[],autoSleepTeams:[]});
 const defaultPreparation=()=>({recipeId:'',meals:21,recipeTargets:[],priority:'stock',bagCapacity:0,carryover:{},field:'',fieldBonus:0,forecastCooking:'none',forecastFoodMode:'random',forecastInventorySource:'carryover'});
-const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),preparation:defaultPreparation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
+const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),weeklyPlan:defaultWeeklyPlan(),preparation:defaultPreparation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
 const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
 const validEnum=(v,choices)=>choices.includes(v);
 // This module validates localStorage on startup BEFORE master.js is loaded.
@@ -16,6 +17,49 @@ const canonicalDate=value=>{
  const dt=new Date(value+'T00:00:00Z');
  return Number.isFinite(dt.getTime())&&dt.toISOString().slice(0,10)===value;
 };
+// W1: Persist optional 7x(day) and 7x(night) schedules while remaining JSON v1.
+// An empty schedule means use the established legacy daytime/sleep rosters.
+// A non-empty schedule must contain all seven days with complete five-member teams.
+function validateWeeklyPlan(raw,ids){
+ const p=raw===undefined?defaultWeeklyPlan():raw;
+ if(!p||typeof p!=='object'||Array.isArray(p)||typeof p.sleepAuto!=='boolean')
+  throw Error('週間パーティ設定が不正です。');
+ const validateTeam=(team,label)=>{
+  if(!Array.isArray(team)||team.length!==5||new Set(team).size!==5||
+    team.some(id=>typeof id!=='string'||!ids.has(id)))
+   throw Error(label+'の5匹パーティが不正です。');
+  return [...team];
+ };
+ const weeklyArray=(value,label,part)=>{
+  if(!Array.isArray(value)||![0,7].includes(value.length))
+   throw Error(label+'は7日分のパーティを指定してください。');
+  return value.map((row,d)=>{
+   if(part){
+    if(!row||typeof row!=='object'||Array.isArray(row))
+     throw Error(label+(d+1)+'日目が不正です。');
+    return Object.fromEntries(['morning','noon','evening'].map(key=>
+     [key,validateTeam(row[key],label+(d+1)+'日目'+key)]));
+   }
+   return validateTeam(row,label+(d+1)+'日目');
+  });
+ };
+ return {sleepAuto:p.sleepAuto,
+  dayTeams:weeklyArray(p.dayTeams,'日中曜日別パーティ',true),
+  manualSleepTeams:weeklyArray(p.manualSleepTeams,'手動睡眠パーティ',false),
+  autoSleepTeams:weeklyArray(p.autoSleepTeams,'自動睡眠パーティ',false)};
+}
+function resolveWeeklyPlan(state){
+ const plan=validateWeeklyPlan(state.weeklyPlan,new Set(state.box.map(p=>p.id)));
+ const daytime=plan.dayTeams.length?plan.dayTeams:
+  Array.from({length:7},()=>Object.fromEntries(['morning','noon','evening'].map(key=>
+   [key,[...state.simulation.teams[key]]])));
+ const nights=plan.sleepAuto?plan.autoSleepTeams:plan.manualSleepTeams;
+ if(plan.sleepAuto&&!nights.length)
+  throw Error('睡眠自動提案ONですが、7晩の提案が未作成です。');
+ return {teamsByDay:daytime,
+  sleepTeamsByDay:nights.length?nights:Array.from({length:7},()=>[...state.sleepIds]),
+  sleepAuto:plan.sleepAuto};
+}
 function validateState(x){
  if(!x||x.version!==1||!Array.isArray(x.box)||!Array.isArray(x.sleepIds)||!x.event||typeof x.event!=='object'||Array.isArray(x.event))throw new Error('対応していないバックアップ形式です。');
  if(x.box.length>10000)throw new Error('ボックスが大きすぎます。');
@@ -63,6 +107,7 @@ function validateState(x){
  }
  if(Object.values(carryover).reduce((n,v)=>n+v,0)>prep.bagCapacity&&prep.bagCapacity!==0)
   throw Error('準備週の持ち越し食材数がバッグ容量を超えています。');
+ const weeklyPlan=validateWeeklyPlan(x.weeklyPlan,ids);
  const sim=x.simulation===undefined?defaultSimulation():x.simulation;
  if(!sim||typeof sim!=='object'||!sim.teams||typeof sim.teams!=='object')throw new Error('計算設定が不正です。');
  const teams={};
@@ -77,7 +122,7 @@ function validateState(x){
  const magnet=sim.magnetIngredients??[];
  if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!INGREDIENT_KEYS.has(k)))throw new Error('発見済み食材の設定が不正です。');
  for(const [k,v] of Object.entries(sim.initialIngredients))if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
- return {version:1,box:x.box,sleepIds:[...x.sleepIds],preparation:{recipeId:prep.recipeId,meals:prep.meals,recipeTargets,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover,field:prep.field??'',fieldBonus:prep.fieldBonus??0,forecastCooking:prep.forecastCooking??'none',forecastFoodMode:prep.forecastFoodMode??'random',forecastInventorySource:prep.forecastInventorySource??'carryover'},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
+ return {version:1,box:x.box,sleepIds:[...x.sleepIds],weeklyPlan,preparation:{recipeId:prep.recipeId,meals:prep.meals,recipeTargets,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover,field:prep.field??'',fieldBonus:prep.fieldBonus??0,forecastCooking:prep.forecastCooking??'none',forecastFoodMode:prep.forecastFoodMode??'random',forecastInventorySource:prep.forecastInventorySource??'carryover'},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
 // Preserve selected individuals on a refreshed export. First match full IV-like
 // fingerprints; only fall back to nickname+species when BOTH boxes are unique.
@@ -103,7 +148,7 @@ function save(state){if(loadError)throw new Error(loadError);localStorage.setIte
 function allowRecovery(){loadError='';}
 function getLoadError(){return loadError;}
 function available(){try{const k=KEY+'/probe';localStorage.setItem(k,'1');localStorage.removeItem(k);return true;}catch(e){return false;}}
-const api={newState,defaultSimulation,defaultPreparation,validateState,reconcileSleepIds,load,save,available,getLoadError,allowRecovery,KEY};
+const api={newState,defaultSimulation,defaultPreparation,defaultWeeklyPlan,validateWeeklyPlan,resolveWeeklyPlan,validateState,reconcileSleepIds,load,save,available,getLoadError,allowRecovery,KEY};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeStorage=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
