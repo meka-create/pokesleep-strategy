@@ -828,3 +828,17 @@ test('failed sleep and daytime bulk edits restore previously saved rosters',()=>
  assert.deepEqual(after.sleepIds,before.sleepIds);
  assert.deepEqual(after.simulation.teams,before.simulation?.teams);
 });
+
+test('failed destructive clear retains stored box, sleep team and event in active UI',()=>{
+ const app=boot();
+ const key='pokesleep-event-planner/step1/v1';
+ const before=JSON.parse(app.data.get(key));
+ app.setFailWrites(true);app.callbacks.get('clearData:click')();
+ app.setFailWrites(false);
+ const after=JSON.parse(app.data.get(key));
+ assert.deepEqual(after.box,before.box);
+ assert.deepEqual(after.sleepIds,before.sleepIds);
+ assert.deepEqual(after.event,before.event);
+ assert.equal(app.items.get('boxTotal').textContent,before.box.length+'匹');
+ assert.equal(app.items.get('eventName').value,before.event.name);
+});
