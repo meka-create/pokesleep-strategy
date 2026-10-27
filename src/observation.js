@@ -329,6 +329,27 @@ function validateReplayInput(input){
    team.some(id=>typeof id!=='string'||!ids.has(id)))
    bad(period+'編成はボックス内の異なる5匹が必要です');
  }
+ // W3 snapshots now contain 28 time-scoped teams. Validate them explicitly
+ // rather than replaying malformed JSON or silently falling back to 3 slots.
+ const checkTeam=(team,label)=>{
+  if(!Array.isArray(team)||team.length!==5||new Set(team).size!==5||
+   team.some(id=>typeof id!=='string'||!ids.has(id)))bad(label+'の5匹編成');
+ };
+ if(input.teamsByDay!==undefined){
+  if(!Array.isArray(input.teamsByDay)||input.teamsByDay.length!==7)
+   bad('曜日別日中パーティは7日分');
+  input.teamsByDay.forEach((day,i)=>{
+   if(!day||typeof day!=='object'||Array.isArray(day))
+    bad((i+1)+'日目の編成');
+   for(const period of ['morning','noon','evening'])
+    checkTeam(day[period],(i+1)+'日目'+period);
+  });
+ }
+ if(input.sleepTeamsByDay!==undefined){
+  if(!Array.isArray(input.sleepTeamsByDay)||input.sleepTeamsByDay.length!==7)
+   bad('睡眠パーティは7晩分');
+  input.sleepTeamsByDay.forEach((team,i)=>checkTeam(team,(i+1)+'晩目の睡眠'));
+ }
  const opts=input.options;
  if(!opts||typeof opts!=='object'||Array.isArray(opts)||
   typeof opts.map!=='string'||!opts.map.trim()||opts.map.length>80)
@@ -490,6 +511,18 @@ function screenR02TwoWeekPair(reports,entries){
   blockers.push('フィールド・料理・回収・初期在庫などの試算設定が両週で異なります。');
  if(comparableInputKey(a.input.teams.sleep)!==comparableInputKey(b.input.teams.sleep))
   blockers.push('固定睡眠チームの5匹または並びが両週で異なります。');
+ for(const report of reports){
+  // Controlled R02 one-healer vs two-healer comparisons are explicitly about
+  // fixed rosters; 21-slot schedules must not be misclassified as fixed.
+  const {teams,teamsByDay,sleepTeamsByDay}=report.input;
+  const variableDay=Array.isArray(teamsByDay)&&teamsByDay.some(day=>
+   ['morning','noon','evening'].some(period=>
+    comparableInputKey(day[period])!==comparableInputKey(teams[period])));
+  const variableSleep=Array.isArray(sleepTeamsByDay)&&sleepTeamsByDay.some(team=>
+   comparableInputKey(team)!==comparableInputKey(teams.sleep));
+  if(variableDay||variableSleep)
+   blockers.push(report.week.mondayDate+'：曜日別の編成変化があるため固定編成のヒーラー比較対象外です。');
+ }
  const dex=new Map(root.PokeMaster.species.map(sp=>[sp.name,sp]));
  const isHealer=root.PokeSimulator&&root.PokeSimulator.isAllHealerSkill;
  const rosters=reports.map(r=>{

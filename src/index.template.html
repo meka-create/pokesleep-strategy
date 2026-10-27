@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light"><meta name="robots" content="noindex,nofollow"><title>ポケスリ作戦室 | STEP 4</title>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light"><meta name="robots" content="noindex,nofollow"><title>ポケスリ作戦室 | STEP W3</title>
 <!-- BUILD_CSS -->
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP 4 · v0.4.5</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP W3 · v0.5.0</div></header>
   <main>
     <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
@@ -63,6 +63,42 @@
   <p id="autoCandidateStatus" class="small muted" aria-live="polite"></p>
   <div id="autoCandidateList" class="step3-candidate-list"></div>
  </div>
+ <div class="section-heading minor"><h3>週間28枠の編成計画（W3）</h3></div>
+ <details class="card week-plan" id="weekPlanner">
+  <summary>月～日の朝・昼・夜・睡眠を編集／週間自動提案</summary>
+  <p class="small muted">日中21枠は曜日ごとに選べます。睡眠7晩は自動提案OFFが基本。基本の5匹を全7晩へ一括コピーしてから、必要な夜だけ変更できます。自動提案の評価は参考値で、実ゲームの最適保証ではありません。</p>
+  <label class="switch-line" for="weekAutoSleep"><span>睡眠7晩も自動提案する（初期OFF）</span><input id="weekAutoSleep" type="checkbox"></label>
+  <div class="week-actions">
+   <button id="weekFillDays" type="button" class="secondary">現在の朝・昼・夜を全7日に適用</button>
+   <button id="weekFillSleep" type="button" class="secondary">基本の睡眠5匹を全7晩へ適用</button>
+  </div>
+  <div id="weekOverview" class="week-overview" aria-live="polite"></div>
+  <div class="week-editor">
+   <div class="form-grid">
+    <label class="field"><span>編集する曜日</span><select id="weekEditDay">
+      <option value="0">月曜日</option><option value="1">火曜日</option><option value="2">水曜日</option><option value="3">木曜日</option><option value="4">金曜日</option><option value="5">土曜日</option><option value="6">日曜日</option>
+    </select></label>
+    <label class="field"><span>編集する時間帯</span><select id="weekEditSlot">
+      <option value="morning">朝 7:30～12:00</option><option value="noon">昼 12:00～18:00</option><option value="evening">夜 18:00～就寝前</option><option value="sleep">睡眠（就寝前に設定）</option>
+    </select></label>
+   </div>
+   <div id="weekFiveEditors" class="week-five-editors"></div>
+   <div class="week-actions">
+    <button id="weekSaveSlot" type="button" class="secondary">この曜日・時間帯だけ保存</button>
+    <button id="weekCopyPrevious" type="button" class="secondary">前夜の睡眠編成をコピー</button>
+   </div>
+  </div>
+  <p id="weekStatus" class="small muted" role="status" aria-live="polite"></p>
+  <button id="weekSearch" type="button" class="primary full">週間28枠を自動提案（探索12回以内）</button>
+  <p id="weekProgress" class="small muted" role="status" aria-live="polite"></p>
+  <div id="weekError" class="error" role="alert" hidden></div>
+  <div id="weekProposal" class="week-proposal" hidden>
+    <p id="weekProposalSummary" class="small"></p>
+    <div id="weekProposalDays" class="week-overview"></div>
+    <button id="weekApplyProposal" type="button" class="secondary full">この28枠提案を週間計画へ反映</button>
+    <p class="small muted">反映前は現在の設定を変更しません。睡眠自動提案OFFなら手動7晩を上書きしません。</p>
+  </div>
+ </details>
  <div class="section-heading minor"><h3>時間帯ごとのチーム（各5匹）</h3></div>
  <div class="card sim-setup">
   <p>最初は、STEP 1で決めた<strong>睡眠用の5匹を朝・昼・夜に一括コピー</strong>できます。その後、各枠をタップして1匹ずつ変更してください。</p>

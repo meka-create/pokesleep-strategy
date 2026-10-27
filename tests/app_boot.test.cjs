@@ -9,7 +9,7 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
    _html:'',get innerHTML(){return this._html},set innerHTML(v){this._html=String(v);this.children=[]},
    textContent:'',setAttribute(){},addEventListener(n,f){const key=this.id+':'+n,previous=callbackOwners.get(key)===this?callbacks.get(key):null;callbacks.set(key,previous?(...args)=>{previous(...args);f(...args);}:f);callbackOwners.set(key,this)},append(...a){this.children.push(...a)},appendChild(v){this.children.push(v)},replaceChildren(...a){this.children=[...a]},
    querySelectorAll(q){
-    if(q==='select')return this.children.flatMap(x=>x.children.filter(y=>y.tagName==='select'));
+    if(q==='select')return [...this.children.filter(y=>y.tagName==='select'),...this.children.flatMap(x=>x.children.filter(y=>y.tagName==='select'))];
     if(q==='[data-add]'||q==='[data-remove]'){
      const attr=q==='[data-add]'?'add':'remove';
      const re=new RegExp('data-'+attr+'="([^"]+)"','g');
@@ -29,10 +29,10 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
  // Read the version from the actual shipped template; a hard-coded 0.2.44
  // allowed the UI test fixture to miss regressions in saved provenance.
  const versionMatch=fs.readFileSync(path.join(base,'index.template.html'),'utf8')
-  .match(/STEP 4 · v(\d+\.\d+\.\d+)/);
+  .match(/STEP W3 · v(\d+\.\d+\.\d+)/);
  assert.ok(versionMatch,'built UI must advertise a parseable version');
  const headerVersion=element('span','headerVersion');
- headerVersion.textContent='STEP 4 · v'+versionMatch[1];
+ headerVersion.textContent='STEP W3 · v'+versionMatch[1];
  const document={getElementById:id=>items.get(id)||element('input',id),querySelectorAll:s=>s==='.tab'?tabs:s==='.panel'?panels:s==='.sim-copy'?copy:[],
   querySelector:s=>{if(s==='.step-mark')return headerVersion;const m=s.match(/data-roster="([^"]+)"/);return m?rosters[m[1]]:null},createElement:tag=>element(tag),body:{appendChild(){}}};
  const one={id:'i0',pokemon:'ライチュウ',nickname:'test',level:60,skillLevel:6,ingredients:['とくせんリンゴ','あったかジンジャー','とくせんエッグ'],mainSkill:'エナジーチャージS',nature:'さみしがり',subskills:['きのみの数S','','','',''],sleepHours:1000,shiny:false};
@@ -53,7 +53,7 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
   Date:TestDate,setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout(){}};
  ctx.globalThis=ctx;ctx.window=ctx;
  vm.createContext(ctx);
- for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','step4.js','observation.js','app.js'])
+ for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','week-optimizer.js','step4.js','observation.js','app.js'])
   vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),ctx,{filename:name});
  return {ctx,items,rosters,callbacks,data,
   setFailWrites:value=>{failWrites=value;},
@@ -198,7 +198,7 @@ test('real weekly observation button rejects unverifiable data then saves exact 
  assert.deepEqual(report.input.teams.sleep,['i0','i1','i2','i3','i4']);
  assert.equal(report.provenance.source,'in_game_weekly_summary');
  assert.equal(report.provenance.noUnmodeledEvents,false);
- assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP 4 · v(\d+\.\d+\.\d+)/)[1]);
+ assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP W3 · v(\d+\.\d+\.\d+)/)[1]);
  assert.equal(report.capture.screenshotReviewedByApp,false);
  assert.equal(report.observed.total,1000);
  assert.equal(report.observed.berryAndStrengthSkill,600);
@@ -802,4 +802,144 @@ test('STEP4 audit: failed clear retains original box and sleep party',()=>{
  assert.deepEqual(JSON.parse(app.data.get(key)),before);
  assert.equal(app.items.get('boxTotal').textContent,before.box.length+'匹');
  assert.equal(app.items.get('eventName').value,before.event.name);
+});
+
+
+test('W3 browser: bulk seven-night copy, Friday-only manual swap and previous-night copy',()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ app.callbacks.get('fillAllRosters:click')();
+ app.callbacks.get('weekFillDays:click')();
+ app.callbacks.get('weekFillSleep:click')();
+ let saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.sleepAuto,false);
+ assert.equal(saved.weeklyPlan.dayTeams.length,7);
+ assert.equal(saved.weeklyPlan.manualSleepTeams.length,7);
+ assert.ok(saved.weeklyPlan.manualSleepTeams.every(row=>row.join(',')===saved.sleepIds.join(',')));
+ assert.equal(app.items.get('weekAutoSleep').checked,false);
+ app.items.get('weekEditDay').value='4';
+ app.items.get('weekEditSlot').value='sleep';
+ app.callbacks.get('weekEditDay:change')();
+ app.callbacks.get('weekEditSlot:change')();
+ assert.equal(app.items.get('weekFiveEditors').children.length,5);
+ app.items.get('weekFiveEditors').children[4].value='i5';
+ app.callbacks.get('weekSaveSlot:click')();
+ saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.manualSleepTeams[4][4],'i5');
+ assert.equal(saved.weeklyPlan.manualSleepTeams[3][4],'i4');
+ assert.equal(saved.weeklyPlan.manualSleepTeams[5][4],'i4');
+ app.items.get('weekEditDay').value='5';app.callbacks.get('weekEditDay:change')();
+ app.callbacks.get('weekCopyPrevious:click')();
+ saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.manualSleepTeams[5][4],'i5');
+ app.items.get('weekAutoSleep').checked=true;
+ app.callbacks.get('weekAutoSleep:change')();
+ saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.sleepAuto,true);
+ assert.equal(saved.weeklyPlan.manualSleepTeams[4][4],'i5');
+ assert.equal(saved.weeklyPlan.autoSleepTeams.length,0);
+ app.items.get('weekAutoSleep').checked=false;
+ app.callbacks.get('weekAutoSleep:change')();
+ saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.sleepAuto,false);
+ assert.equal(saved.weeklyPlan.manualSleepTeams[4][4],'i5');
+});
+test('W3 browser: runSim uses stored weekly day/night overrides in observation snapshot',()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ app.callbacks.get('fillAllRosters:click')();
+ app.callbacks.get('weekFillDays:click')();
+ app.callbacks.get('weekFillSleep:click')();
+ app.items.get('weekEditDay').value='2';
+ app.items.get('weekEditSlot').value='sleep';
+ app.callbacks.get('weekEditDay:change')();app.callbacks.get('weekEditSlot:change')();
+ app.items.get('weekFiveEditors').children[4].value='i5';
+ app.callbacks.get('weekSaveSlot:click')();
+ let captured=null;
+ const original=app.ctx.PokeObservation.captureSimulation;
+ app.ctx.PokeObservation.captureSimulation=(input,...args)=>{captured=JSON.parse(JSON.stringify(input));return original(input,...args);};
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ assert.ok(captured);
+ assert.equal(captured.teamsByDay.length,7);
+ assert.equal(captured.sleepTeamsByDay.length,7);
+ assert.equal(captured.sleepTeamsByDay[2][4],'i5');
+ assert.equal(captured.sleepTeamsByDay[1][4],'i4');
+ assert.equal(JSON.parse(app.data.get(key)).weeklyPlan.manualSleepTeams[2][4],'i5');
+});
+test('W3 browser: asynchronous best-plan preview does not overwrite manual nights on OFF',()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ app.callbacks.get('fillAllRosters:click')();
+ app.callbacks.get('weekFillSleep:click')();
+ const original=JSON.parse(app.data.get(key)).weeklyPlan.manualSleepTeams;
+ let iterations=0;
+ app.ctx.PokeWeekOptimizer.createSession=config=>{
+  const baseline={score:{total:1000,berries:1000,cooking:0,skills:0},
+   swaps:{total:4},teamsByDay:config.teamsByDay.map(day=>({
+    morning:[...day.morning],noon:[...day.noon],evening:[...day.evening]
+   })),sleepTeamsByDay:config.sleepTeamsByDay.map(row=>[...row])};
+  const best=JSON.parse(JSON.stringify(baseline));
+  best.score.total=1050;best.score.berries=1050;
+  best.teamsByDay[4].evening[4]='i5';
+  return {step:()=>{iterations++;return {done:true,evaluations:1,maxEvaluations:12,
+    baseline,best,failures:[],exhaustive:false};}};
+ };
+ app.callbacks.get('weekSearch:click')();
+ assert.equal(app.items.get('weekSearch').disabled,true);
+ app.flushTimers();
+ assert.equal(iterations,1);
+ assert.equal(app.items.get('weekProposal').hidden,false,app.items.get('weekError').textContent);
+ assert.match(app.items.get('weekProposalSummary').textContent,/\+50/);
+ assert.deepEqual(JSON.parse(app.data.get(key)).weeklyPlan.manualSleepTeams,original);
+ app.callbacks.get('weekApplyProposal:click')();
+ const saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.dayTeams[4].evening[4],'i5');
+ assert.deepEqual(saved.weeklyPlan.manualSleepTeams,original);
+ assert.equal(saved.weeklyPlan.sleepAuto,false);
+});
+test('W3 browser: ON without seven-night proposal refuses to claim a valid simulation',()=>{
+ const app=boot();
+ app.callbacks.get('fillAllRosters:click')();
+ app.items.get('weekAutoSleep').checked=true;
+ app.callbacks.get('weekAutoSleep:change')();
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,false);
+ assert.match(app.items.get('simError').textContent,/まだ7晩の提案がありません/);
+});
+
+
+test('W3 browser: weekly auto proposals can start with only box and manually selected sleep5',()=>{
+ const app=boot({withSixth:true});
+ let received=null;
+ app.ctx.PokeWeekOptimizer.createSession=config=>{
+  received=JSON.parse(JSON.stringify(config));
+  const baseline={score:{total:500,berries:500,cooking:0,skills:0},
+   swaps:{total:0},teamsByDay:config.teamsByDay,sleepTeamsByDay:config.sleepTeamsByDay};
+  return {step:()=>({done:true,evaluations:1,maxEvaluations:12,baseline,best:baseline})};
+ };
+ assert.equal(app.items.get('runSim').disabled,true,'legacy manual three teams are unfilled');
+ app.callbacks.get('weekSearch:click')();
+ app.flushTimers();
+ assert.equal(app.items.get('weekError').hidden,true,app.items.get('weekError').textContent);
+ assert.ok(received);
+ assert.equal(received.teamsByDay.length,7);
+ assert.equal(received.sleepTeamsByDay.length,7);
+ assert.ok(received.teamsByDay.every(day=>day.morning.length===5&&day.noon.length===5&&day.evening.length===5));
+ assert.ok(received.sleepTeamsByDay.every(night=>night.length===5));
+ assert.equal(app.items.get('weekProposal').hidden,false);
+});
+
+
+test('W3 browser: complete weekday plan runs even if legacy three rosters were never filled',()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ assert.equal(app.items.get('runSim').disabled,true);
+ app.items.get('weekEditDay').value='1';
+ app.items.get('weekEditSlot').value='morning';
+ app.callbacks.get('weekEditDay:change')();
+ app.callbacks.get('weekSaveSlot:click')();
+ const saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.dayTeams.length,7);
+ assert.equal(app.items.get('runSim').disabled,false,'valid full weekly schedule bypasses legacy day rosters');
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ assert.equal(app.items.get('simResult').hidden,false);
+ assert.equal(app.items.get('simDaily').children.length,7);
 });
