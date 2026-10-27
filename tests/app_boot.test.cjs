@@ -792,3 +792,39 @@ test('S4 browser: two-mode comparison displays both reference outcomes and inval
  app.callbacks.get('prepCapacity:change')({type:'change'});
  assert.equal(app.items.get('prepCompareResult').hidden,true);
 });
+
+test('failed event and simulation saves do not leak into later preparation saves',()=>{
+ const app=boot();
+ const key='pokesleep-event-planner/step1/v1';
+ const original=JSON.parse(app.data.get(key));
+ app.items.get('eventName').value='UNSAVED-EVENT';
+ app.setFailWrites(true);app.callbacks.get('saveEvent:click')();
+ assert.equal(app.items.get('storageNotice').className,'small warn');
+ app.setFailWrites(false);
+ assert.equal(app.items.get('dataState').textContent.includes('UNSAVED-EVENT'),false);
+ app.items.get('eventName').value=original.event.name;
+ app.callbacks.get('fillAllRosters:click')();
+ const savedBefore=JSON.parse(app.data.get(key));
+ app.items.get('simFieldBonus').value='33';
+ app.setFailWrites(true);app.callbacks.get('runSim:click')();
+ app.setFailWrites(false);
+ assert.equal(app.items.get('simError').hidden,false);
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepCapacity').value='100';
+ app.callbacks.get('prepCalculate:click')();
+ const savedAfter=JSON.parse(app.data.get(key));
+ assert.equal(savedAfter.event.name,original.event.name);
+ assert.equal(savedAfter.simulation.fieldBonus,savedBefore.simulation.fieldBonus);
+});
+test('failed sleep and daytime bulk edits restore previously saved rosters',()=>{
+ const app=boot({withSixth:true});
+ const key='pokesleep-event-planner/step1/v1';
+ const before=JSON.parse(app.data.get(key));
+ app.setFailWrites(true);
+ app.callbacks.get('pokemonList-virtual-add-i0:click')?.();
+ app.callbacks.get('fillAllRosters:click')();
+ app.setFailWrites(false);
+ const after=JSON.parse(app.data.get(key));
+ assert.deepEqual(after.sleepIds,before.sleepIds);
+ assert.deepEqual(after.simulation.teams,before.simulation?.teams);
+});
