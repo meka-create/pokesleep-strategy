@@ -792,3 +792,14 @@ test('S4 browser: two-mode comparison displays both reference outcomes and inval
  app.callbacks.get('prepCapacity:change')({type:'change'});
  assert.equal(app.items.get('prepCompareResult').hidden,true);
 });
+
+test('STEP4 audit: failed clear retains original box and sleep party',()=>{
+ const app=boot(),key='pokesleep-event-planner/step1/v1';
+ const before=JSON.parse(app.data.get(key));
+ app.setFailWrites(true);
+ app.callbacks.get('clearData:click')();
+ app.setFailWrites(false);
+ assert.deepEqual(JSON.parse(app.data.get(key)),before);
+ assert.equal(app.items.get('boxTotal').textContent,before.box.length+'匹');
+ assert.equal(app.items.get('eventName').value,before.event.name);
+});
