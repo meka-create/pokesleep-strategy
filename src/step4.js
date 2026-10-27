@@ -191,6 +191,8 @@ function forecast({box,sleepIds,teams,plan:prepared,weeklyOptions,field,fieldBon
  for(const [key,value] of [...Object.entries(result.ingredients),...Object.entries(result.inventory)])
   if(!KEYS.includes(key)||!Number.isFinite(value)||value<0)
    throw Error('週間計算器の食材出力が不正です。');
+ const bagEnd=Object.values(result.inventory).reduce((sum,v)=>sum+v,0);
+ if(bagEnd>prepared.capacity+1e-7)throw Error('週間計算器の週末在庫がバッグ容量を超えています。参考試算を中止しました。');
  const rows=prepared.rows.filter(r=>r.required>0||r.target>0).map(r=>{
   const expected=result.ingredients[r.key]||0,final=result.inventory[r.key]||0;
   return {key:r.key,name:r.name,targetNew:r.toGather,expectedNew:expected,
@@ -201,7 +203,7 @@ function forecast({box,sleepIds,teams,plan:prepared,weeklyOptions,field,fieldBon
   targetNew:rows.reduce((sum,r)=>sum+r.targetNew,0),
   expectedNew:rows.reduce((sum,r)=>sum+r.expectedNew,0),
   rows,allExpectedNew:Object.values(result.ingredients).reduce((sum,v)=>sum+v,0),
-  expectedBagEnd:Object.values(result.inventory).reduce((sum,v)=>sum+v,0),
+  expectedBagEnd:bagEnd,
   weeklyEnergy:Number.isFinite(result.total)?result.total:null,
   cookingEnergy:Number.isFinite(result.cooking)?result.cooking:null,
   modelWarnings:Array.isArray(result.warnings)?[...result.warnings]:[],
