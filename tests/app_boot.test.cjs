@@ -9,7 +9,7 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
    _html:'',get innerHTML(){return this._html},set innerHTML(v){this._html=String(v);this.children=[]},
    textContent:'',setAttribute(){},addEventListener(n,f){const key=this.id+':'+n,previous=callbackOwners.get(key)===this?callbacks.get(key):null;callbacks.set(key,previous?(...args)=>{previous(...args);f(...args);}:f);callbackOwners.set(key,this)},append(...a){this.children.push(...a)},appendChild(v){this.children.push(v)},replaceChildren(...a){this.children=[...a]},
    querySelectorAll(q){
-    if(q==='select')return this.children.flatMap(x=>x.children.filter(y=>y.tagName==='select'));
+    if(q==='select')return [...this.children.filter(y=>y.tagName==='select'),...this.children.flatMap(x=>x.children.filter(y=>y.tagName==='select'))];
     if(q==='[data-add]'||q==='[data-remove]'){
      const attr=q==='[data-add]'?'add':'remove';
      const re=new RegExp('data-'+attr+'="([^"]+)"','g');
@@ -29,10 +29,10 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
  // Read the version from the actual shipped template; a hard-coded 0.2.44
  // allowed the UI test fixture to miss regressions in saved provenance.
  const versionMatch=fs.readFileSync(path.join(base,'index.template.html'),'utf8')
-  .match(/STEP 4 · v(\d+\.\d+\.\d+)/);
+  .match(/STEP W3 · v(\d+\.\d+\.\d+)/);
  assert.ok(versionMatch,'built UI must advertise a parseable version');
  const headerVersion=element('span','headerVersion');
- headerVersion.textContent='STEP 4 · v'+versionMatch[1];
+ headerVersion.textContent='STEP W3 · v'+versionMatch[1];
  const document={getElementById:id=>items.get(id)||element('input',id),querySelectorAll:s=>s==='.tab'?tabs:s==='.panel'?panels:s==='.sim-copy'?copy:[],
   querySelector:s=>{if(s==='.step-mark')return headerVersion;const m=s.match(/data-roster="([^"]+)"/);return m?rosters[m[1]]:null},createElement:tag=>element(tag),body:{appendChild(){}}};
  const one={id:'i0',pokemon:'ライチュウ',nickname:'test',level:60,skillLevel:6,ingredients:['とくせんリンゴ','あったかジンジャー','とくせんエッグ'],mainSkill:'エナジーチャージS',nature:'さみしがり',subskills:['きのみの数S','','','',''],sleepHours:1000,shiny:false};
@@ -53,7 +53,7 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
   Date:TestDate,setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout(){}};
  ctx.globalThis=ctx;ctx.window=ctx;
  vm.createContext(ctx);
- for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','step4.js','observation.js','app.js'])
+ for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','week-optimizer.js','step4.js','observation.js','app.js'])
   vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),ctx,{filename:name});
  return {ctx,items,rosters,callbacks,data,
   setFailWrites:value=>{failWrites=value;},
