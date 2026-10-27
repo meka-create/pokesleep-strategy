@@ -4413,12 +4413,17 @@ function renderSimulator(){
 function updateRosterStatus(){
  const status=$('simRosterStatus');if(!status)return;
  const missing=[];
- for(const [key,name] of [['morning','朝'],['noon','昼'],['evening','夜']]){
+ const week=state.weeklyPlan||storage.defaultWeeklyPlan();
+ const fullWeek=week.dayTeams.length===7&&week.dayTeams.every(day=>
+  rosterKeys.every(k=>day[k].length===5&&day[k].every(Boolean)));
+ if(!fullWeek)for(const [key,name] of [['morning','朝'],['noon','昼'],['evening','夜']]){
   const count=(state.simulation.teams[key]||[]).filter(Boolean).length;
   if(count!==5)missing.push(name+' '+count+'/5');
  }
  if(state.sleepIds.length!==5)missing.push('睡眠 '+state.sleepIds.length+'/5');
- status.textContent=missing.length?'未完成：'+missing.join(' ／ '):'朝・昼・夜・睡眠の20枠が揃いました。試算できます。';
+ if(week.sleepAuto&&week.autoSleepTeams.length!==7)missing.push('睡眠自動提案（未生成）');
+ status.textContent=missing.length?'未完成：'+missing.join(' ／ '):
+  (fullWeek?'曜日別21枠と睡眠パーティが揃いました。試算できます。':'朝・昼・夜・睡眠の20枠が揃いました。試算できます。');
  status.className='small '+(missing.length?'warn':'ok');
  $('runSim').disabled=missing.length>0;
 }
@@ -4494,20 +4499,22 @@ $('simMagnetFields').addEventListener('change',markResultsStale);
 $('fillAllRosters').addEventListener('click',()=>{
  if(state.sleepIds.length!==5){toast('先にボックスタブで睡眠用5匹を選択してください。');setTab('box');return;}
  const oldTeams={...state.simulation.teams};for(const key of rosterKeys)state.simulation.teams[key]=[...state.sleepIds];
- const saved=save();if(!saved)state.simulation.teams=oldTeams;renderSimulator();markResultsStale();notifySave(saved,'睡眠パーティを朝・昼・夜に一括設定しました。');
+ const saved=save();if(!saved)state.simulation.teams=oldTeams;renderSimulator();renderWeekPlan();markResultsStale();notifySave(saved,'睡眠パーティを朝・昼・夜に一括設定しました。');
 });
 for(const btn of document.querySelectorAll('.sim-copy'))btn.addEventListener('click',()=>{
  const from=btn.dataset.copyFrom,to=btn.dataset.copyTo;
  const ids=from==='sleep'?state.sleepIds:state.simulation.teams[from];
  if(ids.length!==5||ids.some(id=>!id)){toast('コピー元の5匹が揃っていません。');return;}
- const oldTeam=state.simulation.teams[to];state.simulation.teams[to]=[...ids];const saved=save();if(!saved)state.simulation.teams[to]=oldTeam;notifySave(saved,'5匹の編成をコピーしました。');renderSimulator();markResultsStale();
+ const oldTeam=state.simulation.teams[to];state.simulation.teams[to]=[...ids];const saved=save();if(!saved)state.simulation.teams[to]=oldTeam;notifySave(saved,'5匹の編成をコピーしました。');renderSimulator();renderWeekPlan();markResultsStale();
 });
 $('runSim').addEventListener('click',()=>{
  $('simError').hidden=true;
  try{
   if(hasUnsavedEventEdits())throw Error('イベント条件に未保存の変更があります。イベントタブで「イベント条件を保存」を押してから再試算してください。');
-  const sim=readSimulation();
   const weekly=state.weeklyPlan||storage.defaultWeeklyPlan();
+  const weekSet=weekly.dayTeams.length===7;
+  const noBasicTeam=rosterKeys.some(key=>(state.simulation.teams[key]||[]).filter(Boolean).length!==5);
+  const sim=readSimulation(weekSet&&noBasicTeam);
   const teamsByDay=weekly.dayTeams.length===7?weekly.dayTeams.map(cloneWeekDay):
    Array.from({length:7},()=>Object.fromEntries(rosterKeys.map(key=>[key,[...sim.teams[key]]])));
   const selectedNights=weekly.sleepAuto?weekly.autoSleepTeams:weekly.manualSleepTeams;
@@ -5059,7 +5066,7 @@ function updateWeekPlan(next,message){
  const ok=save();
  if(!ok)state.weeklyPlan=previous;
  if(ok){invalidateWeekProposal();markResultsStale();}
- renderWeekPlan();
+ renderWeekPlan();updateRosterStatus();
  notifySave(ok,message);
 }
 function renderWeekEditor(){
