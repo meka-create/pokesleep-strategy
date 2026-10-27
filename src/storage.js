@@ -142,13 +142,45 @@ function reconcileSleepIds(previous, next){
  }
  return result;
 }
+// A CSV reimport changes internal IDs. Remap *every* stored slot before
+// persisting the replacement box; never retain dangling IDs or silently
+// choose an ambiguous replacement individual. Incomplete weekly plans are
+// invalidated as a whole and surfaced to the user for reconfiguration.
+function reconcileWeeklyPlan(previous,nextBox){
+ const old=validateWeeklyPlan(previous.weeklyPlan,new Set(previous.box.map(p=>p.id)));
+ const invalidated=[];
+ function remap(team){
+  return reconcileSleepIds({box:previous.box,sleepIds:team},nextBox);
+ }
+ function remapNights(source,label){
+  if(!source.length)return [];
+  const rows=source.map(remap);
+  if(rows.some(ids=>ids.length!==5)){invalidated.push(label);return [];}
+  return rows;
+ }
+ function remapDays(source){
+  if(!source.length)return [];
+  const result=source.map(row=>Object.fromEntries(['morning','noon','evening'].map(key=>
+   [key,remap(row[key])])));
+  if(result.some(row=>['morning','noon','evening'].some(key=>row[key].length!==5))){
+   invalidated.push('曜日別の日中パーティ');return [];
+  }
+  return result;
+ }
+ const dayTeams=remapDays(old.dayTeams);
+ const manualSleepTeams=remapNights(old.manualSleepTeams,'手動睡眠7晩');
+ const autoSleepTeams=remapNights(old.autoSleepTeams,'睡眠自動提案7晩');
+ const sleepAuto=old.sleepAuto&&autoSleepTeams.length===7;
+ if(old.sleepAuto&&!sleepAuto)invalidated.push('睡眠自動提案ON');
+ return {plan:{dayTeams,manualSleepTeams,autoSleepTeams,sleepAuto},invalidated};
+}
 let loadError='';
 function load(){try{const s=localStorage.getItem(KEY);loadError='';return s?validateState(JSON.parse(s)):newState();}catch(e){loadError='保存済みデータを読み込めません。上書きを防止しています。バックアップから復元するか、すべてのローカルデータを消去してください。';return newState();}}
 function save(state){if(loadError)throw new Error(loadError);localStorage.setItem(KEY,JSON.stringify(validateState(state)));}
 function allowRecovery(){loadError='';}
 function getLoadError(){return loadError;}
 function available(){try{const k=KEY+'/probe';localStorage.setItem(k,'1');localStorage.removeItem(k);return true;}catch(e){return false;}}
-const api={newState,defaultSimulation,defaultPreparation,defaultWeeklyPlan,validateWeeklyPlan,resolveWeeklyPlan,validateState,reconcileSleepIds,load,save,available,getLoadError,allowRecovery,KEY};
+const api={newState,defaultSimulation,defaultPreparation,defaultWeeklyPlan,validateWeeklyPlan,resolveWeeklyPlan,validateState,reconcileSleepIds,reconcileWeeklyPlan,load,save,available,getLoadError,allowRecovery,KEY};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.PokeStorage=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
