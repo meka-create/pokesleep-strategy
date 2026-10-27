@@ -364,7 +364,16 @@ $('runSim').addEventListener('click',()=>{
  try{
   if(hasUnsavedEventEdits())throw Error('イベント条件に未保存の変更があります。イベントタブで「イベント条件を保存」を押してから再試算してください。');
   const sim=readSimulation();
-  const runInput={box:state.box,teams:{...sim.teams,sleep:state.sleepIds},options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1,eventEffects:state.event.effects}};
+  const weekly=state.weeklyPlan||storage.defaultWeeklyPlan();
+  const teamsByDay=weekly.dayTeams.length===7?weekly.dayTeams.map(cloneWeekDay):
+   Array.from({length:7},()=>Object.fromEntries(rosterKeys.map(key=>[key,[...sim.teams[key]]])));
+  const selectedNights=weekly.sleepAuto?weekly.autoSleepTeams:weekly.manualSleepTeams;
+  if(weekly.sleepAuto&&selectedNights.length!==7)
+   throw Error('睡眠自動提案がONですが、まだ7晩の提案がありません。週間自動提案を実行してください。');
+  const sleepTeamsByDay=selectedNights.length===7?selectedNights.map(ids=>[...ids]):
+   Array.from({length:7},()=>[...state.sleepIds]);
+  const runInput={box:state.box,teams:{...sim.teams,sleep:state.sleepIds},teamsByDay,sleepTeamsByDay,
+   options:{...sim,map:state.event.map,camp:state.event.camp1,foodMode:state.event.food1,eventEffects:state.event.effects}};
   // Do not overwrite a previously valid saved setup if this week's calculation
   // is rejected (e.g. inventory exceeds the configured shared bag).
   const result=PokeSimulator.simulate(runInput);
@@ -381,8 +390,10 @@ $('runSim').addEventListener('click',()=>{
   $('simDaily').replaceChildren();
   for(const day of result.days){const row=document.createElement('div');row.className='sim-day';const total=day.berries+day.cooking+day.skills;const left=document.createElement('span');left.textContent='第'+day.day+'日';const right=document.createElement('strong');right.textContent=yen(total);row.append(left,right);$('simDaily').append(row);}
   $('simNightEnergy').replaceChildren();
-  const sleepIds=state.sleepIds;
-  const average=values=>sleepIds.reduce((sum,id)=>sum+Number(values[id]||0),0)/sleepIds.length;
+  const average=values=>{
+   const list=Object.values(values);
+   return list.length?list.reduce((sum,value)=>sum+Number(value||0),0)/list.length:0;
+  };
   for(const night of result.nightEnergy){
    const row=document.createElement('div');row.className='sim-day';
    const left=document.createElement('span');left.textContent='第'+night.day+'夜（'+night.hours+'時間）';
