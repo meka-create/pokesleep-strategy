@@ -1002,5 +1002,108 @@ $('weekCopyPrevious').addEventListener('click',()=>{
  updateWeekPlan(next,weekNames[index]+'曜夜を前夜の編成からコピーしました。');
 });
 
+
+function weekSearchInput(){
+ if(hasUnsavedEventEdits())
+  throw Error('イベント設定に未保存の変更があります。イベント条件を保存してから週間自動提案を実行してください。');
+ const sim=readSimulation(),week=currentWeekPlan();
+ const useNight=week.plan.sleepAuto&&week.auto.length===7?week.auto:week.manual;
+ const teams={...sim.teams,sleep:[...state.sleepIds]};
+ const input={box:state.box,teams,teamsByDay:week.dayTeams,
+  sleepTeamsByDay:useNight,sleepAuto:week.plan.sleepAuto,
+  options:{...sim,map:state.event.map,camp:state.event.camp1,
+   foodMode:state.event.food1,eventEffects:state.event.effects}};
+ PokeSimulator.normalizeWeeklyTeams(input);
+ return {input,settings:sim,signature:weekSearchSignature()};
+}
+function weekSearchSignature(){
+ return JSON.stringify({box:state.box,week:state.weeklyPlan,
+  sleep:state.sleepIds,event:state.event,form:{
+   fieldBonus:$('simFieldBonus').value,tap:$('simTap').value,
+   pot:$('simPot').value,bag:$('simBagCapacity').value,
+   sleepScore:$('simSleepScore').value,energy:$('simInitialEnergy').value,
+   recipe:$('simRecipe').value,recipeMode:$('simRecipeMode').value,
+   extra:$('simExtraMode').value,success:$('simSuccessMode').value,
+   ingredients:Object.fromEntries(Object.entries(ingredientEditors).map(([k,v])=>[k,v.value])),
+   magnets:Object.fromEntries(Object.entries(magnetEditors).map(([k,v])=>[k,v.checked]))
+  }});
+}
+function renderWeekProposal(result){
+ const best=result.best,baseline=result.baseline;
+ if(!best||!baseline)throw Error('週間自動提案の基準と最良案がありません。');
+ const fmt=n=>Math.round(n).toLocaleString('ja-JP');
+ const delta=best.score.total-baseline.score.total;
+ $('weekProposalSummary').textContent='基準：'+fmt(baseline.score.total)+
+  '／探索結果：'+fmt(best.score.total)+' エナジー（差：'+
+  (delta>=0?'+':'')+fmt(delta)+'）｜交代目安 '+best.swaps.total+
+  '回（初週月曜朝の前夜は不明のため除外）。同一計算器の参考比較であり、最適保証ではありません。';
+ $('weekProposalDays').innerHTML=best.teamsByDay.map((day,i)=>{
+  const parts={...day,sleep:best.sleepTeamsByDay[i]};
+  return '<div class="week-overview-day"><strong>'+weekNames[i]+'曜日</strong>'+
+   weekPeriods.map(key=>'<div class="week-overview-period"><b>'+weekPeriodNames[key]+
+    '</b><span>'+enc(parts[key].map(weekTeamName).join('、'))+'</span></div>').join('')+'</div>';
+ }).join('');
+ $('weekProposal').hidden=false;
+}
+$('weekSearch').addEventListener('click',()=>{
+ const progress=$('weekProgress'),error=$('weekError');
+ error.hidden=true;$('weekProposal').hidden=true;
+ try{
+  const run=weekSearchInput();
+  invalidateWeekProposal();
+  const token=++weekSearchToken,session=PokeWeekOptimizer.createSession({
+   ...run.input,maxEvaluations:12
+  });
+  const source=run.signature;
+  $('weekSearch').disabled=true;
+  weekSearchConfig={settings:run.settings,source,auto:run.input.sleepAuto};
+  const iterate=()=>{
+   if(token!==weekSearchToken)return;
+   if(weekSearchSignature()!==source){
+    invalidateWeekProposal();progress.textContent='設定が変わったため、古い自動提案を破棄しました。';return;
+   }
+   try{
+    const result=session.step();
+    progress.textContent='週間シミュレーター：'+result.evaluations+' / '+result.maxEvaluations+
+     '件比較。現在の最大：'+(result.best?Math.round(result.best.score.total).toLocaleString('ja-JP'):'未計算')+
+     ' エナジー（推定・参考値）。';
+    if(result.done){
+     weekPreview={result,source,settings:run.settings,auto:run.input.sleepAuto};
+     renderWeekProposal(result);
+     $('weekSearch').disabled=false;
+     progress.textContent+=' 探索終了（全組合せの網羅ではありません）。';
+     return;
+    }
+    setTimeout(iterate,0);
+   }catch(e){
+    $('weekSearch').disabled=false;error.textContent=e.message||String(e);error.hidden=false;
+    progress.textContent='途中で計算に失敗しました。';weekPreview=null;
+   }
+  };
+  setTimeout(iterate,0);
+ }catch(e){error.textContent=e.message||String(e);error.hidden=false;$('weekSearch').disabled=false;}
+});
+$('weekApplyProposal').addEventListener('click',()=>{
+ const preview=weekPreview;
+ if(!preview||weekSearchSignature()!==preview.source){
+  toast('設定が変更されています。週間自動提案を実行し直してください。');invalidateWeekProposal();return;
+ }
+ const candidate=preview.result.best;
+ if(!candidate){toast('反映できる週間提案がありません。');return;}
+ const previousPlan=state.weeklyPlan,previousSimulation=state.simulation;
+ const old=previousPlan||storage.defaultWeeklyPlan();
+ const next={...old,dayTeams:candidate.teamsByDay.map(cloneWeekDay)};
+ if(preview.auto){
+  next.autoSleepTeams=candidate.sleepTeamsByDay.map(team=>[...team]);next.sleepAuto=true;
+ }
+ // OFF never changes the user's seven manually selected sleep teams.
+ state.weeklyPlan=next;state.simulation=preview.settings;
+ const ok=save();
+ if(!ok){state.weeklyPlan=previousPlan;state.simulation=previousSimulation;}
+ else{invalidateWeekProposal();markResultsStale();lastRunSnapshot=null;$('simResult').hidden=true;}
+ renderWeekPlan();renderSimulator();
+ notifySave(ok,'曜日別21枠'+(preview.auto?'＋自動睡眠7晩':'（手動睡眠7晩は維持）')+'を反映しました。');
+});
+
 fillEvent();renderBox();fillSimulation();fillPreparation();renderWeekPlan();setTab('event');
 })();
