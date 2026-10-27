@@ -198,7 +198,7 @@ test('real weekly observation button rejects unverifiable data then saves exact 
  assert.deepEqual(report.input.teams.sleep,['i0','i1','i2','i3','i4']);
  assert.equal(report.provenance.source,'in_game_weekly_summary');
  assert.equal(report.provenance.noUnmodeledEvents,false);
- assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP 4 · v(\d+\.\d+\.\d+)/)[1]);
+ assert.equal(report.capture.appVersion,fs.readFileSync(path.join(base,'index.template.html'),'utf8').match(/STEP W3 · v(\d+\.\d+\.\d+)/)[1]);
  assert.equal(report.capture.screenshotReviewedByApp,false);
  assert.equal(report.observed.total,1000);
  assert.equal(report.observed.berryAndStrengthSkill,600);
