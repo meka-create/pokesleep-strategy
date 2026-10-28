@@ -112,3 +112,23 @@ test('W1 CSV reimport reconciles every weekly night and rejects ambiguous lost s
  assert.equal(missing.plan.autoSleepTeams.length,0);
  assert.equal(missing.plan.sleepAuto,false);
 });
+test('W1 CSV reimport invalidates schedules containing indistinguishable old individuals',()=>{
+ const s=storage.newState();s.box=fixture().box;s.sleepIds=fixture().teams.sleep;
+ s.weeklyPlan.dayTeams=Array.from({length:7},()=>fullDay(fixture()));
+ s.weeklyPlan.manualSleepTeams=Array.from({length:7},()=>validNight(fixture()));
+ s.weeklyPlan.autoSleepTeams=Array.from({length:7},()=>validNight(fixture()));
+ s.weeklyPlan.sleepAuto=true;
+ // The CSV contains no stable individual identifier. If a second exact copy
+ // exists in the original box, the selected one cannot be distinguished.
+ s.box[5]={...s.box[0],id:'p5'};
+ const replacement=s.box.map(p=>({...p,id:'new-'+p.id}));
+ const migrated=storage.reconcileWeeklyPlan(s,replacement);
+ assert.ok(migrated.invalidated.includes('曜日別の日中パーティ'));
+ assert.ok(migrated.invalidated.includes('手動睡眠7晩'));
+ assert.ok(migrated.invalidated.includes('睡眠自動提案7晩'));
+ assert.ok(migrated.invalidated.includes('睡眠自動提案ON'));
+ assert.equal(migrated.plan.dayTeams.length,0);
+ assert.equal(migrated.plan.manualSleepTeams.length,0);
+ assert.equal(migrated.plan.autoSleepTeams.length,0);
+ assert.equal(migrated.plan.sleepAuto,false);
+});

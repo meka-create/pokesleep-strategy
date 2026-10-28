@@ -124,21 +124,31 @@ function validateState(x){
  for(const [k,v] of Object.entries(sim.initialIngredients))if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
  return {version:1,box:x.box,sleepIds:[...x.sleepIds],weeklyPlan,preparation:{recipeId:prep.recipeId,meals:prep.meals,recipeTargets,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover,field:prep.field??'',fieldBonus:prep.fieldBonus??0,forecastCooking:prep.forecastCooking??'none',forecastFoodMode:prep.forecastFoodMode??'random',forecastInventorySource:prep.forecastInventorySource??'carryover'},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
-// Preserve selected individuals on a refreshed export. First match full IV-like
-// fingerprints; only fall back to nickname+species when BOTH boxes are unique.
+// Preserve selected individuals on a refreshed export. Neither row-derived CSV
+// IDs nor identical 16-column records prove identity: an exact fingerprint is
+// safe only when it occurs exactly once in BOTH boxes. Otherwise, fall back to
+// nickname+species only when that key is unique in BOTH boxes as well.
 function reconcileSleepIds(previous, next){
  const selected=previous.sleepIds.map(id=>previous.box.find(p=>p.id===id)).filter(Boolean);
  const used=new Set();const result=[];
  const signature=p=>JSON.stringify([p.nickname,p.pokemon,p.level,p.skillLevel,p.ingredients,p.mainSkill,p.nature,p.subskills,p.sleepHours,p.shiny]);
+ const nameKey=p=>JSON.stringify([p.nickname,p.pokemon]);
+ const group=(box,key)=>{
+  const grouped=new Map();
+  for(const p of box){const k=key(p);if(!grouped.has(k))grouped.set(k,[]);grouped.get(k).push(p);}
+  return grouped;
+ };
+ const oldExact=group(previous.box,signature),newExact=group(next,signature);
+ const oldNames=group(previous.box,nameKey),newNames=group(next,nameKey);
  for(const original of selected){
-  let match=next.find(p=>!used.has(p.id)&&signature(p)===signature(original));
+  const key=signature(original);
+  const originalMatches=oldExact.get(key)||[],newMatches=newExact.get(key)||[];
+  let match=originalMatches.length===1&&newMatches.length===1?newMatches[0]:null;
   if(!match){
-   const key=p=>JSON.stringify([p.nickname,p.pokemon]);
-   const oldMatches=previous.box.filter(p=>key(p)===key(original));
-   const newMatches=next.filter(p=>key(p)===key(original));
-   if(oldMatches.length===1&&newMatches.length===1&&!used.has(newMatches[0].id))match=newMatches[0];
+   const name=nameKey(original),oldMatches=oldNames.get(name)||[],candidates=newNames.get(name)||[];
+   if(oldMatches.length===1&&candidates.length===1)match=candidates[0];
   }
-  if(match){used.add(match.id);result.push(match.id);}
+  if(match&&!used.has(match.id)){used.add(match.id);result.push(match.id);}
  }
  return result;
 }
