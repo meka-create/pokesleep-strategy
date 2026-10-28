@@ -7,7 +7,8 @@ test('weekly game observation can reload pre-week plans without a visible simula
  assert.match(packageData.version,/^\d+\.\d+\.\d+$/);
  const versionBadge='STEP W4 · v'+packageData.version;
  assert.ok(html.includes(versionBadge));
- assert.match(html,/<details class="card sim-observation">/);
+ // R2 keeps the legacy observation machinery for compatibility while removing it from the primary UI.
+ assert.match(html,/<details class="card sim-observation" hidden>/);
  assert.match(html,/id="downloadPlan"/);
  assert.match(html,/id="planFile"/);
  assert.ok(html.indexOf('class="card sim-observation"')>html.indexOf('id="simResult"'));

@@ -1,29 +1,28 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light"><meta name="robots" content="noindex,nofollow"><title>ポケスリ作戦室 | STEP W4</title>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light"><meta name="robots" content="noindex,nofollow"><title>ポケスリ作戦室</title>
 <!-- BUILD_CSS -->
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div><div class="eyebrow">PRIVATE EVENT PLANNER</div><h1>ポケスリ作戦室</h1></div><div class="step-mark">STEP W4 · v0.5.4</div></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><h1>ポケスリ作戦室</h1><span class="step-mark" hidden>STEP W4 · v0.5.5</span><span id="dataState" class="header-status">登録状況を確認中</span></header>
   <main>
-    <section class="intro"><div class="intro-tag">イベント専用・準備から本番まで</div><h2>次のイベントを、<br><span>もっと効率よく。</span></h2><p>手持ちのポケモンで7日間のエナジーを概算できます。暫定計算の制限は結果画面に明示します。</p><div class="statusline"><span id="dataState">登録状況を確認中</span><span class="status-pill">端末内に保存</span></div></section>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
     <nav class="tabs" role="tablist" aria-label="機能切り替え">
-      <button class="tab active" data-tab="event" role="tab" aria-selected="true">イベント</button>
+      <button class="tab active" data-tab="strategy" role="tab" aria-selected="true">作戦</button>
       <button class="tab" data-tab="box" role="tab" aria-selected="false">ボックス <span id="boxCountTab" class="tab-counter">0</span></button>
-      <button class="tab" data-tab="simulate" role="tab" aria-selected="false">試算</button>
-      <button class="tab" data-tab="prep" role="tab" aria-selected="false">準備計画</button>
-      <button class="tab" data-tab="settings" role="tab" aria-selected="false">設定・保存</button>
+      <button class="tab" data-tab="prep" role="tab" aria-selected="false">準備</button>
+      <button class="tab settings-tab" data-tab="settings" role="tab" aria-selected="false" aria-label="設定・バックアップ" title="設定・バックアップ">⚙</button>
     </nav>
     <div id="toast" class="toast" aria-live="polite" hidden></div>
-    <section id="panel-event" class="panel" role="tabpanel">
-      <div class="section-heading"><div><div class="eyebrow">EVENT SETTINGS</div><h3>イベント条件</h3></div><span class="outline-tag">STEP 1 入力のみ</span></div>
+    <section id="panel-event" class="panel strategy-settings" role="region" aria-label="イベント条件">
+     <details class="card event-settings" id="eventSettings">
+      <summary id="eventSummary">イベント条件を設定</summary>
       <div class="card form-grid">
         <label class="field wide"><span>イベント名 <small>任意</small></span><input id="eventName" type="text" maxlength="100" placeholder="例：次のイベント" autocomplete="off"></label>
         <label class="field"><span>イベント開始日</span><input id="eventStart" type="date"></label>
         <label class="field"><span>イベント期間</span><select id="eventDuration"><option value="1">1週間（7日）</option><option value="2">2週間（14日）</option></select></label>
         <label class="field wide"><span>開催フィールド</span><input id="eventMap" list="maps" maxlength="80" placeholder="開催フィールドを選択・入力"><datalist id="maps"><option value="ワカクサ本島"><option value="シアンの砂浜"><option value="トープ洞窟"><option value="ウノハナ雪原"><option value="ラピスラズリ湖畔"><option value="ゴールド旧発電所"><option value="アンバー渓谷"><option value="ワカクサ本島EX"><option value="シアンの砂浜EX"></datalist></label>
-        <label class="field wide"><span>きのみの条件 <small>未確定なら空欄</small></span><input id="eventBerries" maxlength="100" placeholder="例：きのみ未確定・イベントで指定あり"></label>
-        <label class="field wide"><span>イベント補正メモ <small>計算反映はSTEP 5</small></span><textarea id="eventEffects" rows="2" maxlength="1000" placeholder="例：スキル発動率1.5倍 / 第2週は料理エナジー増加"></textarea></label>
+        <label class="field wide" hidden><span>きのみの条件（計算未対応）</span><input id="eventBerries" maxlength="100"></label>
+        <label class="field wide" hidden><span>イベント補正メモ（計算未対応）</span><textarea id="eventEffects" rows="2" maxlength="1000"></textarea></label>
       </div>
       <div class="section-heading minor"><h3>料理の準備方針</h3></div>
       <div class="card form-grid">
@@ -37,24 +36,22 @@
         <label class="switch-line" id="camp2Row" hidden><span>イベント第2週</span><input id="camp2" type="checkbox" role="switch"></label>
       </div>
       <button class="primary full" id="saveEvent">イベント条件を保存</button>
-      <div class="note"><strong>この段階ではエナジー計算は行いません。</strong> 料理カテゴリやきのみがランダムな場合も、未確定のまま安全に保存できます。</div>
+     </details>
     </section>
     <section id="panel-box" class="panel" role="tabpanel" hidden>
       <div class="section-heading"><div><div class="eyebrow">MY BOX</div><h3>ポケモンボックス</h3></div><span class="outline-tag" id="boxTotal">0匹</span></div>
-      <div class="card import-card"><div class="import-icon">▤</div><h4>pokesleep-tool のCSVを読み込む</h4><p>「個体値ぶっこみスキャン」「AIぶっこみスキャン」の16列CSVにも対応。端末内だけで解析し、外部には送信しません。</p><label class="primary file-button" for="csvFile">CSV / TSV を選ぶ<input id="csvFile" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values,text/plain"></label><p class="hint">新しいファイルを読み込むと、ボックス全体を置き換えます。睡眠パーティの同一個体は可能な限り引き継ぎます。</p></div>
+      <div class="card import-card"><div class="import-icon">▤</div><h4>ポケモンを読み込む</h4><label class="primary file-button" for="csvFile">CSV / TSV を選ぶ<input id="csvFile" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values,text/plain"></label><p class="hint">再取り込みはボックスを置き換えます。変更前に確認します。</p></div>
       <div id="importError" class="error" role="alert" hidden></div>
       <div id="importWarning" class="error" role="alert" hidden></div>
       <div class="section-heading minor"><h3>睡眠用パーティ</h3><span class="soft-counter" id="sleepCount">0 / 5</span></div>
-      <div class="card"><p class="muted small">0:00～7:30に固定で使う育成用の5匹。下の一覧から選択してください。</p><div id="sleepList" class="sleep-list"></div></div>
+      <div class="card"><div id="sleepList" class="sleep-list"></div></div>
       <div class="section-heading minor"><h3>読み込んだポケモン</h3></div>
       <label class="field search"><span>名前・種族で検索</span><input id="searchPokemon" type="search" placeholder="例：サーナイト"></label>
       <div id="pokemonList" class="pokemon-list"></div><div id="boxMore" class="muted small" hidden></div>
     </section>
     <section id="panel-simulate" class="panel" role="tabpanel" hidden>
- <div class="section-heading"><div><div class="eyebrow">WEEKLY SIMULATOR</div><h3>7日間エナジー試算・自動編成</h3></div><span class="outline-tag">STEP 3 機能受入済み</span></div>
- <div class="note"><strong>STEP 3で自動編成の候補生成を追加しています。</strong> 朝・昼・夜の5匹を手動指定し、ゲームマスターの基礎値を使った概算を確認します。未対応スキル・イベント効果・レシピは自動的に捏造しません。イベント固有効果はSTEP 5で対応します。</div>
- <div class="section-heading minor"><h3>朝・昼・夜の編成候補と7日間比較（S3-A～C）</h3></div>
- <div class="card sim-setup step3-candidates">
+ <div class="section-heading main-heading"><h3>週間チーム</h3></div>
+ <div class="card sim-setup step3-candidates" hidden>
   <p><strong>睡眠パーティの5匹は固定</strong>したまま、A：朝2匹／昼夜1匹の全体回復系、B：終日1匹、C：交代を抑えた比較案を作成します。</p>
   <p class="small muted">候補は簡易的なきのみ指標で選出します。候補生成後「候補を7日間で比較」でSTEP 2と同じ週間計算を順に実行します。<strong>予測順位は参考表示であり、実ゲームでの最適編成を証明しません。</strong>モデル合計が3%以内の候補は、入替が少ない案を上に表示します。候補適用後は下の「7日間を試算する」で詳細確認してください。7:30は先に回収してから交代。12:00／18:00の交代は候補に応じて任意、0:00以降は睡眠5匹固定です。</p>
   <button id="autoCandidates" type="button" class="secondary full">朝・昼・夜の候補を作成</button>
@@ -64,17 +61,25 @@
   <p id="autoCandidateStatus" class="small muted" aria-live="polite"></p>
   <div id="autoCandidateList" class="step3-candidate-list"></div>
  </div>
- <div class="section-heading minor"><h3>週間28枠の編成計画（W3）</h3></div>
- <details class="card week-plan" id="weekPlanner">
-  <summary>月～日の朝・昼・夜・睡眠を編集／週間自動提案</summary>
-  <p class="small muted">日中21枠は曜日ごとに選べます。睡眠7晩は自動提案OFFが基本。基本の5匹を全7晩へ一括コピーしてから、必要な夜だけ変更できます。自動提案の評価は参考値で、実ゲームの最適保証ではありません。</p>
-  <label class="switch-line" for="weekAutoSleep"><span>睡眠7晩も自動提案する（初期OFF）</span><input id="weekAutoSleep" type="checkbox"></label>
-  <div class="week-actions">
-   <button id="weekFillDays" type="button" class="secondary">現在の朝・昼・夜を全7日に適用</button>
-   <button id="weekFillSleep" type="button" class="secondary">基本の睡眠5匹を全7晩へ適用</button>
+ <details class="card week-plan" id="weekPlanner" open>
+  <summary>月～日曜日のチーム</summary>
+  <label class="switch-line" for="weekAutoSleep"><span>睡眠7晩も自動提案</span><input id="weekAutoSleep" type="checkbox"></label>
+  <button id="weekSearch" type="button" class="primary full">週間チームを自動提案</button>
+  <p id="weekProgress" class="small muted" role="status" aria-live="polite"></p>
+  <div id="weekError" class="error" role="alert" hidden></div>
+  <div id="weekProposal" class="week-proposal" hidden>
+    <p id="weekProposalSummary" class="small"></p>
+    <div id="weekProposalDays" class="week-overview"></div>
+    <button id="weekApplyProposal" type="button" class="primary full">この編成を採用</button>
   </div>
+  <div class="section-heading minor"><h3>現在の編成</h3></div>
   <div id="weekOverview" class="week-overview" aria-live="polite"></div>
-  <div class="week-editor">
+  <details class="week-editor">
+   <summary>編成を手動で編集</summary>
+   <div class="week-actions">
+    <button id="weekFillDays" type="button" class="secondary">基本の朝・昼・夜を全7日に適用</button>
+    <button id="weekFillSleep" type="button" class="secondary">基本の睡眠5匹を全7晩へ適用</button>
+   </div>
    <div class="form-grid">
     <label class="field"><span>編集する曜日</span><select id="weekEditDay">
       <option value="0">月曜日</option><option value="1">火曜日</option><option value="2">水曜日</option><option value="3">木曜日</option><option value="4">金曜日</option><option value="5">土曜日</option><option value="6">日曜日</option>
@@ -88,21 +93,11 @@
     <button id="weekSaveSlot" type="button" class="secondary">この曜日・時間帯だけ保存</button>
     <button id="weekCopyPrevious" type="button" class="secondary">前夜の睡眠編成をコピー</button>
    </div>
-  </div>
+  </details>
   <p id="weekStatus" class="small muted" role="status" aria-live="polite"></p>
-  <button id="weekSearch" type="button" class="primary full">週間28枠を自動提案（探索12回以内）</button>
-  <p id="weekProgress" class="small muted" role="status" aria-live="polite"></p>
-  <div id="weekError" class="error" role="alert" hidden></div>
-  <div id="weekProposal" class="week-proposal" hidden>
-    <p id="weekProposalSummary" class="small"></p>
-    <div id="weekProposalDays" class="week-overview"></div>
-    <button id="weekApplyProposal" type="button" class="secondary full">この28枠提案を週間計画へ反映</button>
-    <p class="small muted">反映前は現在の設定を変更しません。睡眠自動提案OFFなら手動7晩を上書きしません。</p>
-  </div>
  </details>
- <div class="section-heading minor"><h3>時間帯ごとのチーム（各5匹）</h3></div>
+ <details class="card legacy-setup"><summary>旧方式の朝・昼・夜の編成</summary>
  <div class="card sim-setup">
-  <p>最初は、STEP 1で決めた<strong>睡眠用の5匹を朝・昼・夜に一括コピー</strong>できます。その後、各枠をタップして1匹ずつ変更してください。</p>
   <button id="fillAllRosters" type="button" class="secondary full">睡眠用5匹を朝・昼・夜へ一括セット</button>
   <p id="simRosterStatus" class="small warn" role="status">編成を確認しています。</p>
  </div>
@@ -111,7 +106,8 @@
   <div class="sim-roster"><h4>昼 12:00～18:00</h4><div class="sim-slots" data-roster="noon"></div><button class="secondary sim-copy" data-copy-from="morning" data-copy-to="noon">朝の編成をコピー</button></div>
   <div class="sim-roster"><h4>夜 18:00～0:00</h4><div class="sim-slots" data-roster="evening"></div><button class="secondary sim-copy" data-copy-from="noon" data-copy-to="evening">昼の編成をコピー</button></div>
  </div>
- <div class="section-heading minor"><h3>計算条件</h3></div>
+ </details>
+ <details class="card advanced-settings"><summary>詳細な計算条件</summary>
  <div class="card form-grid">
   <label class="field"><span>フィールドボーナス（％）</span><input id="simFieldBonus" type="number" min="0" max="100" step="1" value="0"></label>
   <label class="field"><span>回収間隔（分）</span><select id="simTap"><option value="120">120分</option><option value="150">150分</option><option value="180">180分</option></select></label>
@@ -135,13 +131,12 @@
   <p class="small muted">ゲーム内で発見済みの食材だけを選んでください。未選択の場合、スキルによるランダム食材は料理材料に加算しません。</p>
   <div id="simMagnetFields" class="form-grid"></div>
  </details>
- 
- <div class="small muted sim-conditions">マップ・料理カテゴリ・キャンプチケット設定は「イベント」タブの第1週設定を使います。週切替の月曜4:00～7:30は獲得ゼロとして扱います。</div>
- <button class="primary full" id="runSim" disabled>7日間を試算する</button>
+ </details>
+ <button class="secondary full" id="runSim" disabled>7日間エナジーを試算</button>
  <div id="simError" class="error" role="alert" hidden></div>
  <div id="simResult" class="card sim-result" hidden aria-live="polite">
-  <p id="simStaleNotice" class="small warn" role="status" hidden><strong>条件が変更されました。</strong>以下は変更前に計算した7日間の結果です。現在の設定を評価するには「7日間を試算する」を再実行してください。週間観測用の保存済み試算時点の記録は維持しています。</p>
-  <div class="eyebrow">REFERENCE RESULT / 暫定概算</div>
+  <p id="simStaleNotice" class="small warn" role="status" hidden>条件が変わりました。再試算してください。</p>
+  <div class="eyebrow">参考エナジー</div>
   <h3 id="simTotal">—</h3>
   <div id="simBreakdown" class="sim-breakdown"></div>
   <div class="section-heading minor"><h3>日別の概算</h3></div><div id="simDaily"></div>
@@ -149,11 +144,10 @@
    <p class="small muted">0:00から7:30は無操作でおてつだいとげんき減少を計算します。通常睡眠回復の上限は100、げんき回復ボーナス本人は105。最終夜は翌月曜4:00までで打ち切ります。</p>
    <div id="simNightEnergy"></div>
   </details>
-  <div class="section-heading minor"><h3>料理履歴・食材消費</h3></div><p id="simMealSummary" class="small muted"></p><div id="simMeals"></div>
-  <div class="section-heading minor"><h3>得られた食材（期待個数）</h3></div><div id="simIngredients"></div>
-  <div class="section-heading minor"><h3>計算上の注意・未対応</h3></div><div id="simWarnings" class="sim-warnings"></div>
+  <details><summary>料理・食材の内訳</summary><p id="simMealSummary" class="small muted"></p><div id="simMeals"></div><div id="simIngredients"></div></details>
+  <details><summary>計算上の注意</summary><div id="simWarnings" class="sim-warnings"></div></details>
  </div>
-  <details class="card sim-observation">
+  <details class="card sim-observation" hidden>
    <summary>実ゲームの週まとめを記録して、試算と比較する（任意・M1検証用）</summary>
    <p class="small muted">ゲームの週まとめ画面に表示された数値を手入力し、この試算の<strong>ポケモン・編成・計算条件を添えたJSON</strong>を保存します。<strong>実ゲームの観測1週分だけで精度合格や最適編成を判定しません。</strong></p>
    <p class="small muted">事前検証をする場合は、<strong>対象月曜04:00（日本時間）より前に試算を実行</strong>し、下の月曜日を指定して「事前予測JSON」を保存してください。週終了後、このファイルを読み戻してから実ゲームの数値を入力します。事後に試算し直した結果は事前予測に置き換えられません。</p>
@@ -188,7 +182,7 @@
    <div id="obsError" class="error" role="alert" hidden></div>
    <p class="small muted">保存されるJSONには手持ちポケモン・ニックネーム・編成・試算条件が含まれます。外部送信はしません。第三者への共有には注意してください。入力時点の最新設定ではなく、<strong>この結果を算出したときの設定</strong>を保存します。</p>
   </details>
- <details class="card sim-import-review">
+ <details class="card sim-import-review" hidden>
   <summary>保存した週間観測JSONを比較する（1〜4週・任意）</summary>
   <p class="small muted">v0.2.35以降に保存したJSONを最大4件まとめて選べます。各記録をその編成・条件で再試算し、週の重複や条件差も点検します（各8MB・合計12MB以下）。重複週は独立した観測回数に数えません。現在のボックス・保存設定・試算結果は書き換えません。</p>
   <label class="secondary file-button sim-import-label" for="observationFile">週間観測JSONを選択
@@ -198,7 +192,7 @@
   <div id="obsImportError" class="error" role="alert" hidden></div>
   <p class="small muted">結果は単週観測の未校正比較です。元ファイルの数値が実際のゲーム画面から入力されたことを自動的に証明しません。スクリーンショット検証や編成順位の合格判定も行いません。入力ファイルは外部送信しません。</p>
  </details>
- <details class="card sim-import-review">
+ <details class="card sim-import-review" hidden>
   <summary>観測JSONを個体情報を伏せた共有用コピーにする（任意）</summary>
   <p class="small muted">保存済みの<strong>週間実測JSONを1件</strong>選ぶと、ニックネーム・元の内部ID・スクリーンショット識別子・自由記述のイベント補正メモを伏せた別ファイルを作成します。計算に必要な種族・能力・編成・条件・週間実測は残し、元のJSON・ブラウザの手持ちは変更しません。</p>
   <label class="secondary file-button sim-import-label" for="shareObservationFile">週間実測JSONから共有用コピーを作成
@@ -210,8 +204,8 @@
  </details>
 </section>
 <section id="panel-prep" class="panel" role="tabpanel" hidden>
- <div class="section-heading"><div><div class="eyebrow">EVENT PREPARATION / STEP 4</div><h3>イベント前週の食材準備計画</h3></div><span class="outline-tag">参考計画</span></div>
- <div class="note"><strong>料理ごとに何食作りたいか</strong>から合計の必要食材数を逆算します。合計21食が上限です。準備週の条件を指定すれば、料理なし／料理ありの限定参考試算で食材獲得・週末在庫・計算上のエナジーを確認できます。実際の料理成立確率、正確な在庫遷移、イベント補正・獲得確率分布は計算しません。</div>
+ <div class="section-heading"><h3>食材の準備</h3></div>
+ <p class="small muted">料理と予定食数から、必要な食材を計算します。</p>
  <div class="card form-grid">
   <label class="field wide"><span>イベント週に準備する料理（78品）</span><select id="prepRecipe"></select></label>
   <label class="field"><span>この料理の予定食数（1～21食）</span><input id="prepMeals" type="number" min="1" max="21" step="1" value="21"></label>
@@ -230,8 +224,9 @@
  <button class="primary full" type="button" id="prepCalculate">必要食材・備蓄計画を計算して保存</button>
  <div id="prepError" class="error" role="alert" hidden></div>
  <p id="prepStale" class="small warn" role="status" hidden>条件が変更されています。表示中の計画は変更前の結果です。再計算してください。</p>
- <div class="card form-grid">
-  <div class="wide"><h4>準備週の食材獲得・7日間参考試算</h4><p class="small muted">現在のイベント開催フィールドとは別に、<strong>準備週に滞在するフィールド</strong>を指定してください。既存のSTEP2計算器で表示中の参考編成を試算します。</p></div>
+ <details class="card prep-forecast-details"><summary>準備週の詳細な試算・比較</summary>
+ <div class="form-grid">
+  <div class="wide"><p class="small muted">準備週のフィールドと計算条件を指定します。</p></div>
   <label class="field wide"><span>準備週のフィールド（必須）</span><input id="prepField" list="maps" maxlength="80" placeholder="準備週のフィールドを選択"></label>
   <label class="field"><span>準備週のフィールドボーナス（0～100%）</span><input id="prepFieldBonus" type="number" min="0" max="100" step="1" value="0"></label>
   <label class="field"><span>準備週の週初在庫</span><select id="prepForecastStockSource"><option value="carryover">持ち越し予定数を週初在庫と仮定</option><option value="simulation">7日試算で保存した初期食材を使用</option></select></label>
@@ -243,6 +238,7 @@
   <button class="secondary wide" type="button" id="prepCompare">備蓄優先／今週のエナジー優先を比較</button>
   <p class="small muted wide" id="prepCompareStatus" role="status" aria-live="polite"></p>
  </div>
+ </details>
  <div id="prepResult" class="card sim-result" hidden>
   <h4 id="prepSummary"></h4>
   <p id="prepRecipeBreakdown" class="small muted"></p>
@@ -268,13 +264,12 @@
  </div>
 </section>
 <section id="panel-settings" class="panel" role="tabpanel" hidden>
-      <div class="section-heading"><div><div class="eyebrow">LOCAL DATA</div><h3>設定・バックアップ</h3></div></div>
+      <div class="section-heading"><h3>設定・バックアップ</h3><span class="small muted">v0.5.5</span></div>
       <div class="card info-card"><h4>個人データの保存先</h4><p>ポケモン情報やイベント条件は、現在のブラウザ内に保存します。外部サーバーへ送信しません。</p><p id="storageNotice" class="small"></p></div>
       <div class="card action-stack"><button class="secondary" id="downloadBackup">データをJSONでバックアップ</button><label class="secondary file-button" for="backupFile">バックアップJSONから復元<input id="backupFile" type="file" accept=".json,application/json"></label><button class="danger-ghost" id="clearData">すべてのローカルデータを消去</button></div>
       <div class="note">バックアップファイルには手持ちポケモンの情報が含まれます。第三者に共有しないでください。</div>
-      <div class="section-heading minor"><h3>開発ステータス</h3></div><div class="card roadmap"><div class="done">✓ STEP 1　CSVと基本設定</div><div>✓ STEP 2　条件付き機能完成（ゲーム精度はHOLD）</div><div class="done">✓ STEP 3　条件付き機能完成（予測精度はHOLD）</div><div>STEP 4　食材逆算・備蓄目標・準備週ガイドを開発中</div><div>STEP 5　イベント条件・2週間対応</div><div>STEP 6　自動更新・正式運用</div></div>
     </section>
-  </main><footer>個人用プロトタイプ · STEP 4 開発中　/　備蓄・編成は参考計画（実測精度HOLD）</footer>
+  </main>
 </div>
 <!-- BUILD_LIBS -->
 <!-- BUILD_APP -->
