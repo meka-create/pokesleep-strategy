@@ -40,6 +40,22 @@ test('preserve uniquely identifiable level-up, but not ambiguous duplicates',()=
  newer=parseBoxText(sample([up,different]));
  assert.equal(reconcileSleepIds(state,newer.items).length,0);
 });
+test('never silently match one of multiple exact fingerprint duplicates on CSV reimport',()=>{
+ const old=parseBoxText(sample([r,r]));
+ const state=newState();state.box=old.items;state.sleepIds=[old.items[1].id];
+ // One of two indistinguishable individuals disappeared. The remaining row
+ // cannot be identified as the selected individual, even though every field
+ // of its 16-column export is identical.
+ const remaining=parseBoxText(sample([r]));
+ assert.deepEqual(Array.from(reconcileSleepIds(state,remaining.items)),[]);
+ // A refreshed export with two indistinguishable rows is equally ambiguous;
+ // the fact that their row-derived IDs happen to match proves nothing.
+ const reordered=parseBoxText(sample([r,r]));
+ assert.deepEqual(Array.from(reconcileSleepIds(state,reordered.items)),[]);
+ const unique=parseBoxText(sample([r]));
+ const identifiable=newState();identifiable.box=unique.items;identifiable.sleepIds=[unique.items[0].id];
+ assert.equal(reconcileSleepIds(identifiable,remaining.items).length,1);
+});
 test('validateState rejects missing arrays, foreign party IDs and event corruptions',()=>{
  const s=newState();s.box=parseBoxText(sample()).items;s.sleepIds=['not-found'];
  assert.throws(()=>validateState(s),/睡眠パーティ/);

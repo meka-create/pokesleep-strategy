@@ -1034,6 +1034,32 @@ test('W4 browser: replacing the CSV box immediately expires an existing weekly p
  await app.callbacks.get('csvFile:change')({target:picker});
  assert.equal(app.items.get('importError').hidden,true,app.items.get('importError').textContent);
  assert.equal(app.items.get('weekProposal').hidden,true);
+ assert.equal(app.items.get('importWarning').hidden,false);
+ assert.match(app.items.get('importWarning').textContent,/基本睡眠パーティ/);
+});
+test('W4 browser: exact duplicate CSV individuals cannot silently become stored weekly rosters',async()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ app.callbacks.get('fillAllRosters:click')();
+ app.callbacks.get('weekFillDays:click')();
+ app.callbacks.get('weekFillSleep:click')();
+ const before=JSON.parse(app.data.get(key));
+ assert.equal(before.weeklyPlan.dayTeams.length,7);
+ const headers=['ニックネーム','ポケモン','レベル','スキルレベル','食材1','食材2','食材3',
+  'メインスキル','せいかく','Lv10','Lv25','Lv50','Lv70','Lv80','一緒に眠った時間','色違い'];
+ const identical=['test','ライチュウ','60','6','とくせんリンゴ','あったかジンジャー',
+  'とくせんエッグ','エナジーチャージS','さみしがり','きのみの数S','','','','','1000','false'];
+ const csv=[headers.join(','),...Array.from({length:6},()=>identical.join(','))].join('\r\n');
+ const picker=app.items.get('csvFile');picker.files=[{size:csv.length,text:async()=>csv}];
+ await app.callbacks.get('csvFile:change')({target:picker});
+ const saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.sleepIds.length,0);
+ assert.equal(saved.weeklyPlan.dayTeams.length,0);
+ assert.equal(saved.weeklyPlan.manualSleepTeams.length,0);
+ assert.equal(app.items.get('runSim').disabled,true);
+ assert.equal(app.items.get('importError').hidden,true);
+ assert.equal(app.items.get('importWarning').hidden,false);
+ assert.match(app.items.get('importWarning').textContent,/曜日別の日中パーティ/);
+ assert.match(app.items.get('importWarning').textContent,/手動睡眠7晩/);
 });
 test('W4 browser: backup restoration and clear immediately expire old weekly proposals',async()=>{
  const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
