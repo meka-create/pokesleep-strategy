@@ -401,7 +401,11 @@ $('runSim').addEventListener('click',()=>{
   // Do not overwrite a previously valid saved setup if this week's calculation
   // is rejected (e.g. inventory exceeds the configured shared bag).
   const result=PokeSimulator.simulate(runInput);
-  const oldSimulation=state.simulation;state.simulation=sim;
+  const oldSimulation=state.simulation;
+  // A complete weekly schedule can run without any basic three-roster setup.
+  // In that case readSimulation() uses the sleeping five only as an evaluator
+  // fallback; do not persist those synthetic rosters over manual basic edits.
+  state.simulation={...sim,teams:weekSet&&noBasicTeam?oldSimulation.teams:sim.teams};
   const saved=save();if(!saved){state.simulation=oldSimulation;throw Error('設定を保存できません。バックアップを取得してから再試行してください。');}
   const version=document.querySelector('.step-mark')?.textContent.match(/v(\d+\.\d+\.\d+)/)?.[1];
   lastRunSnapshot=PokeObservation.captureSimulation(runInput,result,version,new Date().toISOString());
@@ -1179,16 +1183,19 @@ $('weekApplyProposal').addEventListener('click',()=>{
  }
  const candidate=preview.result.best;
  if(!candidate){toast('反映できる週間提案がありません。');return;}
- const previousPlan=state.weeklyPlan,previousSimulation=state.simulation;
+ const previousPlan=state.weeklyPlan;
  const old=previousPlan||storage.defaultWeeklyPlan();
  const next={...old,dayTeams:candidate.teamsByDay.map(cloneWeekDay)};
  if(preview.auto){
   next.autoSleepTeams=candidate.sleepTeamsByDay.map(team=>[...team]);next.sleepAuto=true;
  }
  // OFF never changes the user's seven manually selected sleep teams.
- state.weeklyPlan=next;state.simulation=preview.settings;
+ // Apply the weekly plan only. The W2 evaluator may synthesize fallback
+ // basic rosters and read unsaved simulator controls; neither those rosters
+ // nor those unrelated settings may be committed by this action.
+ state.weeklyPlan=next;
  const ok=save();
- if(!ok){state.weeklyPlan=previousPlan;state.simulation=previousSimulation;}
+ if(!ok)state.weeklyPlan=previousPlan;
  else{invalidateWeekProposal();markResultsStale();lastRunSnapshot=null;$('simResult').hidden=true;}
  renderWeekPlan();renderSimulator();
  notifySave(ok,'曜日別21枠'+(preview.auto?'＋自動睡眠7晩':'（手動睡眠7晩は維持）')+'を反映しました。');

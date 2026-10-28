@@ -926,6 +926,29 @@ test('W3 browser: weekly auto proposals can start with only box and manually sel
  assert.ok(received.sleepTeamsByDay.every(night=>night.length===5));
  assert.equal(app.items.get('weekProposal').hidden,false);
 });
+test('W4 browser: applying a weekly proposal preserves legacy three-roster edits',()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ const first=app.rosters.morning.querySelectorAll('select')[0];
+ first.value='i5';app.callbacks.get(first.id+':change')();
+ const originalSimulation=JSON.parse(app.data.get(key)).simulation;
+ const original=originalSimulation.teams;
+ assert.deepEqual(original.morning,['i5','','','','']);
+ assert.deepEqual(original.noon,[]);
+ app.items.get('simTap').value='160';
+ app.ctx.PokeWeekOptimizer.createSession=config=>{
+  const row={score:{total:1000,berries:1000,cooking:0,skills:0},swaps:{total:0},
+   teamsByDay:config.teamsByDay,sleepTeamsByDay:config.sleepTeamsByDay};
+  return {step:()=>({done:true,evaluations:1,maxEvaluations:12,baseline:row,best:row})};
+ };
+ app.callbacks.get('weekSearch:click')();app.flushTimers();
+ assert.equal(app.items.get('weekProposal').hidden,false,app.items.get('weekError').textContent);
+ app.callbacks.get('weekApplyProposal:click')();
+ const saved=JSON.parse(app.data.get(key));
+ assert.equal(saved.weeklyPlan.dayTeams.length,7);
+ assert.deepEqual(saved.simulation.teams,original,'weekly proposal must never overwrite legacy rosters');
+ assert.deepEqual(saved.simulation,originalSimulation,
+  'applying a weekly plan must not save any changes to the separate basic simulator settings');
+});
 
 
 test('W3 browser: complete weekday plan runs even if legacy three rosters were never filled',()=>{
@@ -942,6 +965,23 @@ test('W3 browser: complete weekday plan runs even if legacy three rosters were n
  assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
  assert.equal(app.items.get('simResult').hidden,false);
  assert.equal(app.items.get('simDaily').children.length,7);
+});
+
+test('W4 browser: running a full weekday plan preserves partially configured basic rosters',()=>{
+ const app=boot({withSixth:true}),key='pokesleep-event-planner/step1/v1';
+ const first=app.rosters.morning.querySelectorAll('select')[0];
+ first.value='i5';app.callbacks.get(first.id+':change')();
+ const original=JSON.parse(app.data.get(key)).simulation.teams;
+ app.items.get('weekEditDay').value='1';
+ app.items.get('weekEditSlot').value='morning';
+ app.callbacks.get('weekEditDay:change')();
+ app.callbacks.get('weekSaveSlot:click')();
+ assert.equal(app.items.get('runSim').disabled,false);
+ app.callbacks.get('runSim:click')();
+ assert.equal(app.items.get('simError').hidden,true,app.items.get('simError').textContent);
+ assert.equal(app.items.get('simResult').hidden,false);
+ assert.deepEqual(JSON.parse(app.data.get(key)).simulation.teams,original,
+  'full weekday simulation must not save temporary fallback basic rosters');
 });
 
 
