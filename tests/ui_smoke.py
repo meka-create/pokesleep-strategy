@@ -25,6 +25,13 @@ with sync_playwright() as p:
       document.open();document.write(html);document.close();
     }""",html)
     assert page.locator('#panel-event').is_visible()
+    assert page.locator('#panel-simulate').is_visible()
+    assert page.locator('#weekSearch').is_visible()
+    assert not page.locator('.step3-candidates').is_visible()
+    assert page.locator('#weekOverview details.week-overview-day').count()==7
+    assert page.locator('#weekOverview details.week-overview-day[open]').count()==1
+    assert page.locator('nav.tabs button.tab').count()==4, 'three main tabs plus settings'
+    page.locator('#eventSummary').click()
     assert not page.locator('#food2Row').is_visible()
     page.locator('#eventDuration').select_option('2')
     assert page.locator('#food2Row').is_visible()
@@ -53,7 +60,8 @@ with sync_playwright() as p:
     }""", {'html':html,'state':state})
     page.locator('[data-tab="box"]').click()
     assert page.locator('#sleepCount').inner_text()=='5 / 5'
-    page.locator('[data-tab="event"]').click()
+    page.locator('[data-tab="strategy"]').click()
+    page.locator('#eventSummary').click()
     assert page.locator('#eventName').input_value()=='イベント試験'
     assert page.locator('#camp1').is_checked()
     assert page.locator('#food2Row').is_visible()
@@ -76,7 +84,7 @@ with sync_playwright() as p:
     page.locator('[data-tab="box"]').click()
     assert page.locator('#boxTotal').inner_text()=='7匹'
     assert page.locator('#sleepCount').inner_text()=='5 / 5'
-    page.locator('[data-tab="event"]').click()
+    page.locator('[data-tab="strategy"]').click()
     assert page.locator('#food1').input_value()=='salad'
     page.locator('[data-tab="box"]').click()
     # invalid CSV does not wipe existing data

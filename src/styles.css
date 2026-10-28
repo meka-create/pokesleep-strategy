@@ -90,3 +90,38 @@
 .week-five-editors select{width:100%}.week-proposal{padding:12px 0;border-top:1px solid #e1e9f1}
 .week-proposal .secondary.full{width:100%;margin-top:12px}
 @media(max-width:420px){.week-plan{padding:14px}.week-overview-period{grid-template-columns:45px minmax(0,1fr);gap:7px}.week-actions button{flex-basis:100%}}
+
+/* R2: make the weekly plan the default task; keep advanced/legacy controls available. */
+.header{padding:13px 0 9px;gap:9px}
+.header h1{font-size:18px;margin:0;white-space:nowrap}
+.brand-icon{height:34px;width:34px;font-size:19px;border-radius:10px;box-shadow:none}
+.header-status{font-size:10px;color:#65798c;margin-left:auto;text-align:right;max-width:44%;line-height:1.3}
+.tabs{padding:9px 0 10px;gap:6px}
+.tab{min-height:44px}
+.tab.settings-tab{flex:0 0 45px;font-size:21px;padding:0}
+.strategy-settings{padding-top:9px}
+.event-settings{padding:12px 15px}
+.event-settings>summary,.legacy-setup>summary,.advanced-settings>summary{font-size:13px;font-weight:750;cursor:pointer;color:#1c618f}
+.event-settings>.card,.legacy-setup>.card,.advanced-settings>.card{margin-top:12px;border:none;box-shadow:none;padding:10px 0}
+.event-settings .section-heading.minor{margin-top:15px}
+.main-heading{margin:11px 1px 0}
+.main-heading h3{font-size:19px}
+.week-plan{margin:8px 0 12px;padding:14px}
+.week-plan>summary{font-size:12px;color:#6f8296;font-weight:600}
+.week-plan .switch-line{margin:0;padding:8px 0 11px}
+.week-plan .primary.full{margin-top:8px}
+.week-plan>.section-heading.minor{margin-top:19px}
+.week-overview{gap:7px}
+.week-overview-day{padding:9px 12px}
+.week-overview-day>summary{font-size:13px;font-weight:750;color:#285c82;cursor:pointer;line-height:1.6}
+.week-overview-day[open]>summary{margin-bottom:5px}
+.week-overview-period{padding:5px 0;font-size:11px}
+.week-editor{margin-top:12px}
+.week-editor>summary{font-size:13px;color:#1c618f;font-weight:750;cursor:pointer}
+.week-editor[open]>summary{margin-bottom:12px}
+.legacy-setup,.advanced-settings{margin:12px 0;padding:13px}
+.sim-result>details{margin-top:13px}
+.sim-result>details>summary{font-size:13px;font-weight:750;cursor:pointer;color:#1c618f}
+.prep-forecast-details{margin-top:16px}
+.prep-forecast-details>summary{font-size:13px;font-weight:750;cursor:pointer;color:#1c618f}
+.prep-forecast-details>.form-grid{margin-top:14px}

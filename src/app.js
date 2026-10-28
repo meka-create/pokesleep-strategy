@@ -26,8 +26,17 @@ $('storageNotice').textContent=storage.getLoadError()||'保存に失敗しまし
 const notifySave=(success,ok)=>toast(success?(ok||'保存しました。'):'保存に失敗しました。設定・保存からJSONバックアップを取得してください。');
 const enc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(message){const t=$('toast');t.textContent=message;t.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.hidden=true,3500);}
-function setTab(tab){for(const btn of document.querySelectorAll('.tab')){const active=btn.dataset.tab===tab;btn.classList.toggle('active',active);btn.setAttribute('aria-selected',active?'true':'false');}for(const p of document.querySelectorAll('.panel'))p.hidden=p.id!==`panel-${tab}`;}
-function fillEvent(){let e=state.event;const map={eventName:'name',eventStart:'start',eventDuration:'duration',eventMap:'map',eventBerries:'berries',eventEffects:'effects',food1:'food1',food2:'food2'};for(const [id,k] of Object.entries(map))$(id).value=e[k]??'';for(const id of ['campPrep','camp1','camp2'])$(id).checked=!!e[id];showDuration();}
+function setTab(tab){
+ const selected=['event','simulate'].includes(tab)?'strategy':tab;
+ for(const btn of document.querySelectorAll('.tab')){
+  const active=btn.dataset.tab===selected;
+  btn.classList.toggle('active',active);
+  btn.setAttribute('aria-selected',active?'true':'false');
+ }
+ for(const p of document.querySelectorAll('.panel'))
+  p.hidden=selected==='strategy'?!['panel-event','panel-simulate'].includes(p.id):p.id!==`panel-${selected}`;
+}
+function fillEvent(){let e=state.event;const map={eventName:'name',eventStart:'start',eventDuration:'duration',eventMap:'map',eventBerries:'berries',eventEffects:'effects',food1:'food1',food2:'food2'};for(const [id,k] of Object.entries(map))$(id).value=e[k]??'';for(const id of ['campPrep','camp1','camp2'])$(id).checked=!!e[id];showDuration();$('eventSummary').textContent=e.map?'開催フィールド：'+e.map+'　変更':'イベント条件を設定';}
 function showDuration(){const two=$('eventDuration').value==='2';$('food2Row').hidden=!two;$('camp2Row').hidden=!two;}
 function readEvent(){const e={name:$('eventName').value.trim(),start:$('eventStart').value,duration:Number($('eventDuration').value),map:$('eventMap').value.trim(),berries:$('eventBerries').value.trim(),effects:$('eventEffects').value.trim(),food1:$('food1').value,food2:$('food2').value};for(const id of ['campPrep','camp1','camp2'])e[id]=$(id).checked;return e;}
 // The event form is editable without committing it. Never calculate a new
@@ -39,7 +48,7 @@ function hasUnsavedEventEdits(){
 for(const id of ['eventName','eventStart','eventDuration','eventMap','eventBerries',
  'eventEffects','food1','food2','campPrep','camp1','camp2'])
  $(id).addEventListener('change',markResultsStale);
-function status(){let name=state.event.name||'イベント未設定';$('dataState').textContent=`${state.box.length}匹登録 / 睡眠パーティ ${state.sleepIds.length}/5匹 / ${name}`;$('boxTotal').textContent=`${state.box.length}匹`;$('boxCountTab').textContent=state.box.length;}
+function status(){let name=state.event.name||'イベント未設定';$('dataState').textContent=`${state.box.length}匹登録 / 睡眠 ${state.sleepIds.length}/5 / ${name}`;$('boxTotal').textContent=`${state.box.length}匹`;$('boxCountTab').textContent=state.box.length;}
 function renderSleep(){const ids=state.sleepIds;const selected=ids.map(id=>state.box.find(p=>p.id===id)).filter(Boolean);$('sleepCount').textContent=`${selected.length} / 5`;
  $('sleepList').innerHTML=selected.length?selected.map((p,i)=>`<div class="sleep-item"><span class="sleep-index">${i+1}</span><span class="sleep-title">${enc(p.nickname||p.pokemon)}<small>${enc(p.pokemon)} · Lv${p.level}</small></span><button data-remove="${enc(p.id)}" class="remove" aria-label="${enc(p.pokemon)}を外す">外す</button></div>`).join(''):'<div class="empty-mini">まだ選択されていません。下の一覧から5匹選んでください。</div>';
  for(const btn of $('sleepList').querySelectorAll('[data-remove]'))btn.addEventListener('click',()=>{const oldIds=[...state.sleepIds];state.sleepIds=state.sleepIds.filter(id=>id!==btn.dataset.remove);const saved=save();if(!saved)state.sleepIds=oldIds;notifySave(saved,'睡眠パーティを変更しました。');renderBox();renderSimulator();markResultsStale();});}
@@ -54,7 +63,7 @@ function renderBox(){status();renderSleep();let q=$('searchPokemon').value.toLoc
 }
 function download(filename,data,type){const blob=new Blob([data],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);}
 $('eventDuration').addEventListener('change',showDuration);
-$('saveEvent').addEventListener('click',()=>{const oldEvent=state.event,oldUpdatedAt=state.updatedAt;state.event=readEvent();state.updatedAt=new Date().toISOString();const saved=save();if(!saved){state.event=oldEvent;state.updatedAt=oldUpdatedAt;}status();markResultsStale();notifySave(saved,'イベント条件を保存しました。');});
+$('saveEvent').addEventListener('click',()=>{const oldEvent=state.event,oldUpdatedAt=state.updatedAt;state.event=readEvent();state.updatedAt=new Date().toISOString();const saved=save();if(!saved){state.event=oldEvent;state.updatedAt=oldUpdatedAt;}if(saved)$('eventSummary').textContent=state.event.map?'開催フィールド：'+state.event.map+'　変更':'イベント条件を設定';status();markResultsStale();notifySave(saved,'イベント条件を保存しました。');});
 for(const btn of document.querySelectorAll('.tab'))btn.addEventListener('click',()=>setTab(btn.dataset.tab));
 $('searchPokemon').addEventListener('input',renderBox);
 $('csvFile').addEventListener('change',async ev=>{const file=ev.target.files?.[0];if(!file)return;$('importError').hidden=true;$('importWarning').hidden=true;try{
@@ -993,18 +1002,17 @@ function renderWeekPlan(){
   const base=data.dayTeams[d];
   const night=active[d];
   const changed=JSON.stringify(data.manual[d])!==JSON.stringify(state.sleepIds);
-  rows.push('<div class="week-overview-day"><strong>'+weekNames[d]+'曜日</strong>'+
+  rows.push('<details class="week-overview-day"'+(d===0?' open':'')+'><summary>'+weekNames[d]+'曜日</summary>'+
    weekPeriods.map(period=>{
     const ids=period==='sleep'?night:base[period];
     const names=ids.map(weekTeamName);
     const label=weekPeriodNames[period]+(period==='sleep'&&!data.plan.sleepAuto&&changed?'（変更）':'');
     return '<div class="week-overview-period"><b>'+label+'</b><span>'+enc(names.join('、')||'未設定')+'</span></div>';
-   }).join('')+'</div>');
+   }).join('')+'</details>');
  }
  $('weekOverview').innerHTML=rows.join('');
  $('weekStatus').textContent=data.plan.sleepAuto&&data.auto.length!==7?
-  '睡眠自動提案ON：7晩分の自動提案は未作成です。週間自動提案を実行してください。':
-  '現在の週間計画を表示しています。編集した曜日・時間帯だけ保存します。';
+  '睡眠の自動提案がまだありません。週間チームを提案してください。':'';
  // Box searches and unrelated UI refreshes must not erase a draft roster.
  // A replacement box or successfully saved weekly plan does require a fresh
  // editor, so identity changes explicitly invalidate this draft baseline.
@@ -1125,15 +1133,13 @@ function renderWeekProposal(result){
  if(!best||!baseline)throw Error('週間自動提案の基準と最良案がありません。');
  const fmt=n=>Math.round(n).toLocaleString('ja-JP');
  const delta=best.score.total-baseline.score.total;
- $('weekProposalSummary').textContent='基準：'+fmt(baseline.score.total)+
-  '／探索結果：'+fmt(best.score.total)+' エナジー（差：'+
-  (delta>=0?'+':'')+fmt(delta)+'）｜交代目安 '+best.swaps.total+
-  '回（初週月曜朝の前夜は不明のため除外）。同一計算器の参考比較であり、最適保証ではありません。';
+ $('weekProposalSummary').textContent='参考エナジー：'+fmt(best.score.total)+
+  '（差 '+(delta>=0?'+':'')+fmt(delta)+'）｜交代 '+best.swaps.total+'回';
  $('weekProposalDays').innerHTML=best.teamsByDay.map((day,i)=>{
   const parts={...day,sleep:best.sleepTeamsByDay[i]};
-  return '<div class="week-overview-day"><strong>'+weekNames[i]+'曜日</strong>'+
+  return '<details class="week-overview-day"'+(i===0?' open':'')+'><summary>'+weekNames[i]+'曜日</summary>'+
    weekPeriods.map(key=>'<div class="week-overview-period"><b>'+weekPeriodNames[key]+
-    '</b><span>'+enc(parts[key].map(weekTeamName).join('、'))+'</span></div>').join('')+'</div>';
+    '</b><span>'+enc(parts[key].map(weekTeamName).join('、'))+'</span></div>').join('')+'</details>';
  }).join('');
  $('weekProposal').hidden=false;
 }
@@ -1201,5 +1207,5 @@ $('weekApplyProposal').addEventListener('click',()=>{
  notifySave(ok,'曜日別21枠'+(preview.auto?'＋自動睡眠7晩':'（手動睡眠7晩は維持）')+'を反映しました。');
 });
 
-fillEvent();renderBox();fillSimulation();fillPreparation();renderWeekPlan();setTab('event');
+fillEvent();renderBox();fillSimulation();fillPreparation();renderWeekPlan();setTab('strategy');
 })();
