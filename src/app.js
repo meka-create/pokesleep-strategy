@@ -1058,6 +1058,10 @@ $('prepSundayEvaluate').addEventListener('click',()=>{
  try{
   if(hasUnsavedEventEdits())throw Error('イベント条件を先に保存してください。');
   const plan=prepPlanAndSave();
+  const oldStart=state.preparation?.handoff?.eventStart;
+  if(oldStart&&state.event.start&&oldStart!==state.event.start&&
+      !confirm('前回イベントの実績が入力されています。今回のイベントにもこの数値を使いますか？'))
+   throw Error('今回のイベントの実数を入力してください。前回の実績は保護しました。');
   const raw=prepCurrentHandoff();
   const result=PokePrepHandoff.evaluate(plan,raw,prepKnownIds());
   const prior=state.preparation;
