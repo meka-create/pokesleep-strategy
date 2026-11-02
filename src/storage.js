@@ -3,7 +3,7 @@
 const KEY='pokesleep-event-planner/step1/v1';
 const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,sleepScore:88,initialEnergy:100,recipeId:'',recipeMode:'fixed',extraMode:'none',successMode:'none',magnetIngredients:[],initialIngredients:{}});
 const defaultWeeklyPlan=()=>({sleepAuto:false,dayTeams:[],manualSleepTeams:[],autoSleepTeams:[]});
-const defaultPreparation=()=>({recipeId:'',meals:21,recipeTargets:[],priority:'stock',bagCapacity:0,carryover:{},field:'',fieldBonus:0,forecastCooking:'none',forecastFoodMode:'random',forecastInventorySource:'carryover'});
+const defaultPreparation=()=>({recipeId:'',meals:21,recipeTargets:[],priority:'stock',bagCapacity:0,carryover:{},field:'',fieldBonus:0,forecastCooking:'none',forecastFoodMode:'random',forecastInventorySource:'carryover',handoff:{inventory:{},potBonus:0,skillStocks:{},eventStart:''}});
 const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),weeklyPlan:defaultWeeklyPlan(),preparation:defaultPreparation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
 const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
 const validEnum=(v,choices)=>choices.includes(v);
@@ -107,6 +107,36 @@ function validateState(x){
  }
  if(Object.values(carryover).reduce((n,v)=>n+v,0)>prep.bagCapacity&&prep.bagCapacity!==0)
   throw Error('準備週の持ち越し食材数がバッグ容量を超えています。');
+ // Sunday's actual stock is separate from speculative preparation-week carryover.
+ // Old version-1 JSON remains valid; never infer "confirmed" skill procs.
+ const rawHandoff=prep.handoff??{inventory:{},potBonus:0,skillStocks:{},eventStart:''};
+ if(!rawHandoff||typeof rawHandoff!=='object'||Array.isArray(rawHandoff)||
+    !rawHandoff.inventory||typeof rawHandoff.inventory!=='object'||Array.isArray(rawHandoff.inventory)||
+    !rawHandoff.skillStocks||typeof rawHandoff.skillStocks!=='object'||Array.isArray(rawHandoff.skillStocks))
+  throw Error('日曜の実績が不正です。');
+ const handoffInventory={};
+ for(const [k,v] of Object.entries(rawHandoff.inventory)){
+  if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)
+   throw Error('日曜の食材実績が不正です。');
+  if(v)handoffInventory[k]=v;
+ }
+ const effectiveCapacity=prep.bagCapacity||simulatedDefaultBagCapacity();
+ function simulatedDefaultBagCapacity(){return x.simulation?.bagCapacity||10000;}
+ if(Object.values(handoffInventory).reduce((n,v)=>n+v,0)>effectiveCapacity)
+  throw Error('日曜の食材実績がバッグ容量を超えています。');
+ if(!Number.isInteger(rawHandoff.potBonus??0)||rawHandoff.potBonus<0||rawHandoff.potBonus>200)
+  throw Error('日曜の鍋拡張が不正です。');
+ const stockEntries=Object.entries(rawHandoff.skillStocks);
+ if(stockEntries.length>1000||stockEntries.some(([id,v])=>typeof id!=='string'||!id||id.length>120||
+    !v||typeof v!=='object'||Array.isArray(v)||!Number.isInteger(v.count)||
+    v.count<1||v.count>2||typeof v.confirmed!=='boolean'))
+  throw Error('日曜のスキルストック実績が不正です。');
+ if(typeof(rawHandoff.eventStart??'')!=='string'||(rawHandoff.eventStart??'').length>10||
+   (rawHandoff.eventStart&&!canonicalDate(rawHandoff.eventStart)))
+  throw Error('日曜のイベント開始日が不正です。');
+ const handoff={inventory:handoffInventory,potBonus:rawHandoff.potBonus??0,
+  skillStocks:Object.fromEntries(stockEntries.map(([id,v])=>[id,{count:v.count,confirmed:v.confirmed}])),
+  eventStart:rawHandoff.eventStart??''};
  const weeklyPlan=validateWeeklyPlan(x.weeklyPlan,ids);
  const sim=x.simulation===undefined?defaultSimulation():x.simulation;
  if(!sim||typeof sim!=='object'||!sim.teams||typeof sim.teams!=='object')throw new Error('計算設定が不正です。');
@@ -122,7 +152,7 @@ function validateState(x){
  const magnet=sim.magnetIngredients??[];
  if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!INGREDIENT_KEYS.has(k)))throw new Error('発見済み食材の設定が不正です。');
  for(const [k,v] of Object.entries(sim.initialIngredients))if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
- return {version:1,box:x.box,sleepIds:[...x.sleepIds],weeklyPlan,preparation:{recipeId:prep.recipeId,meals:prep.meals,recipeTargets,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover,field:prep.field??'',fieldBonus:prep.fieldBonus??0,forecastCooking:prep.forecastCooking??'none',forecastFoodMode:prep.forecastFoodMode??'random',forecastInventorySource:prep.forecastInventorySource??'carryover'},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
+ return {version:1,box:x.box,sleepIds:[...x.sleepIds],weeklyPlan,preparation:{recipeId:prep.recipeId,meals:prep.meals,recipeTargets,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover,field:prep.field??'',fieldBonus:prep.fieldBonus??0,forecastCooking:prep.forecastCooking??'none',forecastFoodMode:prep.forecastFoodMode??'random',forecastInventorySource:prep.forecastInventorySource??'carryover',handoff},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
 // Preserve selected individuals on a refreshed export. Neither row-derived CSV
 // IDs nor identical 16-column records prove identity: an exact fingerprint is
