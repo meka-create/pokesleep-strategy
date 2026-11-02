@@ -714,6 +714,7 @@ function fillPreparation(){
  $('prepResult').hidden=true;$('prepStale').hidden=true;$('prepError').hidden=true;
  $('prepForecastResult').hidden=true;$('prepForecastStatus').textContent='';
  $('prepCompareResult').hidden=true;$('prepCompareStatus').textContent='';
+ fillPrepHandoff();
 }
 function readPreparation(){
  const getInt=(id,min,max)=>{
@@ -745,7 +746,8 @@ function readPreparation(){
   carryover,field:$('prepField').value.trim(),fieldBonus:getInt('prepFieldBonus',0,100),
   forecastCooking:$('prepForecastCooking').value,
   forecastFoodMode:$('prepForecastFoodMode').value,
-  forecastInventorySource:$('prepForecastStockSource').value};
+  forecastInventorySource:$('prepForecastStockSource').value,
+  handoff:state.preparation?.handoff||{inventory:{},potBonus:0,skillStocks:{},eventStart:''}};
 }
 function calculatePreparation(){
  const error=$('prepError');error.hidden=true;
@@ -918,6 +920,185 @@ $('prepCalculate').addEventListener('click',calculatePreparation);
 $('prepForecast').addEventListener('click',forecastPreparation);
 $('prepCompare').addEventListener('click',comparePreparation);
 
+
+
+/* R3: preparation targets and Sunday reality. No preparation-week teams. */
+let prepRealInputs=Object.create(null),prepPendingStocks={},prepLastEvaluation=null;
+function prepTargetForm(){
+ const numeric=(raw,label,min,max)=>{
+  if(String(raw).trim()===''||!Number.isSafeInteger(Number(raw))||Number(raw)<min||Number(raw)>max)
+   throw Error(label+'を確認してください。');
+  return Number(raw);
+ };
+ const targets=[{recipeId:$('prepRecipe').value,meals:numeric($('prepMeals').value,'予定食数',1,21)},
+  ...prepExtraEditors.map(({recipe,count})=>({
+   recipeId:recipe.value,meals:numeric(count.value,'追加料理の食数',1,21)}))];
+ const capacity=numeric($('prepCapacity').value,'食材バッグ容量',1,10000);
+ return {plan:PokePrepHandoff.targets({recipeTargets:targets,bagCapacity:capacity,
+  potSize:state.simulation.potSize}),targets,capacity};
+}
+function prepCurrentHandoff(){
+ const stock=Object.fromEntries(Object.entries(prepPendingStocks).map(([id,v])=>
+  [id,{count:v.count,confirmed:v.confirmed}]));
+ const input={inventory:{},potBonus:Number($('prepActualPotBonus').value),
+  skillStocks:stock,eventStart:state.event.start||''};
+ for(const [key,field] of Object.entries(prepRealInputs)){
+  const raw=String(field.value).trim();
+  if(raw===''||!Number.isSafeInteger(Number(raw))||Number(raw)<0||Number(raw)>10000)
+   throw Error((PokeMaster.ingredients[key]||key)+'の実数を確認してください。');
+  if(Number(raw))input.inventory[key]=Number(raw);
+ }
+ return input;
+}
+function prepKnownIds(){
+ return new Set([...state.box.map(p=>p.id),...Object.keys(prepPendingStocks)]);
+}
+function prepStockCap(p){
+ const sp=PokeMaster.species.find(x=>x.name===p?.pokemon);
+ return sp?.specialty==='Skills'?2:1;
+}
+function populatePrepStockMembers(){
+ const select=$('prepStockMember'),current=select.value;
+ select.replaceChildren();
+ const empty=document.createElement('option');empty.value='';empty.textContent='ポケモンを選択';select.append(empty);
+ for(const p of state.box){
+  const opt=document.createElement('option');opt.value=p.id;
+  opt.textContent=(p.nickname||p.pokemon)+'（'+p.pokemon+' Lv'+p.level+'）';
+  select.append(opt);
+ }
+ if(state.box.some(p=>p.id===current))select.value=current;
+ $('prepStockCount').querySelector('option[value="2"]').disabled=
+  prepStockCap(state.box.find(p=>p.id===select.value))!==2;
+ if($('prepStockCount').selectedIndex===1&&$('prepStockCount').querySelector('option[value="2"]').disabled)
+  $('prepStockCount').value='1';
+}
+function renderPrepStockList(){
+ const list=$('prepStockList');list.replaceChildren();
+ for(const [id,v] of Object.entries(prepPendingStocks)){
+  const p=state.box.find(x=>x.id===id);
+  const line=document.createElement('div');line.className='step4-ingredient-line';
+  const label=document.createElement('span');
+  label.textContent=(p?(p.nickname||p.pokemon):'再取り込み前の個体（再設定が必要）')+
+   ' ／ '+v.count+'回'+(v.confirmed?'（確認済み）':'（推定）');
+  const remove=document.createElement('button');remove.type='button';remove.className='secondary';
+  remove.textContent='削除';remove.addEventListener('click',()=>{
+   delete prepPendingStocks[id];renderPrepStockList();$('prepNextSummary').hidden=true;
+  });
+  line.append(label,remove);list.append(line);
+ }
+}
+function fillPrepHandoff(){
+ const prior=state.preparation?.handoff||{inventory:{},potBonus:0,skillStocks:{}};
+ const fields=$('prepActualFields');fields.replaceChildren();
+ prepRealInputs=Object.create(null);
+ for(const [key,name] of Object.entries(PokeMaster.ingredients)){
+  const label=document.createElement('label');label.className='field';
+  const span=document.createElement('span');span.textContent=name;
+  const input=document.createElement('input');input.type='number';input.min='0';input.max='10000';input.step='1';
+  input.value=prior.inventory?.[key]||0;
+  input.setAttribute('aria-label',name+' の日曜実数');
+  label.append(span,input);fields.append(label);prepRealInputs[key]=input;
+ }
+ $('prepActualPotBonus').value=prior.potBonus||0;
+ prepPendingStocks=Object.fromEntries(Object.entries(prior.skillStocks||{}).map(([id,v])=>[id,{...v}]));
+ populatePrepStockMembers();renderPrepStockList();
+ $('prepNewTargetResult').hidden=true;$('prepNextSummary').hidden=true;
+ $('prepNextError').hidden=true;prepLastEvaluation=null;
+}
+function prepTargetSummary(plan){
+ $('prepNewTargetResult').hidden=false;
+ $('prepNewTargetSummary').textContent='イベント初日・最初の'+plan.earlyCount+
+  '食の目標：食材'+plan.targetTotal+'個（バッグ容量 '+plan.capacity+'個）。'+
+  (plan.covered?'':'バッグ容量だけでは最初の3食分を全て備蓄できません。');
+ const rows=$('prepNewTargetRows');rows.replaceChildren();
+ for(const [key,number] of Object.entries(plan.earlyNeed)){
+  if(!number)continue;
+  const line=document.createElement('div');line.className='step4-ingredient-line';
+  const title=document.createElement('strong');title.textContent=PokeMaster.ingredients[key];
+  const details=document.createElement('span');details.textContent='目標 '+(plan.target[key]||0)+
+   '個／最初の3食に必要 '+number+'個／週間の参考総需要 '+(plan.allNeed[key]||0)+'個';
+  line.append(title,details);rows.append(line);
+ }
+ $('prepNewPotTarget').textContent='鍋拡張の目安：最初の料理に対して +'+plan.firstPotShortfall+
+  ' 個（通常鍋'+plan.pot+'個、必要'+plan.firstMeal.need+'個）。日曜の料理で拡張を消費しない場合にのみ持ち越せます。スキル待機は確定できる範囲で記録してください。';
+}
+function prepSaveTargets({plan,targets,capacity}){
+ const prior=state.preparation;
+ const carry=prior?.carryover||{};
+ if(Object.values(carry).reduce((a,b)=>a+b,0)>capacity)
+  throw Error('旧方式で保存した持ち越し予定数が、新しいバッグ容量を超えます。以前の数を保護するため保存を中止しました。');
+ state.preparation={...prior,recipeId:targets[0].recipeId,meals:targets[0].meals,
+  recipeTargets:targets,bagCapacity:capacity};
+ if(!save()){state.preparation=prior;throw Error('準備の目標を保存できませんでした。');}
+ return plan;
+}
+function prepPlanAndSave(){
+ const data=prepTargetForm();prepSaveTargets(data);prepTargetSummary(data.plan);
+ return data.plan;
+}
+$('prepNewTarget').addEventListener('click',()=>{
+ try{prepPlanAndSave();$('prepNextError').hidden=true;toast('準備目標を保存しました。');}
+ catch(e){$('prepNextError').textContent=e.message||String(e);$('prepNextError').hidden=false;}
+});
+$('prepStockMember').addEventListener('change',populatePrepStockMembers);
+$('prepStockAdd').addEventListener('click',()=>{
+ const p=state.box.find(x=>x.id===$('prepStockMember').value);
+ if(!p){toast('ポケモンを選択してください。');return;}
+ const count=Number($('prepStockCount').value);
+ if(!Number.isInteger(count)||count<1||count>prepStockCap(p)){
+  toast('この個体のメインスキル待機上限を超えています。');return;
+ }
+ prepPendingStocks[p.id]={count,confirmed:$('prepStockConfirmed').checked};
+ renderPrepStockList();$('prepNextSummary').hidden=true;
+});
+$('prepSundayEvaluate').addEventListener('click',()=>{
+ const error=$('prepNextError');error.hidden=true;prepLastEvaluation=null;
+ try{
+  if(hasUnsavedEventEdits())throw Error('イベント条件を先に保存してください。');
+  const plan=prepPlanAndSave();
+  const raw=prepCurrentHandoff();
+  const result=PokePrepHandoff.evaluate(plan,raw,prepKnownIds());
+  const prior=state.preparation;
+  state.preparation={...prior,handoff:result.actual};
+  if(!save()){state.preparation=prior;throw Error('日曜の実績を保存できませんでした。');}
+  prepLastEvaluation={plan,result,event:JSON.stringify(state.event)};
+  const missing=Object.entries(result.shortages).map(([k,n])=>PokeMaster.ingredients[k]+' '+n+'個').join('、');
+  $('prepNextSummaryText').textContent='実際の食材 '+Object.values(result.actual.inventory).reduce((a,b)=>a+b,0)+
+   '個／最初の'+plan.earlyCount+'食のうち手持ち食材だけで作れる料理 '+result.ready+'食。'+
+   (missing?'準備目標からの不足：'+missing:'準備目標は数量上達成しています。');
+  const holder=$('prepNextMealRows');holder.replaceChildren();
+  result.meals.forEach((meal,i)=>{
+   const row=document.createElement('div');row.className='step4-ingredient-line';
+   const title=document.createElement('strong');title.textContent=(i+1)+'食目：'+meal.name;
+   const desc=document.createElement('span');desc.textContent=meal.canCook?'手持ち食材と鍋容量で成立':
+    (!meal.potOk?'鍋容量不足 '+Math.max(0,meal.required-meal.pot)+'個。':'')+
+    (!meal.foodOk?'食材不足：'+Object.entries(meal.missing).map(([k,n])=>PokeMaster.ingredients[k]+' '+n).join('、'):'');
+   row.append(title,desc);holder.append(row);
+  });
+  $('prepNextWarnings').textContent='日曜の実績を保存しました。料理は入力順の初日3食を、今ある在庫だけで判定した参考案です。スキル待機'+
+   Object.keys(result.actual.skillStocks).length+'匹分（推定'+result.stockUnconfirmed+'匹）と鍋拡張+'+
+   result.actual.potBonus+'は記録済みですが、スキル待機・初期鍋拡張は現行週間エナジー計算にまだ未反映です。イベント補正と週間最適順位もHOLDです。';
+  $('prepNextSummary').hidden=false;
+ }catch(e){error.textContent=e.message||String(e);error.hidden=false;$('prepNextSummary').hidden=true;}
+});
+$('prepApplyActual').addEventListener('click',()=>{
+ try{
+  if(!prepLastEvaluation||prepLastEvaluation.event!==JSON.stringify(state.event))
+   throw Error('イベント条件が変わりました。日曜の実績から再計算してください。');
+  const stored=state.preparation.handoff;
+  if(JSON.stringify(stored)!==JSON.stringify(prepLastEvaluation.result.actual))
+   throw Error('日曜の実績が変更されています。再計算してください。');
+  const previous=state.simulation;
+  state.simulation={...previous,initialIngredients:{...stored.inventory},
+   bagCapacity:prepLastEvaluation.plan.capacity};
+  if(!save()){state.simulation=previous;throw Error('週間計算への反映を保存できませんでした。');}
+  fillSimulation();markResultsStale();invalidateWeekProposal();
+  setTab('strategy');
+  toast('実際の食材を週間計算へ反映しました。週間チームを自動提案してください。');
+ }catch(e){$('prepNextError').textContent=e.message||String(e);$('prepNextError').hidden=false;}
+});
+$('prepActualFields').addEventListener('change',()=>{$('prepNextSummary').hidden=true;prepLastEvaluation=null;});
+$('prepActualPotBonus').addEventListener('change',()=>{$('prepNextSummary').hidden=true;prepLastEvaluation=null;});
 
 /* W3: compact day-by-day editing. Keep seven manual nights independent
  * from opt-in automatic nights, and never mutate them on a mere toggle.
