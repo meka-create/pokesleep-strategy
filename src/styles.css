@@ -201,3 +201,6 @@ input[type=checkbox]{accent-color:#f4c862}
 #prepNewTargetRows .step4-ingredient-line,#prepNextMealRows .step4-ingredient-line{margin:7px 0}
 #prepNewTargetRows strong,#prepNextMealRows strong{color:var(--accent)}
 #prepNextWarnings,#prepNewPotTarget,#prepSkillTarget{font-size:12px;color:var(--muted)}
+
+#prepNewTargetRows .step4-ingredient-line span,#prepNextMealRows .step4-ingredient-line span,
+.prep-stock-list .step4-ingredient-line span{color:var(--muted)}
