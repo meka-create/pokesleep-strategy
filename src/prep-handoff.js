@@ -92,7 +92,7 @@ function evaluate(plan,handoff,knownIds){
    .filter(([k,n])=>(remaining[k]||0)<n).map(([k,n])=>[k,n-(remaining[k]||0)]));
   const potOk=item.mealUnits<=availablePot,foodOk=Object.keys(missing).length===0;
   const canCook=potOk&&foodOk;
-  meals.push({name:item.name,recipeId:item.recipeId,canCook,potOk,foodOk,missing,
+  meals.push({name:item.name,recipeId:item.recipeId,type:item.type,canCook,potOk,foodOk,missing,
    required:item.mealUnits,pot:availablePot});
   if(canCook)for(const [k,n] of Object.entries(item.requirements))remaining[k]-=n;
   // A meal *attempt* is scheduled. If it cannot be cooked, the pot boost
