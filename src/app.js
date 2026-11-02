@@ -983,7 +983,7 @@ function renderPrepStockList(){
    ' ／ '+v.count+'回'+(v.confirmed?'（確認済み）':'（推定）');
   const remove=document.createElement('button');remove.type='button';remove.className='secondary';
   remove.textContent='削除';remove.addEventListener('click',()=>{
-   delete prepPendingStocks[id];renderPrepStockList();$('prepNextSummary').hidden=true;
+   delete prepPendingStocks[id];renderPrepStockList();$('prepNextSummary').hidden=true;prepLastEvaluation=null;
   });
   line.append(label,remove);list.append(line);
  }
@@ -1010,7 +1010,8 @@ function prepTargetSummary(plan){
  $('prepNewTargetResult').hidden=false;
  $('prepNewTargetSummary').textContent='イベント初日・最初の'+plan.earlyCount+
   '食の目標：食材'+plan.targetTotal+'個（バッグ容量 '+plan.capacity+'個）。'+
-  (plan.covered?'':'バッグ容量だけでは最初の3食分を全て備蓄できません。');
+  (plan.covered?'':'バッグ容量だけでは最初の3食分を全て備蓄できません。')+
+  (state.event.food1==='random'?' 料理カテゴリが未確定なので実際の成立はカテゴリ一致が条件です。':'');
  const rows=$('prepNewTargetRows');rows.replaceChildren();
  for(const [key,number] of Object.entries(plan.earlyNeed)){
   if(!number)continue;
@@ -1051,7 +1052,7 @@ $('prepStockAdd').addEventListener('click',()=>{
   toast('この個体のメインスキル待機上限を超えています。');return;
  }
  prepPendingStocks[p.id]={count,confirmed:$('prepStockConfirmed').checked};
- renderPrepStockList();$('prepNextSummary').hidden=true;
+ renderPrepStockList();$('prepNextSummary').hidden=true;prepLastEvaluation=null;
 });
 $('prepSundayEvaluate').addEventListener('click',()=>{
  const error=$('prepNextError');error.hidden=true;prepLastEvaluation=null;
@@ -1069,14 +1070,20 @@ $('prepSundayEvaluate').addEventListener('click',()=>{
   if(!save()){state.preparation=prior;throw Error('日曜の実績を保存できませんでした。');}
   prepLastEvaluation={plan,result,event:JSON.stringify(state.event)};
   const missing=Object.entries(result.shortages).map(([k,n])=>PokeMaster.ingredients[k]+' '+n+'個').join('、');
+  const eventFood=state.event.food1;
+  const mismatched=eventFood!=='random'&&plan.items.some(r=>r.type!==eventFood);
   $('prepNextSummaryText').textContent='実際の食材 '+Object.values(result.actual.inventory).reduce((a,b)=>a+b,0)+
-   '個／最初の'+plan.earlyCount+'食のうち手持ち食材だけで作れる料理 '+result.ready+'食。'+
+   '個／最初の'+plan.earlyCount+'食のうち在庫と鍋だけなら成立する料理 '+result.ready+'食。'+
+   (eventFood==='random'?'料理カテゴリ未確定のため確実な成立数ではありません。':
+    mismatched?'選んだ料理とイベント料理カテゴリが一致していません。':'')+
    (missing?'準備目標からの不足：'+missing:'準備目標は数量上達成しています。');
   const holder=$('prepNextMealRows');holder.replaceChildren();
   result.meals.forEach((meal,i)=>{
    const row=document.createElement('div');row.className='step4-ingredient-line';
    const title=document.createElement('strong');title.textContent=(i+1)+'食目：'+meal.name;
-   const desc=document.createElement('span');desc.textContent=meal.canCook?'手持ち食材と鍋容量で成立':
+   const desc=document.createElement('span');desc.textContent=eventFood!=='random'&&meal.type!==eventFood?
+    '指定したイベント料理カテゴリでは作れません。':
+    meal.canCook?(eventFood==='random'?'カテゴリ一致時には在庫と鍋で成立':'在庫と鍋容量で成立'):
     (!meal.potOk?'鍋容量不足 '+Math.max(0,meal.required-meal.pot)+'個。':'')+
     (!meal.foodOk?'食材不足：'+Object.entries(meal.missing).map(([k,n])=>PokeMaster.ingredients[k]+' '+n).join('、'):'');
    row.append(title,desc);holder.append(row);
@@ -1105,6 +1112,10 @@ $('prepApplyActual').addEventListener('click',()=>{
 });
 $('prepActualFields').addEventListener('change',()=>{$('prepNextSummary').hidden=true;prepLastEvaluation=null;});
 $('prepActualPotBonus').addEventListener('change',()=>{$('prepNextSummary').hidden=true;prepLastEvaluation=null;});
+for(const id of ['prepRecipe','prepMeals','prepCapacity','prepAddRecipe']){
+ $(id).addEventListener('change',()=>{$('prepNewTargetResult').hidden=true;$('prepNextSummary').hidden=true;prepLastEvaluation=null;});
+}
+$('prepExtraRecipes').addEventListener('change',()=>{$('prepNewTargetResult').hidden=true;$('prepNextSummary').hidden=true;prepLastEvaluation=null;});
 
 /* W3: compact day-by-day editing. Keep seven manual nights independent
  * from opt-in automatic nights, and never mutate them on a mere toggle.
