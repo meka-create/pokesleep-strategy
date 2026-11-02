@@ -1020,8 +1020,9 @@ function prepTargetSummary(plan){
    '個／最初の3食に必要 '+number+'個／週間の参考総需要 '+(plan.allNeed[key]||0)+'個';
   line.append(title,details);rows.append(line);
  }
- $('prepNewPotTarget').textContent='鍋拡張の目安：最初の料理に対して +'+plan.firstPotShortfall+
-  ' 個（通常鍋'+plan.pot+'個、必要'+plan.firstMeal.need+'個）。日曜の料理で拡張を消費しない場合にのみ持ち越せます。スキル待機は確定できる範囲で記録してください。';
+ $('prepNewPotTarget').textContent='鍋拡張の最低目安：最初の料理に対して +'+plan.firstPotShortfall+
+  ' 個（通常鍋'+plan.pot+'個、必要'+plan.firstMeal.need+'個）。事前に発動し、その後の料理で消費しない場合に持ち越せます。';
+ $('prepSkillTarget').textContent='スキル待機の目安：翌週開始時に使いたい効果は可能なら1回分、スキルとくい個体では最大2回分を目指す。ただし未確認の待機を確定扱いしません。';
 }
 function prepSaveTargets({plan,targets,capacity}){
  const prior=state.preparation;
