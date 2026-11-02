@@ -187,6 +187,24 @@ input[type=checkbox]{accent-color:#f4c862}
 .sprite-credit{margin:18px 2px;line-height:1.7}.sprite-credit a{color:var(--accent)}
 @media(max-width:420px){.shell{padding-left:11px;padding-right:11px}.header h1{font-size:17px}.brand-icon{width:40px;height:40px}.header-status{max-width:34%;font-size:9px}.pokemon-row{gap:8px}.pokemon-row .poke-art{flex-basis:40px;width:40px;height:40px}.pick{padding:8px 7px}.week-overview-period{grid-template-columns:40px minmax(0,1fr)}.team-chip{font-size:10px}.team-chip>span:last-child:not(.poke-art){max-width:68px}}
 
+/* R3: preparation goals and Sunday reality; keep the UX as two compact cards. */
+.prep-next-stage{margin:12px 0 16px;padding:17px}
+.prep-next-stage h4{font-size:15px;letter-spacing:.02em;margin:0 0 12px;color:var(--ink)}
+.prep-next-stage .primary.full,.prep-next-stage .secondary.full{margin:12px 0 0;width:100%}
+.prep-next-results{padding-top:13px;margin-top:13px;border-top:1px solid var(--border)}
+.prep-next-results>p{line-height:1.65;overflow-wrap:anywhere}
+.prep-actual-details{padding:11px 0;border-top:1px solid var(--border)}
+.prep-actual-details>summary{cursor:pointer;font-size:13px;font-weight:750;color:#e5eef7}
+.prep-actual-details[open]>summary{margin-bottom:12px}
+.prep-next-stage>.field{margin-top:12px;margin-bottom:12px}
+.prep-actual-details .form-grid{margin:12px 0;gap:9px}
+.prep-stock-list{display:flex;flex-direction:column;gap:6px}
+.prep-stock-list .step4-ingredient-line{display:flex;gap:10px;align-items:center;justify-content:space-between;line-height:1.5}
+.prep-stock-list .step4-ingredient-line button{flex:0 0 auto;font-size:11px;padding:7px 10px}
+#prepNewTargetRows .step4-ingredient-line,#prepNextMealRows .step4-ingredient-line{margin:7px 0}
+#prepNewTargetRows strong,#prepNextMealRows strong{color:var(--accent)}
+#prepNextWarnings,#prepNewPotTarget,#prepSkillTarget{font-size:12px;color:var(--muted)}
+
 </style>
 </head><body>
 <div class="shell">
@@ -410,6 +428,7 @@ input[type=checkbox]{accent-color:#f4c862}
    <p id="prepNewTargetSummary" class="small"></p>
    <div id="prepNewTargetRows" class="step4-ingredient-table"></div>
    <p id="prepNewPotTarget" class="small muted"></p>
+   <p id="prepSkillTarget" class="small muted"></p>
   </div>
  </div>
  <div class="card prep-next-stage">
@@ -5554,8 +5573,9 @@ function prepTargetSummary(plan){
    '個／最初の3食に必要 '+number+'個／週間の参考総需要 '+(plan.allNeed[key]||0)+'個';
   line.append(title,details);rows.append(line);
  }
- $('prepNewPotTarget').textContent='鍋拡張の目安：最初の料理に対して +'+plan.firstPotShortfall+
-  ' 個（通常鍋'+plan.pot+'個、必要'+plan.firstMeal.need+'個）。日曜の料理で拡張を消費しない場合にのみ持ち越せます。スキル待機は確定できる範囲で記録してください。';
+ $('prepNewPotTarget').textContent='鍋拡張の最低目安：最初の料理に対して +'+plan.firstPotShortfall+
+  ' 個（通常鍋'+plan.pot+'個、必要'+plan.firstMeal.need+'個）。事前に発動し、その後の料理で消費しない場合に持ち越せます。';
+ $('prepSkillTarget').textContent='スキル待機の目安：翌週開始時に使いたい効果は可能なら1回分、スキルとくい個体では最大2回分を目指す。ただし未確認の待機を確定扱いしません。';
 }
 function prepSaveTargets({plan,targets,capacity}){
  const prior=state.preparation;
@@ -5591,6 +5611,10 @@ $('prepSundayEvaluate').addEventListener('click',()=>{
  try{
   if(hasUnsavedEventEdits())throw Error('イベント条件を先に保存してください。');
   const plan=prepPlanAndSave();
+  const oldStart=state.preparation?.handoff?.eventStart;
+  if(oldStart&&state.event.start&&oldStart!==state.event.start&&
+      !confirm('前回イベントの実績が入力されています。今回のイベントにもこの数値を使いますか？'))
+   throw Error('今回のイベントの実数を入力してください。前回の実績は保護しました。');
   const raw=prepCurrentHandoff();
   const result=PokePrepHandoff.evaluate(plan,raw,prepKnownIds());
   const prior=state.preparation;
