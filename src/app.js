@@ -693,7 +693,7 @@ function fillPreparation(){
  $('prepMeals').value=targets[0].meals;
  prepExtraEditors=[];$('prepExtraRecipes').replaceChildren();
  for(const target of targets.slice(1))appendPrepRecipeEditor(target);
- $('prepCapacity').value=prep.bagCapacity||state.simulation?.bagCapacity||0;
+ $('prepCapacity').value=prep.bagCapacity||state.simulation?.bagCapacity||600;
  $('prepPriority').value=prep.priority;
  $('prepField').value=prep.field||'';
  $('prepFieldBonus').value=prep.fieldBonus??0;
@@ -967,10 +967,11 @@ function populatePrepStockMembers(){
   select.append(opt);
  }
  if(state.box.some(p=>p.id===current))select.value=current;
- $('prepStockCount').querySelector('option[value="2"]').disabled=
-  prepStockCap(state.box.find(p=>p.id===select.value))!==2;
- if($('prepStockCount').selectedIndex===1&&$('prepStockCount').querySelector('option[value="2"]').disabled)
-  $('prepStockCount').value='1';
+ const second=Array.from($('prepStockCount').options||$('prepStockCount').children||[])
+  .find(option=>option.value==='2');
+ const onlyOne=prepStockCap(state.box.find(p=>p.id===select.value))!==2;
+ if(second)second.disabled=onlyOne;
+ if(onlyOne&&$('prepStockCount').value==='2')$('prepStockCount').value='1';
 }
 function renderPrepStockList(){
  const list=$('prepStockList');list.replaceChildren();
