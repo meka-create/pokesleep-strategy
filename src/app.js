@@ -24,6 +24,7 @@ function markResultsStale(keepComparison=false){
 const save=()=>{try{storage.save(state);$('storageNotice').textContent='このブラウザ内への保存：利用可能';$('storageNotice').className='small ok';$('criticalNotice').hidden=true;return true;}catch(e){
 $('storageNotice').textContent=storage.getLoadError()||'保存に失敗しました。現在の変更は未保存です。設定・保存からJSONバックアップを取得してください。';$('storageNotice').className='small warn';$('criticalNotice').textContent=$('storageNotice').textContent;$('criticalNotice').hidden=false;return false;}};
 const notifySave=(success,ok)=>toast(success?(ok||'保存しました。'):'保存に失敗しました。設定・保存からJSONバックアップを取得してください。');
+const PokeSprite=window.PokeSprite||{icon:p=>'<span class="poke-art is-fallback"><span class="poke-art-fallback">'+String(p?.pokemon||'?').slice(0,1)+'</span></span>',enhance:()=>{}};
 const enc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(message){const t=$('toast');t.textContent=message;t.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.hidden=true,3500);}
 function setTab(tab){
@@ -50,10 +51,12 @@ for(const id of ['eventName','eventStart','eventDuration','eventMap','eventBerri
  $(id).addEventListener('change',markResultsStale);
 function status(){let name=state.event.name||'イベント未設定';$('dataState').textContent=`${state.box.length}匹登録 / 睡眠 ${state.sleepIds.length}/5 / ${name}`;$('boxTotal').textContent=`${state.box.length}匹`;$('boxCountTab').textContent=state.box.length;}
 function renderSleep(){const ids=state.sleepIds;const selected=ids.map(id=>state.box.find(p=>p.id===id)).filter(Boolean);$('sleepCount').textContent=`${selected.length} / 5`;
- $('sleepList').innerHTML=selected.length?selected.map((p,i)=>`<div class="sleep-item"><span class="sleep-index">${i+1}</span><span class="sleep-title">${enc(p.nickname||p.pokemon)}<small>${enc(p.pokemon)} · Lv${p.level}</small></span><button data-remove="${enc(p.id)}" class="remove" aria-label="${enc(p.pokemon)}を外す">外す</button></div>`).join(''):'<div class="empty-mini">まだ選択されていません。下の一覧から5匹選んでください。</div>';
+ $('sleepList').innerHTML=selected.length?selected.map((p,i)=>`<div class="sleep-item"><span class="sleep-index">${i+1}</span>${PokeSprite.icon(p)}<span class="sleep-title">${enc(p.nickname||p.pokemon)}<small>${enc(p.pokemon)} · Lv${p.level}</small></span><button data-remove="${enc(p.id)}" class="remove" aria-label="${enc(p.pokemon)}を外す">外す</button></div>`).join(''):'<div class="empty-mini">まだ選択されていません。下の一覧から5匹選んでください。</div>';
+ PokeSprite.enhance($('sleepList'));
  for(const btn of $('sleepList').querySelectorAll('[data-remove]'))btn.addEventListener('click',()=>{const oldIds=[...state.sleepIds];state.sleepIds=state.sleepIds.filter(id=>id!==btn.dataset.remove);const saved=save();if(!saved)state.sleepIds=oldIds;notifySave(saved,'睡眠パーティを変更しました。');renderBox();renderSimulator();markResultsStale();});}
 function renderBox(){status();renderSleep();let q=$('searchPokemon').value.toLocaleLowerCase('ja');const found=state.box.filter(p=>[p.nickname,p.pokemon].some(s=>(s||'').toLocaleLowerCase('ja').includes(q)));const view=found.slice(0,120);
- $('pokemonList').innerHTML=view.length?view.map(p=>{const selected=state.sleepIds.includes(p.id);return `<div class="pokemon-row"><div class="pokemon-symbol">${enc((p.pokemon||'?').slice(0,1))}</div><div class="pokemon-info"><b>${enc(p.nickname||p.pokemon)}</b><div>${enc(p.pokemon)} · Lv${p.level} · スキルLv${p.skillLevel}</div><div class="pokemon-details">${enc(p.nature||'せいかく未設定')} / ${enc(p.ingredients.filter(Boolean).join('・')||'食材未設定')}</div></div><button class="pick ${selected?'selected':''}" data-add="${enc(p.id)}" ${!selected&&state.sleepIds.length>=5?'disabled':''}>${selected?'選択中':'睡眠用に追加'}</button></div>`;}).join(''):'<div class="card empty">'+(state.box.length?'該当するポケモンがありません。':'CSVを読み込むとここに一覧が表示されます。')+'</div>';
+ $('pokemonList').innerHTML=view.length?view.map(p=>{const selected=state.sleepIds.includes(p.id);return `<div class="pokemon-row">${PokeSprite.icon(p)}<div class="pokemon-info"><b>${enc(p.nickname||p.pokemon)}</b><div>${enc(p.pokemon)} · Lv${p.level} · スキルLv${p.skillLevel}</div><div class="pokemon-details">${enc(p.nature||'せいかく未設定')} / ${enc(p.ingredients.filter(Boolean).join('・')||'食材未設定')}</div></div><button class="pick ${selected?'selected':''}" data-add="${enc(p.id)}" ${!selected&&state.sleepIds.length>=5?'disabled':''}>${selected?'選択中':'睡眠用に追加'}</button></div>`;}).join(''):'<div class="card empty">'+(state.box.length?'該当するポケモンがありません。':'CSVを読み込むとここに一覧が表示されます。')+'</div>';
+ PokeSprite.enhance($('pokemonList'));
  $('boxMore').hidden=found.length<=120;$('boxMore').textContent=found.length>120?`検索結果 ${found.length}匹のうち、先頭120匹を表示しています。検索して絞り込んでください。`:'';
  for(const btn of $('pokemonList').querySelectorAll('[data-add]'))btn.addEventListener('click',()=>{let id=btn.dataset.add;const oldIds=[...state.sleepIds];if(state.sleepIds.includes(id)){state.sleepIds=state.sleepIds.filter(x=>x!==id);}else if(state.sleepIds.length<5)state.sleepIds.push(id);const saved=save();if(!saved)state.sleepIds=oldIds;notifySave(saved,'睡眠パーティを変更しました。');renderBox();markResultsStale();});
  // Sleep-party completion happens on the box tab; immediately sync the simulator
@@ -958,6 +961,10 @@ function weekTeamName(id){
  const p=state.box.find(x=>x.id===id);
  return p?(p.nickname||p.pokemon):'未登録';
 }
+function weekTeamChip(id){
+ const p=state.box.find(x=>x.id===id);
+ return p?'<span class="team-chip">'+PokeSprite.icon(p)+'<span>'+enc(p.nickname||p.pokemon)+'</span></span>':'<span class="team-chip missing">未登録</span>';
+}
 function invalidateWeekProposal(){
  ++weekSearchToken;weekPreview=null;weekSearchConfig=null;
  $('weekProposal').hidden=true;$('weekProgress').textContent='';
@@ -1005,12 +1012,13 @@ function renderWeekPlan(){
   rows.push('<details class="week-overview-day"'+(d===0?' open':'')+'><summary>'+weekNames[d]+'曜日</summary>'+
    weekPeriods.map(period=>{
     const ids=period==='sleep'?night:base[period];
-    const names=ids.map(weekTeamName);
+    const chips=ids.map(weekTeamChip).join('');
     const label=weekPeriodNames[period]+(period==='sleep'&&!data.plan.sleepAuto&&changed?'（変更）':'');
-    return '<div class="week-overview-period"><b>'+label+'</b><span>'+enc(names.join('、')||'未設定')+'</span></div>';
+    return '<div class="week-overview-period"><b>'+label+'</b><span class="team-chips">'+(chips||'未設定')+'</span></div>';
    }).join('')+'</details>');
  }
  $('weekOverview').innerHTML=rows.join('');
+ PokeSprite.enhance($('weekOverview'));
  $('weekStatus').textContent=data.plan.sleepAuto&&data.auto.length!==7?
   '睡眠の自動提案がまだありません。週間チームを提案してください。':'';
  // Box searches and unrelated UI refreshes must not erase a draft roster.
@@ -1139,9 +1147,10 @@ function renderWeekProposal(result){
   const parts={...day,sleep:best.sleepTeamsByDay[i]};
   return '<details class="week-overview-day"'+(i===0?' open':'')+'><summary>'+weekNames[i]+'曜日</summary>'+
    weekPeriods.map(key=>'<div class="week-overview-period"><b>'+weekPeriodNames[key]+
-    '</b><span>'+enc(parts[key].map(weekTeamName).join('、'))+'</span></div>').join('')+'</details>';
+    '</b><span class="team-chips">'+parts[key].map(weekTeamChip).join('')+'</span></div>').join('')+'</details>';
  }).join('');
  $('weekProposal').hidden=false;
+ PokeSprite.enhance($('weekProposalDays'));
 }
 $('weekSearch').addEventListener('click',()=>{
  const progress=$('weekProgress'),error=$('weekError');
