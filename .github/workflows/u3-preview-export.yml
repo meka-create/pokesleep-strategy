@@ -57,7 +57,7 @@ jobs:
           assert "addValue(nature,'せいかく'" not in strategy
           assert 'border:2px solid #709dc0;border-radius:999px' in strategy
           # Modifiers are adjacent to each text rather than pushed to row end.
-          assert 'justify-content:flex-start;gap:3px;font-size:10px' in strategy
+          assert 'justify-content:flex-start;gap:3px;font-size:13px' in strategy
           assert '.stat-modal .iv-skill.gold{border-color:#a18a59;background:#4c4334' in strategy
           assert '.stat-modal .iv-skill.blue{border-color:#5b8eb6;background:#263f60' in strategy
           for label in ('食材','おてつだい時間','最大所持数','せいかく'):
