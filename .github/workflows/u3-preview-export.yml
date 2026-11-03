@@ -89,27 +89,14 @@ jobs:
           assert 'background:transparent;font-size:15px;font-weight:780' in strategy
           assert "natureView.append(natureModifiers)" in strategy
           # v18: compact U2 cards, 3-tabs and 10px header spacing.
-          assert 'id="btn-current"' in prep
-          assert 'class="prep-fixed"' in prep
           assert 'class="grid actual-grid"' in prep
           assert 'min-height:85px' in prep
           assert 'min-height:74px' in prep
           assert 'min-height:70px' in prep
-          assert 'id="goal-panel"' in prep and 'id="actual-panel"' in prep
-          assert "current.id='current-panel'" in prep
           # v21: both U2 food-input tabs may save blank entries; blanks become numeric zero.
-          assert 'function read(which){' in prep
-          assert "const value=isEmpty?0:Number(str);" in prep
           assert "!input.validity.badInput" in prep
-          assert "const result=read(which);" in prep
-          assert "transferLink(which,record);" in prep
           assert "showToast(error.textContent,true)" in prep
           assert ".ui-toast.is-error" in prep
-          assert 'function showToast(message,isError=false)' in prep
-          assert 'return [name,Number.isInteger(v)&&v>=0&&v<=10000?v:0];' in prep
-          assert "const value=item.values[name];" in strategy
-          assert "item.values[name]===null?0:item.values[name]" in strategy
-          assert "Object.prototype.hasOwnProperty.call(item.values,name)" in strategy
           assert "未入力の食材は未確認です" not in strategy
           assert "U3_Strategy_UI_20261103.html" in prep
           # v19: all 3 food tabs share compact 3-row cards.
@@ -117,10 +104,6 @@ jobs:
           assert prep.count('class="target-chip"') == 5
           assert ".goal-grid .food .goal-value{grid-column:1;grid-row:3;" in prep
           assert ".actual-grid .food .target-chip{position:absolute;z-index:1;" in prep
-          assert "current.querySelector('.actual-grid').classList.add('current-grid')" in prep
-          assert "food.classList.remove('needed','not-needed');" in prep
-          assert "food.classList.add('inventory');" in prep
-          assert "for(const badge of food.querySelectorAll('.target-chip,.target-placeholder'))badge.remove();" in prep
           assert ".current-grid .food,.current-grid .food.inventory" in prep
           # v20: inventory records belong to the selected event week (never re-use another week's values).
           for html in (prep,strategy):
@@ -128,28 +111,46 @@ jobs:
               assert "function validWeek(date){" in html
               assert 'id="ui-toast"' in html
               assert "setTimeout(()=>{toast.hidden=true;toastTimer=null;},2500)" in html
-          assert "function weekStorageKey(which){" in prep
-          assert "return 'pokesleep-strategy-u2-v2:'+eventWeek+':'+which;" in prep
-          assert "version:2,weekStart:eventWeek,source:which" in prep
           assert "if(stored.weekStart!==eventWeek)" not in prep
-          assert "stored.weekStart!==eventWeek" in prep
-          assert "for(const input of lists[which]){input.value='';" in prep
-          assert "transferLink(which,normalized);" in prep
           assert "result.complete||which==='sunday'" not in prep
           assert "read(which,which==='current')" not in prep
-          assert "url.searchParams.set('eventStart',eventWeek)" in prep
-          assert "sunday.querySelector('.row.total>span').textContent='日曜実績の合計';" in prep
           assert "item.weekStart!==eventInfo.start" in strategy
           assert "const activePlan=hasApplied&&appliedEventStart===eventInfo.start;" in strategy
           assert "const pendingCondition=activePlan&&(eventChanged||applied.autoSleep!==autoSleep||manualChanged);" in strategy
           assert "appliedStale" not in strategy
           assert "eligible.forEach(i=>{manualSleep[i]=[...team];});" in strategy
           assert "if(hasApplied&&!applied.autoSleep)applied.days" not in strategy
-          assert "syncWeekUrl();weekLabel()" in prep
           assert "url.searchParams.delete('pokesleepStock')" in strategy
           assert "showToast('イベント条件を保存しました')" in strategy
           assert "function persistEventWeek()" in strategy
-          assert "updateU2Link();\npersistEventWeek();" in strategy
+          # v23: unified inventory tab, focused edit, custom preparation popup.
+          assert prep.count('role="tab"')==2
+          assert 'id="btn-inventory"' in prep and 'id="btn-goal"' in prep
+          assert 'id="btn-current"' not in prep and 'id="btn-actual"' not in prep
+          assert 'id="inventory-panel"' in prep
+          assert 'id="prep-skill-open"' in prep and 'id="prep-skill-popover"' in prep
+          assert 'class="prep-fixed"' not in prep
+          assert 'class="inventory-actions"' in prep
+          assert "if(input.value==='0')input.select()" in prep
+          assert "input.type='text';input.inputMode='numeric'" in prep
+          assert "const recordKey=week=>" in prep
+          assert "version:3,weekStart:eventWeek,source:'inventory'" in prep
+          assert "initialValues:previous?.initialValues" in prep
+          assert "function normalizedValues(obj){" in prep
+          assert "transferLink(record)" in prep
+          assert "id=\"stock-gate\"" in strategy
+          assert "id=\"resume-draft\"" in strategy
+          assert "function normalizeInventory(item){" in strategy
+          assert "function refreshInventory(){" in strategy
+          assert "function storeState(){" in strategy
+          assert "function restoreState(week,resetIfMissing=false){" in strategy
+          assert "function validPlan(plan){" in strategy
+          assert "function syncEventControls(){" in strategy
+          assert "if(changed&&oldStart!==next.start)storeState();" in strategy
+          assert "localStorage.setItem(strategyKey(eventInfo.start)" in strategy
+          assert "hasInventory" in strategy
+          assert "item.values[name]===null?0:item.values[name]" in strategy
+          assert "document.querySelectorAll('.u2-nav').forEach" in strategy
           # v18: no duplicate U3 inventory editor. All replanning uses a common action.
           for marker in ('id="sleep-dialog"','id="sleep-open"','id="sleep-day-nav"',
                          'id="auto-sleep"','id="repropose"','id="inventory-notice"',
@@ -158,9 +159,7 @@ jobs:
           assert 'id="stock-dialog"' not in strategy
           assert 'id="stock-open"' not in strategy
           assert 'id="view-tabs"' not in strategy
-          assert "function readU2Transfer(){" in strategy
           assert "const sameWeek=hasApplied&&appliedEventStart===eventInfo.start" in strategy
-          assert "if(stockPending){stockConfirmed=clone(stockPending);importedStock=null;}" in strategy
           assert "U2_Prep_Local_Ingredients_20261103.html" in strategy
           assert "if(slot!=='sleep'||isPastSlot(day,'sleep')||switchOn('auto-sleep'))return;" in strategy
           assert "if(switchOn('auto-sleep'))return;selectedSleepDay=firstFutureDay()" in strategy
