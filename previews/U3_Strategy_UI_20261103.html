@@ -113,13 +113,16 @@
 
 .u2-nav{display:block;text-align:center;color:#badcf4;text-decoration:underline;text-underline-offset:3px;min-height:30px;padding:5px}
 #inventory-notice{color:var(--gold);text-align:center;font-size:11px}
+/* Success messages float above the bottom edge; persistent re-proposal state remains in #status. */
+.ui-toast{position:fixed;z-index:110;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 26px);border:1px solid #67869e;background:#2b455b;color:#f3f7fd;border-radius:12px;box-shadow:0 7px 20px #071321aa;padding:11px 15px;font-weight:750;font-size:13px;line-height:1.4;text-align:center;pointer-events:none}
+@media(prefers-reduced-motion:no-preference){.ui-toast:not([hidden]){animation:toast-in .16s ease-out}}@keyframes toast-in{from{opacity:0;transform:translate(-50%,9px)}to{opacity:1;transform:translate(-50%,0)}}
 </style></head>
 <body><div class="shell"><header class="header"><div><div class="smallcap">POKÉMON SLEEP</div><div class="brand">✦ ポケスリ作戦室</div></div><span class="mock-tag">U3</span></header>
 <main>
 <details class="event-details card" id="event-details"><summary><span>イベント条件</span></summary><div class="event-fields"><label class="field">開始日<input id="event-start" type="date" value="2026-11-09"></label><div class="field"><span>料理</span><select id="event-food"><option value="curry">カレー</option><option value="salad">サラダ</option><option value="dessert">デザート</option></select></div><div class="field wide"><span>フィールド</span><select id="event-field"><option>ワカクサ本島</option><option>シアンの砂浜</option><option>トープ洞窟</option><option>ウノハナ雪原</option><option>ラピスラズリ湖畔</option><option>ゴールド旧発電所</option><option>アンバー渓谷</option><option>ワカクサ本島EX</option><option>シアンの砂浜EX</option></select></div><div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="false"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div></div></details>
 <section class="card sleep-settings" aria-label="睡眠編成の設定"><div class="section-head"><h2>睡眠編成</h2><div class="sleep-controls"><button type="button" class="control-toggle sleep-auto-toggle" id="auto-sleep" role="switch" aria-checked="false" aria-label="睡眠編成を自動提案"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button><button type="button" id="sleep-open" class="btn small secondary">設定</button></div></div></section>
 <section class="card plan-actions" aria-label="週間作戦の操作"><button type="button" id="generate" class="btn full">7日間の作戦を提案</button><button type="button" id="repropose" class="btn secondary full" hidden>作戦を再提案</button><p class="hint" id="inventory-notice" hidden></p><a class="hint u2-nav" href="U2_Prep_Local_Ingredients_20261103.html">食材在庫の入力・修正は準備画面で行う</a><p class="hint" id="mock-note">このプレビューの編成と料理は操作確認用の例です。</p><div id="status" class="status-message" role="status" aria-live="polite"></div></section>
-<section class="card" id="week-content" hidden><div class="section-head"><h2 id="current-state-title">週間編成</h2><span class="energy">週間エナジー <b>—</b></span></div><div class="week-head"><div class="day-title"><span id="day-label">月曜日</span><small id="day-date">11/9</small></div></div><div class="daynav" id="day-nav" role="tablist" aria-label="曜日を選択"></div><div id="slots"></div></section></main></div>
+<section class="card" id="week-content" hidden><div class="section-head"><h2 id="current-state-title">週間編成</h2><span class="energy">週間エナジー <b>—</b></span></div><div class="week-head"><div class="day-title"><span id="day-label">月曜日</span><small id="day-date">11/9</small></div></div><div class="daynav" id="day-nav" role="tablist" aria-label="曜日を選択"></div><div id="slots"></div></section></main></div><div id="ui-toast" class="ui-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 <dialog class="modal sleep-modal" id="sleep-dialog" aria-labelledby="sleep-title"><div class="modal-head"><h2 id="sleep-title">睡眠編成</h2><button type="button" class="btn small ghost" id="sleep-close">閉じる</button></div><p class="review-note">基本の5匹を全7晩に設定し、必要な曜日だけ変更できます。</p><div id="sleep-manual"><div id="sleep-day-nav" class="daynav" role="tablist" aria-label="睡眠設定の曜日"></div><div id="sleep-team-preview" class="sleep-team-preview"></div><div class="sleep-actions"><button type="button" class="btn secondary full" id="sleep-change">この夜の5匹を変更</button><button type="button" class="btn ghost full" id="sleep-copy">この5匹を全7晩に設定</button></div></div></dialog>
 
 <dialog class="modal review-modal" id="review-dialog" aria-labelledby="review-title"><div class="modal-head"><h2 id="review-title">作戦の提案</h2><button type="button" class="btn small ghost" id="review-close">閉じる</button></div><p class="review-note">この画面の編成は表示用の仮提案です。実ゲームの最適化計算は未接続です。採用するまで現在の作戦は変わりません。</p><div class="daynav" id="review-day-nav" role="tablist" aria-label="提案を確認する曜日"></div><div id="review-slots"></div><div class="modal-footer"><button type="button" class="btn ghost" id="review-cancel">キャンセル</button><button type="button" class="btn" id="review-adopt">この作戦を採用</button></div></dialog>
@@ -421,12 +424,32 @@ let appliedStale=false;
 
 let appliedEventStart=null;
 // Transfer is URL-based so the two offline HTML previews can work in the same folder.
+const EVENT_WEEK_KEY='pokesleep-strategy-event-start-v2';
+const DEFAULT_EVENT_WEEK='2026-11-09';
+function validWeek(date){
+ if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;
+ const d=new Date(date+'T12:00:00Z');return Number.isFinite(d.valueOf())&&d.toISOString().slice(0,10)===date&&d.getUTCDay()===1;
+}
+function initialEventStart(){
+ const fromLink=new URLSearchParams(location.search).get('eventStart');if(validWeek(fromLink))return fromLink;
+ try{const saved=localStorage.getItem(EVENT_WEEK_KEY);if(validWeek(saved))return saved;}catch(e){}
+ return DEFAULT_EVENT_WEEK;
+}
+let eventInfo={start:initialEventStart(),field:'ワカクサ本島',food:'curry',camp:false};
+function persistEventWeek(){try{localStorage.setItem(EVENT_WEEK_KEY,eventInfo.start);}catch(e){}}
+function updateU2Link(){
+ const link=$('.u2-nav');if(!link)return;
+ const base=/^(https?:|file:)/.test(location.href)?location.href:'https://pokesleep-preview.invalid/';
+ const url=new URL('U2_Prep_Local_Ingredients_20261103.html',base);
+ url.searchParams.set('eventStart',eventInfo.start);
+ link.href=url.href;
+}
 let importedStock=null,importedSource=null,importedAt=null;
 function readU2Transfer(){
  const raw=new URLSearchParams(location.search).get('pokesleepStock');if(!raw||raw.length>10000)return;
  try{
   const item=JSON.parse(raw);
-  if(item.version!==1||!['sunday','current'].includes(item.source)||!item.values||typeof item.values!=='object')return;
+  if(item.version!==2||item.weekStart!==eventInfo.start||!['sunday','current'].includes(item.source)||!item.values||typeof item.values!=='object')return;
   const required=Object.keys(INGREDIENT_ICONS);
   if(required.length!==19||required.some(name=>item.values[name]!==null&&(!Number.isInteger(item.values[name])||item.values[name]<0||item.values[name]>10000)))return;
   if(!required.some(name=>Number.isInteger(item.values[name])))return;
@@ -435,8 +458,9 @@ function readU2Transfer(){
  }catch(e){}
 }
 readU2Transfer();
-
-let eventInfo={start:'2026-11-09',field:'ワカクサ本島',food:'curry',camp:false};
+$('#event-start').value=eventInfo.start;
+updateU2Link();
+persistEventWeek();
 function getPlan(){return applied;}
 function currentRecipes(plan=getPlan()){return RECIPES[plan.foodMode];}
 function formatDate(date){const d=new Date(date+'T12:00:00Z');return (d.getUTCMonth()+1)+'/'+d.getUTCDate();}
@@ -460,7 +484,17 @@ function eventPhase(){
  return 'during';
 }
 function firstFutureDay(){for(let d=0;d<7;d++)if(SLOT_KEYS.some(slot=>!isPastSlot(d,slot)))return d;return 6;}
-function flash(text,isError=false){const e=$('#status');e.textContent=text;e.classList.toggle('error',isError);}
+let toastTimer=null;
+function showToast(message){
+ const toast=$('#ui-toast');if(toastTimer)clearTimeout(toastTimer);
+ toast.textContent=message;toast.hidden=false;
+ toastTimer=setTimeout(()=>{toast.hidden=true;toastTimer=null;},2500);
+}
+function flash(text,isError=false){
+ const e=$('#status');
+ if(isError){e.textContent=text;e.classList.add('error');}
+ else{e.textContent='';e.classList.remove('error');showToast(text);}
+}
 function teamFor(day,slot,offset=0){const start=(day*3+slot*4+offset)%IDS.length;return arrangeHealers(Array.from({length:5},(_,i)=>IDS[(start+i)%IDS.length]));}
 function demoOffset(stock){if(!stock)return 0;return Object.keys(INGREDIENT_ICONS).reduce((total,name,i)=>total+Number(stock[name]||0)*(i+1),0)%IDS.length;}
 function proposal(stock=null){
@@ -489,6 +523,10 @@ function render(){
  $('#repropose').disabled=phase==='ended';
  const autoSleep=switchOn('auto-sleep');
  $('#sleep-open').disabled=autoSleep;
+ const pendingCondition=hasApplied&&(appliedStale||applied.autoSleep!==autoSleep);
+ const stateMsg=$('#status');
+ stateMsg.textContent=pendingCondition?'作戦の条件が変更されています。「作戦を再提案」で反映してください。':'';
+ stateMsg.classList.toggle('error',pendingCondition);
  $('#inventory-notice').hidden=!importedStock;
  $('#inventory-notice').textContent=importedStock?(importedSource==='sunday'?'U2の日曜実績を取り込みました。':'U2で現在の在庫が更新されました。')+(Object.values(importedStock).filter(Number.isInteger).length<19?' 未入力の食材は未確認です。':'')+'「作戦を再提案」で反映できます。':'';
  $('#current-state-title').textContent=appliedStale?'週間編成（旧条件）':'週間編成';
@@ -595,7 +633,22 @@ $('#review-adopt').onclick=()=>{
  flash('作戦を採用しました');render();
 };
 $('#event-camp').addEventListener('click',()=>toggleSwitch('event-camp'));
-$('#event-save').onclick=()=>{const d=$('#event-start').value;const t=new Date(d+'T12:00:00Z');if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||!Number.isFinite(t.valueOf())||t.getUTCDay()!==1){alert('開始日は月曜日を指定してください。');return;}const next={start:d,field:$('#event-field').value,food:$('#event-food').value,camp:switchOn('event-camp')};const changed=JSON.stringify(next)!==JSON.stringify(eventInfo);eventInfo=next;if(changed){draft=null;appliedStale=hasApplied;flash('イベント条件を変更しました。作戦を提案し直してください。',true);}$('#event-details').open=false;closeSelect(customMenus.get('event-food'));closeSelect(customMenus.get('event-field'));render();};
+$('#event-save').onclick=()=>{
+ const d=$('#event-start').value;
+ if(!validWeek(d)){alert('開始日は月曜日を指定してください。');return;}
+ const next={start:d,field:$('#event-field').value,food:$('#event-food').value,camp:switchOn('event-camp')};
+ const oldStart=eventInfo.start,changed=JSON.stringify(next)!==JSON.stringify(eventInfo);
+ eventInfo=next;
+ persistEventWeek();updateU2Link();
+ if(changed){
+  draft=null;appliedStale=hasApplied;
+  if(oldStart!==next.start){stockConfirmed=null;importedStock=null;importedSource=null;importedAt=null;}
+  showToast('イベント条件を保存しました');
+ }
+ $('#event-details').open=false;
+ closeSelect(customMenus.get('event-food'));closeSelect(customMenus.get('event-field'));
+ render();
+};
 $('#review-dialog').addEventListener('close',()=>{if(draft){draft=null;stockPending=null;render();}});
 render();
 })();
