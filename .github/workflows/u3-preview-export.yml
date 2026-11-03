@@ -97,6 +97,16 @@ jobs:
           assert "current.id='current-panel'" in prep
           assert "result.complete||which==='sunday'" in prep
           assert "U3_Strategy_UI_20261103.html" in prep
+          # v19: all 3 food tabs share compact 3-row cards.
+          assert prep.count('class="food-media"') == 38
+          assert prep.count('class="target-chip"') == 5
+          assert ".goal-grid .food .goal-value{grid-column:1;grid-row:3;" in prep
+          assert ".actual-grid .food .target-chip{position:absolute;z-index:1;" in prep
+          assert "current.querySelector('.actual-grid').classList.add('current-grid')" in prep
+          assert "food.classList.remove('needed','not-needed');" in prep
+          assert "food.classList.add('inventory');" in prep
+          assert "for(const badge of food.querySelectorAll('.target-chip,.target-placeholder'))badge.remove();" in prep
+          assert ".current-grid .food,.current-grid .food.inventory" in prep
           # v18: no duplicate U3 inventory editor. All replanning uses a common action.
           for marker in ('id="sleep-dialog"','id="sleep-open"','id="sleep-day-nav"',
                          'id="auto-sleep"','id="repropose"','id="inventory-notice"',
