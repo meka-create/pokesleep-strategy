@@ -98,6 +98,9 @@ main{padding-top:10px}
 @media(max-height:800px){.goal-grid .food,.actual-grid .food{grid-template-rows:28px 18px 22px;row-gap:1px;min-height:74px;padding:2px}.goal-grid .food-media,.actual-grid .food-media{width:30px;height:28px}.goal-grid .food .name,.actual-grid .food .name{height:18px;min-height:18px;font-size:8.4px}.actual-grid .food input{height:22px}}
 @media(max-height:710px){.goal-grid .food,.actual-grid .food{grid-template-rows:25px 17px 22px;min-height:70px}.goal-grid .food-media,.actual-grid .food-media{width:27px;height:25px}.goal-grid .food .name,.actual-grid .food .name{height:17px;min-height:17px;font-size:8px}}
 
+/* Invalid numbers are marked in their fields as well as notified in a toast. */
+.actual-grid .food input[aria-invalid="true"]{border:2px solid #eda59b;box-shadow:0 0 0 1px #eda59b55}
+.ui-toast.is-error{border-color:#b57970;background:#492f37;color:#ffe6e1}
 /* Fixed bottom toast, aligned with the existing navy / slate visual theme. */
 .ui-toast{position:fixed;z-index:110;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 26px);border:1px solid #67869e;background:#2b455b;color:#f3f7fd;border-radius:12px;box-shadow:0 7px 20px #071321aa;padding:11px 15px;font-weight:750;font-size:13px;line-height:1.4;text-align:center;pointer-events:none}
 @media(prefers-reduced-motion:no-preference){.ui-toast:not([hidden]){animation:toast-in .16s ease-out}}@keyframes toast-in{from{opacity:0;transform:translate(-50%,9px)}to{opacity:1;transform:translate(-50%,0)}}
@@ -197,9 +200,10 @@ function weekLabel(){
  const label=q('#u2-week-label');label.textContent=shown;label.title='イベント開始日 '+eventWeek;
 }
 let toastTimer=null;
-function showToast(message){
+function showToast(message,isError=false){
  const toast=q('#ui-toast');if(toastTimer)clearTimeout(toastTimer);
- toast.textContent=message;toast.hidden=false;
+ toast.textContent=message;toast.classList.toggle('is-error',isError);
+ toast.setAttribute('role',isError?'alert':'status');toast.hidden=false;
  toastTimer=setTimeout(()=>{toast.hidden=true;toastTimer=null;},2500);
 }
 function weekStorageKey(which){return 'pokesleep-strategy-u2-v2:'+eventWeek+':'+which;}
@@ -217,12 +221,13 @@ for(const [i,k] of keys.entries()){
   if(next!==i){e.preventDefault();show(keys[next],true);}
  });
 }
-function read(which,validateFull=false){
+function read(which){
  const values={},invalid=[],fields=lists[which];
  for(const input of fields){
   const str=input.value.trim(),isEmpty=str==='';
-  const value=isEmpty?null:Number(str);
-  const valid=(isEmpty&&!validateFull)||(!isEmpty&&/^\d+$/.test(str)&&Number.isSafeInteger(value)&&value>=0&&value<=10000);
+  // Blank ingredient inputs mean 0 owned; invalid numeric input still blocks saving.
+  const value=isEmpty?0:Number(str);
+  const valid=!input.validity.badInput&&(isEmpty||(/^\d+$/.test(str)&&Number.isSafeInteger(value)&&value>=0&&value<=10000));
   if(!valid)invalid.push(input);
   input.setAttribute('aria-invalid',String(!valid));
   const name=input.closest('.food').querySelector('.name').textContent.trim();
@@ -248,7 +253,12 @@ function restore(which){
    const n=input.closest('.food').querySelector('.name').textContent.trim(),value=stored.values[n];
    if(Number.isInteger(value)&&value>=0&&value<=10000)input.value=String(value);
   }
-  if(which==='sunday'||Object.values(stored.values).every(Number.isInteger))transferLink(which,stored);
+  // Normalize previous v20 unknown entries as zero when transferring to U3.
+  const normalized={...stored,values:Object.fromEntries(lists[which].map(input=>{
+   const name=input.closest('.food').querySelector('.name').textContent.trim(),v=stored.values[name];
+   return [name,Number.isInteger(v)&&v>=0&&v<=10000?v:0];
+  }))};
+  transferLink(which,normalized);
  }catch(e){}
 }
 function syncEventWeek(){
@@ -267,22 +277,22 @@ function transferLink(which,record){
  link.href=url.href;
 }
 function save(which){
- const result=read(which,which==='current');
+ const result=read(which);
  const error=q(which==='sunday'?'#error':'#current-error'),msg=q(which==='sunday'?'#preview-result':'#current-status');
  if(result.invalid.length||result.total>10000){
-   error.textContent=result.invalid.length?'19種類の食材数を0～10000の整数で入力してください。':'食材の合計数が10000を超えています。';
-   error.hidden=false;msg.hidden=true;
+   error.textContent=result.invalid.length?'食材数には0～10000の整数を入力してください。':'食材の合計数が10000を超えています。';
+   error.hidden=false;msg.hidden=true;showToast(error.textContent,true);
    if(result.invalid.length)result.invalid[0].focus();return;
  }
  error.hidden=true;
  const record={version:2,weekStart:eventWeek,source:which,values:result.values,savedAt:new Date().toISOString()};
  if(!store(which,record)){
-  error.textContent='このブラウザでは保存できませんでした。ストレージ設定を確認してください。';error.hidden=false;return;
+  error.textContent='このブラウザでは保存できませんでした。ストレージ設定を確認してください。';error.hidden=false;showToast(error.textContent,true);return;
  }
  msg.hidden=true;
- showToast((which==='sunday'?'日曜の実績':'現在の在庫')+'を保存しました'+(result.complete?'':'（未入力あり）'));
+ showToast((which==='sunday'?'日曜の実績':'現在の在庫')+'を保存しました');
  const link=panels[which].querySelector('.u2-transfer');
- if(result.complete||which==='sunday')transferLink(which,record);else if(link)link.remove();
+ transferLink(which,record);
 }
 for(const k of ['sunday','current']){
  restore(k);read(k);
