@@ -107,6 +107,26 @@ jobs:
           assert "food.classList.add('inventory');" in prep
           assert "for(const badge of food.querySelectorAll('.target-chip,.target-placeholder'))badge.remove();" in prep
           assert ".current-grid .food,.current-grid .food.inventory" in prep
+          # v20: inventory records belong to the selected event week (never re-use another week's values).
+          for html in (prep,strategy):
+              assert "const EVENT_WEEK_KEY='pokesleep-strategy-event-start-v2';" in html
+              assert "function validWeek(date){" in html
+              assert 'id="ui-toast"' in html
+              assert "setTimeout(()=>{toast.hidden=true;toastTimer=null;},2500)" in html
+          assert "function weekStorageKey(which){" in prep
+          assert "return 'pokesleep-strategy-u2-v2:'+eventWeek+':'+which;" in prep
+          assert "version:2,weekStart:eventWeek,source:which" in prep
+          assert "if(stored.weekStart!==eventWeek)" not in prep
+          assert "stored.weekStart!==eventWeek" in prep
+          assert "for(const input of lists[which]){input.value='';" in prep
+          assert "if(which==='sunday'||Object.values(stored.values).every(Number.isInteger))transferLink(which,stored);" in prep
+          assert "url.searchParams.set('eventStart',eventWeek)" in prep
+          assert "sunday.querySelector('.row.total>span').textContent='日曜実績の合計';" in prep
+          assert "item.weekStart!==eventInfo.start" in strategy
+          assert "const pendingCondition=hasApplied&&(appliedStale||applied.autoSleep!==autoSleep);" in strategy
+          assert "showToast('イベント条件を保存しました')" in strategy
+          assert "function persistEventWeek()" in strategy
+          assert "updateU2Link();\npersistEventWeek();" in strategy
           # v18: no duplicate U3 inventory editor. All replanning uses a common action.
           for marker in ('id="sleep-dialog"','id="sleep-open"','id="sleep-day-nav"',
                          'id="auto-sleep"','id="repropose"','id="inventory-notice"',
