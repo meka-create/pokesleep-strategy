@@ -8,6 +8,7 @@ on:
       - previews/U3_UI_DESIGN_20261103.md
       - .github/workflows/u3-preview-export.yml
       - tests/test_preview_contract_v22.py
+      - tests/preview_browser_v22.py
   workflow_dispatch:
 permissions:
   contents: read
