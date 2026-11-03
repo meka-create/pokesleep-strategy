@@ -44,7 +44,7 @@ with sync_playwright() as p:
  assert page.locator('#generate').is_disabled()
  page.locator('#event-save').click()
  assert page.locator('#generate').is_disabled()
- assert 'したごしらえウィーク vol.1' in page.locator('#event-source-select').inner_text()
+ assert 'したごしらえウィーク vol.1' in page.locator('#event-source-select option:checked').text_content()
  saved=page.evaluate("JSON.parse(localStorage.getItem('pokesleep-strategy-u3-v1:2026-11-09')).eventInfo.source")
  assert saved['sourceKey']=='meal prep week vol1'
  # v26 bridge link: user saves U2 inventory and returns directly to v25, never v23.
@@ -103,7 +103,7 @@ with sync_playwright() as p:
   if(v.eventInfo.source){v.eventInfo.source.name='meal prep week vol1（取得例）';delete v.eventInfo.source.sourceKey;}
   localStorage.setItem(k,JSON.stringify(v));}""")
  page.reload()
- assert 'したごしらえウィーク vol.1' in page.locator('#event-source-select').inner_text()
+ assert 'したごしらえウィーク vol.1' in page.locator('#event-source-select option:checked').text_content()
  # Changing an event previously selected from the mock source back to manual requires save.
  page.locator('#event-details>summary').click()
  page.locator('#event-source-fetch').click()
