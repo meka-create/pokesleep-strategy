@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
+ROADMAP=ROOT/"development/ROADMAP_CURRENT.md"
 PREVIEW=ROOT/"previews/U3_Strategy_UI_20261104_v26.html"
 DECISIONS=ROOT/"development/PRODUCT_DECISIONS_CURRENT_20261104.md"
 
@@ -14,11 +15,16 @@ class AbolishedUIRegression(unittest.TestCase):
  def setUpClass(cls):
   cls.s=PREVIEW.read_text(encoding="utf-8")
   cls.rules=DECISIONS.read_text(encoding="utf-8")
+  cls.roadmap=ROADMAP.read_text(encoding="utf-8")
 
  def test_latest_decision_is_explicit(self):
   for phrase in ("日中21枠","個別手動編集UIは廃案","料理を個別に手動編集",
                  "「運用中／提案」の独立切替","食材在庫のみ更新"):
    self.assertIn(phrase,self.rules)
+  for phrase in ("日中21枠の個別手動編集UI：**廃案。実装しない。**",
+                  "料理の手動編集UI：**廃案。実装しない。**",
+                  "運用中／提案の独立切替タブ：**廃案。実装しない。**"):
+   self.assertIn(phrase,self.roadmap)
 
  def test_daytime_slots_are_readonly(self):
   s=self.s
