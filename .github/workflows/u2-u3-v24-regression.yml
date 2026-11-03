@@ -8,6 +8,7 @@ on:
       - previews/U2_Prep_Local_Ingredients_20261103.html
       - previews/U2_U3_V24_NO_REGRESSION_20261104.md
       - tests/test_preview_contract_v24.py
+      - tests/preview_browser_v24.py
       - .github/workflows/u2-u3-v24-regression.yml
   workflow_dispatch:
 permissions:
@@ -23,6 +24,10 @@ jobs:
         run: |
           node --version
           python3 -m unittest discover -s tests -p 'test_preview_contract_v*.py' -v
+      - name: Browser behavior checks (system Chrome)
+        run: |
+          python3 -m pip install --quiet playwright
+          python3 tests/preview_browser_v24.py
       - name: Upload separate U2 v23 plus U3 v24 previews
         uses: actions/upload-artifact@v4
         with:
