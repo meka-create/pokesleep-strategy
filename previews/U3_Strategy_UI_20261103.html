@@ -22,11 +22,13 @@
 
 /* 自作プルダウン。リスト本体はスクロールできるがスクロールバーは見せない */
 .custom-select{position:relative;min-width:0;width:100%}.custom-trigger{display:flex;align-items:center;justify-content:space-between;gap:9px;background:#112237;color:var(--text);border:1px solid #64778a;border-radius:9px;width:100%;min-height:44px;padding:9px 11px;text-align:left}.custom-trigger[aria-expanded=true]{border-color:#e8c27e;background:#243d51}.custom-trigger::after{content:"";width:8px;height:8px;flex:0 0 8px;border-right:2px solid #d9e1e8;border-bottom:2px solid #d9e1e8;transform:rotate(45deg) translateY(-2px)}.custom-menu{position:absolute;z-index:200;left:0;right:0;top:calc(100% + 4px);max-height:242px;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;background:#1a3045;border:1px solid #70849b;border-radius:11px;box-shadow:0 12px 32px #0009;padding:5px}.custom-menu::-webkit-scrollbar{display:none}.custom-menu.up{top:auto;bottom:calc(100% + 4px)}.custom-opt{display:block;width:100%;min-height:41px;padding:9px 12px;color:var(--text);background:transparent;border:0;border-radius:7px;text-align:left;font-size:13px}.custom-opt[aria-selected=true]{background:#574b38;color:#ffdda1;font-weight:750}.custom-opt.active{background:#394f64}.custom-opt.active[aria-selected=true]{background:#685738}
-.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.stat-modal{max-height:90dvh;padding-top:11px}
+.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.stat-modal{max-height:90dvh;padding-top:9px}
+.stat-modal .iv-close-row{display:flex;justify-content:flex-end;align-items:center;min-height:32px;margin:0 0 5px}
+.stat-modal .iv-close-row .iv-close{min-height:32px}
 .stat-modal .iv-hero{align-items:flex-start;gap:12px;margin:0 0 8px;padding:0 0 6px}
 .stat-modal .iv-hero-name{padding-top:5px;flex:1}
 .stat-modal #pokemon-level{font-size:15px;line-height:1.35;display:block}
-.stat-modal .iv-close{flex:0 0 auto;align-self:flex-start;margin-left:auto;min-height:34px}
+
 .stat-modal .iv-base{grid-template-columns:minmax(94px,33%) minmax(0,1fr);align-items:center;gap:12px 10px}
 .stat-modal .iv-food-label,.stat-modal .iv-food-value{grid-column:auto}
 .stat-modal .iv-ingredients{width:100%}
@@ -38,10 +40,10 @@
 .iv-nature-effect.up b{color:#ff8562}
 .iv-nature-effect.down b{color:#59b9fc}
 .iv-nature-none{font-size:11px;color:var(--muted)}
-.stat-modal .iv-skill.gold{border-color:#e2ac3f;background:#ffe3a0;color:#382b17}
-.stat-modal .iv-skill.blue{border-color:#5bc1f1;background:#bfeeff;color:#13344a}
-.stat-modal .iv-skill.white{border-color:#bcc7d0;background:#f2f5f8;color:#263545}
-.stat-modal .iv-skill.gold small,.stat-modal .iv-skill.blue small,.stat-modal .iv-skill.white small{color:#475565}
+.stat-modal .iv-skill.gold{border-color:#a18a59;background:#4c4334;color:var(--text)}
+.stat-modal .iv-skill.blue{border-color:#5b8eb6;background:#263f60;color:var(--text)}
+.stat-modal .iv-skill.white{border-color:#8192a4;background:#29394a;color:var(--text)}
+.stat-modal .iv-skill.gold small,.stat-modal .iv-skill.blue small,.stat-modal .iv-skill.white small{color:#d7deea}
 .iv-skill.unknown{border-style:dashed;border-color:#d4a960}
 .iv-skill.locked{opacity:.64}
 .iv-hero{display:flex;align-items:center;gap:14px;margin:0 0 12px;padding:2px 4px 9px}
@@ -72,7 +74,8 @@
 <dialog class="modal" id="edit-dialog" aria-labelledby="edit-title"><div class="modal-head"><h2 id="edit-title">月曜日・朝</h2><button type="button" class="btn small ghost" id="edit-close" aria-label="編集を閉じる">閉じる</button></div><div class="section-head"><h3>パーティ</h3><span class="select-count" id="select-count">5 / 5</span></div><div class="pick-grid" id="pick-grid"></div><div id="recipe-editor"><div class="field"><span>料理</span><select id="recipe-choice"></select></div></div><p id="edit-error" class="modal-error" role="alert"></p><div class="modal-footer"><button type="button" class="btn ghost" id="edit-cancel">キャンセル</button><button type="button" class="btn" id="edit-save">この枠を保存</button></div></dialog>
 <dialog class="modal stat-modal" id="pokemon-dialog" aria-labelledby="pokemon-status-title">
   <h2 id="pokemon-status-title" class="visually-hidden">ポケモンの詳細</h2>
-  <div class="iv-hero"><span id="pokemon-sprite" class="status-portrait sprite-stage"></span><div class="iv-hero-name"><strong id="pokemon-nickname"></strong><span id="pokemon-level"></span></div><button type="button" class="btn small ghost iv-close" id="pokemon-close" aria-label="ステータスを閉じる">閉じる</button></div>
+  <div class="iv-close-row"><button type="button" class="btn small ghost iv-close" id="pokemon-close" aria-label="ステータスを閉じる">閉じる</button></div>
+  <div class="iv-hero"><span id="pokemon-sprite" class="status-portrait sprite-stage"></span><div class="iv-hero-name"><strong id="pokemon-nickname"></strong><span id="pokemon-level"></span></div></div>
   <div class="iv-base" id="pokemon-base-rows"></div>
   <h3 class="iv-section-title">メインスキル・サブスキル</h3>
   <div class="iv-main" id="pokemon-main-skill"></div>
