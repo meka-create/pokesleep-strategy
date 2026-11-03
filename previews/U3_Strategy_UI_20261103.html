@@ -30,7 +30,7 @@
 .iv-hero-name strong{font-size:20px}.iv-hero-name span{color:var(--gold);font-weight:800}
 .iv-base{display:grid;grid-template-columns:minmax(95px,36%) 1fr;align-items:start;gap:8px 11px;margin:8px 2px 12px;font-size:12px}
 .iv-key{color:#bbcada;font-weight:650}.iv-value{font-size:13px;font-weight:720;line-height:1.4;min-width:0;overflow-wrap:anywhere}
-.iv-ingredients{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-items:start}
+.iv-food-label,.iv-food-value{grid-column:1/-1}.iv-food-value{padding-bottom:5px}.iv-ingredients{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-items:start}
 .iv-ingredient{display:flex;flex-direction:column;align-items:center;gap:3px;padding:1px;min-width:0;font-size:10px;text-align:center;line-height:1.3}
 .iv-ingredient b{display:block;color:var(--gold);font-size:10px}.iv-ingredient img{width:40px;height:40px;object-fit:contain}.iv-ingredient .ingredient-name{font-size:9px;color:var(--text);overflow-wrap:anywhere}
 .iv-section-title{margin:14px -2px 9px;padding:4px 8px;background:#557799;color:#fff;font-size:12px;border-radius:5px;font-weight:750}
@@ -160,9 +160,10 @@ function showPokemon(id){
   const label=document.createElement('div');label.className='iv-key';label.textContent=key;
   const value=document.createElement('div');value.className='iv-value';
   if(typeof element==='string')value.textContent=element;else value.append(element);
+  if(key==='食材'){label.classList.add('iv-food-label');value.classList.add('iv-food-value');}
   root.append(label,value);
  }
- addValue(base,'ポケモン',p.name);
+ if((p.nickname||p.name)!==p.name)addValue(base,'ポケモン',p.name);
  const ingredientGroup=document.createElement('div');ingredientGroup.className='iv-ingredients';
  details[4].split('／').forEach((value,i)=>{
   const ingredient=document.createElement('span');ingredient.className='iv-ingredient';
