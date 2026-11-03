@@ -67,7 +67,10 @@ jobs:
           assert 'justify-content:flex-start;gap:3px;font-size:13px' in strategy
           assert 'white-space:nowrap;font-size:13px;font-weight:900' in strategy
           # All five subskills use centered 13px names, with no visible Lv/lock badge.
-          assert '.iv-skill{min-height:52px' in strategy
+          assert '.iv-skill{min-height:42px' in strategy
+          assert 'padding:5px 7px;background:#253b50;font-size:13px' in strategy
+          assert 'justify-content:flex-start;flex-wrap:wrap;gap:10px' in strategy
+          assert '.iv-main span{min-width:0;overflow-wrap:anywhere}' in strategy
           assert 'font-size:13px;font-weight:750;line-height:1.35;display:flex;align-items:center;justify-content:center;text-align:center' in strategy
           assert "const lv=document.createElement('small')" not in strategy
           assert 'skill.append(name);target.append(skill);' in strategy
