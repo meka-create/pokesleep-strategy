@@ -86,6 +86,23 @@ jobs:
           # Main skill remains slightly larger than every subskill.
           assert 'background:transparent;font-size:15px;font-weight:780' in strategy
           assert "natureView.append(natureModifiers)" in strategy
+          # U3 v14: one active strategy view, manual sleep management and stock-driven re-proposal UI.
+          for marker in ('id="sleep-dialog"','id="sleep-open"','id="sleep-day-nav"',
+                         'id="auto-sleep"','id="stock-dialog"','id="stock-open"',
+                         'id="stock-grid"','id="review-dialog"','id="review-adopt"',
+                         'id="review-cancel"','id="week-content"'):
+              assert marker in strategy, marker
+          assert 'id="view-tabs"' not in strategy
+          assert 'id="view-active"' not in strategy
+          assert 'id="view-draft"' not in strategy
+          assert 'id="proposal-actions"' not in strategy
+          assert 'class="btn secondary small edit-slot"' not in strategy
+          assert "if(slot!=='sleep'||isPastSlot(day,'sleep')||switchOn('auto-sleep'))return;" in strategy
+          assert 'Object.keys(INGREDIENT_ICONS).forEach(name=>' in strategy
+          assert 'if(inputs.length!==19)' in strategy
+          assert 'if(!hasApplied||!isPastSlot(d,slot))continue;' in strategy
+          assert 'if(stockPending)stockConfirmed=clone(stockPending);' in strategy
+          assert '実ゲームの最適化計算は未接続' in strategy
           tables={}
           for grade,count in (("gold",7),("blue",6),("white",4)):
               matched=re.search(grade+r":new Set\(\[([^\]]+)\]\)",strategy)
