@@ -9,6 +9,8 @@ on:
       - previews/U2_U3_V26_JA_EVENT_AUDIT_20261104.md
       - tests/test_preview_contract_v26.py
       - tests/preview_browser_v26.py
+      - tests/test_u3_deprecated_feature_guard.py
+      - development/PRODUCT_DECISIONS_CURRENT_20261104.md
       - .github/workflows/u2-u3-v26-ja-audit.yml
   workflow_dispatch:
 permissions:
@@ -24,6 +26,7 @@ jobs:
         run: |
           node --version
           python3 -m unittest discover -s tests -p 'test_preview_contract_v*.py' -v
+          python3 -m unittest discover -s tests -p 'test_u3_deprecated_feature_guard.py' -v
       - name: Chromium event localization and unchanged flows
         run: |
           python3 -m pip install --quiet playwright
