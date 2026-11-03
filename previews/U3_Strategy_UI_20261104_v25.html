@@ -506,6 +506,7 @@ const strategyKey=week=>'pokesleep-strategy-u3-v1:'+week;
 function validTeam(team){return Array.isArray(team)&&team.length===5&&new Set(team).size===5&&team.every(id=>POOL[id]);}
 function validPlan(plan){
  return plan&&Array.isArray(plan.days)&&plan.days.length===7&&
+ (plan.unknownPast===undefined||(Array.isArray(plan.unknownPast)&&plan.unknownPast.every(item=>item&&Number.isInteger(item.day)&&item.day>=0&&item.day<7&&['morning','noon','evening','sleep'].includes(item.slot))))&&
  ['curry','salad','dessert'].includes(plan.foodMode)&&typeof plan.autoSleep==='boolean'&&
  plan.days.every(day=>['morning','noon','evening','sleep'].every(slot=>validTeam(day[slot]))&&
  Array.isArray(day.recipes)&&day.recipes.length===3&&day.recipes.every(n=>Number.isInteger(n)&&n>=0&&n<=3));
@@ -600,13 +601,15 @@ function flash(text,isError=false){
 function teamFor(day,slot,offset=0){const start=(day*3+slot*4+offset)%IDS.length;return arrangeHealers(Array.from({length:5},(_,i)=>IDS[(start+i)%IDS.length]));}
 function demoOffset(stock){if(!stock)return 0;return Object.keys(INGREDIENT_ICONS).reduce((total,name,i)=>total+Number(stock[name]||0)*(i+1),0)%IDS.length;}
 function proposal(stock=null){
- const next={days:[],edited:[],autoSleep:switchOn('auto-sleep'),foodMode:eventInfo.food};
+ const next={days:[],edited:[],autoSleep:switchOn('auto-sleep'),foodMode:eventInfo.food,unknownPast:[]};
  const bias=demoOffset(stock);
  const sameWeek=hasApplied&&appliedEventStart===eventInfo.start;
+ if(sameWeek&&Array.isArray(applied.unknownPast))next.unknownPast=clone(applied.unknownPast);
  for(let d=0;d<7;d++){
   const old=applied.days[d],recipes=[(d+bias)%4,(d+1+bias)%4,(d+2+bias)%4];
   const row={recipes};
   SLOT_KEYS.forEach((slot,i)=>{
+   if(isPastSlot(d,slot)&&!sameWeek)next.unknownPast.push({day:d,slot});
    row[slot]=isPastSlot(d,slot)&&sameWeek?[...old[slot]]:
     slot==='sleep'?(next.autoSleep?teamFor(d,3,bias):arrangeHealers(manualSleep[d])):teamFor(d,i,bias);
    if(i<3&&isPastSlot(d,slot)&&sameWeek)recipes[i]=old.recipes[i];
@@ -673,6 +676,11 @@ function renderSlots(container,plan,dayIndex){
   const section=document.createElement('section');section.className='slot';section.dataset.slot=slot;
   const heading=document.createElement('div');heading.className='slot-head';
   const title=document.createElement('span');title.className='slot-title';title.textContent=SLOT_TIMES[slot];heading.append(title);section.append(heading);
+  const unknown=Array.isArray(plan.unknownPast)&&plan.unknownPast.some(x=>x.day===dayIndex&&x.slot===slot);
+  if(unknown){
+   const note=document.createElement('p');note.className='muted';note.textContent='実施済み（記録なし）';
+   section.append(note);container.append(section);return;
+  }
   const roster=document.createElement('div');roster.className='mini-roster';
   for(const id of data[slot])roster.append(avatar(id));section.append(roster);
   if(slot!=='sleep'){
@@ -770,18 +778,26 @@ $('#review-adopt').onclick=()=>{
    Do not infer eligible event areas from upstream fixedAreas. */
 const EVENT_FIXTURES=[{id:'meal-prep-20261109',name:'meal prep week vol1（取得例）',
  start:'2026-11-09',end:'2026-11-16',bonus:'料理エナジー ×1.25',eligibleFields:null,unknownEffects:false}];
-let pendingEventSource=null;
+let pendingEventSource=null,manualSourceRequested=false;
 $('#event-source-fetch').addEventListener('click',()=>{
- pendingEventSource=null;
+ pendingEventSource=null;manualSourceRequested=false;
  const select=$('#event-source-select');select.replaceChildren();
  const manual=document.createElement('option');manual.value='';manual.textContent='手動設定';select.append(manual);
  for(const event of EVENT_FIXTURES){const op=document.createElement('option');op.value=event.id;op.textContent=event.name;select.append(op);}
+ if(eventInfo.source?.id){
+  if(!Array.from(select.options).some(o=>o.value===eventInfo.source.id)){
+   const saved=document.createElement('option');saved.value=eventInfo.source.id;saved.textContent=eventInfo.source.name;select.append(saved);
+  }
+  select.value=eventInfo.source.id;
+ }
  refreshSelect('event-source-select');$('#event-source-apply').hidden=true;
  $('#event-source-note').textContent='サンプルの候補を取得しました。選択して反映後に、条件を保存してください。';
  showToast('イベント候補を取得しました（プレビュー用）');
 });
 $('#event-source-select').addEventListener('change',()=>{
- $('#event-source-apply').hidden=!$('#event-source-select').value;
+ const selected=$('#event-source-select').value;
+ $('#event-source-apply').hidden=!selected||selected===eventInfo.source?.id;
+ manualSourceRequested=!selected&&!!eventInfo.source;
  pendingEventSource=null;render();
 });
 $('#event-source-apply').addEventListener('click',()=>{
@@ -791,6 +807,7 @@ $('#event-source-apply').addEventListener('click',()=>{
  if(Array.isArray(entry.eligibleFields)&&entry.eligibleFields.length===1){
   if(Array.from($('#event-field').options).some(o=>o.value===entry.eligibleFields[0]))$('#event-field').value=entry.eligibleFields[0];
  }
+ manualSourceRequested=false;
  pendingEventSource={id:entry.id,name:entry.name,start:entry.start,end:entry.end,bonus:entry.bonus,unknownEffects:entry.unknownEffects};
  $('#event-source-note').textContent=entry.start+' ～ '+entry.end+'：'+entry.bonus+'。変更は「保存」で確定します。';
  $('#event-source-apply').hidden=true;refreshSelect('event-food');refreshSelect('event-field');render();
@@ -799,7 +816,7 @@ function eventBlockers(){
  const missing=[];
  const unsaved=$('#event-start').value!==eventInfo.start||$('#event-field').value!==eventInfo.field||
   $('#event-food').value!==eventInfo.food||switchOn('event-camp')!==eventInfo.camp||
-  (!!pendingEventSource&&JSON.stringify(pendingEventSource)!==JSON.stringify(eventInfo.source||null));
+  manualSourceRequested||(!!pendingEventSource&&JSON.stringify(pendingEventSource)!==JSON.stringify(eventInfo.source||null));
  if(unsaved)missing.push('イベント条件の保存');
  if(!validWeek(eventInfo.start))missing.push('対象週');
  if(!eventInfo.field)missing.push('フィールド');
@@ -823,7 +840,7 @@ $('#event-save').onclick=()=>{
  $('#event-start').removeAttribute('aria-invalid');
  if(!$('#event-source-apply').hidden){showToast('イベント候補を反映してから保存してください。',true);return;}
  const next={start:d,field:$('#event-field').value,food:$('#event-food').value,camp:switchOn('event-camp'),
- source:pendingEventSource?.start===d?clone(pendingEventSource):(eventInfo.start===d?(eventInfo.source||null):null)};
+ source:manualSourceRequested?null:(pendingEventSource?.start===d?clone(pendingEventSource):(eventInfo.start===d?(eventInfo.source||null):null))};
  const oldStart=eventInfo.start;
  if(next.start!==oldStart){
   // Never carry an unedited meal category/field/camp entitlement into a different week.
@@ -838,14 +855,15 @@ $('#event-save').onclick=()=>{
  eventInfo=next;
  if(changed){
   draft=null;stockPending=null;
+  let restored=false;
   if(oldStart!==next.start){
-   const restored=restoreState(next.start,true);
-   syncEventControls();refreshInventory();
-   if(restored)showToast('この週に保存済みのイベント条件と作戦を復元しました');
+   restored=restoreState(next.start,true);
+   refreshInventory();
   }
-  showToast('イベント条件を保存しました');
+  showToast(restored?'この週の保存済みイベント条件と作戦を復元しました':'イベント条件を保存しました');
  }
- pendingEventSource=null;
+ pendingEventSource=null;manualSourceRequested=false;
+ syncEventControls();
  persistEventWeek();updateU2Link();
  storeState();
  $('#event-details').open=false;
