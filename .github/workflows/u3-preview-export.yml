@@ -44,8 +44,14 @@ jobs:
           assert 'main{padding-top:20px}' in strategy
           assert 'main{padding-top:20px}' in prep
           # The game-inspired four information rows use the same left/right columns.
-          assert 'grid-template-columns:minmax(103px,35%) minmax(0,1fr)' in strategy
-          assert 'iv-key-pill' in strategy
+          assert 'grid-template-columns:minmax(108px,34%) minmax(0,1fr)' in strategy
+          assert 'iv-key-pill' not in strategy
+          assert 'className=\'iv-key\'' in strategy
+          assert "label.textContent=key+(['食材'" in strategy
+          assert '.stat-modal .iv-nature-modifiers' in strategy
+          assert 'border-bottom:1px solid #354b61' in strategy
+          assert '.stat-modal .iv-skill.gold{border-color:#a18a59;background:#4c4334' in strategy
+          assert '.stat-modal .iv-skill.blue{border-color:#5b8eb6;background:#263f60' in strategy
           for label in ('食材','おてつだい時間','最大所持数','せいかく'):
               assert label in strategy
           assert 'iv-nature-modifiers' in strategy
