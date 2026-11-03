@@ -32,31 +32,25 @@
 /* U3 v9: pokesleep-tool-inspired alignment using the native navy theme.
    Labels are plain text instead of the game-green capsules. */
 .stat-modal .iv-base{grid-template-columns:minmax(108px,34%) minmax(0,1fr);align-items:center;column-gap:12px;row-gap:0;margin:7px 2px 11px}
-.stat-modal .iv-base>.iv-key{display:flex;align-items:center;min-height:44px;padding:10px 0;border-bottom:1px solid #354b61;color:#c4d3e3;font-size:12px;font-weight:700;line-height:1.35;white-space:nowrap}
-.stat-modal .iv-base>.iv-value{display:flex;align-items:center;min-width:0;min-height:44px;padding:8px 0;border-bottom:1px solid #354b61;color:var(--text);font-size:14px;font-weight:730;line-height:1.4}
-.stat-modal .iv-base>.iv-key:nth-last-child(2),.stat-modal .iv-base>.iv-value:last-child{border-bottom:0}
+.stat-modal .iv-base>.iv-key{display:flex;align-items:center;min-height:44px;padding:10px 0;color:#c4d3e3;font-size:12px;font-weight:700;line-height:1.35;white-space:nowrap}
+.stat-modal .iv-base>.iv-value{display:flex;align-items:center;min-width:0;min-height:44px;padding:8px 0;color:var(--text);font-size:14px;font-weight:730;line-height:1.4}
 .stat-modal .iv-ingredients{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:3px}
 .stat-modal .iv-ingredient{display:flex;flex-direction:column;align-items:center;min-width:0;gap:3px;text-align:center}
 .stat-modal .iv-ingredient img{width:clamp(28px,9vw,40px);height:clamp(28px,9vw,40px)}
 .stat-modal .iv-ingredient b{font-size:10px}
 .stat-modal .iv-ingredient .ingredient-name{font-size:9px;line-height:1.25;overflow-wrap:anywhere}
-.stat-modal .iv-nature-details{display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%}
-.stat-modal .iv-nature-name{font-size:14px;color:var(--text)}
-.stat-modal .iv-nature-modifiers{display:flex;flex-direction:column;gap:5px;border-top:1px solid #40556a;padding-top:6px}
-.stat-modal .iv-nature-effect{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font-size:10px;line-height:1.4}
+/* Nature display: pokesleep-tool-style outlined oval + adjacent modifiers, in navy theme. */
+.stat-modal .iv-nature-row{display:grid;grid-template-columns:minmax(108px,38%) minmax(0,1fr);align-items:center;gap:10px;margin:10px 2px 9px}
+.stat-modal .iv-nature-pill{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:2px solid #709dc0;border-radius:999px;background:#23394e;color:var(--text);font-size:14px;font-weight:750;line-height:1.35;text-align:center;box-sizing:border-box}
+.stat-modal .iv-nature-modifiers{display:flex;flex-direction:column;justify-content:center;gap:7px;min-width:0}
+.stat-modal .iv-nature-effect{display:flex;align-items:baseline;justify-content:flex-start;gap:3px;font-size:10px;line-height:1.35;white-space:nowrap}
+.stat-modal .iv-nature-effect span{flex:0 1 auto;min-width:0;overflow-wrap:normal}
+.stat-modal .iv-nature-effect b{flex:0 0 auto;white-space:nowrap}
 .stat-modal .iv-nature-effect.up b{color:#eda377}
 .stat-modal .iv-nature-effect.down b{color:#82bde8}
-@media(min-width:450px){.stat-modal .iv-nature-details{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:9px;align-items:center}.stat-modal .iv-nature-modifiers{border-top:0;border-left:1px solid #40556a;padding:0 0 0 9px}}
 @media(max-width:360px){.stat-modal .iv-base{grid-template-columns:minmax(105px,36%) minmax(0,1fr);column-gap:8px}.stat-modal .iv-base>.iv-key{font-size:11px}}
 
-.iv-nature-details{display:flex;flex-direction:column;gap:7px}
-.iv-nature-name{font-size:14px}
-.iv-nature-effect{display:flex;gap:6px;align-items:baseline;justify-content:space-between;font-size:11px;line-height:1.45}
-.iv-nature-effect span{min-width:0;overflow-wrap:anywhere}
-.iv-nature-effect b{font-weight:900;white-space:nowrap}
-.iv-nature-effect.up b{color:#ff8562}
-.iv-nature-effect.down b{color:#59b9fc}
-.iv-nature-none{font-size:11px;color:var(--muted)}
+.stat-modal .iv-nature-none{font-size:12px;color:var(--muted)}
 .stat-modal .iv-skill.gold{border-color:#a18a59;background:#4c4334;color:var(--text)}
 .stat-modal .iv-skill.blue{border-color:#5b8eb6;background:#263f60;color:var(--text)}
 .stat-modal .iv-skill.white{border-color:#8192a4;background:#29394a;color:var(--text)}
@@ -98,7 +92,7 @@
   <div class="iv-main" id="pokemon-main-skill"></div>
   <div class="iv-subskills" id="pokemon-subskills"></div>
   <h3 class="iv-section-title">詳細ステータス</h3>
-  <div class="iv-base" id="pokemon-nature"></div>
+  <div class="iv-nature-wrap" id="pokemon-nature" role="group" aria-label="せいかく"></div>
   <div class="iv-base"><div class="iv-key">一緒に眠った時間：</div><div class="iv-value">—</div></div>
 </dialog>
 <script>
@@ -250,8 +244,8 @@ function showPokemon(id){
   skill.append(lv,name);target.append(skill);
  });
  const nature=$('#pokemon-nature');nature.textContent='';
- const natureView=document.createElement('div');natureView.className='iv-nature-details';
- const natureName=document.createElement('strong');natureName.className='iv-nature-name';natureName.textContent=details[1];
+ const natureView=document.createElement('div');natureView.className='iv-nature-row';
+ const natureName=document.createElement('strong');natureName.className='iv-nature-pill';natureName.textContent=details[1];
  natureView.append(natureName);
  const natureModifiers=document.createElement('div');natureModifiers.className='iv-nature-modifiers';
  const modifiers=NATURE_EFFECTS[details[1]];
@@ -268,7 +262,7 @@ function showPokemon(id){
   neutral.textContent=modifiers?'補正なし':'—';natureModifiers.append(neutral);
  }
  natureView.append(natureModifiers);
- addValue(nature,'せいかく',natureView);
+ nature.append(natureView);
  modal.showModal();SpritePreview.enhance(modal);
 }
 $('#pokemon-close').addEventListener('click',()=>$('#pokemon-dialog').close());
