@@ -113,6 +113,9 @@
 
 .u2-nav{display:block;text-align:center;color:#badcf4;text-decoration:underline;text-underline-offset:3px;min-height:30px;padding:5px}
 #inventory-notice{color:var(--gold);text-align:center;font-size:11px}
+/* Keep errors visible at their input and announce them in the bottom toast. */
+#event-start[aria-invalid="true"]{border:2px solid #eda59b;box-shadow:0 0 0 1px #eda59b55}
+.ui-toast.is-error{border-color:#b57970;background:#492f37;color:#ffe6e1}
 /* Success messages float above the bottom edge; persistent re-proposal state remains in #status. */
 .ui-toast{position:fixed;z-index:110;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 26px);border:1px solid #67869e;background:#2b455b;color:#f3f7fd;border-radius:12px;box-shadow:0 7px 20px #071321aa;padding:11px 15px;font-weight:750;font-size:13px;line-height:1.4;text-align:center;pointer-events:none}
 @media(prefers-reduced-motion:no-preference){.ui-toast:not([hidden]){animation:toast-in .16s ease-out}}@keyframes toast-in{from{opacity:0;transform:translate(-50%,9px)}to{opacity:1;transform:translate(-50%,0)}}
@@ -420,9 +423,8 @@ let applied=makeBase(),draft=null,view='active',selectedDay=0,edit=null,hasAppli
 let selectedSleepDay=0,reviewDay=0,stockConfirmed=null,stockPending=null;
 // Manually selected sleep teams survive proposals generated with auto-sleep ON.
 let manualSleep=Array.from({length:7},()=>arrangeHealers(BASE_SLEEP));
-let appliedStale=false;
-
-let appliedEventStart=null;
+// Snapshots distinguish pending settings from the already-adopted plan.
+let appliedEventStart=null,appliedEventInfo=null;
 // Transfer is URL-based so the two offline HTML previews can work in the same folder.
 const EVENT_WEEK_KEY='pokesleep-strategy-event-start-v2';
 const DEFAULT_EVENT_WEEK='2026-11-09';
@@ -436,7 +438,21 @@ function initialEventStart(){
  return DEFAULT_EVENT_WEEK;
 }
 let eventInfo={start:initialEventStart(),field:'ワカクサ本島',food:'curry',camp:false};
-function persistEventWeek(){try{localStorage.setItem(EVENT_WEEK_KEY,eventInfo.start);}catch(e){}}
+function persistEventWeek(){
+ try{localStorage.setItem(EVENT_WEEK_KEY,eventInfo.start);}catch(e){}
+ // Navigation and browser refresh must not reinstate an older eventStart URL.
+ try{
+  const url=new URL(location.href);
+  if(!['https:','http:','file:'].includes(url.protocol))return;
+  url.searchParams.set('eventStart',eventInfo.start);
+  const raw=url.searchParams.get('pokesleepStock');
+  if(raw){
+   try{if(JSON.parse(raw).weekStart!==eventInfo.start)url.searchParams.delete('pokesleepStock');}
+   catch(e){url.searchParams.delete('pokesleepStock');}
+  }
+  history.replaceState(history.state,'',url.href);
+ }catch(e){/* history may be restricted when testing an offline HTML snapshot */}
+}
 function updateU2Link(){
  const link=$('.u2-nav');if(!link)return;
  const base=/^(https?:|file:)/.test(location.href)?location.href:'https://pokesleep-preview.invalid/';
@@ -490,9 +506,10 @@ function eventPhase(){
 }
 function firstFutureDay(){for(let d=0;d<7;d++)if(SLOT_KEYS.some(slot=>!isPastSlot(d,slot)))return d;return 6;}
 let toastTimer=null;
-function showToast(message){
+function showToast(message,isError=false){
  const toast=$('#ui-toast');if(toastTimer)clearTimeout(toastTimer);
- toast.textContent=message;toast.hidden=false;
+ toast.textContent=message;toast.classList.toggle('is-error',isError);
+ toast.setAttribute('role',isError?'alert':'status');toast.hidden=false;
  toastTimer=setTimeout(()=>{toast.hidden=true;toastTimer=null;},2500);
 }
 function flash(text,isError=false){
@@ -521,25 +538,30 @@ function proposal(stock=null){
 function avatar(id){const p=POOL[id];const tile=document.createElement('div');tile.className='mon';const icon=document.createElement('button');icon.className='avatar avatar-tap sprite-stage';icon.type='button';icon.style.setProperty('--tone',p.color);icon.setAttribute('aria-label',p.name+'のステータス');appendSprite(icon,p);icon.addEventListener('click',()=>showPokemon(id));const label=document.createElement('span');label.className='mon-name';label.textContent=p.name;tile.append(icon,label);return tile;}
 function render(){
  const plan=applied,phase=eventPhase();
- $('#week-content').hidden=!hasApplied;
- $('#generate').hidden=hasApplied;
- $('#repropose').hidden=!hasApplied;
+ // A plan from another event week is never presented as the current week's plan.
+ const activePlan=hasApplied&&appliedEventStart===eventInfo.start;
+ $('#week-content').hidden=!activePlan;
+ $('#generate').hidden=activePlan;
+ $('#repropose').hidden=!activePlan;
  $('#generate').disabled=phase==='ended';
  $('#repropose').disabled=phase==='ended';
  const autoSleep=switchOn('auto-sleep');
  $('#sleep-open').disabled=autoSleep;
- const pendingCondition=hasApplied&&(appliedStale||applied.autoSleep!==autoSleep);
+ const eventChanged=activePlan&&JSON.stringify(appliedEventInfo)!==JSON.stringify(eventInfo);
+ const manualChanged=activePlan&&!autoSleep&&manualSleep.some((team,day)=>
+  !isPastSlot(day,'sleep')&&JSON.stringify(arrangeHealers(team))!==JSON.stringify(applied.days[day].sleep));
+ const pendingCondition=activePlan&&(eventChanged||applied.autoSleep!==autoSleep||manualChanged);
  const stateMsg=$('#status');
  stateMsg.textContent=pendingCondition?'作戦の条件が変更されています。「作戦を再提案」で反映してください。':'';
  stateMsg.classList.toggle('error',pendingCondition);
  $('#inventory-notice').hidden=!importedStock;
  $('#inventory-notice').textContent=importedStock?(importedSource==='sunday'?'U2の日曜実績を取り込みました。':'U2で現在の在庫が更新されました。')+'「作戦を再提案」で反映できます。':'';
- $('#current-state-title').textContent=appliedStale?'週間編成（旧条件）':'週間編成';
+ $('#current-state-title').textContent=pendingCondition?'週間編成（旧条件）':'週間編成';
  $('#day-label').textContent=FULL[selectedDay];$('#day-date').textContent=formatDate(dateFor(selectedDay));
  const nav=$('#day-nav');nav.textContent='';
  for(let d=0;d<7;d++)nav.append(makeDayButton(d,selectedDay,day=>{selectedDay=day;render();},'採用済みの'));
  const content=$('#slots');content.textContent='';
- if(hasApplied)renderSlots(content,plan,selectedDay);
+ if(activePlan)renderSlots(content,plan,selectedDay);
  SpritePreview.enhance(content);
 }
 function makeDayButton(d,selected,select,prefix=''){
@@ -596,8 +618,8 @@ function copySleepNights(day){
  if(!eligible.length)return;
  const team=[...manualSleep[day]];
  if(eligible.some(i=>JSON.stringify(manualSleep[i])!==JSON.stringify(team))&&!confirm('未開始の睡眠編成を、この5匹にそろえますか？'))return;
- eligible.forEach(i=>{manualSleep[i]=[...team];if(hasApplied&&!applied.autoSleep)applied.days[i].sleep=[...team];});
- renderSleepSettings();render();
+ eligible.forEach(i=>{manualSleep[i]=[...team];});
+ renderSleepSettings();render();showToast('睡眠編成を設定しました');
 }
 function openEdit(day,slot){
  if(slot!=='sleep'||isPastSlot(day,'sleep')||switchOn('auto-sleep'))return;
@@ -610,15 +632,14 @@ function saveEdit(){
  if(!edit||edit.slot!=='sleep'||edit.picks.length!==5)return;
  if(isPastSlot(edit.day,'sleep')){$('#edit-error').textContent='この夜は開始済みです。';return;}
  const day=edit.day;manualSleep[day]=arrangeHealers(edit.picks);
- if(hasApplied&&!applied.autoSleep)applied.days[day].sleep=[...manualSleep[day]];
- $('#edit-dialog').close();edit=null;renderSleepSettings();render();
+ $('#edit-dialog').close();edit=null;renderSleepSettings();render();showToast('睡眠編成を設定しました');
 }
 $('#edit-close').onclick=$('#edit-cancel').onclick=()=>$('#edit-dialog').close();
 $('#edit-dialog').addEventListener('close',()=>{edit=null;closeSelect(customMenus.get('recipe-choice'));});
 $('#edit-save').onclick=saveEdit;
 $('#sleep-open').onclick=()=>{if(switchOn('auto-sleep'))return;selectedSleepDay=firstFutureDay();renderSleepSettings();$('#sleep-dialog').showModal();};
 $('#sleep-close').onclick=()=>$('#sleep-dialog').close();
-$('#auto-sleep').onclick=()=>{toggleSwitch('auto-sleep');if(hasApplied)appliedStale=true;render();};
+$('#auto-sleep').onclick=()=>{toggleSwitch('auto-sleep');render();};
 $('#sleep-change').onclick=()=>openEdit(selectedSleepDay,'sleep');
 $('#sleep-copy').onclick=()=>copySleepNights(selectedSleepDay);
 $('#generate').onclick=()=>showProposal(importedStock||stockConfirmed);
@@ -632,7 +653,7 @@ $('#review-adopt').onclick=()=>{
   next.days[d][slot]=[...applied.days[d][slot]];
   if(i<3)next.days[d].recipes[i]=applied.days[d].recipes[i];
  }
- applied=next;hasApplied=true;appliedStale=false;appliedEventStart=eventInfo.start;
+ applied=next;hasApplied=true;appliedEventStart=eventInfo.start;appliedEventInfo=clone(eventInfo);
  if(stockPending){stockConfirmed=clone(stockPending);importedStock=null;}
  draft=null;stockPending=null;$('#review-dialog').close();selectedDay=firstFutureDay();
  flash('作戦を採用しました');render();
@@ -640,13 +661,19 @@ $('#review-adopt').onclick=()=>{
 $('#event-camp').addEventListener('click',()=>toggleSwitch('event-camp'));
 $('#event-save').onclick=()=>{
  const d=$('#event-start').value;
- if(!validWeek(d)){alert('開始日は月曜日を指定してください。');return;}
+ if(!validWeek(d)){
+  $('#event-start').setAttribute('aria-invalid','true');
+  flash('開始日は月曜日を指定してください。',true);
+  showToast('開始日は月曜日を指定してください。',true);
+  $('#event-start').focus();return;
+ }
+ $('#event-start').removeAttribute('aria-invalid');
  const next={start:d,field:$('#event-field').value,food:$('#event-food').value,camp:switchOn('event-camp')};
  const oldStart=eventInfo.start,changed=JSON.stringify(next)!==JSON.stringify(eventInfo);
  eventInfo=next;
  persistEventWeek();updateU2Link();
  if(changed){
-  draft=null;appliedStale=hasApplied;
+  draft=null;
   if(oldStart!==next.start){stockConfirmed=null;importedStock=null;importedSource=null;importedAt=null;}
   showToast('イベント条件を保存しました');
  }

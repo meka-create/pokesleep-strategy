@@ -7,6 +7,7 @@ on:
       - previews/U2_Prep_Local_Ingredients_20261103.html
       - previews/U3_UI_DESIGN_20261103.md
       - .github/workflows/u3-preview-export.yml
+      - tests/test_preview_contract_v22.py
   workflow_dispatch:
 permissions:
   contents: read
@@ -138,7 +139,13 @@ jobs:
           assert "url.searchParams.set('eventStart',eventWeek)" in prep
           assert "sunday.querySelector('.row.total>span').textContent='日曜実績の合計';" in prep
           assert "item.weekStart!==eventInfo.start" in strategy
-          assert "const pendingCondition=hasApplied&&(appliedStale||applied.autoSleep!==autoSleep);" in strategy
+          assert "const activePlan=hasApplied&&appliedEventStart===eventInfo.start;" in strategy
+          assert "const pendingCondition=activePlan&&(eventChanged||applied.autoSleep!==autoSleep||manualChanged);" in strategy
+          assert "appliedStale" not in strategy
+          assert "eligible.forEach(i=>{manualSleep[i]=[...team];});" in strategy
+          assert "if(hasApplied&&!applied.autoSleep)applied.days" not in strategy
+          assert "syncWeekUrl();weekLabel()" in prep
+          assert "url.searchParams.delete('pokesleepStock')" in strategy
           assert "showToast('イベント条件を保存しました')" in strategy
           assert "function persistEventWeek()" in strategy
           assert "updateU2Link();\npersistEventWeek();" in strategy
@@ -183,6 +190,8 @@ jobs:
               print(title,len(html),"chars",len(scripts),"script tags")
           PY
           for f in /tmp/U3-*.js /tmp/U2-*.js; do node --check "$f"; done
+      - name: Preview regression contract tests (no browser download)
+        run: python3 -m unittest discover -s tests -p 'test_preview_contract_v22.py'
       - name: Upload offline U2 and U3 HTML preview files
         uses: actions/upload-artifact@v4
         with:

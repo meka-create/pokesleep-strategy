@@ -187,13 +187,24 @@ function validWeek(date){
  if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;
  const d=new Date(date+'T12:00:00Z');return Number.isFinite(d.valueOf())&&d.toISOString().slice(0,10)===date&&d.getUTCDay()===1;
 }
-function activeEventWeek(){
+// A link can select a week when opening U2; subsequent U3 changes use shared state.
+function activeEventWeek(preferLink=false){
  const fromLink=new URLSearchParams(location.search).get('eventStart');
- if(validWeek(fromLink))return fromLink;
+ if(preferLink&&validWeek(fromLink))return fromLink;
  try{const shared=localStorage.getItem(EVENT_WEEK_KEY);if(validWeek(shared))return shared;}catch(e){}
+ if(validWeek(fromLink))return fromLink;
  return DEFAULT_EVENT_WEEK;
 }
-let eventWeek=activeEventWeek();
+let eventWeek=activeEventWeek(true);
+function syncWeekUrl(){
+ try{
+  const url=new URL(location.href);
+  if(!['https:','http:','file:'].includes(url.protocol))return;
+  if(url.searchParams.get('eventStart')===eventWeek)return;
+  url.searchParams.set('eventStart',eventWeek);
+  history.replaceState(history.state,'',url.href);
+ }catch(e){/* sandboxed offline previews may disallow history updates */}
+}
 function weekLabel(){
  const d=new Date(eventWeek+'T12:00:00Z');
  const shown=(d.getUTCMonth()+1)+'/'+d.getUTCDate()+'週';
@@ -263,7 +274,7 @@ function restore(which){
 }
 function syncEventWeek(){
  const selected=activeEventWeek();if(selected===eventWeek)return;
- eventWeek=selected;weekLabel();
+ eventWeek=selected;syncWeekUrl();weekLabel();
  for(const key of ['sunday','current']){restore(key);read(key);}
  showToast('イベント週を切り替えました');
 }
