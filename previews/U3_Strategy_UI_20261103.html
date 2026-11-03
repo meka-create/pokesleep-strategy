@@ -451,9 +451,14 @@ function readU2Transfer(){
   const item=JSON.parse(raw);
   if(item.version!==2||item.weekStart!==eventInfo.start||!['sunday','current'].includes(item.source)||!item.values||typeof item.values!=='object')return;
   const required=Object.keys(INGREDIENT_ICONS);
-  if(required.length!==19||required.some(name=>item.values[name]!==null&&(!Number.isInteger(item.values[name])||item.values[name]<0||item.values[name]>10000)))return;
-  if(!required.some(name=>Number.isInteger(item.values[name])))return;
-  importedStock=Object.fromEntries(required.map(name=>[name,item.values[name]]));
+  // Blank food counts (legacy null or new zero) all mean zero in this preview.
+  // Require every ingredient key; reject malformed numbers instead of silently converting them.
+  if(required.length!==19||required.some(name=>{
+   if(!Object.prototype.hasOwnProperty.call(item.values,name))return true;
+   const value=item.values[name];
+   return value!==null&&(!Number.isInteger(value)||value<0||value>10000);
+  }))return;
+  importedStock=Object.fromEntries(required.map(name=>[name,item.values[name]===null?0:item.values[name]]));
   importedSource=item.source;importedAt=item.savedAt||null;
  }catch(e){}
 }
@@ -528,7 +533,7 @@ function render(){
  stateMsg.textContent=pendingCondition?'作戦の条件が変更されています。「作戦を再提案」で反映してください。':'';
  stateMsg.classList.toggle('error',pendingCondition);
  $('#inventory-notice').hidden=!importedStock;
- $('#inventory-notice').textContent=importedStock?(importedSource==='sunday'?'U2の日曜実績を取り込みました。':'U2で現在の在庫が更新されました。')+(Object.values(importedStock).filter(Number.isInteger).length<19?' 未入力の食材は未確認です。':'')+'「作戦を再提案」で反映できます。':'';
+ $('#inventory-notice').textContent=importedStock?(importedSource==='sunday'?'U2の日曜実績を取り込みました。':'U2で現在の在庫が更新されました。')+'「作戦を再提案」で反映できます。':'';
  $('#current-state-title').textContent=appliedStale?'週間編成（旧条件）':'週間編成';
  $('#day-label').textContent=FULL[selectedDay];$('#day-date').textContent=formatDate(dateFor(selectedDay));
  const nav=$('#day-nav');nav.textContent='';
