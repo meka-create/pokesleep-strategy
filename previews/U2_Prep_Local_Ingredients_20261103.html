@@ -103,7 +103,7 @@ function readInventory(){
   input.style.borderColor=valid?"":"#f08b81";
   if(!valid)errors.push(input.getAttribute("aria-label")||input.dataset.key);
   // A blank is logically zero but remains visually blank; never overwrite the user's inputs.
-  values[input.dataset.key]=raw===""?0:Number(raw);
+  values[input.dataset.key]=valid?(raw===""?0:Number(raw)):0;
  }
  const total=Object.values(values).reduce((sum,value)=>sum+value,0);
  q("#sum").textContent=total.toLocaleString("ja-JP")+"個";
