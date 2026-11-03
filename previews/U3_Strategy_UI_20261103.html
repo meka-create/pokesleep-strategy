@@ -4,7 +4,7 @@
 <style>
 :root{--bg:#0e1929;--panel:#1b2c40;--panel2:#253a4f;--line:#344e63;--text:#edf3f8;--muted:#afc0d0;--gold:#f5ca78;--danger:#f8aba3;--green:#9dd3bf}
 *{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;font-size:14px;line-height:1.48}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #ffe6b4;outline-offset:2px}button:disabled{opacity:.45;cursor:not-allowed}h1,h2,h3,p{margin:0}h1{font-size:25px}h2{font-size:16px}h3{font-size:15px}.muted{color:var(--muted)}[hidden]{display:none!important}
-.shell{max-width:520px;margin:0 auto;padding:0 13px 35px}.header{display:flex;justify-content:space-between;align-items:center;padding:17px 1px 15px;border-bottom:1px solid var(--line)}.smallcap{font-size:10px;letter-spacing:.14em;color:var(--muted)}.brand{font-size:17px;font-weight:850;letter-spacing:-.03em}.mock-tag{border:1px solid #7b6644;border-radius:99px;color:var(--gold);font-size:10px;padding:5px 9px}main{padding-top:20px}
+.shell{max-width:520px;margin:0 auto;padding:0 13px 35px}.header{display:flex;justify-content:space-between;align-items:center;padding:17px 1px 15px;border-bottom:1px solid var(--line)}.smallcap{font-size:10px;letter-spacing:.14em;color:var(--muted)}.brand{font-size:17px;font-weight:850;letter-spacing:-.03em}.mock-tag{border:1px solid #7b6644;border-radius:99px;color:var(--gold);font-size:10px;padding:5px 9px}main{padding-top:10px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:15px;margin-bottom:12px;padding:13px}.card-flat{background:#18283a}.section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}.hint{color:var(--muted);font-size:11px}.event-details{margin-bottom:12px}.event-details>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;list-style:none;padding:10px 0;min-height:44px;font-weight:700}.event-details>summary::-webkit-details-marker{display:none}.event-details>summary::after{content:"";display:block;width:9px;height:9px;flex:0 0 9px;margin-right:5px;border-right:2px solid #cbd9e7;border-bottom:2px solid #cbd9e7;transform:rotate(45deg) translateY(-2px);transition:transform .15s}.event-details[open]>summary::after{transform:rotate(225deg) translate(-2px,-1px)}.event-fields{padding:2px 0 13px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);min-width:0}.field.wide{grid-column:1/-1}.field>input,.field>select{width:100%;background:#112237;color:var(--text);border:1px solid #64778a;border-radius:9px;min-height:44px;padding:9px}.field input[type=checkbox]{width:18px;height:18px}.checkline{display:flex;align-items:center;gap:9px;min-height:44px;color:var(--text)}.btn{border:1px solid #c79a55;border-radius:10px;min-height:44px;padding:9px 12px;background:var(--gold);color:#282319;font-weight:850}.btn.secondary{background:#2a4057;border-color:#5b7188;color:var(--text)}.btn.ghost{background:transparent;border-color:#60778c;color:var(--text)}.btn.danger{color:#f8b6ab;border-color:#a36b63;background:transparent}.btn.small{font-size:12px;min-height:36px;padding:6px 10px}.btn.full{width:100%}.btn.textbutton{background:transparent;border:0;min-height:36px;padding:6px 8px;color:var(--muted);font-size:12px}
 .controls{display:grid;gap:10px}
 .control-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:8px 0;border:0;background:transparent;color:var(--text);font-weight:750;text-align:left;cursor:pointer;touch-action:manipulation}
@@ -110,15 +110,18 @@
 .stock-modal .modal-footer,.review-modal .modal-footer{position:sticky;bottom:-23px;background:#17283c;padding:9px 0 3px;z-index:2}
 .stock-modal .modal-head,.review-modal .modal-head{position:sticky;top:-17px;background:#17283c;padding:4px 0 7px;z-index:2}
 @media(max-width:360px){.stock-grid{gap:5px}.stock-row{gap:5px;padding:5px}.stock-row img{width:26px;height:26px;flex-basis:26px}}
+
+.u2-nav{display:block;text-align:center;color:#badcf4;text-decoration:underline;text-underline-offset:3px;min-height:30px;padding:5px}
+#inventory-notice{color:var(--gold);text-align:center;font-size:11px}
 </style></head>
 <body><div class="shell"><header class="header"><div><div class="smallcap">POKÉMON SLEEP</div><div class="brand">✦ ポケスリ作戦室</div></div><span class="mock-tag">U3</span></header>
 <main>
 <details class="event-details card" id="event-details"><summary><span>イベント条件</span></summary><div class="event-fields"><label class="field">開始日<input id="event-start" type="date" value="2026-11-09"></label><div class="field"><span>料理</span><select id="event-food"><option value="curry">カレー</option><option value="salad">サラダ</option><option value="dessert">デザート</option></select></div><div class="field wide"><span>フィールド</span><select id="event-field"><option>ワカクサ本島</option><option>シアンの砂浜</option><option>トープ洞窟</option><option>ウノハナ雪原</option><option>ラピスラズリ湖畔</option><option>ゴールド旧発電所</option><option>アンバー渓谷</option><option>ワカクサ本島EX</option><option>シアンの砂浜EX</option></select></div><div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="false"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div></div></details>
 <section class="card sleep-settings" aria-label="睡眠編成の設定"><div class="section-head"><h2>睡眠編成</h2><div class="sleep-controls"><button type="button" class="control-toggle sleep-auto-toggle" id="auto-sleep" role="switch" aria-checked="false" aria-label="睡眠編成を自動提案"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button><button type="button" id="sleep-open" class="btn small secondary">設定</button></div></div></section>
-<section class="card plan-actions" aria-label="週間作戦の操作"><button type="button" id="generate" class="btn full">7日間の作戦を提案</button><button type="button" id="stock-open" class="btn secondary full" hidden>食材在庫を更新して残りを再提案</button><p class="hint" id="mock-note">このプレビューの編成と料理は操作確認用の例です。</p><div id="status" class="status-message" role="status" aria-live="polite"></div></section>
+<section class="card plan-actions" aria-label="週間作戦の操作"><button type="button" id="generate" class="btn full">7日間の作戦を提案</button><button type="button" id="repropose" class="btn secondary full" hidden>作戦を再提案</button><p class="hint" id="inventory-notice" hidden></p><a class="hint u2-nav" href="U2_Prep_Local_Ingredients_20261103.html">食材在庫の入力・修正は準備画面で行う</a><p class="hint" id="mock-note">このプレビューの編成と料理は操作確認用の例です。</p><div id="status" class="status-message" role="status" aria-live="polite"></div></section>
 <section class="card" id="week-content" hidden><div class="section-head"><h2 id="current-state-title">週間編成</h2><span class="energy">週間エナジー <b>—</b></span></div><div class="week-head"><div class="day-title"><span id="day-label">月曜日</span><small id="day-date">11/9</small></div></div><div class="daynav" id="day-nav" role="tablist" aria-label="曜日を選択"></div><div id="slots"></div></section></main></div>
 <dialog class="modal sleep-modal" id="sleep-dialog" aria-labelledby="sleep-title"><div class="modal-head"><h2 id="sleep-title">睡眠編成</h2><button type="button" class="btn small ghost" id="sleep-close">閉じる</button></div><p class="review-note">基本の5匹を全7晩に設定し、必要な曜日だけ変更できます。</p><div id="sleep-manual"><div id="sleep-day-nav" class="daynav" role="tablist" aria-label="睡眠設定の曜日"></div><div id="sleep-team-preview" class="sleep-team-preview"></div><div class="sleep-actions"><button type="button" class="btn secondary full" id="sleep-change">この夜の5匹を変更</button><button type="button" class="btn ghost full" id="sleep-copy">この5匹を全7晩に設定</button></div></div></dialog>
-<dialog class="modal stock-modal" id="stock-dialog" aria-labelledby="stock-title"><div class="modal-head"><h2 id="stock-title">現在の食材在庫</h2><button type="button" class="btn small ghost" id="stock-close">閉じる</button></div><p class="review-note">いま持っている食材19種類の個数を入力してください。空欄を0とはみなしません。入力した実在庫を基準に、残りの作戦の表示例を作ります。</p><div class="stock-grid" id="stock-grid"></div><p class="stock-error" id="stock-error" role="alert"></p><div class="modal-footer"><button type="button" class="btn ghost" id="stock-cancel">キャンセル</button><button type="button" class="btn" id="stock-save">残りを再提案</button></div></dialog>
+
 <dialog class="modal review-modal" id="review-dialog" aria-labelledby="review-title"><div class="modal-head"><h2 id="review-title">作戦の提案</h2><button type="button" class="btn small ghost" id="review-close">閉じる</button></div><p class="review-note">この画面の編成は表示用の仮提案です。実ゲームの最適化計算は未接続です。採用するまで現在の作戦は変わりません。</p><div class="daynav" id="review-day-nav" role="tablist" aria-label="提案を確認する曜日"></div><div id="review-slots"></div><div class="modal-footer"><button type="button" class="btn ghost" id="review-cancel">キャンセル</button><button type="button" class="btn" id="review-adopt">この作戦を採用</button></div></dialog>
 <dialog class="modal" id="edit-dialog" aria-labelledby="edit-title"><div class="modal-head"><h2 id="edit-title">月曜日・朝</h2><button type="button" class="btn small ghost" id="edit-close" aria-label="編集を閉じる">閉じる</button></div><div class="section-head"><h3>パーティ</h3><span class="select-count" id="select-count">5 / 5</span></div><div class="pick-grid" id="pick-grid"></div><div id="recipe-editor"><div class="field"><span>料理</span><select id="recipe-choice"></select></div></div><p id="edit-error" class="modal-error" role="alert"></p><div class="modal-footer"><button type="button" class="btn ghost" id="edit-cancel">キャンセル</button><button type="button" class="btn" id="edit-save">この枠を保存</button></div></dialog>
 <dialog class="modal stat-modal" id="pokemon-dialog" aria-labelledby="pokemon-status-title">
@@ -415,6 +418,24 @@ let selectedSleepDay=0,reviewDay=0,stockConfirmed=null,stockPending=null;
 // Manually selected sleep teams survive proposals generated with auto-sleep ON.
 let manualSleep=Array.from({length:7},()=>arrangeHealers(BASE_SLEEP));
 let appliedStale=false;
+
+let appliedEventStart=null;
+// Transfer is URL-based so the two offline HTML previews can work in the same folder.
+let importedStock=null,importedSource=null,importedAt=null;
+function readU2Transfer(){
+ const raw=new URLSearchParams(location.search).get('pokesleepStock');if(!raw||raw.length>10000)return;
+ try{
+  const item=JSON.parse(raw);
+  if(item.version!==1||!['sunday','current'].includes(item.source)||!item.values||typeof item.values!=='object')return;
+  const required=Object.keys(INGREDIENT_ICONS);
+  if(required.length!==19||required.some(name=>item.values[name]!==null&&(!Number.isInteger(item.values[name])||item.values[name]<0||item.values[name]>10000)))return;
+  if(!required.some(name=>Number.isInteger(item.values[name])))return;
+  importedStock=Object.fromEntries(required.map(name=>[name,item.values[name]]));
+  importedSource=item.source;importedAt=item.savedAt||null;
+ }catch(e){}
+}
+readU2Transfer();
+
 let eventInfo={start:'2026-11-09',field:'ワカクサ本島',food:'curry',camp:false};
 function getPlan(){return applied;}
 function currentRecipes(plan=getPlan()){return RECIPES[plan.foodMode];}
@@ -445,13 +466,14 @@ function demoOffset(stock){if(!stock)return 0;return Object.keys(INGREDIENT_ICON
 function proposal(stock=null){
  const next={days:[],edited:[],autoSleep:switchOn('auto-sleep'),foodMode:eventInfo.food};
  const bias=demoOffset(stock);
+ const sameWeek=hasApplied&&appliedEventStart===eventInfo.start;
  for(let d=0;d<7;d++){
   const old=applied.days[d],recipes=[(d+bias)%4,(d+1+bias)%4,(d+2+bias)%4];
   const row={recipes};
   SLOT_KEYS.forEach((slot,i)=>{
-   row[slot]=isPastSlot(d,slot)&&hasApplied?[...old[slot]]:
+   row[slot]=isPastSlot(d,slot)&&sameWeek?[...old[slot]]:
     slot==='sleep'?(next.autoSleep?teamFor(d,3,bias):arrangeHealers(manualSleep[d])):teamFor(d,i,bias);
-   if(i<3&&isPastSlot(d,slot)&&hasApplied)recipes[i]=old.recipes[i];
+   if(i<3&&isPastSlot(d,slot)&&sameWeek)recipes[i]=old.recipes[i];
   });
   next.days.push(row);
  }
@@ -462,11 +484,13 @@ function render(){
  const plan=applied,phase=eventPhase();
  $('#week-content').hidden=!hasApplied;
  $('#generate').hidden=hasApplied;
- $('#stock-open').hidden=!hasApplied;
+ $('#repropose').hidden=!hasApplied;
  $('#generate').disabled=phase==='ended';
- $('#stock-open').disabled=phase==='ended';
+ $('#repropose').disabled=phase==='ended';
  const autoSleep=switchOn('auto-sleep');
  $('#sleep-open').disabled=autoSleep;
+ $('#inventory-notice').hidden=!importedStock;
+ $('#inventory-notice').textContent=importedStock?(importedSource==='sunday'?'U2の日曜実績を取り込みました。':'U2で現在の在庫が更新されました。')+(Object.values(importedStock).filter(Number.isInteger).length<19?' 未入力の食材は未確認です。':'')+'「作戦を再提案」で反映できます。':'';
  $('#current-state-title').textContent=appliedStale?'週間編成（旧条件）':'週間編成';
  $('#day-label').textContent=FULL[selectedDay];$('#day-date').textContent=formatDate(dateFor(selectedDay));
  const nav=$('#day-nav');nav.textContent='';
@@ -551,46 +575,22 @@ $('#edit-dialog').addEventListener('close',()=>{edit=null;closeSelect(customMenu
 $('#edit-save').onclick=saveEdit;
 $('#sleep-open').onclick=()=>{if(switchOn('auto-sleep'))return;selectedSleepDay=firstFutureDay();renderSleepSettings();$('#sleep-dialog').showModal();};
 $('#sleep-close').onclick=()=>$('#sleep-dialog').close();
-$('#auto-sleep').onclick=()=>{toggleSwitch('auto-sleep');render();};
+$('#auto-sleep').onclick=()=>{toggleSwitch('auto-sleep');if(hasApplied)appliedStale=true;render();};
 $('#sleep-change').onclick=()=>openEdit(selectedSleepDay,'sleep');
 $('#sleep-copy').onclick=()=>copySleepNights(selectedSleepDay);
-$('#generate').onclick=()=>showProposal();
-$('#stock-open').onclick=()=>{
- if(!hasApplied||eventPhase()==='ended')return;
- const grid=$('#stock-grid');grid.textContent='';
- Object.keys(INGREDIENT_ICONS).forEach(name=>{
-  const tile=document.createElement('div');tile.className='stock-row';
-  const image=document.createElement('img');image.src=INGREDIENT_ICONS[name];image.alt='';
-  const label=document.createElement('label');label.textContent=name;
-  const input=document.createElement('input');input.type='number';input.min='0';input.max='9999';input.step='1';
-  input.inputMode='numeric';input.required=true;input.placeholder='個数';input.dataset.ingredient=name;
-  input.value=stockConfirmed&&stockConfirmed[name]!==undefined?String(stockConfirmed[name]):'';
-  label.append(input);tile.append(image,label);grid.append(tile);
- });$('#stock-error').textContent='';$('#stock-dialog').showModal();
-};
-$('#stock-close').onclick=$('#stock-cancel').onclick=()=>$('#stock-dialog').close();
-$('#stock-save').onclick=()=>{
- const inputs=[...$('#stock-grid').querySelectorAll('input')],values={};
- for(const input of inputs){
-  const raw=input.value.trim(),v=Number(raw);
-  if(!raw||!/^\d+$/.test(raw)||!Number.isSafeInteger(v)||v<0||v>9999){
-   $('#stock-error').textContent='19種類すべてに0以上の整数を入力してください。';input.focus();return;
-  }values[input.dataset.ingredient]=v;
- }
- if(inputs.length!==19){$('#stock-error').textContent='食材データが不足しています。';return;}
- $('#stock-dialog').close();showProposal(values);
-};
+$('#generate').onclick=()=>showProposal(importedStock||stockConfirmed);
+$('#repropose').onclick=()=>showProposal(importedStock||stockConfirmed);
 $('#review-close').onclick=$('#review-cancel').onclick=closeReview;
 $('#review-adopt').onclick=()=>{
  if(!draft||eventPhase()==='ended')return;
  const next=clone(draft);
  for(let d=0;d<7;d++)for(let i=0;i<SLOT_KEYS.length;i++){
-  const slot=SLOT_KEYS[i];if(!hasApplied||!isPastSlot(d,slot))continue;
+  const slot=SLOT_KEYS[i];if(!hasApplied||appliedEventStart!==eventInfo.start||!isPastSlot(d,slot))continue;
   next.days[d][slot]=[...applied.days[d][slot]];
   if(i<3)next.days[d].recipes[i]=applied.days[d].recipes[i];
  }
- applied=next;hasApplied=true;appliedStale=false;
- if(stockPending)stockConfirmed=clone(stockPending);
+ applied=next;hasApplied=true;appliedStale=false;appliedEventStart=eventInfo.start;
+ if(stockPending){stockConfirmed=clone(stockPending);importedStock=null;}
  draft=null;stockPending=null;$('#review-dialog').close();selectedDay=firstFutureDay();
  flash('作戦を採用しました');render();
 };
