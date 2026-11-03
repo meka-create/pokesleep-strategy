@@ -1,0 +1,71 @@
+name: U3 Preview Download
+on:
+  push:
+    branches: [design/u3-strategy-ui-20261103]
+    paths:
+      - previews/U3_Strategy_UI_20261103.html
+      - previews/U2_Prep_Local_Ingredients_20261103.html
+      - previews/U3_UI_DESIGN_20261103.md
+      - .github/workflows/u3-preview-export.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout design-only branch
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify two HTML previews and audit category mappings
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path("previews")
+          strategy=(root/"U3_Strategy_UI_20261103.html").read_text(encoding="utf-8")
+          prep=(root/"U2_Prep_Local_Ingredients_20261103.html").read_text(encoding="utf-8")
+          assert 'ワカクサ本島 · カレー' not in strategy
+          assert 'ワカクサ本島 · カレー' not in prep
+          assert 'id="event-title"' not in strategy
+          assert 'eventSummary()' not in strategy
+          assert strategy.count('id="pokemon-close"')==1
+          assert 'iv-close' in strategy and '#pokemon-level{font-size:15px' in strategy
+          assert "grade=skillGrade(skills[i])" in strategy
+          assert "NATURE_EFFECTS[details[1]]" in strategy
+          assert 'grid-template-columns:minmax(94px,33%) minmax(0,1fr)' in strategy
+          tables={}
+          for grade,count in (("gold",7),("blue",6),("white",4)):
+              matched=re.search(grade+r":new Set\(\[([^\]]+)\]\)",strategy)
+              assert matched, grade
+              names=re.findall(r"'([^']+)'",matched.group(1))
+              assert len(names)==count, (grade,names)
+              tables[grade]=names
+          assert len(set(sum(tables.values(),[])))==17
+          assert "最大所持数アップL" in tables["blue"]
+          nature=re.search(r'const NATURE_GRID=\[(.*?)\];',strategy,re.S)
+          assert nature
+          assert len(re.findall(r"'[^']+'",nature.group(1)))==25
+          for title,html in (("U3",strategy),("U2",prep)):
+              scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',html,re.S)
+              assert scripts, title
+              for i,script in enumerate(scripts):
+                  Path('/tmp/'+title+'-'+str(i)+'.js').write_text(script,encoding='utf-8')
+              print(title,len(html),"chars",len(scripts),"script tags")
+          PY
+          for f in /tmp/U3-*.js /tmp/U2-*.js; do node --check "$f"; done
+      - name: Upload offline U2 and U3 HTML preview files
+        uses: actions/upload-artifact@v4
+        with:
+          name: pokesleep-U2-U3-offline-preview
+          path: |
+            previews/U3_Strategy_UI_20261103.html
+            previews/U2_Prep_Local_Ingredients_20261103.html
+            previews/U3_UI_DESIGN_20261103.md
+          retention-days: 30
+          if-no-files-found: error
