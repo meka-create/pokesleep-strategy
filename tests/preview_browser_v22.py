@@ -4,6 +4,7 @@ Intentionally excluded from the default workflow to avoid browser downloads.
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 import json
+from shutil import which
 BASE=Path(__file__).resolve().parents[1]/"previews"
 U2=(BASE/"U2_Prep_Local_Ingredients_20261103.html").read_text(encoding="utf-8")
 U3=(BASE/"U3_Strategy_UI_20261103.html").read_text(encoding="utf-8")
@@ -19,14 +20,14 @@ def render(p,html):
     html=html.replace("new URL(location.href)","new URL(window.__virtualUrl)")
     p.set_content(html.replace("<script>\n(()=>{",prefix+"<script>\n(()=>{",1),wait_until="domcontentloaded")
 with sync_playwright() as pw:
-    browser=pw.chromium.launch(headless=True)
+    browser=pw.chromium.launch(headless=True,**({'executable_path':which('chromium')} if which('chromium') else {}))
     for w in (320,360,390,430):
         p=browser.new_page(viewport={"width":w,"height":740})
         render(p,U2);p.locator("#btn-current").click()
         p.locator("#current-panel input").nth(4).fill("27")
         p.locator("#save-current").click()
         assert p.evaluate("document.documentElement.scrollWidth<=innerWidth+1")
-        record=json.loads(p.evaluate("localStorage['pokesleep-strategy-u2-v2:2026-11-09:current']"))
+        record=json.loads(p.evaluate("localStorage.getItem('pokesleep-strategy-u2-v2:2026-11-09:current')"))
         assert len(record["values"])==19 and sum(record["values"].values())==27
         p.close()
     p=browser.new_page()
