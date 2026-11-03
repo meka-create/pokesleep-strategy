@@ -549,7 +549,16 @@ function syncEventControls(){
  $('#event-start').value=eventInfo.start;
  $('#event-field').value=eventInfo.field;$('#event-food').value=eventInfo.food;
  setSwitch('event-camp',eventInfo.camp);
- refreshSelect('event-food');refreshSelect('event-field');
+ // Restore the visible source label for the currently selected event week.
+ const sourceSelect=$('#event-source-select'),sourceNote=$('#event-source-note');
+ sourceSelect.replaceChildren();
+ const fallback=document.createElement('option');fallback.value='';fallback.textContent='手動設定';sourceSelect.append(fallback);
+ if(eventInfo.source?.id){
+  const saved=document.createElement('option');saved.value=eventInfo.source.id;saved.textContent=eventInfo.source.name;
+  sourceSelect.append(saved);sourceSelect.value=saved.value;
+  sourceNote.textContent=eventInfo.source.name+'：'+(eventInfo.source.bonus||'補正情報なし')+'（保存済み）';
+ }else sourceNote.textContent='情報取得と選択だけでは、イベント条件や作戦は変更されません。';
+ refreshSelect('event-source-select');refreshSelect('event-food');refreshSelect('event-field');
 }
 syncEventControls();updateU2Link();
 refreshInventory();
