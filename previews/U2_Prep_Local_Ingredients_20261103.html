@@ -113,7 +113,7 @@ function readInventory(){
   const raw=input.value.trim(),empty=raw===""&&!input.validity.badInput;
   const n=empty?0:Number(raw);
   const valid=!input.validity.badInput&&(empty||(
-    /^(0|[1-9][0-9]*)$/.test(raw)&&Number.isSafeInteger(n)&&n<=10000
+    /^[0-9]+$/.test(raw)&&Number.isSafeInteger(n)&&n<=10000
   ));
   if(!valid)invalid.push(input);
   input.setAttribute("aria-invalid",String(!valid));
