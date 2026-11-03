@@ -64,7 +64,8 @@ class PhaseAwareRoadmapContract(unittest.TestCase):
             for term in ("廃案", "日中21枠", "睡眠7晩", "食材在庫", "未実装"):
                 with self.subTest(term=term):
                     self.assertIn(term, doc)
-        self.assertIn("当日曜日自動初期表示は未実装", self.roadmap)
+        self.assertIn("v28実装候補・Chromium／Android受入待ち", self.roadmap)
+        self.assertIn("U3-B v28", self.acceptance)
         self.assertIn("未実装", self.acceptance)
         self.assertIn("ユーザー明示承認", self.roadmap)
 
