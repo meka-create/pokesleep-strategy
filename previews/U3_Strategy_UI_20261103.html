@@ -166,6 +166,23 @@ const MOCK_STATUS={
  vaporeon:['57','しんちょう','食材ゲットS','6','モーモーミルク／リラックスカカオ／モーモーミルク'],
  ampharos:['60','おだやか','エナジーチャージM','6','げきからハーブ／とくせんエッグ／げきからハーブ']
 };
+// Source of truth: Pokemon Sleep subskill table, 17 names: 7 gold, 6 blue, 4 white.
+const SUBSKILL_GRADES={
+ gold:new Set(['睡眠EXPボーナス','おてつだいボーナス','げんき回復ボーナス','ゆめのかけらボーナス','リサーチEXPボーナス','きのみの数S','スキルレベルアップM']),
+ blue:new Set(['スキルレベルアップS','最大所持数アップL','最大所持数アップM','おてつだいスピードM','食材確率アップM','スキル確率アップM']),
+ white:new Set(['最大所持数アップS','おてつだいスピードS','食材確率アップS','スキル確率アップS'])
+};
+function skillGrade(name){for(const [tier,names] of Object.entries(SUBSKILL_GRADES))if(names.has(name))return tier;return 'unknown';}
+// Nature mapping: boosted attribute by row and lowered attribute by column. Diagonal is neutral.
+const NATURE_STATS=['おてつだいスピード','げんき回復量','食材おてつだい確率','メインスキル発生確率','EXP獲得量'];
+const NATURE_GRID=[
+ ['がんばりや','さみしがり','いじっぱり','やんちゃ','ゆうかん'],
+ ['ずぶとい','すなお','わんぱく','のうてんき','のんき'],
+ ['ひかえめ','おっとり','てれや','うっかりや','れいせい'],
+ ['おだやか','おとなしい','しんちょう','きまぐれ','なまいき'],
+ ['おくびょう','せっかち','ようき','むじゃき','まじめ']
+];
+const NATURE_EFFECTS=Object.fromEntries(NATURE_GRID.flatMap((row,i)=>row.map((name,j)=>[name,i===j?[]:[NATURE_STATS[i],NATURE_STATS[j]]])));
 function showPokemon(id){
  const p=POOL[id],details=MOCK_STATUS[id]||['60','—','—','1','—'];
  const modal=$('#pokemon-dialog');
