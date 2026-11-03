@@ -149,7 +149,7 @@ jobs:
           assert "if(changed&&oldStart!==next.start)storeState();" in strategy
           assert "localStorage.setItem(strategyKey(eventInfo.start)" in strategy
           assert "hasInventory" in strategy
-          assert "item.values[name]===null?0:item.values[name]" in strategy
+          assert "values[name]=value===null?0:value" in strategy
           assert "document.querySelectorAll('.u2-nav').forEach" in strategy
           # v18: no duplicate U3 inventory editor. All replanning uses a common action.
           for marker in ('id="sleep-dialog"','id="sleep-open"','id="sleep-day-nav"',
