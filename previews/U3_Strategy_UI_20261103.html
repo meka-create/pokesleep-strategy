@@ -147,17 +147,45 @@ const MOCK_STATUS={
  vaporeon:['57','しんちょう','食材ゲットS','6','モーモーミルク／リラックスカカオ／モーモーミルク'],
  ampharos:['60','おだやか','エナジーチャージM','6','げきからハーブ／とくせんエッグ／げきからハーブ']
 };
-function showPokemon(id){const p=POOL[id],details=MOCK_STATUS[id]||['60','おだやか','―','1','―'];
- const modal=$('#pokemon-dialog');$('#pokemon-status-title').textContent=p.name;
- $('#pokemon-species').textContent=p.name;$('#pokemon-level').textContent='Lv.'+details[0];
- const picture=$('#pokemon-sprite');picture.textContent='';picture.className='status-portrait sprite-stage';appendSprite(picture,p);
- const rows=[['せいかく',details[1]],['メインスキル',details[2]+' · Lv.'+details[3]],['食材',details[4]],['サブスキル','おてつだいボーナス ／ スキル確率アップM（表示例）']];
- const grid=$('#pokemon-status-grid');grid.textContent='';rows.forEach(([label,value])=>{
-  const cell=document.createElement('div');cell.className='stat-cell wide';
-  const head=document.createElement('div');head.className='stat-label';head.textContent=label;
-  const text=document.createElement('div');text.className='stat-value';text.textContent=value;
-  cell.append(head,text);grid.append(cell);
+function showPokemon(id){
+ const p=POOL[id],details=MOCK_STATUS[id]||['60','—','—','1','—'];
+ const modal=$('#pokemon-dialog');
+ $('#pokemon-status-title').textContent=p.name+' · ステータス';
+ $('#pokemon-species').textContent=p.name;
+ $('#pokemon-level').textContent='Lv.'+details[0];
+ const picture=$('#pokemon-sprite');
+ picture.textContent='';picture.className='status-portrait sprite-stage';appendSprite(picture,p);
+ const base=$('#pokemon-base-rows');base.textContent='';
+ function addValue(root,key,element){
+  const label=document.createElement('div');label.className='iv-key';label.textContent=key;
+  const value=document.createElement('div');value.className='iv-value';
+  if(typeof element==='string')value.textContent=element;else value.append(element);
+  root.append(label,value);
+ }
+ addValue(base,'ポケモン',p.name);
+ addValue(base,'レベル','Lv.'+details[0]);
+ const ingredientGroup=document.createElement('div');ingredientGroup.className='iv-ingredients';
+ details[4].split('／').forEach((value,i)=>{
+  const ingredient=document.createElement('span');ingredient.className='iv-ingredient';
+  const level=document.createElement('b');level.textContent='Lv.'+[1,30,60][i];
+  ingredient.append(level,document.createTextNode(value.trim()));ingredientGroup.append(ingredient);
  });
+ addValue(base,'食材',ingredientGroup);
+ addValue(base,'おてつだい時間','—');
+ addValue(base,'最大所持数','—');
+ $('#pokemon-main-skill').textContent='';
+ const skillName=document.createElement('span');skillName.textContent=details[2];
+ const skillLevel=document.createElement('em');skillLevel.textContent='Lv.'+details[3];
+ $('#pokemon-main-skill').append(skillName,skillLevel);
+ const skills=['おてつだいボーナス','スキル確率アップM','おてつだいスピードM','最大所持数アップL','げんき回復ボーナス'];
+ const colors=['gold','blue','blue','','gold'];
+ const target=$('#pokemon-subskills');target.textContent='';
+ [10,25,50,70,80].forEach((level,i)=>{
+  const skill=document.createElement('div');skill.className='iv-skill '+colors[i];
+  const lv=document.createElement('small');lv.textContent='Lv.'+level;
+  const name=document.createElement('span');name.textContent=skills[i];skill.append(lv,name);target.append(skill);
+ });
+ const nature=$('#pokemon-nature');nature.textContent='';addValue(nature,'せいかく',details[1]);
  modal.showModal();SpritePreview.enhance(modal);
 }
 $('#pokemon-close').addEventListener('click',()=>$('#pokemon-dialog').close());
