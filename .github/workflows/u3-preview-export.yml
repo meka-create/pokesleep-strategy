@@ -114,7 +114,9 @@ jobs:
           assert "if(switchOn('auto-sleep'))return;selectedSleepDay=firstFutureDay()" in strategy
           assert "'#auto-sleep').onclick=()=>{toggleSwitch('auto-sleep');render();};" in strategy
           assert '<h2>睡眠編成</h2><div class="sleep-controls">' in strategy
-          assert 'id="sleep-open" class="btn small secondary">設定</button><button' in strategy
+          assert 'id="auto-sleep" role="switch"' in strategy
+          assert 'aria-label="睡眠編成を自動提案"' in strategy
+          assert '<span class="switch-track" aria-hidden="true"></span></button><button type="button" id="sleep-open"' in strategy
           tables={}
           for grade,count in (("gold",7),("blue",6),("white",4)):
               matched=re.search(grade+r":new Set\(\[([^\]]+)\]\)",strategy)
