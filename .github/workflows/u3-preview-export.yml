@@ -41,8 +41,8 @@ jobs:
           # U2/U3 have no redundant page titles; preserve clear header spacing.
           assert '<h1>作戦</h1>' not in strategy
           assert '<h1>準備</h1>' not in prep
-          assert 'main{padding-top:20px}' in strategy
-          assert 'main{padding-top:20px}' in prep
+          assert 'main{padding-top:10px}' in strategy
+          assert 'main{padding-top:10px}' in prep
           # The game-inspired four information rows use the same left/right columns.
           assert 'grid-template-columns:minmax(108px,34%) minmax(0,1fr)' in strategy
           assert 'iv-key-pill' not in strategy
@@ -86,37 +86,38 @@ jobs:
           # Main skill remains slightly larger than every subskill.
           assert 'background:transparent;font-size:15px;font-weight:780' in strategy
           assert "natureView.append(natureModifiers)" in strategy
-          # U3 v14: one active strategy view, manual sleep management and stock-driven re-proposal UI.
+          # v18: compact U2 cards, 3-tabs and 10px header spacing.
+          assert 'id="btn-current"' in prep
+          assert 'class="prep-fixed"' in prep
+          assert 'class="grid actual-grid"' in prep
+          assert 'min-height:85px' in prep
+          assert 'min-height:74px' in prep
+          assert 'min-height:70px' in prep
+          assert 'id="goal-panel"' in prep and 'id="actual-panel"' in prep
+          assert "current.id='current-panel'" in prep
+          assert "result.complete||which==='sunday'" in prep
+          assert "U3_Strategy_UI_20261103.html" in prep
+          # v18: no duplicate U3 inventory editor. All replanning uses a common action.
           for marker in ('id="sleep-dialog"','id="sleep-open"','id="sleep-day-nav"',
-                         'id="auto-sleep"','id="stock-dialog"','id="stock-open"',
-                         'id="stock-grid"','id="review-dialog"','id="review-adopt"',
-                         'id="review-cancel"','id="week-content"'):
+                         'id="auto-sleep"','id="repropose"','id="inventory-notice"',
+                         'id="review-dialog"','id="review-adopt"','id="review-cancel"','id="week-content"'):
               assert marker in strategy, marker
+          assert 'id="stock-dialog"' not in strategy
+          assert 'id="stock-open"' not in strategy
           assert 'id="view-tabs"' not in strategy
-          assert 'id="view-active"' not in strategy
-          assert 'id="view-draft"' not in strategy
-          assert 'id="proposal-actions"' not in strategy
-          assert 'class="btn secondary small edit-slot"' not in strategy
+          assert "function readU2Transfer(){" in strategy
+          assert "const sameWeek=hasApplied&&appliedEventStart===eventInfo.start" in strategy
+          assert "if(stockPending){stockConfirmed=clone(stockPending);importedStock=null;}" in strategy
+          assert "U2_Prep_Local_Ingredients_20261103.html" in strategy
           assert "if(slot!=='sleep'||isPastSlot(day,'sleep')||switchOn('auto-sleep'))return;" in strategy
-          assert 'Object.keys(INGREDIENT_ICONS).forEach(name=>' in strategy
-          assert 'if(inputs.length!==19)' in strategy
-          assert 'if(!hasApplied||!isPastSlot(d,slot))continue;' in strategy
-          assert 'if(stockPending)stockConfirmed=clone(stockPending);' in strategy
-          assert '実ゲームの最適化計算は未接続' in strategy
-          # U3 v15: auto switch is outside settings; only manual editor is in modal.
+          assert "if(switchOn('auto-sleep'))return;selectedSleepDay=firstFutureDay()" in strategy
           assert strategy.count('id="auto-sleep"') == 1
           assert 'class="control-toggle sleep-auto-toggle" id="auto-sleep"' in strategy
           assert 'class="sleep-controls"' in strategy
-          assert 'class="sleep-config-row"' not in strategy
           assert 'id="sleep-summary"' not in strategy
           assert 'id="sleep-option-note"' not in strategy
           assert "'#sleep-open').disabled=autoSleep" in strategy
-          assert "if(switchOn('auto-sleep'))return;selectedSleepDay=firstFutureDay()" in strategy
-          assert "'#auto-sleep').onclick=()=>{toggleSwitch('auto-sleep');render();};" in strategy
-          assert '<h2>睡眠編成</h2><div class="sleep-controls">' in strategy
-          assert 'id="auto-sleep" role="switch"' in strategy
-          assert 'aria-label="睡眠編成を自動提案"' in strategy
-          assert '<span class="switch-track" aria-hidden="true"></span></button><button type="button" id="sleep-open"' in strategy
+          assert '実ゲームの最適化計算は未接続' in strategy
           tables={}
           for grade,count in (("gold",7),("blue",6),("white",4)):
               matched=re.search(grade+r":new Set\(\[([^\]]+)\]\)",strategy)
