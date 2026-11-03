@@ -1,0 +1,41 @@
+name: U2 U3 v26 Japanese event preview audit
+on:
+  push:
+    branches: [design/u2-u3-v26-ja-events-20261104]
+    paths:
+      - previews/U2_Prep_Local_Ingredients_20261104_v26.html
+      - previews/U3_Strategy_UI_20261104_v26.html
+      - previews/U3_EVENT_NAMES_JA_20261104.json
+      - previews/U2_U3_V26_JA_EVENT_AUDIT_20261104.md
+      - tests/test_preview_contract_v26.py
+      - tests/preview_browser_v26.py
+      - .github/workflows/u2-u3-v26-ja-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-and-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout v25-based design
+        uses: actions/checkout@v4
+      - name: Verify all historical static regression contracts
+        run: |
+          node --version
+          python3 -m unittest discover -s tests -p 'test_preview_contract_v*.py' -v
+      - name: Chromium event localization and unchanged flows
+        run: |
+          python3 -m pip install --quiet playwright
+          python3 tests/preview_browser_v26.py
+      - name: Export verified v26 offline previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: PokeSleep_U2_U3_Preview_v26_JapaneseEvents_20261104
+          path: |
+            previews/U2_Prep_Local_Ingredients_20261104_v26.html
+            previews/U3_Strategy_UI_20261104_v26.html
+            previews/U3_EVENT_NAMES_JA_20261104.json
+            previews/U2_U3_V26_JA_EVENT_AUDIT_20261104.md
+          retention-days: 30
+          if-no-files-found: error
