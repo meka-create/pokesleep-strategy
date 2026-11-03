@@ -106,13 +106,15 @@ jobs:
           # U3 v15: auto switch is outside settings; only manual editor is in modal.
           assert strategy.count('id="auto-sleep"') == 1
           assert 'class="control-toggle sleep-auto-toggle" id="auto-sleep"' in strategy
-          assert 'class="sleep-config-row"' in strategy
+          assert 'class="sleep-controls"' in strategy
+          assert 'class="sleep-config-row"' not in strategy
+          assert 'id="sleep-summary"' not in strategy
           assert 'id="sleep-option-note"' not in strategy
           assert "'#sleep-open').disabled=autoSleep" in strategy
           assert "if(switchOn('auto-sleep'))return;selectedSleepDay=firstFutureDay()" in strategy
           assert "'#auto-sleep').onclick=()=>{toggleSwitch('auto-sleep');render();};" in strategy
-          assert '7晩を自動提案（次の提案に適用）' in strategy
-          assert '7晩の睡眠編成を手動設定' in strategy
+          assert '<h2>睡眠編成</h2><div class="sleep-controls">' in strategy
+          assert 'id="sleep-open" class="btn small secondary">設定</button><button' in strategy
           tables={}
           for grade,count in (("gold",7),("blue",6),("white",4)):
               matched=re.search(grade+r":new Set\(\[([^\]]+)\]\)",strategy)
