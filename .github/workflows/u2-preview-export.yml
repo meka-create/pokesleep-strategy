@@ -1,0 +1,27 @@
+name: U2 Preview Download
+on:
+  push:
+    branches:
+      - design/u2-local-ingredient-icons-20261103
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create standalone preview ZIP
+        run: |
+          python - <<'PY'
+          from zipfile import ZipFile, ZIP_DEFLATED
+          p='previews/U2_Prep_Local_Ingredients_20261103.html'
+          with ZipFile('PokeSleep_U2_Offline_Preview_20261103.zip','w',ZIP_DEFLATED,compresslevel=9) as z:
+            z.write(p,arcname='U2_Prep_Local_Ingredients_20261103.html')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: U2_Standalone_Offline_Preview
+          path: PokeSleep_U2_Offline_Preview_20261103.zip
+          retention-days: 7
