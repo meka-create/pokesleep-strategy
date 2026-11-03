@@ -33,8 +33,8 @@ with sync_playwright() as p:
  # Sample load only; selection must be applied before event save.
  page.locator('#event-details>summary').click()
  page.locator('#event-source-fetch').click()
- assert 'したごしらえウィーク vol.1' in page.locator('#event-source-select').inner_text()
- assert 'meal prep week vol1' not in page.locator('#event-source-select').inner_text()
+ assert 'したごしらえウィーク vol.1' in page.locator('#event-source-select option[value="meal-prep-20261109"]').text_content()
+ assert 'meal prep week vol1' not in page.locator('#event-source-select option[value="meal-prep-20261109"]').text_content()
  choose(page,'#event-source-select','meal-prep-20261109')
  page.locator('#event-save').click()
  assert page.locator('#event-source-apply').is_visible()
