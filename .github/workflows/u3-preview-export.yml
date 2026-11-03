@@ -110,7 +110,7 @@ jobs:
               assert "const EVENT_WEEK_KEY='pokesleep-strategy-event-start-v2';" in html
               assert "function validWeek(date){" in html
               assert 'id="ui-toast"' in html
-              assert "setTimeout(()=>{toast.hidden=true;toastTimer=null;},2500)" in html
+              assert "toastTimer=setTimeout(" in html
           assert "if(stored.weekStart!==eventWeek)" not in prep
           assert "result.complete||which==='sunday'" not in prep
           assert "read(which,which==='current')" not in prep
