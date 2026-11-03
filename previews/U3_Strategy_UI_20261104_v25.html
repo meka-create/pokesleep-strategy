@@ -824,7 +824,16 @@ $('#event-save').onclick=()=>{
  if(!$('#event-source-apply').hidden){showToast('イベント候補を反映してから保存してください。',true);return;}
  const next={start:d,field:$('#event-field').value,food:$('#event-food').value,camp:switchOn('event-camp'),
  source:pendingEventSource?.start===d?clone(pendingEventSource):(eventInfo.start===d?(eventInfo.source||null):null)};
- const oldStart=eventInfo.start,changed=JSON.stringify(next)!==JSON.stringify(eventInfo);
+ const oldStart=eventInfo.start;
+ if(next.start!==oldStart){
+  // Never carry an unedited meal category/field/camp entitlement into a different week.
+  // Explicit new selections are retained; unchanged previous-week values become unknown.
+  if(next.field===eventInfo.field)next.field='';
+  if(next.food===eventInfo.food)next.food='';
+  if(next.camp===eventInfo.camp)next.camp=false;
+  if(!pendingEventSource)next.source=null;
+ }
+ const changed=JSON.stringify(next)!==JSON.stringify(eventInfo);
  if(changed&&oldStart!==next.start)storeState();
  eventInfo=next;
  if(changed){
