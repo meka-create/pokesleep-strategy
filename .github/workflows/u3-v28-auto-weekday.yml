@@ -1,0 +1,53 @@
+name: U3 v28 game-day weekday regression
+on:
+  push:
+    branches: [design/u3-v28-auto-weekday-20261104]
+    paths:
+      - previews/U2_Prep_Local_Ingredients_20261104_v28.html
+      - previews/U3_Strategy_UI_20261104_v28.html
+      - development/U3_B_GAME_DAY_20261104.md
+      - development/ROADMAP_CURRENT.md
+      - development/PHASE_FLOW_ACCEPTANCE_20261104.md
+      - tests/test_phase_flow_roadmap_contract.py
+      - tests/test_preview_contract_v28.py
+      - tests/test_u3_deprecated_feature_guard.py
+      - tests/preview_browser_v28_weekday.py
+      - tests/preview_browser_v28_phase.py
+      - tests/preview_browser_v28_regression.py
+      - .github/workflows/u3-v28-auto-weekday.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-and-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - name: Checkout v27-based implementation
+        uses: actions/checkout@v4
+      - name: Check historical artifacts, frozen assets, no editing and roadmap
+        run: |
+          node --version
+          python3 -m unittest discover -s tests -p 'test_preview_contract_v*.py' -v
+          python3 -m unittest discover -s tests -p 'test_u3_deprecated_feature_guard.py' -v
+          python3 -m unittest discover -s tests -p 'test_phase_flow_roadmap_contract.py' -v
+      - name: Verify JST day boundary and prior U3-A plus U3 interaction flows in Chromium
+        run: |
+          python3 -m pip install --quiet playwright
+          python3 tests/preview_browser_v28_weekday.py
+          python3 tests/preview_browser_v28_phase.py
+          python3 tests/preview_browser_v28_regression.py
+      - name: Export standalone v28 HTML and audited source documents
+        uses: actions/upload-artifact@v4
+        with:
+          name: PokeSleep_U2_U3_Preview_v28_U3B_20261104
+          path: |
+            previews/U2_Prep_Local_Ingredients_20261104_v28.html
+            previews/U3_Strategy_UI_20261104_v28.html
+            development/U3_B_GAME_DAY_20261104.md
+            development/U3_A_PHASE_LAYOUT_20261104.md
+            development/ROADMAP_CURRENT.md
+            development/PRODUCT_DECISIONS_CURRENT_20261104.md
+            development/PHASE_FLOW_ACCEPTANCE_20261104.md
+          if-no-files-found: error
+          retention-days: 30
