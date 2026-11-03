@@ -1,0 +1,42 @@
+name: U2 U3 v25 intermediate audit
+on:
+  push:
+    branches: [design/u2-u3-v25-audit-fixes-20261104]
+    paths:
+      - previews/U3_Strategy_UI_20261104_v25.html
+      - previews/U2_Prep_Local_Ingredients_20261104_v25.html
+      - previews/U2_U3_V25_AUDIT_20261104.md
+      - tests/test_preview_contract_v25.py
+      - tests/preview_browser_v25.py
+      - .github/workflows/u2-u3-v25-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-and-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout audited branch
+        uses: actions/checkout@v4
+      - name: Python and Node syntax and regression contracts
+        run: |
+          node --version
+          python3 -m unittest discover -s tests -p 'test_preview_contract_v*.py' -v
+      - name: Chromium end-to-end acceptance
+        run: |
+          python3 -m pip install --quiet playwright
+          python3 tests/preview_browser_v25.py
+      - name: Export v25 with frozen baselines and audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: PokeSleep_U2_U3_Preview_v25_20261104_AUDITED
+          path: |
+            previews/U2_Prep_Local_Ingredients_20261104_v25.html
+            previews/U3_Strategy_UI_20261104_v25.html
+            previews/U2_Prep_Local_Ingredients_20261103.html
+            previews/U3_Strategy_UI_20261103.html
+            previews/U3_Strategy_UI_20261104_v24.html
+            previews/U2_U3_V25_AUDIT_20261104.md
+          retention-days: 30
+          if-no-files-found: error
