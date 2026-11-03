@@ -95,7 +95,20 @@ jobs:
           assert 'min-height:70px' in prep
           assert 'id="goal-panel"' in prep and 'id="actual-panel"' in prep
           assert "current.id='current-panel'" in prep
-          assert "result.complete||which==='sunday'" in prep
+          # v21: both U2 food-input tabs may save blank entries; blanks become numeric zero.
+          assert 'function read(which){' in prep
+          assert "const value=isEmpty?0:Number(str);" in prep
+          assert "!input.validity.badInput" in prep
+          assert "const result=read(which);" in prep
+          assert "transferLink(which,record);" in prep
+          assert "showToast(error.textContent,true)" in prep
+          assert ".ui-toast.is-error" in prep
+          assert 'function showToast(message,isError=false)' in prep
+          assert 'return [name,Number.isInteger(v)&&v>=0&&v<=10000?v:0];' in prep
+          assert "const value=item.values[name];" in strategy
+          assert "item.values[name]===null?0:item.values[name]" in strategy
+          assert "Object.prototype.hasOwnProperty.call(item.values,name)" in strategy
+          assert "未入力の食材は未確認です" not in strategy
           assert "U3_Strategy_UI_20261103.html" in prep
           # v19: all 3 food tabs share compact 3-row cards.
           assert prep.count('class="food-media"') == 38
@@ -119,7 +132,9 @@ jobs:
           assert "if(stored.weekStart!==eventWeek)" not in prep
           assert "stored.weekStart!==eventWeek" in prep
           assert "for(const input of lists[which]){input.value='';" in prep
-          assert "if(which==='sunday'||Object.values(stored.values).every(Number.isInteger))transferLink(which,stored);" in prep
+          assert "transferLink(which,normalized);" in prep
+          assert "result.complete||which==='sunday'" not in prep
+          assert "read(which,which==='current')" not in prep
           assert "url.searchParams.set('eventStart',eventWeek)" in prep
           assert "sunday.querySelector('.row.total>span').textContent='日曜実績の合計';" in prep
           assert "item.weekStart!==eventInfo.start" in strategy
