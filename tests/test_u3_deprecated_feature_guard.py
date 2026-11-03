@@ -7,13 +7,15 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 ROADMAP=ROOT/"development/ROADMAP_CURRENT.md"
-PREVIEW=ROOT/"previews/U3_Strategy_UI_20261104_v26.html"
+PREVIEW=ROOT/"previews/U3_Strategy_UI_20261104_v27.html"
+GOLDEN=ROOT/"previews/U3_Strategy_UI_20261104_v26.html"
 DECISIONS=ROOT/"development/PRODUCT_DECISIONS_CURRENT_20261104.md"
 
 class AbolishedUIRegression(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
   cls.s=PREVIEW.read_text(encoding="utf-8")
+  cls.golden=GOLDEN.read_text(encoding="utf-8")
   cls.rules=DECISIONS.read_text(encoding="utf-8")
   cls.roadmap=ROADMAP.read_text(encoding="utf-8")
 
@@ -55,6 +57,16 @@ class AbolishedUIRegression(unittest.TestCase):
   self.assertNotIn("openEdit(day,'morning')",s)
   self.assertNotIn("openEdit(day,'noon')",s)
   self.assertNotIn("openEdit(day,'evening')",s)
+
+ def test_v27_does_not_reintroduce_editing_when_moving_cards(self):
+  for rendered in (self.golden,self.s):
+   anchor=rendered.index("function renderSlots(container,plan,dayIndex){")
+   tail=rendered.index("function renderSleepSettings(){",anchor)
+   part=rendered[anchor:tail]
+   self.assertNotIn("openEdit(",part)
+   self.assertNotIn("edit-dialog",part)
+   self.assertNotIn("recipe-editor",part)
+   self.assertNotIn("section.onclick",part)
 
  def test_no_abandoned_active_proposal_switch(self):
   s=self.s
