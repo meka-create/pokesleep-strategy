@@ -1,0 +1,50 @@
+name: U3 phase-flow roadmap and regression gate
+
+on:
+  push:
+    branches: [design/phase-flow-roadmap-20261104]
+    paths:
+      - development/PRODUCT_DECISIONS_CURRENT_20261104.md
+      - development/ROADMAP_CURRENT.md
+      - development/DECISION_HISTORY_PHASE_FLOW_20261104.md
+      - development/PHASE_FLOW_ACCEPTANCE_20261104.md
+      - tests/test_phase_flow_roadmap_contract.py
+      - tests/test_u3_deprecated_feature_guard.py
+      - previews/U2_Prep_Local_Ingredients_20261104_v26.html
+      - previews/U3_Strategy_UI_20261104_v26.html
+      - .github/workflows/u3-phase-flow-roadmap-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase-flow-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout current decisions and frozen v26 source
+        uses: actions/checkout@v4
+      - name: Check stage-specific roadmap and all historical frozen contracts
+        run: |
+          node --version
+          python3 -m unittest discover -s tests -p 'test_preview_contract_v*.py' -v
+          python3 -m unittest discover -s tests -p 'test_u3_deprecated_feature_guard.py' -v
+          python3 -m unittest discover -s tests -p 'test_phase_flow_roadmap_contract.py' -v
+      - name: Revalidate unchanged v26 browser interactions
+        run: |
+          python3 -m pip install --quiet playwright
+          python3 tests/preview_browser_v26.py
+      - name: Bundle immutable v26 references and canonical plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: PokeSleep_PhaseFlow_Decisions_Roadmap_20261104
+          path: |
+            development/PRODUCT_DECISIONS_CURRENT_20261104.md
+            development/ROADMAP_CURRENT.md
+            development/DECISION_HISTORY_PHASE_FLOW_20261104.md
+            development/PHASE_FLOW_ACCEPTANCE_20261104.md
+            previews/U2_Prep_Local_Ingredients_20261104_v26.html
+            previews/U3_Strategy_UI_20261104_v26.html
+          if-no-files-found: error
+          retention-days: 30
