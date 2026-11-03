@@ -124,7 +124,7 @@
 <main>
 <details class="event-details card" id="event-details"><summary><span>イベント条件</span></summary><div class="event-fields"><label class="field">開始日<input id="event-start" type="date" value="2026-11-09"></label><div class="field"><span>料理</span><select id="event-food"><option value="curry">カレー</option><option value="salad">サラダ</option><option value="dessert">デザート</option></select></div><div class="field wide"><span>フィールド</span><select id="event-field"><option>ワカクサ本島</option><option>シアンの砂浜</option><option>トープ洞窟</option><option>ウノハナ雪原</option><option>ラピスラズリ湖畔</option><option>ゴールド旧発電所</option><option>アンバー渓谷</option><option>ワカクサ本島EX</option><option>シアンの砂浜EX</option></select></div><div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="false"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div></div></details>
 <section class="card sleep-settings" aria-label="睡眠編成の設定"><div class="section-head"><h2>睡眠編成</h2><div class="sleep-controls"><button type="button" class="control-toggle sleep-auto-toggle" id="auto-sleep" role="switch" aria-checked="false" aria-label="睡眠編成を自動提案"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button><button type="button" id="sleep-open" class="btn small secondary">設定</button></div></div></section>
-<section class="card plan-actions" aria-label="週間作戦の操作"><button type="button" id="generate" class="btn full">7日間の作戦を提案</button><button type="button" id="repropose" class="btn secondary full" hidden>作戦を再提案</button><p class="hint" id="inventory-notice" hidden></p><a class="hint u2-nav" href="U2_Prep_Local_Ingredients_20261103.html">食材在庫の入力・修正は準備画面で行う</a><p class="hint" id="mock-note">このプレビューの編成と料理は操作確認用の例です。</p><div id="status" class="status-message" role="status" aria-live="polite"></div></section>
+<section class="card plan-actions" aria-label="週間作戦の操作"><button type="button" id="generate" class="btn full">7日間の作戦を提案</button><button type="button" id="repropose" class="btn secondary full" hidden>作戦を再提案</button><button type="button" id="resume-draft" class="btn secondary full" hidden>未採用の提案を確認</button><p class="hint" id="stock-gate" hidden>食材在庫を保存すると提案できます。<a class="u2-nav" href="U2_Prep_Local_Ingredients_20261103.html">食材在庫へ</a></p><p class="hint" id="inventory-notice" hidden></p><a class="hint u2-nav" href="U2_Prep_Local_Ingredients_20261103.html">食材在庫の入力・修正は準備画面で行う</a><p class="hint" id="mock-note">このプレビューの編成と料理は操作確認用の例です。</p><div id="status" class="status-message" role="status" aria-live="polite"></div></section>
 <section class="card" id="week-content" hidden><div class="section-head"><h2 id="current-state-title">週間編成</h2><span class="energy">週間エナジー <b>—</b></span></div><div class="week-head"><div class="day-title"><span id="day-label">月曜日</span><small id="day-date">11/9</small></div></div><div class="daynav" id="day-nav" role="tablist" aria-label="曜日を選択"></div><div id="slots"></div></section></main></div><div id="ui-toast" class="ui-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 <dialog class="modal sleep-modal" id="sleep-dialog" aria-labelledby="sleep-title"><div class="modal-head"><h2 id="sleep-title">睡眠編成</h2><button type="button" class="btn small ghost" id="sleep-close">閉じる</button></div><p class="review-note">基本の5匹を全7晩に設定し、必要な曜日だけ変更できます。</p><div id="sleep-manual"><div id="sleep-day-nav" class="daynav" role="tablist" aria-label="睡眠設定の曜日"></div><div id="sleep-team-preview" class="sleep-team-preview"></div><div class="sleep-actions"><button type="button" class="btn secondary full" id="sleep-change">この夜の5匹を変更</button><button type="button" class="btn ghost full" id="sleep-copy">この5匹を全7晩に設定</button></div></div></dialog>
 
@@ -454,34 +454,90 @@ function persistEventWeek(){
  }catch(e){/* history may be restricted when testing an offline HTML snapshot */}
 }
 function updateU2Link(){
- const link=$('.u2-nav');if(!link)return;
  const base=/^(https?:|file:)/.test(location.href)?location.href:'https://pokesleep-preview.invalid/';
  const url=new URL('U2_Prep_Local_Ingredients_20261103.html',base);
  url.searchParams.set('eventStart',eventInfo.start);
- link.href=url.href;
+ document.querySelectorAll('.u2-nav').forEach(link=>link.href=url.href);
 }
-let importedStock=null,importedSource=null,importedAt=null;
-function readU2Transfer(){
- const raw=new URLSearchParams(location.search).get('pokesleepStock');if(!raw||raw.length>10000)return;
- try{
-  const item=JSON.parse(raw);
-  if(item.version!==2||item.weekStart!==eventInfo.start||!['sunday','current'].includes(item.source)||!item.values||typeof item.values!=='object')return;
-  const required=Object.keys(INGREDIENT_ICONS);
-  // Blank food counts (legacy null or new zero) all mean zero in this preview.
-  // Require every ingredient key; reject malformed numbers instead of silently converting them.
-  if(required.length!==19||required.some(name=>{
-   if(!Object.prototype.hasOwnProperty.call(item.values,name))return true;
-   const value=item.values[name];
-   return value!==null&&(!Number.isInteger(value)||value<0||value>10000);
-  }))return;
-  importedStock=Object.fromEntries(required.map(name=>[name,item.values[name]===null?0:item.values[name]]));
-  importedSource=item.source;importedAt=item.savedAt||null;
- }catch(e){}
+let importedStock=null,importedSource=null,importedAt=null,appliedInventoryAt=null,hasInventory=false;
+const inventoryKey=week=>'pokesleep-strategy-u2-v3:'+week+':inventory';
+function normalizeInventory(item){
+ if(!item||item.weekStart!==eventInfo.start||!item.values||typeof item.values!=='object')return null;
+ if(!((item.version===3&&item.source==='inventory')||(item.version===2&&['current','sunday'].includes(item.source))))return null;
+ const keys=Object.keys(INGREDIENT_ICONS);
+ if(keys.length!==19)return null;
+ const values={};for(const name of keys){
+  if(!Object.prototype.hasOwnProperty.call(item.values,name))return null;
+  const value=item.values[name];if(value!==null&&(!Number.isInteger(value)||value<0||value>10000))return null;
+  values[name]=value===null?0:value;
+ }
+ return {values,source:item.source,savedAt:item.savedAt||null};
 }
-readU2Transfer();
+function refreshInventory(){
+ let inStorage=null,inLink=null;
+ try{inStorage=normalizeInventory(JSON.parse(localStorage.getItem(inventoryKey(eventInfo.start))||'null'));}catch(e){}
+ try{const raw=new URLSearchParams(location.search).get('pokesleepStock');if(raw&&raw.length<10000)inLink=normalizeInventory(JSON.parse(raw));}catch(e){}
+ const newest=(!inStorage||((inLink?.savedAt||'')>(inStorage.savedAt||'')))?inLink||inStorage:inStorage;
+ hasInventory=!!newest;
+ importedStock=newest?clone(newest.values):null;importedSource=newest?.source||null;importedAt=newest?.savedAt||null;
+ if(!hasInventory){importedStock=null;importedAt=null;}
+}
+refreshInventory();
 $('#event-start').value=eventInfo.start;
 updateU2Link();
 persistEventWeek();
+// Versioned local-only preview persistence. Corrupt/incompatible records fail closed.
+const strategyKey=week=>'pokesleep-strategy-u3-v1:'+week;
+function validTeam(team){return Array.isArray(team)&&team.length===5&&new Set(team).size===5&&team.every(id=>POOL[id]);}
+function validPlan(plan){
+ return plan&&Array.isArray(plan.days)&&plan.days.length===7&&
+ ['curry','salad','dessert'].includes(plan.foodMode)&&typeof plan.autoSleep==='boolean'&&
+ plan.days.every(day=>['morning','noon','evening','sleep'].every(slot=>validTeam(day[slot]))&&
+ Array.isArray(day.recipes)&&day.recipes.length===3&&day.recipes.every(n=>Number.isInteger(n)&&n>=0&&n<=3));
+}
+function validTeams(teams){return Array.isArray(teams)&&teams.length===7&&teams.every(validTeam);}
+function storeState(){
+ try{
+  const record={version:1,weekStart:eventInfo.start,eventInfo:clone(eventInfo),hasApplied,
+   applied:hasApplied?clone(applied):null,appliedEventStart,appliedEventInfo:appliedEventInfo?clone(appliedEventInfo):null,
+   draft:draft?clone(draft):null,manualSleep:clone(manualSleep),autoSleep:switchOn('auto-sleep'),
+   stockConfirmed:stockConfirmed?clone(stockConfirmed):null,stockPending:stockPending?clone(stockPending):null,
+   appliedInventoryAt,selectedDay,reviewDay};
+  localStorage.setItem(strategyKey(eventInfo.start),JSON.stringify(record));return true;
+ }catch(e){return false;}
+}
+function restoreState(week,resetIfMissing=false){
+ // Switching event week never copies an old week's applied plan into the new week.
+ if(resetIfMissing){applied=makeBase();hasApplied=false;appliedEventStart=null;appliedEventInfo=null;
+   draft=null;stockConfirmed=null;stockPending=null;appliedInventoryAt=null;
+   manualSleep=Array.from({length:7},()=>arrangeHealers(BASE_SLEEP));setSwitch('auto-sleep',false);selectedDay=0;reviewDay=0;}
+ try{
+  const entry=JSON.parse(localStorage.getItem(strategyKey(week))||'null');
+  if(!entry||entry.version!==1||entry.weekStart!==week||!entry.eventInfo||entry.eventInfo.start!==week||!validTeams(entry.manualSleep))return false;
+  if(entry.hasApplied&&!validPlan(entry.applied))return false;
+  if(entry.draft&&!validPlan(entry.draft))return false;
+  eventInfo=clone(entry.eventInfo);hasApplied=!!entry.hasApplied;applied=hasApplied?clone(entry.applied):makeBase();
+  appliedEventStart=hasApplied?week:null;appliedEventInfo=hasApplied&&entry.appliedEventInfo?clone(entry.appliedEventInfo):null;
+  manualSleep=clone(entry.manualSleep);setSwitch('auto-sleep',!!entry.autoSleep);
+  draft=entry.draft?clone(entry.draft):null;
+  stockConfirmed=entry.stockConfirmed?clone(entry.stockConfirmed):null;
+  stockPending=entry.stockPending?clone(entry.stockPending):null;
+  appliedInventoryAt=entry.appliedInventoryAt||null;
+  selectedDay=Number.isInteger(entry.selectedDay)&&entry.selectedDay>=0&&entry.selectedDay<7?entry.selectedDay:0;
+  reviewDay=Number.isInteger(entry.reviewDay)&&entry.reviewDay>=0&&entry.reviewDay<7?entry.reviewDay:0;
+  return true;
+ }catch(e){return false;}
+}
+restoreState(eventInfo.start);
+$('#event-start').value=eventInfo.start;
+function syncEventControls(){
+ $('#event-start').value=eventInfo.start;
+ $('#event-field').value=eventInfo.field;$('#event-food').value=eventInfo.food;
+ setSwitch('event-camp',eventInfo.camp);
+ refreshSelect('event-food');refreshSelect('event-field');
+}
+syncEventControls();updateU2Link();
+refreshInventory();
 function getPlan(){return applied;}
 function currentRecipes(plan=getPlan()){return RECIPES[plan.foodMode];}
 function formatDate(date){const d=new Date(date+'T12:00:00Z');return (d.getUTCMonth()+1)+'/'+d.getUTCDate();}
@@ -537,14 +593,19 @@ function proposal(stock=null){
 }
 function avatar(id){const p=POOL[id];const tile=document.createElement('div');tile.className='mon';const icon=document.createElement('button');icon.className='avatar avatar-tap sprite-stage';icon.type='button';icon.style.setProperty('--tone',p.color);icon.setAttribute('aria-label',p.name+'のステータス');appendSprite(icon,p);icon.addEventListener('click',()=>showPokemon(id));const label=document.createElement('span');label.className='mon-name';label.textContent=p.name;tile.append(icon,label);return tile;}
 function render(){
+ refreshInventory();
  const plan=applied,phase=eventPhase();
  // A plan from another event week is never presented as the current week's plan.
  const activePlan=hasApplied&&appliedEventStart===eventInfo.start;
  $('#week-content').hidden=!activePlan;
  $('#generate').hidden=activePlan;
  $('#repropose').hidden=!activePlan;
- $('#generate').disabled=phase==='ended';
- $('#repropose').disabled=phase==='ended';
+ $('#generate').disabled=phase==='ended'||!hasInventory;
+ $('#repropose').disabled=phase==='ended'||!hasInventory;
+ $('#stock-gate').hidden=hasInventory||activePlan;
+ document.querySelectorAll('.plan-actions>a.u2-nav').forEach(link=>link.hidden=!hasInventory&&!activePlan);
+ $('#resume-draft').hidden=!draft;
+ $('#resume-draft').disabled=phase==='ended';
  const autoSleep=switchOn('auto-sleep');
  $('#sleep-open').disabled=autoSleep;
  const eventChanged=activePlan&&JSON.stringify(appliedEventInfo)!==JSON.stringify(eventInfo);
@@ -554,8 +615,9 @@ function render(){
  const stateMsg=$('#status');
  stateMsg.textContent=pendingCondition?'作戦の条件が変更されています。「作戦を再提案」で反映してください。':'';
  stateMsg.classList.toggle('error',pendingCondition);
- $('#inventory-notice').hidden=!importedStock;
- $('#inventory-notice').textContent=importedStock?(importedSource==='sunday'?'U2の日曜実績を取り込みました。':'U2で現在の在庫が更新されました。')+'「作戦を再提案」で反映できます。':'';
+ const stockOutdated=hasInventory&&!!hasApplied&&(importedAt!==appliedInventoryAt||JSON.stringify(importedStock)!==JSON.stringify(stockConfirmed));
+ $('#inventory-notice').hidden=!stockOutdated;
+ $('#inventory-notice').textContent=stockOutdated?'U2で食材在庫が更新されました。「作戦を再提案」で反映できます。':'';
  $('#current-state-title').textContent=pendingCondition?'週間編成（旧条件）':'週間編成';
  $('#day-label').textContent=FULL[selectedDay];$('#day-date').textContent=formatDate(dateFor(selectedDay));
  const nav=$('#day-nav');nav.textContent='';
@@ -606,11 +668,11 @@ function renderReview(){
  for(let d=0;d<7;d++)nav.append(makeDayButton(d,reviewDay,day=>{reviewDay=day;renderReview();},'仮提案の'));
  const content=$('#review-slots');content.textContent='';renderSlots(content,draft,reviewDay);SpritePreview.enhance(content);
 }
-function closeReview(){if($('#review-dialog').open)$('#review-dialog').close();draft=null;stockPending=null;render();}
+function closeReview(){if($('#review-dialog').open)$('#review-dialog').close();draft=null;stockPending=null;storeState();render();}
 function showProposal(stock=null){
- if(eventPhase()==='ended')return;
- stockPending=stock?clone(stock):null;draft=proposal(stockPending);
- reviewDay=firstFutureDay();renderReview();$('#review-dialog').showModal();
+ refreshInventory();if(eventPhase()==='ended'||!hasInventory){showToast('先にU2で食材在庫を保存してください。',true);return;}
+ stockPending=clone(importedStock);draft=proposal(stockPending);
+ reviewDay=firstFutureDay();storeState();renderReview();$('#review-dialog').showModal();
 }
 function copySleepNights(day){
  if(switchOn('auto-sleep'))return;
@@ -619,7 +681,7 @@ function copySleepNights(day){
  const team=[...manualSleep[day]];
  if(eligible.some(i=>JSON.stringify(manualSleep[i])!==JSON.stringify(team))&&!confirm('未開始の睡眠編成を、この5匹にそろえますか？'))return;
  eligible.forEach(i=>{manualSleep[i]=[...team];});
- renderSleepSettings();render();showToast('睡眠編成を設定しました');
+ renderSleepSettings();storeState();render();showToast('睡眠編成を設定しました');
 }
 function openEdit(day,slot){
  if(slot!=='sleep'||isPastSlot(day,'sleep')||switchOn('auto-sleep'))return;
@@ -632,18 +694,19 @@ function saveEdit(){
  if(!edit||edit.slot!=='sleep'||edit.picks.length!==5)return;
  if(isPastSlot(edit.day,'sleep')){$('#edit-error').textContent='この夜は開始済みです。';return;}
  const day=edit.day;manualSleep[day]=arrangeHealers(edit.picks);
- $('#edit-dialog').close();edit=null;renderSleepSettings();render();showToast('睡眠編成を設定しました');
+ $('#edit-dialog').close();edit=null;renderSleepSettings();storeState();render();showToast('睡眠編成を設定しました');
 }
 $('#edit-close').onclick=$('#edit-cancel').onclick=()=>$('#edit-dialog').close();
 $('#edit-dialog').addEventListener('close',()=>{edit=null;closeSelect(customMenus.get('recipe-choice'));});
 $('#edit-save').onclick=saveEdit;
 $('#sleep-open').onclick=()=>{if(switchOn('auto-sleep'))return;selectedSleepDay=firstFutureDay();renderSleepSettings();$('#sleep-dialog').showModal();};
 $('#sleep-close').onclick=()=>$('#sleep-dialog').close();
-$('#auto-sleep').onclick=()=>{toggleSwitch('auto-sleep');render();};
+$('#auto-sleep').onclick=()=>{toggleSwitch('auto-sleep');storeState();render();};
 $('#sleep-change').onclick=()=>openEdit(selectedSleepDay,'sleep');
 $('#sleep-copy').onclick=()=>copySleepNights(selectedSleepDay);
-$('#generate').onclick=()=>showProposal(importedStock||stockConfirmed);
-$('#repropose').onclick=()=>showProposal(importedStock||stockConfirmed);
+$('#generate').onclick=()=>showProposal();
+$('#repropose').onclick=()=>showProposal();
+$('#resume-draft').onclick=()=>{if(draft){renderReview();$('#review-dialog').showModal();}};
 $('#review-close').onclick=$('#review-cancel').onclick=closeReview;
 $('#review-adopt').onclick=()=>{
  if(!draft||eventPhase()==='ended')return;
@@ -654,9 +717,10 @@ $('#review-adopt').onclick=()=>{
   if(i<3)next.days[d].recipes[i]=applied.days[d].recipes[i];
  }
  applied=next;hasApplied=true;appliedEventStart=eventInfo.start;appliedEventInfo=clone(eventInfo);
- if(stockPending){stockConfirmed=clone(stockPending);importedStock=null;}
+ if(stockPending){stockConfirmed=clone(stockPending);appliedInventoryAt=importedAt;}
  draft=null;stockPending=null;$('#review-dialog').close();selectedDay=firstFutureDay();
- flash('作戦を採用しました');render();
+ if(!storeState())showToast('作戦を端末へ保存できませんでした。',true);
+ else showToast('作戦を採用しました');render();
 };
 $('#event-camp').addEventListener('click',()=>toggleSwitch('event-camp'));
 $('#event-save').onclick=()=>{
@@ -670,18 +734,23 @@ $('#event-save').onclick=()=>{
  $('#event-start').removeAttribute('aria-invalid');
  const next={start:d,field:$('#event-field').value,food:$('#event-food').value,camp:switchOn('event-camp')};
  const oldStart=eventInfo.start,changed=JSON.stringify(next)!==JSON.stringify(eventInfo);
+ if(changed&&oldStart!==next.start)storeState();
  eventInfo=next;
- persistEventWeek();updateU2Link();
  if(changed){
-  draft=null;
-  if(oldStart!==next.start){stockConfirmed=null;importedStock=null;importedSource=null;importedAt=null;}
+  draft=null;stockPending=null;
+  if(oldStart!==next.start){restoreState(next.start,true);syncEventControls();refreshInventory();}
   showToast('イベント条件を保存しました');
  }
+ persistEventWeek();updateU2Link();
+ storeState();
  $('#event-details').open=false;
  closeSelect(customMenus.get('event-food'));closeSelect(customMenus.get('event-field'));
  render();
 };
-$('#review-dialog').addEventListener('close',()=>{if(draft){draft=null;stockPending=null;render();}});
+$('#review-dialog').addEventListener('close',()=>{if(draft){draft=null;stockPending=null;storeState();render();}});
+window.addEventListener('pageshow',()=>{refreshInventory();render();});
+window.addEventListener('storage',e=>{if(e.key===inventoryKey(eventInfo.start)){refreshInventory();render();}});
+window.addEventListener('beforeunload',storeState);
 render();
 })();
 </script></body></html>
