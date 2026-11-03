@@ -36,8 +36,9 @@
 .stat-modal .iv-base>.iv-value{display:flex;align-items:center;min-width:0;min-height:44px;padding:8px 0;color:var(--text);font-size:14px;font-weight:730;line-height:1.4}
 .stat-modal .iv-ingredients{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:3px}
 .stat-modal .iv-ingredient{display:flex;flex-direction:column;align-items:center;min-width:0;gap:3px;text-align:center}
-.stat-modal .iv-ingredient img{width:clamp(28px,9vw,40px);height:clamp(28px,9vw,40px)}
-.stat-modal .iv-ingredient b{font-size:10px}
+.stat-modal .iv-ingredient-image{position:relative;display:block;flex:none;width:clamp(28px,9vw,40px);height:clamp(28px,9vw,40px)}
+.stat-modal .iv-ingredient .iv-ingredient-image img{display:block;width:100%;height:100%;object-fit:contain}
+.stat-modal .iv-ingredient-quantity{position:absolute;right:-7px;bottom:0;display:flex;align-items:center;justify-content:center;min-width:23px;min-height:17px;padding:1px 4px;border:1px solid #c7a367;border-radius:999px;background:#16283b;color:#fff5df;font-size:10px;font-weight:850;line-height:1.1;white-space:nowrap;box-shadow:0 1px 3px #0008;box-sizing:border-box}
 .stat-modal .iv-ingredient .ingredient-name{font-size:9px;line-height:1.25;overflow-wrap:anywhere}
 /* Nature display: pokesleep-tool-style outlined oval + adjacent modifiers, in navy theme. */
 .stat-modal .iv-nature-row{display:grid;grid-template-columns:minmax(108px,38%) minmax(0,1fr);align-items:center;gap:10px;margin:10px 2px 9px}
@@ -185,6 +186,13 @@ const MOCK_STATUS={
  vaporeon:['57','しんちょう','食材ゲットS','6','モーモーミルク／リラックスカカオ／モーモーミルク'],
  ampharos:['60','おだやか','エナジーチャージM','6','げきからハーブ／とくせんエッグ／げきからハーブ']
 };
+// The U3 preview uses illustrative amounts only; real amounts come from registered Pokémon data.
+const MOCK_INGREDIENT_COUNTS={
+ gardevoir:[1,3,2],sylveon:[2,3,4],dedenne:[1,2,3],
+ magnezone:[2,3,4],blastoise:[2,3,4],raichu:[1,2,3],
+ typhlosion:[2,3,4],dragonite:[2,3,4],venusaur:[2,3,4],
+ espeon:[1,2,3],vaporeon:[2,3,4],ampharos:[2,3,4]
+};
 // Source of truth: Pokemon Sleep subskill table, 17 names: 7 gold, 6 blue, 4 white.
 const SUBSKILL_GRADES={
  gold:new Set(['睡眠EXPボーナス','おてつだいボーナス','げんき回復ボーナス','ゆめのかけらボーナス','リサーチEXPボーナス','きのみの数S','スキルレベルアップM']),
@@ -218,14 +226,19 @@ function showPokemon(id){
  }
  if((p.nickname||p.name)!==p.name)addValue(base,'ポケモン',p.name);
  const ingredientGroup=document.createElement('div');ingredientGroup.className='iv-ingredients';
+ const ingredientCounts=MOCK_INGREDIENT_COUNTS[id]||[];
  details[4].split('／').forEach((value,i)=>{
   const ingredient=document.createElement('span');ingredient.className='iv-ingredient';
-  const level=document.createElement('b');level.textContent='Lv.'+[1,30,60][i];
   const name=value.trim(),url=INGREDIENT_ICONS[name];
-  ingredient.append(level);
-  if(url){const img=document.createElement('img');img.src=url;img.alt='';img.decoding='async';ingredient.append(img);}
+  const imageFrame=document.createElement('span');imageFrame.className='iv-ingredient-image';
+  if(url){const img=document.createElement('img');img.src=url;img.alt='';img.decoding='async';imageFrame.append(img);}
+  const count=ingredientCounts[i];
+  const countBadge=document.createElement('span');countBadge.className='iv-ingredient-quantity';
+  countBadge.textContent=Number.isInteger(count)&&count>0?'×'+count:'—';
+  imageFrame.append(countBadge);
   const caption=document.createElement('span');caption.className='ingredient-name';caption.textContent=name;
-  ingredient.append(caption);ingredientGroup.append(ingredient);
+  ingredient.setAttribute('aria-label',name+' '+countBadge.textContent);
+  ingredient.append(imageFrame,caption);ingredientGroup.append(ingredient);
  });
  addValue(base,'食材',ingredientGroup);
  addValue(base,'おてつだい時間','—');
