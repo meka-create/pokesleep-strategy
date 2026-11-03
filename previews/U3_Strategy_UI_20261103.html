@@ -4,7 +4,7 @@
 <style>
 :root{--bg:#0e1929;--panel:#1b2c40;--panel2:#253a4f;--line:#344e63;--text:#edf3f8;--muted:#afc0d0;--gold:#f5ca78;--danger:#f8aba3;--green:#9dd3bf}
 *{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;font-size:14px;line-height:1.48}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #ffe6b4;outline-offset:2px}button:disabled{opacity:.45;cursor:not-allowed}h1,h2,h3,p{margin:0}h1{font-size:25px}h2{font-size:16px}h3{font-size:15px}.muted{color:var(--muted)}[hidden]{display:none!important}
-.shell{max-width:520px;margin:0 auto;padding:0 13px 35px}.header{display:flex;justify-content:space-between;align-items:center;padding:17px 1px 15px;border-bottom:1px solid var(--line)}.smallcap{font-size:10px;letter-spacing:.14em;color:var(--muted)}.brand{font-size:17px;font-weight:850;letter-spacing:-.03em}.mock-tag{border:1px solid #7b6644;border-radius:99px;color:var(--gold);font-size:10px;padding:5px 9px}.title-row{display:flex;justify-content:space-between;align-items:center;margin-top:18px;margin-bottom:12px}.event-summary{font-size:12px;color:var(--muted);margin-top:2px}
+.shell{max-width:520px;margin:0 auto;padding:0 13px 35px}.header{display:flex;justify-content:space-between;align-items:center;padding:17px 1px 15px;border-bottom:1px solid var(--line)}.smallcap{font-size:10px;letter-spacing:.14em;color:var(--muted)}.brand{font-size:17px;font-weight:850;letter-spacing:-.03em}.mock-tag{border:1px solid #7b6644;border-radius:99px;color:var(--gold);font-size:10px;padding:5px 9px}main{padding-top:20px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:15px;margin-bottom:12px;padding:13px}.card-flat{background:#18283a}.section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}.hint{color:var(--muted);font-size:11px}.event-details{margin-bottom:12px}.event-details>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;list-style:none;padding:10px 0;min-height:44px;font-weight:700}.event-details>summary::-webkit-details-marker{display:none}.event-details>summary::after{content:"";display:block;width:9px;height:9px;flex:0 0 9px;margin-right:5px;border-right:2px solid #cbd9e7;border-bottom:2px solid #cbd9e7;transform:rotate(45deg) translateY(-2px);transition:transform .15s}.event-details[open]>summary::after{transform:rotate(225deg) translate(-2px,-1px)}.event-fields{padding:2px 0 13px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);min-width:0}.field.wide{grid-column:1/-1}.field>input,.field>select{width:100%;background:#112237;color:var(--text);border:1px solid #64778a;border-radius:9px;min-height:44px;padding:9px}.field input[type=checkbox]{width:18px;height:18px}.checkline{display:flex;align-items:center;gap:9px;min-height:44px;color:var(--text)}.btn{border:1px solid #c79a55;border-radius:10px;min-height:44px;padding:9px 12px;background:var(--gold);color:#282319;font-weight:850}.btn.secondary{background:#2a4057;border-color:#5b7188;color:var(--text)}.btn.ghost{background:transparent;border-color:#60778c;color:var(--text)}.btn.danger{color:#f8b6ab;border-color:#a36b63;background:transparent}.btn.small{font-size:12px;min-height:36px;padding:6px 10px}.btn.full{width:100%}.btn.textbutton{background:transparent;border:0;min-height:36px;padding:6px 8px;color:var(--muted);font-size:12px}
 .controls{display:grid;gap:10px}
 .control-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:8px 0;border:0;background:transparent;color:var(--text);font-weight:750;text-align:left;cursor:pointer;touch-action:manipulation}
@@ -29,7 +29,18 @@
 .stat-modal .iv-hero-name{padding-top:5px;flex:1}
 .stat-modal #pokemon-level{font-size:15px;line-height:1.35;display:block}
 
-.stat-modal .iv-base{grid-template-columns:minmax(94px,33%) minmax(0,1fr);align-items:center;gap:12px 10px}
+.stat-modal .iv-base{grid-template-columns:minmax(103px,35%) minmax(0,1fr);align-items:center;column-gap:11px;row-gap:11px}
+.stat-modal .iv-key-pill{display:flex;align-items:center;justify-content:center;min-height:32px;padding:5px 5px;border:1px solid #30bd77;border-radius:999px;background:linear-gradient(180deg,#198e58,#0c6543);color:#fff;text-align:center;font-weight:800;font-size:11px;white-space:nowrap;line-height:1.3;box-sizing:border-box}
+.stat-modal .iv-value{min-width:0}
+.stat-modal .iv-food-value{padding-bottom:0}
+.stat-modal .iv-ingredients{grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+.stat-modal .iv-ingredient{min-width:0;gap:3px}
+.stat-modal .iv-ingredient img{width:clamp(28px,9vw,40px);height:clamp(28px,9vw,40px)}
+.stat-modal .iv-nature-details{display:flex;flex-direction:column;align-items:stretch;gap:5px}
+.stat-modal .iv-nature-modifiers{display:flex;flex-direction:column;gap:4px;padding-top:5px;border-top:1px solid #40556a}
+.stat-modal .iv-nature-effect{gap:6px;font-size:10px;align-items:baseline}
+@media(min-width:430px){.stat-modal .iv-nature-details{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:9px;align-items:center}.stat-modal .iv-nature-modifiers{border-top:0;border-left:1px solid #40556a;padding-top:0;padding-left:9px}}
+@media(max-width:360px){.stat-modal .iv-base{grid-template-columns:minmax(100px,36%) minmax(0,1fr);column-gap:8px}.stat-modal .iv-key-pill{font-size:10px;padding:5px 3px}}
 .stat-modal .iv-food-label,.stat-modal .iv-food-value{grid-column:auto}
 .stat-modal .iv-ingredients{width:100%}
 .iv-nature-details{display:flex;flex-direction:column;gap:7px}
@@ -66,7 +77,7 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style></head>
 <body><div class="shell"><header class="header"><div><div class="smallcap">POKÉMON SLEEP</div><div class="brand">✦ ポケスリ作戦室</div></div><span class="mock-tag">U3</span></header>
-<main><div class="title-row"><div><h1>作戦</h1></div></div>
+<main>
 <details class="event-details card" id="event-details"><summary><span>イベント条件</span></summary><div class="event-fields"><label class="field">開始日<input id="event-start" type="date" value="2026-11-09"></label><div class="field"><span>料理</span><select id="event-food"><option value="curry">カレー</option><option value="salad">サラダ</option><option value="dessert">デザート</option></select></div><div class="field wide"><span>フィールド</span><select id="event-field"><option>ワカクサ本島</option><option>シアンの砂浜</option><option>トープ洞窟</option><option>ウノハナ雪原</option><option>ラピスラズリ湖畔</option><option>ゴールド旧発電所</option><option>アンバー渓谷</option><option>ワカクサ本島EX</option><option>シアンの砂浜EX</option></select></div><div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="false"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div></div></details>
 <section class="card controls" aria-label="作戦提案"><button type="button" class="control-toggle" id="auto-sleep" role="switch" aria-checked="false"><span>睡眠も自動提案</span><span class="switch-track" aria-hidden="true"></span></button><p id="sleep-option-note" class="hint-inline" hidden>変更は次の提案に反映</p><button type="button" id="generate" class="btn full">7日間の作戦を提案</button></section>
 <section class="card" id="week-content"><div id="view-tabs" class="state-nav" role="tablist" aria-label="作戦の表示切替" hidden><button type="button" id="view-active" role="tab" aria-selected="false">運用中</button><button type="button" id="view-draft" role="tab" aria-selected="true">提案</button></div><div class="section-head"><h2 id="current-state-title">現在の編成</h2><span class="energy">週間エナジー <b>—</b></span></div><div id="proposal-actions" class="proposal-actions" hidden><button type="button" class="btn" id="adopt">この作戦を採用</button><button type="button" class="btn ghost" id="discard">破棄</button></div><div id="status" class="status-message" role="status" aria-live="polite"></div>
@@ -199,6 +210,7 @@ function showPokemon(id){
  const base=$('#pokemon-base-rows');base.textContent='';
  function addValue(root,key,element){
   const label=document.createElement('div');label.className='iv-key';label.textContent=key;
+  if(['食材','おてつだい時間','最大所持数','せいかく'].includes(key))label.classList.add('iv-key-pill');
   const value=document.createElement('div');value.className='iv-value';
   if(typeof element==='string')value.textContent=element;else value.append(element);
   root.append(label,value);
@@ -236,6 +248,7 @@ function showPokemon(id){
  const natureView=document.createElement('div');natureView.className='iv-nature-details';
  const natureName=document.createElement('strong');natureName.className='iv-nature-name';natureName.textContent=details[1];
  natureView.append(natureName);
+ const natureModifiers=document.createElement('div');natureModifiers.className='iv-nature-modifiers';
  const modifiers=NATURE_EFFECTS[details[1]];
  if(modifiers&&modifiers.length){
   [['up',modifiers[0],'▲▲','上昇'],['down',modifiers[1],'▼▼','下降']].forEach(([direction,stat,arrows,word])=>{
@@ -243,12 +256,13 @@ function showPokemon(id){
    line.setAttribute('aria-label',word+'補正：'+stat);
    const text=document.createElement('span');text.textContent=stat;
    const symbol=document.createElement('b');symbol.textContent=arrows;
-   line.append(text,symbol);natureView.append(line);
+   line.append(text,symbol);natureModifiers.append(line);
   });
  }else{
   const neutral=document.createElement('span');neutral.className='iv-nature-none';
-  neutral.textContent=modifiers?'補正なし':'—';natureView.append(neutral);
+  neutral.textContent=modifiers?'補正なし':'—';natureModifiers.append(neutral);
  }
+ natureView.append(natureModifiers);
  addValue(nature,'せいかく',natureView);
  modal.showModal();SpritePreview.enhance(modal);
 }
