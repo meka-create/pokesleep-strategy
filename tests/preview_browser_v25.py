@@ -92,6 +92,16 @@ with sync_playwright() as p:
  assert page.locator('#event-field').input_value()=='シアンの砂浜'
  assert page.locator('#event-food').input_value()=='curry'
  assert page.locator('#week-content').is_visible()
+ # Changing an event previously selected from the mock source back to manual requires save.
+ page.locator('#event-details>summary').click()
+ page.locator('#event-source-fetch').click()
+ assert page.locator('#event-source-select').input_value()=='meal-prep-20261109'
+ choose(page,'#event-source-select','')
+ assert 'イベント条件の保存' in page.locator('#event-gate').inner_text()
+ page.locator('#event-save').click()
+ assert page.locator('#event-source-select').input_value()==''
+ page.reload()
+ assert page.locator('#event-source-select').input_value()==''
  # Current segment and completed meals stay fixed during midweek replanning.
  page.goto(U3+'?previewNow=2026-11-11T15:00&eventStart=2026-11-09')
  assert page.locator('#repropose').is_enabled()
@@ -111,5 +121,27 @@ with sync_playwright() as p:
  for width in (320,360,390,430):
   page.set_viewport_size({'width':width,'height':844})
   assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth+1'),width
- print('PASS: v23 source preservation; zero inventory; U2<->U3 routing; unknown category and berries; stale adoption; week histories; midweek locked meals; UI 320-430px; modal')
- c.close();browser.close()
+ # A first plan created on Wednesday cannot invent historical parties or meals.
+ import re
+ c2=browser.new_context(viewport={'width':390,'height':844})
+ page2=c2.new_page()
+ page2.on('pageerror',lambda e:errors.append(str(e)))
+ page2.goto(U3+'?previewNow=2026-11-11T15:00&eventStart=2026-11-09')
+ names=re.findall(r'"([^"]+)":"data:image/png;base64,',(BASE/'U3_Strategy_UI_20261104_v25.html').read_text(encoding='utf8'))
+ assert len(names)==19
+ record={'version':3,'weekStart':'2026-11-09','source':'inventory','savedAt':'2026-11-11T15:00:00+09:00','values':{name:0 for name in names}}
+ page2.evaluate("""data=>localStorage.setItem('pokesleep-strategy-u2-v3:2026-11-09:inventory',JSON.stringify(data))""",record)
+ page2.reload()
+ save_event(page2,food='salad',field='シアンの砂浜')
+ page2.locator('#generate').click()
+ page2.locator('#review-day-nav button').nth(2).click()
+ assert '実施済み（記録なし）' in page2.locator('#review-slots .slot[data-slot="noon"]').inner_text()
+ page2.locator('#review-adopt').click()
+ page2.locator('#day-nav button').nth(2).click()
+ assert '実施済み（記録なし）' in page2.locator('#slots .slot[data-slot="noon"]').inner_text()
+ page2.reload()
+ page2.locator('#day-nav button').nth(2).click()
+ assert '実施済み（記録なし）' in page2.locator('#slots .slot[data-slot="noon"]').inner_text()
+ assert not errors,errors
+ print('PASS: v23 golden; U2/U3 routing; interlocks; source clearing; stale adoption; week isolation; first-plan past masking; midweek past protection; UI 320-430px; status modal')
+ c2.close();c.close();browser.close()
