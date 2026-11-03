@@ -63,6 +63,17 @@ jobs:
           for label in ('食材','おてつだい時間','最大所持数','せいかく'):
               assert label in strategy
           assert 'iv-nature-modifiers' in strategy
+          # v11: modifier text and adjacent arrows remain readable.
+          assert 'justify-content:flex-start;gap:3px;font-size:13px' in strategy
+          assert 'white-space:nowrap;font-size:13px;font-weight:900' in strategy
+          # All five subskills use centered 13px names, with no visible Lv/lock badge.
+          assert '.iv-skill{min-height:52px' in strategy
+          assert 'font-size:13px;font-weight:750;line-height:1.35;display:flex;align-items:center;justify-content:center;text-align:center' in strategy
+          assert "const lv=document.createElement('small')" not in strategy
+          assert 'skill.append(name);target.append(skill);' in strategy
+          assert '.iv-skill.locked{opacity:.64}' in strategy
+          # Main skill remains slightly larger than every subskill.
+          assert 'background:transparent;font-size:15px;font-weight:780' in strategy
           assert "natureView.append(natureModifiers)" in strategy
           tables={}
           for grade,count in (("gold",7),("blue",6),("white",4)):
