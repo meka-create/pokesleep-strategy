@@ -43,9 +43,9 @@
 .stat-modal .iv-nature-row{display:grid;grid-template-columns:minmax(108px,38%) minmax(0,1fr);align-items:center;gap:10px;margin:10px 2px 9px}
 .stat-modal .iv-nature-pill{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:2px solid #709dc0;border-radius:999px;background:#23394e;color:var(--text);font-size:14px;font-weight:750;line-height:1.35;text-align:center;box-sizing:border-box}
 .stat-modal .iv-nature-modifiers{display:flex;flex-direction:column;justify-content:center;gap:7px;min-width:0}
-.stat-modal .iv-nature-effect{display:flex;align-items:baseline;justify-content:flex-start;gap:3px;font-size:10px;line-height:1.35;white-space:nowrap}
-.stat-modal .iv-nature-effect span{flex:0 1 auto;min-width:0;overflow-wrap:normal}
-.stat-modal .iv-nature-effect b{flex:0 0 auto;white-space:nowrap}
+.stat-modal .iv-nature-effect{display:flex;align-items:baseline;justify-content:flex-start;gap:3px;font-size:13px;line-height:1.4;white-space:normal;font-weight:650}
+.stat-modal .iv-nature-effect span{flex:0 1 auto;min-width:0;overflow-wrap:anywhere}
+.stat-modal .iv-nature-effect b{flex:0 0 auto;white-space:nowrap;font-size:13px;font-weight:900}
 .stat-modal .iv-nature-effect.up b{color:#eda377}
 .stat-modal .iv-nature-effect.down b{color:#82bde8}
 @media(max-width:360px){.stat-modal .iv-base{grid-template-columns:minmax(105px,36%) minmax(0,1fr);column-gap:8px}.stat-modal .iv-base>.iv-key{font-size:11px}}
@@ -68,10 +68,11 @@
 .iv-ingredient{display:flex;flex-direction:column;align-items:center;gap:3px;padding:1px;min-width:0;font-size:10px;text-align:center;line-height:1.3}
 .iv-ingredient b{display:block;color:var(--gold);font-size:10px}.iv-ingredient img{width:40px;height:40px;object-fit:contain}.iv-ingredient .ingredient-name{font-size:9px;color:var(--text);overflow-wrap:anywhere}
 .iv-section-title{margin:14px -2px 9px;padding:4px 8px;background:#557799;color:#fff;font-size:12px;border-radius:5px;font-weight:750}
-.iv-main{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:1px 2px 10px;padding:5px 2px 9px;border-bottom:1px solid #547087;background:transparent;font-size:13px;font-weight:750}
+.iv-main{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:1px 2px 10px;padding:5px 2px 9px;border-bottom:1px solid #547087;background:transparent;font-size:15px;font-weight:780;line-height:1.4}
 .iv-main em{font-style:normal;color:var(--gold);white-space:nowrap}
 .iv-subskills{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0}
-.iv-skill{min-height:49px;border:1px solid #6b8091;border-radius:8px;padding:6px 7px;background:#253b50;font-size:11px;line-height:1.25;display:flex;flex-direction:column;gap:3px}
+.iv-skill{min-height:52px;border:1px solid #6b8091;border-radius:8px;padding:8px 7px;background:#253b50;font-size:13px;font-weight:750;line-height:1.35;display:flex;align-items:center;justify-content:center;text-align:center;box-sizing:border-box}
+.iv-skill>span{display:block;width:100%;overflow-wrap:anywhere}
 .iv-skill.gold{border-color:#a18a59;background:#4c4334}.iv-skill.blue{border-color:#5b8eb6;background:#263f60}.iv-skill small{color:#d7deea;font-size:10px;font-weight:750}
 @media(max-width:385px){.shell{padding:0 9px 26px}.card{padding:11px 9px}.daynav{gap:4px}.daybtn{min-height:50px}.mini-roster{gap:3px}.avatar{width:42px;height:42px}.pick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mon-name{font-size:8.6px}.slot{padding:9px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
@@ -238,10 +239,9 @@ function showPokemon(id){
   const grade=skillGrade(skills[i]),unlocked=Number(details[0])>=level;
   const skill=document.createElement('div');
   skill.className='iv-skill '+grade+(unlocked?'':' locked');
-  skill.setAttribute('aria-label',skills[i]+'：'+({gold:'金',blue:'青',white:'白',unknown:'分類未確認'}[grade])+'枠、レベル'+level+(unlocked?'解放済み':'未解放'));
-  const lv=document.createElement('small');lv.textContent=(unlocked?'':'🔒 ')+'Lv.'+level;
+  skill.setAttribute('aria-label',skills[i]+'：'+({gold:'金',blue:'青',white:'白',unknown:'分類未確認'}[grade])+'枠、'+(unlocked?'解放済み':'未解放'));
   const name=document.createElement('span');name.textContent=skills[i];
-  skill.append(lv,name);target.append(skill);
+  skill.append(name);target.append(skill);
  });
  const nature=$('#pokemon-nature');nature.textContent='';
  const natureView=document.createElement('div');natureView.className='iv-nature-row';
