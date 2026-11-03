@@ -191,6 +191,8 @@ jobs:
               print(title,len(html),"chars",len(scripts),"script tags")
           PY
           for f in /tmp/U3-*.js /tmp/U2-*.js; do node --check "$f"; done
+      - name: Compile offline audit test files
+        run: python3 -m py_compile tests/test_preview_contract_v22.py tests/preview_browser_v22.py
       - name: Preview regression contract tests (no browser download)
         run: python3 -m unittest discover -s tests -p 'test_preview_contract_v22.py'
       - name: Upload offline U2 and U3 HTML preview files
