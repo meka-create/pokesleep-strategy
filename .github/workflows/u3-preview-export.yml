@@ -38,7 +38,18 @@ jobs:
           assert 'iv-close' in strategy and '#pokemon-level{font-size:15px' in strategy
           assert "grade=skillGrade(skills[i])" in strategy
           assert "NATURE_EFFECTS[details[1]]" in strategy
-          assert 'grid-template-columns:minmax(94px,33%) minmax(0,1fr)' in strategy
+          # U2/U3 have no redundant page titles; preserve clear header spacing.
+          assert '<h1>作戦</h1>' not in strategy
+          assert '<h1>準備</h1>' not in prep
+          assert 'main{padding-top:20px}' in strategy
+          assert 'main{padding-top:20px}' in prep
+          # The game-inspired four information rows use the same left/right columns.
+          assert 'grid-template-columns:minmax(103px,35%) minmax(0,1fr)' in strategy
+          assert 'iv-key-pill' in strategy
+          for label in ('食材','おてつだい時間','最大所持数','せいかく'):
+              assert label in strategy
+          assert 'iv-nature-modifiers' in strategy
+          assert "natureView.append(natureModifiers)" in strategy
           tables={}
           for grade,count in (("gold",7),("blue",6),("white",4)):
               matched=re.search(grade+r":new Set\(\[([^\]]+)\]\)",strategy)
