@@ -99,7 +99,7 @@ main{padding-top:10px}
 @media(max-height:710px){.goal-grid .food,.actual-grid .food{grid-template-rows:25px 17px 22px;min-height:70px}.goal-grid .food-media,.actual-grid .food-media{width:27px;height:25px}.goal-grid .food .name,.actual-grid .food .name{height:17px;min-height:17px;font-size:8px}}
 
 /* Invalid numbers are marked in their fields as well as notified in a toast. */
-.actual-grid .food input[aria-invalid="true"]{border:2px solid #eda59b;box-shadow:0 0 0 1px #eda59b55}
+.actual-grid .food .input-wrap input[aria-invalid="true"]{border:2px solid #eda59b;box-shadow:0 0 0 1px #eda59b55}
 .ui-toast.is-error{border-color:#b57970;background:#492f37;color:#ffe6e1}
 /* Fixed bottom toast, aligned with the existing navy / slate visual theme. */
 .ui-toast{position:fixed;z-index:110;left:50%;bottom:calc(18px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 26px);border:1px solid #67869e;background:#2b455b;color:#f3f7fd;border-radius:12px;box-shadow:0 7px 20px #071321aa;padding:11px 15px;font-weight:750;font-size:13px;line-height:1.4;text-align:center;pointer-events:none}
