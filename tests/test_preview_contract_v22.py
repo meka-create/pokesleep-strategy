@@ -15,7 +15,7 @@ class Contract(unittest.TestCase):
   self.assertNotIn("appliedStale",self.b)
  def test_legacy_features_and_zero(self):
   self.assertIn("const value=raw===''?0:Number(raw)",self.a)
-  self.assertIn("item.values[name]===null?0:item.values[name]",self.b)
+  self.assertIn("values[name]=value===null?0:value",self.b)
   self.assertIn("className='iv-ingredient-quantity'",self.b)
   self.assertIn("className='iv-nature-pill'",self.b)
   self.assertIn(".iv-skill.locked{opacity:.64}",self.b)
