@@ -69,8 +69,16 @@ jobs:
           # All five subskills use centered 13px names, with no visible Lv/lock badge.
           assert '.iv-skill{min-height:42px' in strategy
           assert 'padding:5px 7px;background:#253b50;font-size:13px' in strategy
-          assert 'justify-content:flex-start;flex-wrap:wrap;gap:10px' in strategy
+          assert 'justify-content:flex-start;flex-wrap:wrap;gap:14px' in strategy
           assert '.iv-main span{min-width:0;overflow-wrap:anywhere}' in strategy
+          # v13: ingredient icons keep their labels, replacing unlock Lv with count badges.
+          assert "const MOCK_INGREDIENT_COUNTS={" in strategy
+          assert "const ingredientCounts=MOCK_INGREDIENT_COUNTS[id]||[]" in strategy
+          assert "className='iv-ingredient-image'" in strategy
+          assert "className='iv-ingredient-quantity'" in strategy
+          assert "ingredient.append(imageFrame,caption);ingredientGroup.append(ingredient)" in strategy
+          assert "level.textContent='Lv.'+[1,30,60][i]" not in strategy
+          assert "Number.isInteger(count)&&count>0?'×'+count:'—'" in strategy
           assert 'font-size:13px;font-weight:750;line-height:1.35;display:flex;align-items:center;justify-content:center;text-align:center' in strategy
           assert "const lv=document.createElement('small')" not in strategy
           assert 'skill.append(name);target.append(skill);' in strategy
