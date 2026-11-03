@@ -81,12 +81,12 @@
 
 
 /* U3 v14: 睡眠のみ手動設定・在庫入力から未来の編成を再提案 */
-.sleep-settings .section-head{margin:0 0 7px}.sleep-settings .section-head h2{font-size:15px}
-.sleep-settings .sleep-auto-toggle{width:auto;min-height:44px;padding:5px 0 5px 8px;gap:9px;font-size:13px;white-space:nowrap}
-.sleep-settings .sleep-config-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px}
-.sleep-settings .sleep-config-row .sleep-summary{flex:1;min-width:0;line-height:1.45}
-.sleep-settings .sleep-config-row #sleep-open{min-width:68px}
-.sleep-summary{font-size:12px;color:var(--muted)}
+.sleep-settings .section-head{margin:0;gap:6px;min-height:44px}
+.sleep-settings .section-head h2{font-size:15px;flex:0 1 auto;white-space:nowrap}
+.sleep-settings .sleep-controls{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0;margin-left:auto}
+.sleep-settings .sleep-controls #sleep-open{flex:0 0 auto;min-width:54px}
+.sleep-settings .sleep-auto-toggle{width:auto;min-height:44px;padding:5px 0;gap:7px;font-size:13px;white-space:nowrap}
+@media(max-width:350px){.sleep-settings .sleep-controls{gap:6px}.sleep-settings .sleep-auto-toggle{gap:5px;font-size:12px}.sleep-settings .section-head{gap:4px}}
 .plan-actions{display:grid;gap:8px}
 .plan-actions .btn{width:100%}
 .plan-actions .hint{margin-top:1px}
@@ -114,7 +114,7 @@
 <body><div class="shell"><header class="header"><div><div class="smallcap">POKÉMON SLEEP</div><div class="brand">✦ ポケスリ作戦室</div></div><span class="mock-tag">U3</span></header>
 <main>
 <details class="event-details card" id="event-details"><summary><span>イベント条件</span></summary><div class="event-fields"><label class="field">開始日<input id="event-start" type="date" value="2026-11-09"></label><div class="field"><span>料理</span><select id="event-food"><option value="curry">カレー</option><option value="salad">サラダ</option><option value="dessert">デザート</option></select></div><div class="field wide"><span>フィールド</span><select id="event-field"><option>ワカクサ本島</option><option>シアンの砂浜</option><option>トープ洞窟</option><option>ウノハナ雪原</option><option>ラピスラズリ湖畔</option><option>ゴールド旧発電所</option><option>アンバー渓谷</option><option>ワカクサ本島EX</option><option>シアンの砂浜EX</option></select></div><div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="false"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div></div></details>
-<section class="card sleep-settings" aria-label="睡眠編成の設定"><div class="section-head"><h2>睡眠編成</h2><button type="button" class="control-toggle sleep-auto-toggle" id="auto-sleep" role="switch" aria-checked="false" aria-label="睡眠編成を自動提案"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="sleep-config-row"><p class="sleep-summary" id="sleep-summary">7晩の睡眠編成を手動設定</p><button type="button" id="sleep-open" class="btn small secondary">設定</button></div></section>
+<section class="card sleep-settings" aria-label="睡眠編成の設定"><div class="section-head"><h2>睡眠編成</h2><div class="sleep-controls"><button type="button" id="sleep-open" class="btn small secondary">設定</button><button type="button" class="control-toggle sleep-auto-toggle" id="auto-sleep" role="switch" aria-checked="false" aria-label="睡眠編成を自動提案"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button></div></div></section>
 <section class="card plan-actions" aria-label="週間作戦の操作"><button type="button" id="generate" class="btn full">7日間の作戦を提案</button><button type="button" id="stock-open" class="btn secondary full" hidden>食材在庫を更新して残りを再提案</button><p class="hint" id="mock-note">このプレビューの編成と料理は操作確認用の例です。</p><div id="status" class="status-message" role="status" aria-live="polite"></div></section>
 <section class="card" id="week-content" hidden><div class="section-head"><h2 id="current-state-title">週間編成</h2><span class="energy">週間エナジー <b>—</b></span></div><div class="week-head"><div class="day-title"><span id="day-label">月曜日</span><small id="day-date">11/9</small></div></div><div class="daynav" id="day-nav" role="tablist" aria-label="曜日を選択"></div><div id="slots"></div></section></main></div>
 <dialog class="modal sleep-modal" id="sleep-dialog" aria-labelledby="sleep-title"><div class="modal-head"><h2 id="sleep-title">睡眠編成</h2><button type="button" class="btn small ghost" id="sleep-close">閉じる</button></div><p class="review-note">基本の5匹を全7晩に設定し、必要な曜日だけ変更できます。</p><div id="sleep-manual"><div id="sleep-day-nav" class="daynav" role="tablist" aria-label="睡眠設定の曜日"></div><div id="sleep-team-preview" class="sleep-team-preview"></div><div class="sleep-actions"><button type="button" class="btn secondary full" id="sleep-change">この夜の5匹を変更</button><button type="button" class="btn ghost full" id="sleep-copy">この5匹を全7晩に設定</button></div></div></dialog>
@@ -467,7 +467,6 @@ function render(){
  $('#stock-open').disabled=phase==='ended';
  const autoSleep=switchOn('auto-sleep');
  $('#sleep-open').disabled=autoSleep;
- $('#sleep-summary').textContent=autoSleep?'7晩を自動提案（次の提案に適用）':'7晩の睡眠編成を手動設定';
  $('#current-state-title').textContent=appliedStale?'週間編成（旧条件）':'週間編成';
  $('#day-label').textContent=FULL[selectedDay];$('#day-date').textContent=formatDate(dateFor(selectedDay));
  const nav=$('#day-nav');nav.textContent='';
