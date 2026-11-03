@@ -195,7 +195,6 @@ function showPokemon(id){
   const label=document.createElement('div');label.className='iv-key';label.textContent=key;
   const value=document.createElement('div');value.className='iv-value';
   if(typeof element==='string')value.textContent=element;else value.append(element);
-  if(key==='食材'){label.classList.add('iv-food-label');value.classList.add('iv-food-value');}
   root.append(label,value);
  }
  if((p.nickname||p.name)!==p.name)addValue(base,'ポケモン',p.name);
@@ -217,14 +216,34 @@ function showPokemon(id){
  const skillLevel=document.createElement('em');skillLevel.textContent='Lv.'+details[3];
  $('#pokemon-main-skill').append(skillName,skillLevel);
  const skills=['おてつだいボーナス','スキル確率アップM','おてつだいスピードM','最大所持数アップL','げんき回復ボーナス'];
- const colors=['gold','blue','blue','','gold'];
  const target=$('#pokemon-subskills');target.textContent='';
  [10,25,50,70,80].forEach((level,i)=>{
-  const skill=document.createElement('div');skill.className='iv-skill '+colors[i];
-  const lv=document.createElement('small');lv.textContent='Lv.'+level;
-  const name=document.createElement('span');name.textContent=skills[i];skill.append(lv,name);target.append(skill);
+  const grade=skillGrade(skills[i]),unlocked=Number(details[0])>=level;
+  const skill=document.createElement('div');
+  skill.className='iv-skill '+grade+(unlocked?'':' locked');
+  skill.setAttribute('aria-label',skills[i]+'：'+({gold:'金',blue:'青',white:'白',unknown:'分類未確認'}[grade])+'枠、レベル'+level+(unlocked?'解放済み':'未解放'));
+  const lv=document.createElement('small');lv.textContent=(unlocked?'':'🔒 ')+'Lv.'+level;
+  const name=document.createElement('span');name.textContent=skills[i];
+  skill.append(lv,name);target.append(skill);
  });
- const nature=$('#pokemon-nature');nature.textContent='';addValue(nature,'せいかく',details[1]);
+ const nature=$('#pokemon-nature');nature.textContent='';
+ const natureView=document.createElement('div');natureView.className='iv-nature-details';
+ const natureName=document.createElement('strong');natureName.className='iv-nature-name';natureName.textContent=details[1];
+ natureView.append(natureName);
+ const modifiers=NATURE_EFFECTS[details[1]];
+ if(modifiers&&modifiers.length){
+  [['up',modifiers[0],'▲▲','上昇'],['down',modifiers[1],'▼▼','下降']].forEach(([direction,stat,arrows,word])=>{
+   const line=document.createElement('div');line.className='iv-nature-effect '+direction;
+   line.setAttribute('aria-label',word+'補正：'+stat);
+   const text=document.createElement('span');text.textContent=stat;
+   const symbol=document.createElement('b');symbol.textContent=arrows;
+   line.append(text,symbol);natureView.append(line);
+  });
+ }else{
+  const neutral=document.createElement('span');neutral.className='iv-nature-none';
+  neutral.textContent=modifiers?'補正なし':'—';natureView.append(neutral);
+ }
+ addValue(nature,'せいかく',natureView);
  modal.showModal();SpritePreview.enhance(modal);
 }
 $('#pokemon-close').addEventListener('click',()=>$('#pokemon-dialog').close());
