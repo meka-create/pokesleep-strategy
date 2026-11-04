@@ -154,3 +154,13 @@
 - GitHub Actions [#41875702817](https://github.com/meka-create/pokesleep-strategy/actions/runs/41875702817)：**558テストPASS・失敗0、Chromium E3実操作を含む**。STEP 2既存互換 [#41875702765](https://github.com/meka-create/pokesleep-strategy/actions/runs/41875702765)：success。異常系（旧保存だけでは未選択、EX未確定ロック、破損在庫拒否）もChromiumで確認。
 - **E3は自動受入完了。Android実機確認・E4/E5/E6・本番計算は未完了**。Draft PR #111のmain統合や実ゲーム精度承認を意味しない。
 - **次工程はE4**：採用済み当日編成・料理・睡眠を最優先に表示し、在庫更新による残り期間再提案を整備。引き続きE5で総合実操作回帰、E6でPixel 7a Android Chromeをまとめて受入。E6までは毎段階の実機受入要求を増やさない。
+
+## 2026-11-05 — E4 v32 実装候補（Draft PR #112）
+
+- **実装済み／CI未判定**（コード実装とE4合格は別）：E3 v31から `feat/e4-adopted-today-v32-20261105` へ非破壊派生。E2/E3原本・main無変更。
+- U3 v32：採用済みの当日朝/昼/夜/睡眠の4枠を先頭、他曜日は閲覧切替。通常時は主操作0、在庫更新による変更時のみ残り期間の再提案。表示例の週間エナジー「—」は非表示。
+- 睡眠7晩の手動差分検知、自動ON/OFFの手動保存保護。未採用ドラフトをイベント/条件/在庫revision/手動睡眠の一致で厳格判定し、採用保存失敗時は旧作戦・未採用案・レビューを保持。
+- 日中21枠/21食の個別手動編集廃案、開始済み時間帯と料理の固定、JST04:00の週終了、最終睡眠枠後の新提案禁止、終了後の作戦参照のみを保持。
+- E4の単体静的/JS構文、Android相当Chromium操作シナリオを `tests/test_e4_contract_v32.py`・`tests/preview_browser_e4_v32.py`・`tests/e4-ux-v32.test.cjs` に追加。
+- **E4の完了ゲート**：E4ブラウザテスト（当日優先、火曜03:59/04:00、睡眠手動保持、保存失敗ロールバック、水曜再提案で過去枠保護、320/360/393/430px）と既存E1/E2/E3/全体npmテスト＋ビルドが成功すること。Android Chrome実機承認はE6、F工程の実ゲーム最適化は未着手。
+- 現在は [Draft PR #112](https://github.com/meka-create/pokesleep-strategy/pull/112) に隔離。GitHub Actionsジョブがqueuedの間は**自動受入完了とは書かない**。CIが成功した場合にのみE4自動受入完了とし、次工程E5へ進む。
