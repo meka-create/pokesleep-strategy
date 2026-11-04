@@ -111,6 +111,14 @@ with sync_playwright() as pw:
  set_select(page,"#event-field","トープ洞窟")
  set_select(page,"#event-food","curry")
  page.locator("#event-save").click()
+ print("E3 corrupt record diagnostic",{
+  "toast":page.locator("#ui-toast").inner_text(),
+  "url":page.url.split("?")[0],
+  "event":page.locator("#event-manual-name").input_value(),
+  "primary":page.locator("#e3-primary").inner_text(),
+  "sourceApplyHidden":page.locator("#event-source-apply").evaluate("(e)=>e.hidden"),
+  "storage":page.evaluate("(k)=>localStorage.getItem(k)",b_key)
+ },flush=True)
  assert "保存できませんでした" in page.locator("#ui-toast").inner_text()
  assert page.evaluate("(k)=>localStorage.getItem(k)",b_key)=="{bad-e3-data"
  # Event A can still recover its own adopted plan.
