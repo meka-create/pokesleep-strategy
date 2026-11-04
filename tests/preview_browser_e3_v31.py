@@ -96,6 +96,14 @@ with sync_playwright() as pw:
  page.locator("#event-details > summary").click()
  page.locator("#event-manual-name").fill("E3検証イベントB")
  page.locator("#event-save").click()
+ print("E3 switch diagnostic",{
+  "toast":page.locator("#ui-toast").inner_text(),
+  "url":page.url,
+  "manual":page.locator("#event-manual-name").input_value(),
+  "primary":page.locator("#e3-primary").inner_text(),
+  "week_hidden":page.locator("#week-content").is_hidden(),
+  "page_errors":errors,
+ },flush=True)
  assert page.locator("#week-content").is_hidden()
  assert page.locator("#e3-primary").inner_text()=="イベント条件を設定"
  new_args=parse_qs(urlsplit(page.url).query)
