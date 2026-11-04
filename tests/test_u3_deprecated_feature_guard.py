@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 ROADMAP=ROOT/"development/ROADMAP_CURRENT.md"
-PREVIEW=ROOT/"previews/U3_Strategy_UI_20261104_v28.html"
+PREVIEW=ROOT/"previews/U3_Strategy_UI_20261104_v29.html"
 GOLDEN=ROOT/"previews/U3_Strategy_UI_20261104_v26.html"
 DECISIONS=ROOT/"development/PRODUCT_DECISIONS_CURRENT_20261104.md"
 
