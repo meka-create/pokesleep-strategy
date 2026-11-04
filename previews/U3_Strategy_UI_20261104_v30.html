@@ -504,7 +504,7 @@ function updateU2Link(){
  const base=/^(https?:|file:)/.test(location.href)?location.href:'https://pokesleep-preview.invalid/';
  const url=new URL('U2_Prep_Local_Ingredients_20261104_v30.html',base);
  url.searchParams.set('eventStart',eventInfo.start);
- if(eventPhase()==='during')url.searchParams.set('tab','inventory');
+ if(nowInJapan()>=eventInfo.start+'T04:00'&&nowInJapan()<dateFor(7)+'T04:00')url.searchParams.set('tab','inventory');
  url.searchParams.set('return','plan');
  const mock=new URLSearchParams(location.search).get('previewNow');
  if(mock)url.searchParams.set('previewNow',mock);
