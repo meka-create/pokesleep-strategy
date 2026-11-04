@@ -46,7 +46,9 @@ class AbolishedUIRegression(unittest.TestCase):
   editor=s[start:end]
   self.assertIn("if(slot!=='sleep'",editor)
   self.assertIn("slot:'sleep'",editor)
-  self.assertIn("$('#recipe-editor').hidden=true",editor)
+  self.assertNotIn("recipe-editor",editor)
+  self.assertNotIn("recipe-choice",self.s)
+  self.assertNotIn('id="recipe-editor"',self.s)
   start=s.index("function saveEdit(){")
   end=s.index("$('#edit-close').onclick",start)
   self.assertIn("edit.slot!=='sleep'",s[start:end])
