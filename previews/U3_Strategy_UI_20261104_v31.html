@@ -1460,47 +1460,87 @@ function eventBlockers(){
 }
 ['event-start','event-food','event-field','event-manual-name'].forEach(id=>$('#'+id).addEventListener('change',render));
 $('#event-camp').addEventListener('click',()=>{toggleSwitch('event-camp');render();});
+
 $('#event-save').onclick=()=>{
- const d=$('#event-start').value;
- if(!validWeek(d)){
+ const week=$('#event-start').value;
+ if(!validWeek(week)){
   $('#event-start').setAttribute('aria-invalid','true');
-  flash('開始日は月曜日を指定してください。',true);
   showToast('開始日は月曜日を指定してください。',true);
   $('#event-start').focus();return;
  }
  $('#event-start').removeAttribute('aria-invalid');
- if(!$('#event-source-apply').hidden){showToast('イベント候補を反映してから保存してください。',true);return;}
- const next={start:d,field:$('#event-field').value,food:$('#event-food').value,camp:switchOn('event-camp'),
- source:manualSourceRequested?null:(pendingEventSource?.start===d?clone(pendingEventSource):(eventInfo.start===d?(eventInfo.source||null):null))};
- const oldStart=eventInfo.start;
- if(next.start!==oldStart){
-  // Never carry an unedited meal category/field/camp entitlement into a different week.
-  // Explicit new selections are retained; unchanged previous-week values become unknown.
+ if(!$('#event-source-apply').hidden){
+  showToast('イベント候補を反映してから保存してください。',true);
+  $('#event-source-apply').focus();return;
+ }
+ const source=manualSourceRequested?null:
+  pendingEventSource?.start===week?clone(pendingEventSource):
+  eventInfo.start===week?(eventInfo.source||null):null;
+ const manualName=source?'':$('#event-manual-name').value.normalize('NFKC').trim();
+ const eventId=source?.id||manualEventId(manualName);
+ if(!E3_ID_RE.test(eventId||'')){
+  showToast('イベント名を入力してください（日本語は32文字程度まで）。',true);
+  $('#event-manual-name').focus();return;
+ }
+ const choice={id:eventId,weekStart:week};
+ const same=!!selectedEvent&&choice.id===selectedEvent.id&&choice.weekStart===selectedEvent.weekStart;
+ const next={start:week,field:$('#event-field').value,food:$('#event-food').value,
+  camp:switchOn('event-camp'),manualName,source};
+ if(!same){
+  // Do not silently inherit unresolved bonus/field/food from another event.
   if(next.field===eventInfo.field)next.field='';
   if(next.food===eventInfo.food)next.food='';
   if(next.camp===eventInfo.camp)next.camp=false;
-  if(!pendingEventSource)next.source=null;
  }
- const changed=JSON.stringify(next)!==JSON.stringify(eventInfo);
- if(changed&&oldStart!==next.start)storeState();
- eventInfo=next;
- if(changed){
-  draft=null;stockPending=null;
-  let restored=false;
-  if(oldStart!==next.start){
-   restored=restoreState(next.start,true);
-   selectDayOnOpen(); // Selecting a different event is a new week-view opening.
-   refreshInventory();
+ const old={selectedEvent,eventInfo,conditionLedger,applied,hasApplied,
+  appliedEventStart,appliedEventInfo,appliedMeta,draft,draftMeta,
+  manualSleep,stockConfirmed,stockPending,appliedInventoryAt,selectedDay,reviewDay,
+  autoSleep:switchOn('auto-sleep')};
+ function rollback(){
+  selectedEvent=old.selectedEvent;eventInfo=old.eventInfo;conditionLedger=old.conditionLedger;
+  applied=old.applied;hasApplied=old.hasApplied;appliedEventStart=old.appliedEventStart;
+  appliedEventInfo=old.appliedEventInfo;appliedMeta=old.appliedMeta;
+  draft=old.draft;draftMeta=old.draftMeta;manualSleep=old.manualSleep;
+  stockConfirmed=old.stockConfirmed;stockPending=old.stockPending;
+  appliedInventoryAt=old.appliedInventoryAt;selectedDay=old.selectedDay;reviewDay=old.reviewDay;
+  setSwitch('auto-sleep',old.autoSleep);
+ }
+ try{
+  if(!same){
+   // Existing event state always wins over another event's form: never
+   // replace its adopted plan just because the user reselected its name.
+   const existing=localStorage.getItem(strategyKey(choice));
+   if(existing!==null){
+    if(!restoreState(choice,true))throw Error('Stored event is corrupt');
+    selectedEvent=choice;pendingEventSource=null;manualSourceRequested=false;
+    persistEventWeek();refreshInventory();syncEventControls();updateU2Link();
+    selectDayOnOpen();$('#event-details').open=false;render();
+    showToast('保存済みのイベントを復元しました');return;
+   }
+   resetPlanForEvent();selectedEvent=choice;
+   conditionLedger=E1.newConditionLedger(choice);
   }
-  showToast(restored?'この週の保存済みイベント条件と作戦を復元しました':'イベント条件を保存しました');
+  const changed=!same||JSON.stringify(next)!==JSON.stringify(eventInfo)||
+    !conditionLedger?.confirmed;
+  eventInfo=next;
+  if(changed){
+   conditionLedger=E1.stageConditionEdits(conditionLedger,{
+    fields:clone(next),missingFields:missingEventFields(next),
+    revision:revision(),savedAt:new Date().toISOString()});
+   conditionLedger=E1.confirmEventConditions(conditionLedger,{userConfirmed:true});
+   // A new confirmed revision invalidates a proposal, never the adopted plan.
+   draft=null;draftMeta=null;stockPending=null;
+  }
+  if(!storeState())throw Error('Failed to persist confirmed conditions');
+  pendingEventSource=null;manualSourceRequested=false;
+  persistEventWeek();refreshInventory();syncEventControls();updateU2Link();
+  selectDayOnOpen();$('#event-details').open=false;
+  closeSelect(customMenus.get('event-food'));closeSelect(customMenus.get('event-field'));
+  render();showToast('イベント条件を保存しました');
+ }catch(e){
+  rollback();showToast('条件を保存できませんでした。元のデータを保持しています。',true);
+  render();
  }
- pendingEventSource=null;manualSourceRequested=false;
- syncEventControls();
- persistEventWeek();updateU2Link();
- storeState();
- $('#event-details').open=false;
- closeSelect(customMenus.get('event-food'));closeSelect(customMenus.get('event-field'));
- render();
 };
 $('#review-dialog').addEventListener('close',()=>{if(draft){draft=null;stockPending=null;storeState();render();}});
 window.addEventListener('pageshow',event=>{
