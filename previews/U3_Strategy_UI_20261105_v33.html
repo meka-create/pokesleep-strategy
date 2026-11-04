@@ -1226,13 +1226,20 @@ function closeReview(){if($('#review-dialog').open)$('#review-dialog').close();d
 function showProposal(stock=null){
  refreshInventory();const blockers=eventBlockers();if(eventPhase()!=='during'||!hasInventory||blockers.length){showToast(blockers.length?'未確定：'+blockers.join('・'):'先にU2で食材在庫を保存してください。',true);return;}
  if(!hasFutureSlot()){showToast('残りの時間帯がないため、新しい作戦は提案できません。',true);return;}
+ const previous={draft,stockPending,reviewDay};
  stockPending=clone(importedStock);draft=proposal(stockPending);
  // An unadopted proposal is bound to the exact confirmed event, stock snapshot and sleep choices.
  draft.e4Basis={eventId:e3Selected?.id,weekStart:eventInfo.start,
   confirmedRevision:e3Conditions()?.revision,inventoryAt:importedAt,
   inventoryFingerprint:e3Revision(importedStock),autoSleep:switchOn('auto-sleep'),
   manualSleepFingerprint:e3Revision(manualSleep)};
- reviewDay=firstFutureDay();storeState();renderReview();$('#review-dialog').showModal();
+ reviewDay=firstFutureDay();
+ if(!storeState()){
+  ({draft,stockPending,reviewDay}=previous);
+  showToast('提案を保存できませんでした。現在の作戦は変更していません。',true);
+  render();return;
+ }
+ renderReview();$('#review-dialog').showModal();
 }
 function copySleepNights(day){
  if(switchOn('auto-sleep'))return;
