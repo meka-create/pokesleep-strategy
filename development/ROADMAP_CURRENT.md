@@ -136,3 +136,12 @@
 ## 次工程（1つに固定）
 
 **E3：U3開始時の条件確定・提案導線の整理へ**。E2のU2 v30在庫保存・U3 v30往復ブリッジはGitHub Actions [#41831413150](https://github.com/meka-create/pokesleep-strategy/actions/runs/41831413150)で静的16件＋E1単体30件＋旧互換22件とChromium3シナリオPASS。**E3ではU3のデモ週自動選択を撤廃し、対象イベントID・条件候補/確定とE2在庫スナップショットを一貫した主操作へ接続**する。E4/当日閲覧、E5/画面間総合回帰、E6/実機再受入の順。U2/U3 v29原本・廃案禁止・U4未着手を維持。
+
+## 2026-11-05 — E3 v31 実装候補（Draft PR #111）
+- E2 v30 の原本から別版の `U2_Prep_Local_Ingredients_20261105_v31.html` / `U3_Strategy_UI_20261105_v31.html` を作成。
+- U3はイベント未選択と条件候補/確定の違いをE1状態判定へ接続し、主操作を1つ以下に整理。U2へイベントIDと在庫文脈を渡し、同週別イベントの在庫自動採用を避ける。
+- E3保存は独立キー。旧本番・v29/v30・旧CSV/JSONに書き込まない。日中21枠と21料理は閲覧専用。
+- 自動静的/JS構文テストは既存 `npm test` に取り込み、実ブラウザE2E `tests/preview_browser_e3_v31.py` を追加。**ブラウザE2E・Android実機のPASSは未確認**。
+- 新規GitHub Actions workflowの追加は権限制約で拒否されたため、既存Validate PokeSleep Strategyの実行結果とE3ブラウザE2Eの結果を分離して記録する。
+- E3は検証・修正完了までDraft。合格前にE4/UI完成/本番公開としない。
+
