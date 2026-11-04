@@ -30,7 +30,7 @@ class UXPlanAuditContract(unittest.TestCase):
                      "運用中/提案", "フェーズ", "睡眠7晩", "自動OFF",
                      "同じイベント週"):
             self.assertIn(term, self.plan)
-        for term in ("一画面に合体", "手動編集", "常設タブ"):
+        for term in ("単純合体", "手動編集", "常設タブ"):
             self.assertIn(term, self.plan)
         self.assertIn("主操作**0〜1個**", self.plan)
 
