@@ -1,0 +1,37 @@
+name: UI design plan v2 audit guards
+on:
+  push:
+    branches: [design/ux-phase-plan-audit-v2-20261104]
+    paths:
+      - development/UX_PHASE_PLAN_AUDIT_20261104.md
+      - development/UX_PHASE_MINIMAL_IMPLEMENTATION_PLAN_AUDITED_20261104.md
+      - development/UX_PHASE_MINIMAL_IMPLEMENTATION_PLAN_20261104.md
+      - development/ROADMAP_CURRENT.md
+      - tests/test_ux_plan_audit_contract.py
+      - .github/workflows/ux-phase-plan-v2-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit-design-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout audited documents
+        uses: actions/checkout@v4
+      - name: Check audited design invariants and historic deprecated-feature contracts
+        run: |
+          python3 -m unittest discover -s tests -p 'test_ux_plan_audit_contract.py' -v
+          python3 -m unittest discover -s tests -p 'test_phase_flow_roadmap_contract.py' -v
+          python3 -m unittest discover -s tests -p 'test_u3_deprecated_feature_guard.py' -v
+      - name: Export audit report and plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: PokeSleep_UI_UX_PLAN_AUDITED_V2_20261104
+          path: |
+            development/UX_PHASE_PLAN_AUDIT_20261104.md
+            development/UX_PHASE_MINIMAL_IMPLEMENTATION_PLAN_AUDITED_20261104.md
+            development/ROADMAP_CURRENT.md
+            development/PRODUCT_DECISIONS_CURRENT_20261104.md
+          retention-days: 30
+          if-no-files-found: error
