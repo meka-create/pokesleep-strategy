@@ -1,7 +1,7 @@
-"""Static consistency checks for the PRE-IMPLEMENTATION audited UX plan.
+"""Static consistency checks for the USER-APPROVED audited UX plan.
 
-These assertions intentionally do not claim that any of the proposed UX
-workflows are implemented or that the user has approved the design.
+These assertions guard the approved architecture, but DO NOT claim that U2/U3
+workflows are implemented or that the user has accepted U3-D on Android.
 Actual user-journey acceptance must be demonstrated by E5/E6/E7 tests.
 """
 from pathlib import Path
@@ -51,8 +51,10 @@ class UXPlanAuditContract(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, self.plan)
 
-    def test_current_roadmap_only_proposes_not_approves(self):
-        self.assertIn("提案段階でユーザー承認待ち", self.roadmap)
+    def test_current_roadmap_records_v2_approval_without_premature_ui_acceptance(self):
+        self.assertIn("2026-11-04 20:26 JSTユーザー正式承認済み", self.roadmap)
+        self.assertIn("E1", self.roadmap)
+        self.assertIn("E2", self.roadmap)
         self.assertIn("UX_PHASE_MINIMAL_IMPLEMENTATION_PLAN_AUDITED_20261104.md", self.roadmap)
         self.assertIn("UX_PHASE_PLAN_AUDIT_20261104.md", self.roadmap)
         self.assertIn("このまま実装しない", self.old)
