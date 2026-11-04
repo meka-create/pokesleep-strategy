@@ -968,9 +968,9 @@ function restoreState(event,resetIfMissing=false){
  try{
   const raw=localStorage.getItem(strategyKey(event));
   if(raw===null)return false;
-  const entry=JSON.parse(raw);
-  // Any unreadable or incompatible entry must not be silently replaced.
+  // Mark the key read-only BEFORE parsing. Invalid JSON also needs protection.
   blockedStrategyKey=strategyKey(event);
+  const entry=JSON.parse(raw);
   if(!entry||entry.version!==31||entry.weekStart!==event.weekStart||
    entry.selectedEvent?.id!==event.id||entry.eventInfo?.start!==event.weekStart||
    !validTeams(entry.manualSleep))return false;
