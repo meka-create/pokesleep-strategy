@@ -58,7 +58,12 @@ with sync_playwright() as pw:
  assert page.locator("#week-content").is_visible()
  assert page.locator("#e3-primary").is_hidden()
  # Updating inventory must not silently replace the adopted team.
- before=page.locator("#slots").inner_text()
+ before=page.evaluate("""()=>{
+ const selected=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected'));
+ const key='pokesleep-strategy-u3-e3-v1:'+selected.weekStart+':'+encodeURIComponent(selected.id)+':plan';
+ const state=JSON.parse(localStorage.getItem(key));
+ return JSON.stringify(state.applied);
+}""")
  page.locator("#e3-update-stock").click()
  page.wait_for_url("**/U2_Prep_Local_Ingredients_20261105_v31.html?*")
  page.locator("[data-key]").first.fill("11")
@@ -66,7 +71,12 @@ with sync_playwright() as pw:
  page.locator(".u2-transfer").click()
  page.wait_for_url("**/U3_Strategy_UI_20261105_v31.html?*")
  assert page.locator("#week-content").is_visible()
- assert page.locator("#slots").inner_text()==before
+ assert page.evaluate("""()=>{
+ const selected=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected'));
+ const key='pokesleep-strategy-u3-e3-v1:'+selected.weekStart+':'+encodeURIComponent(selected.id)+':plan';
+ const state=JSON.parse(localStorage.getItem(key));
+ return JSON.stringify(state.applied);
+}""")==before
  assert page.locator("#e3-next").inner_text()=="残り期間を再提案",page.locator("#e3-next").inner_text()
  assert not errors,errors
  print("PASS E3 v31 offline roundtrip: explicit selection, single CTA, zero stock, review/adopt, 04:00 day, unchanged plan before re-proposal.")
