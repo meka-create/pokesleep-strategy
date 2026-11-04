@@ -1569,7 +1569,8 @@ window.addEventListener('pageshow',event=>{
  refreshInventory();render();
 });
 window.addEventListener('storage',e=>{if(selectedEvent&&e.key===inventoryKey(selectedEvent)){refreshInventory();render();}});
-window.addEventListener('beforeunload',storeState);
+// Mutations are explicitly saved at action time. Never write during unload:
+// an out-of-band corrupt or newer record must not be silently overwritten.
 render();
 })();
 </script></body></html>
