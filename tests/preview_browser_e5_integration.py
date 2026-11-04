@@ -112,7 +112,16 @@ with sync_playwright() as pw:
  # Unsaved controls are not eligible to re-propose: Save Conditions is the sole action.
  page.evaluate("""()=>{const e=document.getElementById('event-food');
   e.value='salad';e.dispatchEvent(new Event('change',{bubbles:true}));}""")
- assert page.locator("#e3-next").inner_text()=="イベント条件を設定"
+ observed=page.evaluate("""()=>{
+  const select=document.getElementById('event-food');
+  const btn=document.getElementById('e3-next');
+  const ledger=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:2026-11-09:manual%3A2026-11-09:conditions')||'null');
+  return {food:select.value,button:btn.textContent,action:btn.dataset.action,
+   visible:!btn.hidden,confirmedFood:ledger?.confirmed?.fields?.food,
+   currentPhase:document.querySelector('main')?.dataset.phaseStage};
+ }""")
+ assert observed["action"]=="SET_EVENT" and observed["visible"],observed
+ assert page.locator("#e3-next").inner_text()=="イベント条件を設定",observed
  page.evaluate("""()=>{const e=document.getElementById('event-food');
   e.value='curry';e.dispatchEvent(new Event('change',{bubbles:true}));}""")
  assert page.locator("#e3-primary").is_hidden()
