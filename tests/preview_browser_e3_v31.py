@@ -100,6 +100,24 @@ with sync_playwright() as pw:
  assert page.locator("#e3-primary").inner_text()=="イベント条件を設定"
  new_args=parse_qs(urlsplit(page.url).query)
  assert new_args["eventId"][0]!=event_id
+ # A damaged event B record is never overwritten by a fresh save.
+ b_id=new_args["eventId"][0]
+ b_key=f"pokesleep-strategy-u3-e3-v1:{WEEK}:{quote(b_id,safe='')}"
+ page.evaluate("([k,v])=>localStorage.setItem(k,v)",[b_key,"{bad-e3-data"])
+ page.reload(wait_until="domcontentloaded")
+ assert page.locator("#week-content").is_hidden()
+ page.locator("#e3-primary").click()
+ page.locator("#event-manual-name").fill("E3検証イベントB")
+ set_select(page,"#event-field","トープ洞窟")
+ set_select(page,"#event-food","curry")
+ page.locator("#event-save").click()
+ assert "保存できませんでした" in page.locator("#ui-toast").inner_text()
+ assert page.evaluate("(k)=>localStorage.getItem(k)",b_key)=="{bad-e3-data"
+ # Event A can still recover its own adopted plan.
+ page.goto(U3+"?eventStart="+WEEK+"&eventId="+quote(event_id,safe='')+
+          "&previewNow=2026-11-11T15:00",wait_until="domcontentloaded")
+ assert page.locator("#week-content").is_visible()
+ assert page.locator("#day-label").inner_text()=="水曜日"
  assert not errors,errors
  print("PASS E3 v31: explicit event; condition save; no pre-event proposal; event-scoped zero stock; adopted plan; weekday; midweek stock update; same-week event isolation.")
  context.close();browser.close()
