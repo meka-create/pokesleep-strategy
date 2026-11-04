@@ -184,6 +184,94 @@ export function previewLegacyU2V3(record,selectedWeek) {
     warnings:t>=start?['START_STOCK_UNKNOWN_FROM_LEGACY'] : [],
     requiresExplicitCommit:true};
 }
+/**
+ * An event source is only a CANDIDATE. It cannot change a CONFIRMED event.
+ * First the user applies the verified candidate to the editing form; then an
+ * explicit save creates a confirmed (possibly incomplete) condition snapshot.
+ * Nothing in E1 auto-writes to legacy U3 JSON or triggers a proposal.
+ */
+function cleanFields(input) {
+  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Event fields must be an object.');
+  // A bounded JSON clone drops none of the required plain JSON fields, while
+  // rejecting prototypes, executable values and excessively large input.
+  const proto=Object.getPrototypeOf(input);
+  if(proto!==Object.prototype && proto!==null)throw Error('Untrusted event fields prototype.');
+  const raw=JSON.stringify(input);
+  if(typeof raw!=='string'||raw.length>16000)throw Error('Event fields too large.');
+  const parsed=JSON.parse(raw);
+  const walk=(x)=>{
+    if(Array.isArray(x))return x.every(walk);
+    if(x&&typeof x==='object')
+      return Object.keys(x).every(k=>!['__proto__','prototype','constructor'].includes(k)&&walk(x[k]));
+    return x===null||typeof x==='string'||typeof x==='boolean'||
+      (typeof x==='number'&&Number.isFinite(x));
+  };
+  if(!walk(parsed))throw Error('Event fields contain unsupported data.');
+  return parsed;
+}
+function conditionEntry(entry,weekStart,eventId,label) {
+  if(entry==null)return null;
+  if(!entry||entry.weekStart!==weekStart||entry.eventId!==eventId||
+    !cleanRevision(entry.revision)||!Array.isArray(entry.missingFields)||
+    entry.missingFields.some(x=>typeof x!=='string'||!x.trim()||x.length>120))
+    throw Error('Invalid '+label+' conditions.');
+  instantMs(entry.savedAt);
+  const status=entry.missingFields.length?'MISSING':'CONFIRMED';
+  if(label==='candidate'||label==='editing'){
+    if(entry.status!=='CANDIDATE'&&entry.status!=='EDITING')
+      throw Error('Candidate/editing status expected.');
+  }else if(entry.status!==status)throw Error('Saved conditions status must match unresolved fields.');
+  return {...entry,fields:cleanFields(entry.fields),missingFields:[...new Set(entry.missingFields)]};
+}
+export function newConditionLedger(selectedEvent) {
+  phaseForEvent(selectedEvent,'2026-01-01T00:00:00Z');
+  if(!selectedEvent)throw Error('Choose an event first.');
+  return {version:1,weekStart:selectedEvent.weekStart,eventId:selectedEvent.id,
+    candidate:null,editing:null,confirmed:null};
+}
+export function validateConditionLedger(raw) {
+  if(!raw||raw.version!==1||!validWeekStart(raw.weekStart)||
+    typeof raw.eventId!=='string'||!raw.eventId.trim()||raw.eventId.length>160)
+    throw Error('Unsupported event condition ledger.');
+  return {version:1,weekStart:raw.weekStart,eventId:raw.eventId,
+    candidate:conditionEntry(raw.candidate,raw.weekStart,raw.eventId,'candidate'),
+    editing:conditionEntry(raw.editing,raw.weekStart,raw.eventId,'editing'),
+    confirmed:conditionEntry(raw.confirmed,raw.weekStart,raw.eventId,'confirmed')};
+}
+export function stageConditionCandidate(ledger,{fields,revision,savedAt,missingFields=[]}) {
+  const prev=validateConditionLedger(ledger);
+  const entry=conditionEntry({weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'CANDIDATE',fields,revision,savedAt,missingFields},
+    prev.weekStart,prev.eventId,'candidate');
+  return {...prev,candidate:entry};
+}
+export function applyConditionCandidate(ledger,{userApplied=false}={}) {
+  const prev=validateConditionLedger(ledger);
+  if(!userApplied||!prev.candidate)throw Error('User must explicitly apply an available candidate.');
+  return {...prev,editing:{...prev.candidate,status:'EDITING'}};
+}
+export function stageConditionEdits(ledger,{fields,revision,savedAt,missingFields=[]}) {
+  const prev=validateConditionLedger(ledger);
+  return {...prev,editing:conditionEntry({weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'EDITING',fields,revision,savedAt,missingFields},
+    prev.weekStart,prev.eventId,'editing')};
+}
+export function confirmEventConditions(ledger,{userConfirmed=false}={}) {
+  const prev=validateConditionLedger(ledger);
+  if(!userConfirmed||!prev.editing)throw Error('User must explicitly save edited event conditions.');
+  const candidate={...prev.editing,status:prev.editing.missingFields.length?'MISSING':'CONFIRMED'};
+  if(prev.confirmed&&candidate.revision===prev.confirmed.revision&&
+    JSON.stringify(candidate.fields)!==JSON.stringify(prev.confirmed.fields))
+    throw Error('Revision collision: different event conditions share a revision.');
+  return {...prev,confirmed:candidate,editing:null};
+}
+export function conditionViewFromLedger(ledger) {
+  const prev=validateConditionLedger(ledger);
+  const snapshot=prev.confirmed;
+  if(!snapshot)return {status:'MISSING',revision:null,missingFields:['EVENT_CONDITIONS_UNCONFIRMED'],dirty:Boolean(prev.editing)};
+  return {status:snapshot.status,revision:snapshot.revision,
+    missingFields:[...snapshot.missingFields],dirty:Boolean(prev.editing)};
+}
 function conditionView(conditions) {
   if(!conditions||typeof conditions!=='object')return {ready:false,reason:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
   const missing=Array.isArray(conditions.missingFields)?conditions.missingFields:null;
