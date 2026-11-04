@@ -83,8 +83,16 @@ with sync_playwright() as pw:
  page.locator("#edit-save").click()
  assert page.locator("#e3-next").inner_text()=="残り期間を再提案"
  assert saved(page)["applied"]==original, "Manual sleep settings must not silently adopt."
- # Reproposal must preserve previous already-started team and meals.
  page.locator("#sleep-close").click()
+ manual=saved(page)["manualSleep"]
+ page.locator("#auto-sleep").click()
+ page.locator("#auto-sleep").click()
+ assert page.locator("#auto-sleep").get_attribute("aria-checked")=="false"
+ assert saved(page)["manualSleep"]==manual, "Automatic sleep mode must not erase manual nights."
+ page.reload(wait_until="domcontentloaded")
+ assert saved(page)["manualSleep"]==manual
+ assert page.locator("#e3-next").inner_text()=="残り期間を再提案"
+ # Reproposal must preserve previous already-started team and meals.
  page.locator("#e3-update-stock").click()
  page.wait_for_url("**/U2_Prep_Local_Ingredients_20261105_v32.html?*")
  page.locator("[data-key]").first.fill("11")
@@ -119,6 +127,17 @@ with sync_playwright() as pw:
   assert after["days"][2]["recipes"][i]==original["days"][2]["recipes"][i]
  assert after["days"][2]["evening"]!=original["days"][2]["evening"],"Future party should reflect stock."
  assert page.locator("#e3-primary").is_hidden()
+ # Android-like widths must not create a horizontal page scroll.
+ for width in (320,360,393,430):
+  page.set_viewport_size({"width":width,"height":852})
+  metrics=page.evaluate("""()=>{
+   const nav=document.getElementById('day-nav');
+   return {scroll:document.documentElement.scrollWidth,viewport:window.innerWidth,
+    count:nav.querySelectorAll('button').length,firstHeight:nav.querySelector('button').getBoundingClientRect().height};
+  }""")
+  assert metrics["count"]==7 and metrics["firstHeight"]>=44,metrics
+  assert metrics["scroll"]<=metrics["viewport"]+1,metrics
+ page.set_viewport_size({"width":393,"height":852})
  # No automatic weekday jumping during redraw, but 04:00 is the fresh-open boundary.
  page.goto(date_url("2026-11-10T03:59"),wait_until="domcontentloaded")
  assert page.locator("#day-label").inner_text()=="月曜日"
