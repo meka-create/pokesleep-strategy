@@ -90,6 +90,13 @@ with sync_playwright() as pw:
  assert page.locator("#day-label").inner_text()=="水曜日"
  assert page.locator("#slots>.slot").count()==4
  assert page.locator("#e3-primary").is_hidden()
+ # Unsaved controls are not eligible to re-propose: Save Conditions is the sole action.
+ page.evaluate("""()=>{const e=document.getElementById('event-food');
+  e.value='salad';e.dispatchEvent(new Event('change',{bubbles:true}));}""")
+ assert page.locator("#e3-next").inner_text()=="イベント条件を設定"
+ page.evaluate("""()=>{const e=document.getElementById('event-food');
+  e.value='curry';e.dispatchEvent(new Event('change',{bubbles:true}));}""")
+ assert page.locator("#e3-primary").is_hidden()
  assert_narrow(page)
  # C: updating U2 should preserve the adopted plan and protect Sunday baseline.
  prev=chosen_state(page)["applied"]
