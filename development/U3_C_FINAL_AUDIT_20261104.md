@@ -33,6 +33,13 @@
 4. `tests/preview_browser_v29_weekday.py` / `preview_browser_v29_phase.py` / `preview_browser_v29_regression.py` で、v28の曜日／配置／イベント条件／在庫／週別作戦／日本語イベント名などを回帰検証。
 5. CIがすべて成功した場合のみ、v29のオフラインHTMLと監査報告をZIPで配布。
 
+## U3-C監査結果：自動検証 PASS（2026-11-04）
+- GitHub Actions：`U3 v29 independent contract audit and export` run [#41745711019](https://github.com/meka-create/pokesleep-strategy/actions/runs/41745711019)。
+- **静的テスト49件PASS**（歴代プレビュー契約39件・廃案UI防止5件・ロードマップ契約5件）。
+- **Chromium操作試験PASS**：U3-C深掘り（準備週ロック、7晩自動/手動切替、保存済み旧案の拒否、採用までに過ぎた時間帯の記録保護）＋U3-B曜日境界＋U3-Aカード順＋旧U3日本語イベント・保存・再提案・画面遷移。
+- v28のU2/U3原本SHA、19食材アイコン・重要DOM契約を維持。
+- **U3-D Android Chrome実機・実ゲーム計算は未受入**であり、上記PASSと区別。
+
 ## 保留事項：U3-Dと本番機能は混同しない
 - **Android Chrome実機のv29受入は未実施。** 自動化PASSだけでユーザー承認済みとはしない。
 - **U3 v29はUI設計プレビュー**。本番の週間エナジー最大化探索、日曜備蓄最適化、実イベント補正の同期、ボックスの実データ連携は未実装。
