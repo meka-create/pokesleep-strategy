@@ -157,7 +157,7 @@ main[data-phase-stage="ended"] #week-content{scroll-margin-top:10px}
 <dialog class="modal sleep-modal" id="sleep-dialog" aria-labelledby="sleep-title"><div class="modal-head"><h2 id="sleep-title">睡眠編成</h2><button type="button" class="btn small ghost" id="sleep-close">閉じる</button></div><p class="review-note">基本の5匹を全7晩に設定し、必要な曜日だけ変更できます。</p><div id="sleep-manual"><div id="sleep-day-nav" class="daynav" role="tablist" aria-label="睡眠設定の曜日"></div><div id="sleep-team-preview" class="sleep-team-preview"></div><div class="sleep-actions"><button type="button" class="btn secondary full" id="sleep-change">この夜の5匹を変更</button><button type="button" class="btn ghost full" id="sleep-copy">この5匹を全7晩に設定</button></div></div></dialog>
 
 <dialog class="modal review-modal" id="review-dialog" aria-labelledby="review-title"><div class="modal-head"><h2 id="review-title">作戦の提案</h2><button type="button" class="btn small ghost" id="review-close">閉じる</button></div><p class="review-note">この画面の編成は表示用の仮提案です。実ゲームの最適化計算は未接続です。採用するまで現在の作戦は変わりません。</p><div class="daynav" id="review-day-nav" role="tablist" aria-label="提案を確認する曜日"></div><div id="review-slots"></div><div class="modal-footer"><button type="button" class="btn ghost" id="review-cancel">キャンセル</button><button type="button" class="btn" id="review-adopt">この作戦を採用</button></div></dialog>
-<dialog class="modal" id="edit-dialog" aria-labelledby="edit-title"><div class="modal-head"><h2 id="edit-title">月曜日・朝</h2><button type="button" class="btn small ghost" id="edit-close" aria-label="編集を閉じる">閉じる</button></div><div class="section-head"><h3>パーティ</h3><span class="select-count" id="select-count">5 / 5</span></div><div class="pick-grid" id="pick-grid"></div><div id="recipe-editor"><div class="field"><span>料理</span><select id="recipe-choice"></select></div></div><p id="edit-error" class="modal-error" role="alert"></p><div class="modal-footer"><button type="button" class="btn ghost" id="edit-cancel">キャンセル</button><button type="button" class="btn" id="edit-save">この枠を保存</button></div></dialog>
+<dialog class="modal" id="edit-dialog" aria-labelledby="edit-title"><div class="modal-head"><h2 id="edit-title">睡眠編成</h2><button type="button" class="btn small ghost" id="edit-close" aria-label="編集を閉じる">閉じる</button></div><div class="section-head"><h3>パーティ</h3><span class="select-count" id="select-count">5 / 5</span></div><div class="pick-grid" id="pick-grid"></div><p id="edit-error" class="modal-error" role="alert"></p><div class="modal-footer"><button type="button" class="btn ghost" id="edit-cancel">キャンセル</button><button type="button" class="btn" id="edit-save">この夜を保存</button></div></dialog>
 <dialog class="modal stat-modal" id="pokemon-dialog" aria-labelledby="pokemon-status-title">
   <h2 id="pokemon-status-title" class="visually-hidden">ポケモンの詳細</h2>
   <div class="iv-close-row"><button type="button" class="btn small ghost iv-close" id="pokemon-close" aria-label="ステータスを閉じる">閉じる</button></div>
@@ -403,7 +403,7 @@ function buildSelect(id,label){const native=$('#'+id);native.hidden=true;native.
  });
  native.addEventListener('change',()=>refreshSelect(id));
 }
-[['event-source-select','イベントを選択'],['event-food','料理'],['event-field','フィールド'],['recipe-choice','料理']].forEach(([id,label])=>buildSelect(id,label));
+[['event-source-select','イベントを選択'],['event-food','料理'],['event-field','フィールド']].forEach(([id,label])=>buildSelect(id,label));
 document.addEventListener('pointerdown',event=>{if(openSelect&&!openSelect.button.parentNode.contains(event.target))closeSelect(openSelect);});
 
 const DAY=['月','火','水','木','金','土','日'];
@@ -824,7 +824,7 @@ function copySleepNights(day){
 function openEdit(day,slot){
  if(slot!=='sleep'||isPastSlot(day,'sleep')||switchOn('auto-sleep'))return;
  edit={day,slot:'sleep',picks:[...manualSleep[day]],recipe:null};
- $('#edit-title').textContent=FULL[day]+' · 睡眠編成';$('#recipe-editor').hidden=true;
+ $('#edit-title').textContent=FULL[day]+' · 睡眠編成';
  $('#edit-error').textContent='';drawPicker();$('#edit-dialog').showModal();
 }
 function drawPicker(focusId=null){const grid=$('#pick-grid');grid.textContent='';$('#select-count').textContent=edit.picks.length+' / 5';$('#edit-save').disabled=edit.picks.length!==5;for(const p of POKE){const on=edit.picks.includes(p.id);const row=document.createElement('div');row.className='pick';row.dataset.selected=String(on);const statusButton=document.createElement('button');statusButton.type='button';statusButton.className='pick-status sprite-stage';statusButton.setAttribute('aria-label',p.name+'のステータス');appendSprite(statusButton,p);statusButton.addEventListener('click',()=>showPokemon(p.id));const choose=document.createElement('button');choose.type='button';choose.className='pick-select';choose.dataset.id=p.id;choose.setAttribute('aria-pressed',String(on));choose.setAttribute('aria-label',p.name+(on?'を選択解除':'を選択'));if(!on&&edit.picks.length===5)choose.disabled=true;const name=document.createElement('span');name.className='pick-name';name.textContent=p.name;const mark=document.createElement('span');mark.className='selected-check';mark.textContent=on?'✓':'';choose.append(name,mark);choose.addEventListener('click',()=>{if(edit.picks.includes(p.id))edit.picks=edit.picks.filter(id=>id!==p.id);else if(edit.picks.length<5)edit.picks.push(p.id);drawPicker(p.id);});row.append(statusButton,choose);grid.append(row);}SpritePreview.enhance(grid);if(focusId){const b=[...grid.querySelectorAll('.pick-select')].find(x=>x.dataset.id===focusId);if(b&&!b.disabled)b.focus();}}
@@ -835,7 +835,7 @@ function saveEdit(){
  $('#edit-dialog').close();edit=null;renderSleepSettings();storeState();render();showToast('睡眠編成を設定しました');
 }
 $('#edit-close').onclick=$('#edit-cancel').onclick=()=>$('#edit-dialog').close();
-$('#edit-dialog').addEventListener('close',()=>{edit=null;closeSelect(customMenus.get('recipe-choice'));});
+$('#edit-dialog').addEventListener('close',()=>{edit=null;});
 $('#edit-save').onclick=saveEdit;
 $('#sleep-open').onclick=()=>{if(switchOn('auto-sleep'))return;selectedSleepDay=firstFutureDay();renderSleepSettings();$('#sleep-dialog').showModal();};
 $('#sleep-close').onclick=()=>$('#sleep-dialog').close();
