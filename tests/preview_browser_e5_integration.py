@@ -30,7 +30,11 @@ def choose_event(page):
   }
  }""")
  page.locator("#event-save").click()
- assert page.locator("#e3-next").inner_text()=="食材在庫を登録"
+ # Before start the preparation-link is primary; after start the stock CTA is primary.
+ if page.locator("#phase-intro-u2").is_visible():
+  assert page.locator("#e3-primary").is_hidden()
+ else:
+  assert page.locator("#e3-next").inner_text()=="食材在庫を登録"
 def save_u2(page,count):
  page.locator("[data-key]").first.fill(str(count))
  page.locator("#save-inventory").click()
@@ -55,9 +59,11 @@ with sync_playwright() as pw:
  page=ctx.new_page();page.on("pageerror",lambda e:errors.append(str(e)))
  page.goto(url("2026-11-08T16:00"),wait_until="domcontentloaded")
  choose_event(page)
- page.locator("#e3-next").click()
+ assert page.locator("#phase-intro-u2").is_visible()
+ page.locator("#phase-intro-u2").click()
  page.wait_for_url("**/U2_Prep_Local_Ingredients_20261105_v33.html?*")
  assert page.locator("#u2-week-label").inner_text()=="11/9週"
+ page.locator("#btn-inventory").click()
  save_u2(page,10)
  baseline1=page.evaluate("(k)=>JSON.parse(localStorage.getItem(k))",KSTOCK)
  save_u2(page,23)
