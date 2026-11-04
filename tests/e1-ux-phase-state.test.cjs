@@ -274,3 +274,94 @@ test('wrong event adopted plan does not leak into new event',async()=>{
  assert.equal(x.adoption,'NONE');
  assert.equal(x.primaryAction,'PROPOSE');
 });
+
+
+test('event source is only candidate; explicit apply and save required',async()=>{
+ const M=await api;
+ let ledger=M.newConditionLedger(EVENT);
+ const fetched={fields:{start:WEEK,field:'シアンの砂浜',food:'curry'},
+   revision:'c1',savedAt:'2026-11-08T12:00:00+09:00'};
+ ledger=M.stageConditionCandidate(ledger,fetched);
+ assert.equal(ledger.confirmed,null);
+ assert.equal(ledger.editing,null);
+ assert.throws(()=>M.applyConditionCandidate(ledger),/explicitly/);
+ assert.throws(()=>M.confirmEventConditions(ledger,{userConfirmed:true}),/explicitly/);
+ ledger=M.applyConditionCandidate(ledger,{userApplied:true});
+ assert.equal(ledger.confirmed,null);
+ assert.equal(M.conditionViewFromLedger(ledger).dirty,true);
+ ledger=M.confirmEventConditions(ledger,{userConfirmed:true});
+ assert.equal(ledger.confirmed.status,'CONFIRMED');
+ assert.equal(ledger.editing,null);
+ assert.equal(M.conditionViewFromLedger(ledger).dirty,false);
+ assert.equal(M.getPrimaryViewState(props({conditions:M.conditionViewFromLedger(ledger)})).canPropose,false);
+ assert.equal(ledger.candidate.fields.food,'curry'); // source not lost
+});
+
+test('partial event conditions remain MISSING even if saved; cannot create proposal',async()=>{
+ const M=await api;
+ let ledger=M.newConditionLedger(EVENT);
+ ledger=M.stageConditionEdits(ledger,{fields:{field:'シアンの砂浜'},
+   missingFields:['料理カテゴリ','確定きのみ'],revision:'part1',savedAt:'2026-11-08T13:00:00+09:00'});
+ ledger=M.confirmEventConditions(ledger,{userConfirmed:true});
+ assert.equal(ledger.confirmed.status,'MISSING');
+ assert.deepEqual(ledger.confirmed.missingFields,['料理カテゴリ','確定きのみ']);
+ assert.equal(M.conditionViewFromLedger(ledger).status,'MISSING');
+ const stock=saved(M,inventory(M),'2026-11-08T14:00:00+09:00','r1');
+ const v=M.getPrimaryViewState(props({conditions:M.conditionViewFromLedger(ledger),inventoryTimeline:stock}));
+ assert.equal(v.primaryAction,'SET_EVENT');
+ assert.equal(v.canPropose,false);
+});
+
+test('candidate fetch never overwrites previously confirmed event, or edit draft',async()=>{
+ const M=await api;
+ let ledger=M.newConditionLedger(EVENT);
+ ledger=M.stageConditionEdits(ledger,{fields:{food:'curry'},revision:'c1',savedAt:'2026-11-08T07:00:00+09:00'});
+ ledger=M.confirmEventConditions(ledger,{userConfirmed:true});
+ const previous=structuredClone(ledger.confirmed);
+ ledger=M.stageConditionCandidate(ledger,{fields:{food:'salad'},revision:'c2',savedAt:'2026-11-08T08:00:00+09:00'});
+ assert.deepEqual(ledger.confirmed,previous);
+ assert.equal(ledger.candidate.fields.food,'salad');
+ ledger=M.applyConditionCandidate(ledger,{userApplied:true});
+ assert.deepEqual(ledger.confirmed,previous);
+ assert.equal(M.conditionViewFromLedger(ledger).dirty,true);
+ ledger=M.confirmEventConditions(ledger,{userConfirmed:true});
+ assert.equal(ledger.confirmed.fields.food,'salad');
+ assert.equal(ledger.confirmed.revision,'c2');
+});
+
+test('reject mismatched event ledger and revision collisions',async()=>{
+ const M=await api;
+ let ledger=M.newConditionLedger(EVENT);
+ assert.throws(()=>M.validateConditionLedger({...ledger,eventId:'wrong',candidate:{
+   weekStart:WEEK,eventId:EVENT.id,status:'CANDIDATE',fields:{},revision:'rev',
+   missingFields:[],savedAt:'2026-11-08T08:00:00+09:00'}}),/Invalid candidate/);
+ ledger=M.stageConditionEdits(ledger,{fields:{food:'curry'},revision:'same',savedAt:'2026-11-08T07:00:00+09:00'});
+ ledger=M.confirmEventConditions(ledger,{userConfirmed:true});
+ ledger=M.stageConditionEdits(ledger,{fields:{food:'salad'},revision:'same',savedAt:'2026-11-08T08:00:00+09:00'});
+ assert.throws(()=>M.confirmEventConditions(ledger,{userConfirmed:true}),/Revision collision/);
+ assert.equal(ledger.confirmed.fields.food,'curry');
+});
+
+test('conditions reject non-JSON/unbounded/unsafe keys and do not change original',async()=>{
+ const M=await api;
+ const ledger=M.newConditionLedger(EVENT);
+ for(const fields of [
+  {x:Infinity},
+  JSON.parse('{"__proto__":{"polluted":true}}'),
+  {huge:'x'.repeat(17000)}
+ ]){
+  assert.throws(()=>M.stageConditionCandidate(ledger,{fields,revision:'c',
+    savedAt:'2026-11-08T12:00:00+09:00'}));
+ }
+ assert.equal(ledger.candidate,null);
+});
+
+test('same week/date but a different explicitly selected event id does not reuse adopted plan',async()=>{
+ const M=await api;
+ const stock=saved(M,inventory(M),'2026-11-08T12:00:00+09:00','r1');
+ const newer={id:'other-2026',weekStart:WEEK};
+ const x=M.getPrimaryViewState({...props({inventoryTimeline:stock,adoptedPlan:adopted}),selectedEvent:newer});
+ assert.equal(x.adoption,'NONE');
+ assert.equal(x.screen,'PENDING_PLAN');
+ assert.equal(x.primaryAction,'PROPOSE');
+});
