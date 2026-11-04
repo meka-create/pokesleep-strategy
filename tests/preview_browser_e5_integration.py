@@ -5,8 +5,8 @@ from pathlib import Path
 from urllib.parse import urlsplit,parse_qs
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]/"previews"
-U2=(ROOT/"U2_Prep_Local_Ingredients_20261105_v32.html").resolve().as_uri()
-U3=(ROOT/"U3_Strategy_UI_20261105_v32.html").resolve().as_uri()
+U2=(ROOT/"U2_Prep_Local_Ingredients_20261105_v33.html").resolve().as_uri()
+U3=(ROOT/"U3_Strategy_UI_20261105_v33.html").resolve().as_uri()
 WEEK="2026-11-09"
 ID="manual:"+WEEK
 KSTOCK=f"pokesleep-strategy-u2-e2-v1:{WEEK}:timeline"
@@ -56,7 +56,7 @@ with sync_playwright() as pw:
  page.goto(url("2026-11-08T16:00"),wait_until="domcontentloaded")
  choose_event(page)
  page.locator("#e3-next").click()
- page.wait_for_url("**/U2_Prep_Local_Ingredients_20261105_v32.html?*")
+ page.wait_for_url("**/U2_Prep_Local_Ingredients_20261105_v33.html?*")
  assert page.locator("#u2-week-label").inner_text()=="11/9週"
  save_u2(page,10)
  baseline1=page.evaluate("(k)=>JSON.parse(localStorage.getItem(k))",KSTOCK)
@@ -67,7 +67,7 @@ with sync_playwright() as pw:
  assert baseline2["startInventory"]["revision"]!=baseline1["startInventory"]["revision"]
  assert baseline2["currentInventory"]["values"]==baseline2["startInventory"]["values"]
  page.locator(".u2-transfer").click()
- page.wait_for_url("**/U3_Strategy_UI_20261105_v32.html?*")
+ page.wait_for_url("**/U3_Strategy_UI_20261105_v33.html?*")
  assert page.locator("#week-content").is_hidden()
  assert page.locator("#e3-primary").is_hidden(),"Pre-event week must not propose prematurely."
  assert page.locator("#event-details").count()==1
@@ -94,13 +94,13 @@ with sync_playwright() as pw:
  # C: updating U2 should preserve the adopted plan and protect Sunday baseline.
  prev=chosen_state(page)["applied"]
  page.locator("#e3-update-stock").click()
- page.wait_for_url("**/U2_Prep_Local_Ingredients_20261105_v32.html?*")
+ page.wait_for_url("**/U2_Prep_Local_Ingredients_20261105_v33.html?*")
  save_u2(page,9)
  later=page.evaluate("(k)=>JSON.parse(localStorage.getItem(k))",KSTOCK)
  assert later["startInventory"]==baseline2["startInventory"]
  assert later["currentInventory"]["values"]["ふといながねぎ"]==9
  page.locator(".u2-transfer").click()
- page.wait_for_url("**/U3_Strategy_UI_20261105_v32.html?*")
+ page.wait_for_url("**/U3_Strategy_UI_20261105_v33.html?*")
  assert chosen_state(page)["applied"]==prev
  assert page.locator("#e3-next").inner_text()=="残り期間を再提案"
  # D: independent tab changes stock while review is open. Adoption must refuse stale draft.
