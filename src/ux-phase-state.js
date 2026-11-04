@@ -144,6 +144,8 @@ export function applyInventorySave(raw,{savedAt,values,revision}) {
   if(when>=eventStart+7*MS_DAY)throw Error('Ended event stock cannot be changed.');
   const previousTime=prev.currentInventory?instantMs(prev.currentInventory.savedAt):-Infinity;
   if(when<previousTime)throw Error('Stale inventory save; do not overwrite newer values.');
+  if(when>previousTime && prev.currentInventory?.revision===revision)
+    throw Error('A new inventory save must use a new revision.');
   // Equal timestamp from another mutation cannot determine ordering: reject unless idempotent.
   const nextSnapshot={weekStart:prev.weekStart,savedAt,revision,values:cleanInventoryValues(values)};
   if(when===previousTime) {
@@ -271,12 +273,16 @@ export function confirmEventConditions(ledger,{userConfirmed=false}={}) {
 export function conditionViewFromLedger(ledger) {
   const prev=validateConditionLedger(ledger);
   const snapshot=prev.confirmed;
-  if(!snapshot)return {status:'MISSING',revision:null,missingFields:['EVENT_CONDITIONS_UNCONFIRMED'],dirty:Boolean(prev.editing)};
-  return {status:snapshot.status,revision:snapshot.revision,
+  if(!snapshot)return {weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'MISSING',revision:null,missingFields:['EVENT_CONDITIONS_UNCONFIRMED'],dirty:Boolean(prev.editing)};
+  return {weekStart:prev.weekStart,eventId:prev.eventId,
+    status:snapshot.status,revision:snapshot.revision,
     missingFields:[...snapshot.missingFields],dirty:Boolean(prev.editing)};
 }
-function conditionView(conditions) {
-  if(!conditions||typeof conditions!=='object')return {ready:false,reason:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
+function conditionView(conditions,selectedEvent) {
+  if(!conditions||typeof conditions!=='object'||conditions.weekStart!==selectedEvent.weekStart||
+    conditions.eventId!==selectedEvent.id)
+    return {ready:false,reason:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
   const missing=Array.isArray(conditions.missingFields)?conditions.missingFields:null;
   if(missing===null||missing.some(x=>typeof x!=='string'||!x.trim()||x.length>120))
     return {ready:false,reason:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
@@ -304,7 +310,7 @@ export function getPrimaryViewState({
       compactWarning:'EVENT_NOT_SELECTED',lockReasons:['EVENT_NOT_SELECTED'],
       canPropose:false,canRepropose:false,canAdoptDraft:false,
       adoption:'NONE',gameDayIndex:null};
-  const cond=conditionView(conditions);
+  const cond=conditionView(conditions,selectedEvent);
   const stock=confirmedInventory(inventoryTimeline,selectedEvent);
   const adopted=adoptedPlan?.status==='ADOPTED'&&
     adoptedPlan.weekStart===selectedEvent.weekStart&&
