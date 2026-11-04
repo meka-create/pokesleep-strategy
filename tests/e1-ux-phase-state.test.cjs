@@ -158,7 +158,7 @@ test('reject event-week contamination in snapshot and legacy v3 records',async()
   initialValues:values,values};
  assert.throws(()=>M.previewLegacyU2V3(record,'2026-11-16'),/different/);
  assert.throws(()=>M.validateInventoryTimeline({...M.newInventoryTimeline(WEEK),weekStart:'2026-11-16'},WEEK),/Unsupported/);
- assert.throws(()=>M.previewLegacyU2V3({...record,values:{...values,bad:0}},WEEK),/19/);
+ assert.throws(()=>M.previewLegacyU2V3({...record,values:{...values,bad:0}},WEEK),/incomplete/);
  const incomplete={...values};delete incomplete[M.INGREDIENT_NAMES[0]];
  assert.throws(()=>M.previewLegacyU2V3({...record,values:incomplete},WEEK),/incomplete/);
 });
