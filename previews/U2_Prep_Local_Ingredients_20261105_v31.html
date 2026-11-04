@@ -591,7 +591,12 @@ function readOld(){
 }
 function load(){
  const value=localStorage.getItem(key(week));
- return value===null?readOld():E1.validateInventoryTimeline(JSON.parse(value),week);
+ if(value===null)return readOld();
+ const raw=JSON.parse(value);
+ if(validEventId&&raw?.eventId&&raw.eventId!==selectedEventId)throw Error('Inventory belongs to another event');
+ const clean=E1.validateInventoryTimeline(raw,week);
+ if(raw.eventId)clean.eventId=raw.eventId;
+ return clean;
 }
 function v29Packet(s){
  const snap=s?.currentInventory;
