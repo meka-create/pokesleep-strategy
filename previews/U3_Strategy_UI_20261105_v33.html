@@ -1409,7 +1409,9 @@ function eventBlockers(){
  if(eventInfo.source?.requiresBerries&&!eventInfo.source?.berriesKnown)missing.push('きのみ条件');
  return missing;
 }
-['event-start','event-food','event-field'].forEach(id=>$('#'+id).addEventListener('change',render));
+// The E3/E4 state wrapper replaces render after listeners are registered.
+ // Resolve render when the event fires, not while registering a stale reference.
+ ['event-start','event-food','event-field'].forEach(id=>$('#'+id).addEventListener('change',()=>render()));
 $('#event-camp').addEventListener('click',()=>{toggleSwitch('event-camp');render();});
 $('#event-save').onclick=()=>{
  const d=$('#event-start').value;
