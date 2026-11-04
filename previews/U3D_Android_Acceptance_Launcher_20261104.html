@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>U3-D Android実機確認 | ポケスリ作戦室</title>
+<style>
+:root{color-scheme:dark;--bg:#101c2e;--panel:#1b2d41;--line:#3b5269;--text:#eff3f8;--muted:#b9c7d3;--highlight:#ebcb80}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,"Noto Sans JP",sans-serif}
+main{max-width:560px;margin:0 auto;padding:20px 14px 44px}
+h1{font-size:21px;margin:0 0 8px}h2{font-size:16px;margin:0 0 8px}
+p{margin:6px 0 12px}.small{font-size:13px;color:var(--muted)}
+.card{background:var(--panel);padding:16px;border:1px solid var(--line);border-radius:14px;margin:12px 0}
+a.test{display:block;min-height:48px;padding:12px 14px;margin:8px 0;background:#29445e;border:1px solid #4b6a83;border-radius:10px;color:var(--text);text-decoration:none;font-weight:650}
+a.test:focus-visible{outline:3px solid var(--highlight)}
+a.test span{display:block;font-size:12px;font-weight:400;color:var(--muted)}
+strong{color:var(--highlight)}
+ol{padding-left:20px}li{margin:6px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>U3-D 実機確認</h1>
+<p class="small">ポケスリ作戦室 ・ U2/U3 v29 ・ Android Chrome用</p>
+<p>これは<strong>操作確認専用の入口</strong>です。アプリ本体や保存内容を変更する機能はありません。下のリンクから試験日時のU3画面を直接開けます。</p>
+<section class="card">
+<h2>まず準備</h2>
+<ol>
+<li>ZIPを解凍し、<strong>previews</strong>フォルダ内の本HTMLをChromeで開きます。</li>
+<li>下の「準備画面 U2」で<strong>食材在庫</strong>へ切り替え、「食材在庫を保存」を押します（0個のままでOK）。</li>
+<li>このランチャーへ戻り、順番に確認します。テストは<strong>2026年11月9日開始のサンプルイベント週</strong>です。</li>
+</ol>
+<a class="test" data-test="u2" href="U2_Prep_Local_Ingredients_20261104_v29.html?eventStart=2026-11-09">準備画面 U2 を開く<span>食材在庫を保存・19食材と準備目標の表示を確認</span></a>
+</section>
+<section class="card">
+<h2>1｜準備週とイベント開始</h2>
+<a class="test" data-test="preparation" href="U3_Strategy_UI_20261104_v29.html?eventStart=2026-11-09&amp;previewNow=2026-11-08T12:00">準備週（日曜 12:00）<span>準備目標への案内が最上部／7日間提案は無効</span></a>
+<a class="test" data-test="start" href="U3_Strategy_UI_20261104_v29.html?eventStart=2026-11-09&amp;previewNow=2026-11-09T07:00">イベント開始（月曜 07:00）<span>初回はイベント条件が最上部。料理「カレー」・フィールド「シアンの砂浜」を保存し、提案→確認→採用</span></a>
+<p class="small">「イベント情報を取得」は現在サンプルです。表示・保存を確認する場合のみ使用してください。</p>
+</section>
+<section class="card">
+<h2>2｜今日の曜日を自動表示</h2>
+<a class="test" data-test="tuesday_before" href="U3_Strategy_UI_20261104_v29.html?eventStart=2026-11-09&amp;previewNow=2026-11-10T03:59">火曜 03:59<span>ゲーム内の<strong>月曜日</strong>が初期表示</span></a>
+<a class="test" data-test="tuesday_after" href="U3_Strategy_UI_20261104_v29.html?eventStart=2026-11-09&amp;previewNow=2026-11-10T04:00">火曜 04:00<span>ゲーム内の<strong>火曜日</strong>が初期表示</span></a>
+<a class="test" data-test="wednesday" href="U3_Strategy_UI_20261104_v29.html?eventStart=2026-11-09&amp;previewNow=2026-11-11T15:00">水曜 15:00<span><strong>水曜日</strong>が初期表示。週間編成が最上部／日中カードは閲覧専用</span></a>
+<p class="small">水曜画面で別の曜日をタップし、イベント条件を開閉してもその曜日が勝手に戻らないことを確認。再び水曜リンクから開くと水曜に戻ります。</p>
+</section>
+<section class="card">
+<h2>3｜睡眠編成・終了</h2>
+<p>水曜画面の「睡眠編成」で、自動初期OFF・7晩の曜日別設定・一括設定・自動ON/OFFを確認します。過去の晩は編集しない仕様です。</p>
+<a class="test" data-test="ended" href="U3_Strategy_UI_20261104_v29.html?eventStart=2026-11-09&amp;previewNow=2026-11-16T05:00">イベント終了（翌月曜 05:00）<span>作戦の閲覧は維持し、再提案は無効</span></a>
+</section>
+<section class="card">
+<h2>確認結果の報告</h2>
+<p>U3-D：①準備→開始の導線、②当日曜日の表示、③週間編成の見やすさ、④睡眠7晩と再提案、⑤表示崩れ。<strong>OK／NGと気になった点</strong>をチャットで教えてください。</p>
+<p class="small">U3はUIプレビューです。実ポケモン・実イベント・エナジー計算の精度検証ではありません。ChromeでローカルHTMLが開けない場合は、使ったアプリ名と表示内容を教えてください。</p>
+</section>
+</main>
+</body>
+</html>
