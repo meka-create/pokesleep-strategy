@@ -580,6 +580,14 @@ function showLink(){
   u.searchParams.set('eventId',eventId);
  // E3 requires an event-scoped, E1-validated timeline across offline file:// origins.
  u.searchParams.set('pokesleepStock',JSON.stringify(packet));
+ // Preview-only round-trip event context; scope it to this event ID and week.
+ const context=query.get('eventContext');
+ if(context&&context.length<12000)try{
+  const value=JSON.parse(context);
+  if(value.version===1&&value.weekStart===week&&value.eventId===eventId)
+   u.searchParams.set('eventContext',context);
+ }catch(e){/* malformed context is never forwarded */}
+
  if(mock)u.searchParams.set('previewNow',mock);
  u.searchParams.delete('tab');u.searchParams.delete('return');
  a.href=u.href;panels.inventory.querySelector('.inventory-actions').append(a);
