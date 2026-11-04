@@ -884,7 +884,7 @@ function updateU2Link(){
  if(mock)url.searchParams.set('previewNow',mock);
  document.querySelectorAll('.u2-nav').forEach(link=>link.href=url.href);
 }
-let importedStock=null,importedSource=null,importedAt=null,appliedInventoryAt=null,hasInventory=false;
+let importedStock=null,importedSource=null,importedAt=null,appliedInventoryAt=null,hasInventory=false,e3InventoryCorrupt=false;
 const inventoryKey=week=>'pokesleep-strategy-u2-v3:'+week+':inventory';
 function normalizeInventory(item){
  if(!e3Selected||item?.eventId!==e3Selected.id)return null;
@@ -900,19 +900,21 @@ function normalizeInventory(item){
  return {values,source:item.source,savedAt:item.savedAt||null};
 }
 function refreshInventory(){
- let inStorage=null,inLink=null;
+ let inStorage=null,inLink=null;e3InventoryCorrupt=false;
  try{
-  const raw=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+eventInfo.start+':timeline')||'null');
+  const rawText=localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+eventInfo.start+':timeline');
+  const raw=rawText===null?null:JSON.parse(rawText);
+  if(rawText!==null&&(!raw||raw.eventId!==e3Selected?.id))throw Error('Inventory owner missing or invalid');
   const timeline=raw?E1.validateInventoryTimeline(raw,eventInfo.start):null;
   const v=timeline?.currentInventory;
   if(v)inStorage=normalizeInventory({version:3,weekStart:eventInfo.start,eventId:raw?.eventId||null,source:'inventory',savedAt:v.savedAt,values:v.values});
- }catch(e){inStorage=null;}
+ }catch(e){inStorage=null;e3InventoryCorrupt=true;}
  // Legacy week-only U2 snapshots are not implicitly promoted to a selected event.
  try{
   const params=new URLSearchParams(location.search),raw=params.get('pokesleepStock');
   if(params.get('eventId')===e3Selected?.id&&raw&&raw.length<10000)inLink=normalizeInventory(JSON.parse(raw));
  }catch(e){}
- const newest=(!inStorage||((inLink?.savedAt||'')>(inStorage.savedAt||'')))?inLink||inStorage:inStorage;
+ const newest=e3InventoryCorrupt?null:(!inStorage||((inLink?.savedAt||'')>(inStorage.savedAt||'')))?inLink||inStorage:inStorage;
  hasInventory=!!newest;
  importedStock=newest?clone(newest.values):null;importedSource=newest?.source||null;importedAt=newest?.savedAt||null;
  if(!hasInventory){importedStock=null;importedAt=null;}
