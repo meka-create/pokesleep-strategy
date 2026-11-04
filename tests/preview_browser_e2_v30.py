@@ -160,4 +160,30 @@ with sync_playwright() as pw:
   delete Storage.prototype.__e2Original;}""")
  assert not errors,errors
  print("PASS E2 v30: legacy v3 read-only, first-save initialValues ignored, explicit v2 timeline commit, storage-failure rollback.")
+ ctx.close()
+ # Legacy v22 had TWO separate snapshots; keep Sunday as immutable baseline.
+ ctx=browser.new_context(viewport={"width":360,"height":800},timezone_id="Asia/Tokyo")
+ page=ctx.new_page();page.on("pageerror",lambda err:errors.append(str(err)))
+ browse(page,"2026-11-11T16:00","&tab=inventory")
+ names=page.evaluate("""()=>[...document.querySelectorAll('#inventory-panel .food .name')].map(x=>x.textContent.trim())""")
+ sun={k:0 for k in names};sun["ふといながねぎ"]=40
+ cur={k:0 for k in names};cur["ふといながねぎ"]=11
+ sunday={"version":2,"weekStart":WEEK,"source":"sunday","savedAt":"2026-11-08T20:00:00+09:00","values":sun}
+ current={"version":2,"weekStart":WEEK,"source":"current","savedAt":"2026-11-11T15:00:00+09:00","values":cur}
+ sKey=f"pokesleep-strategy-u2-v2:{WEEK}:sunday"
+ cKey=f"pokesleep-strategy-u2-v2:{WEEK}:current"
+ for k,data in [(sKey,sunday),(cKey,current)]:
+  page.evaluate("([k,v])=>localStorage.setItem(k,v)",[k,json.dumps(data,ensure_ascii=False)])
+ page.reload(wait_until="domcontentloaded")
+ assert page.locator("[data-key]").first.input_value()=="11"
+ assert stock(page)==None
+ page.locator("[data-key]").first.fill("12")
+ click_save(page)
+ migrated=stock(page)
+ assert migrated["startInventory"]["values"]["ふといながねぎ"]==40
+ assert migrated["currentInventory"]["values"]["ふといながねぎ"]==12
+ assert page.evaluate("(k)=>JSON.parse(localStorage.getItem(k))",sKey)==sunday
+ assert page.evaluate("(k)=>JSON.parse(localStorage.getItem(k))",cKey)==current
+ assert not errors,errors
+ print("PASS E2 v30: old v22 Sunday/current are separately reconstructed and neither original record is overwritten.")
  ctx.close();browser.close()
