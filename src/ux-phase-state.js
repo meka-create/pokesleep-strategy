@@ -192,22 +192,25 @@ export function previewLegacyU2V3(record,selectedWeek) {
  */
 function cleanFields(input) {
   if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Event fields must be an object.');
-  // A bounded JSON clone drops none of the required plain JSON fields, while
-  // rejecting prototypes, executable values and excessively large input.
-  const proto=Object.getPrototypeOf(input);
-  if(proto!==Object.prototype && proto!==null)throw Error('Untrusted event fields prototype.');
+  // Validate before JSON cloning. JSON.stringify silently converts Infinity
+  // to null and silently drops undefined/functions: never auto-confirm that.
+  const visited=new WeakSet();
+  const walk=(x)=>{
+    if(x===null||typeof x==='string'||typeof x==='boolean')return true;
+    if(typeof x==='number')return Number.isFinite(x);
+    if(typeof x!=='object'||visited.has(x))return false;
+    const proto=Object.getPrototypeOf(x);
+    if(!Array.isArray(x)&&proto!==Object.prototype&&proto!==null)return false;
+    visited.add(x);
+    const ok=Array.isArray(x)?x.every(walk):
+      Object.keys(x).every(k=>!['__proto__','prototype','constructor'].includes(k)&&walk(x[k]));
+    visited.delete(x);
+    return ok;
+  };
+  if(!walk(input))throw Error('Event fields contain unsupported data.');
   const raw=JSON.stringify(input);
   if(typeof raw!=='string'||raw.length>16000)throw Error('Event fields too large.');
-  const parsed=JSON.parse(raw);
-  const walk=(x)=>{
-    if(Array.isArray(x))return x.every(walk);
-    if(x&&typeof x==='object')
-      return Object.keys(x).every(k=>!['__proto__','prototype','constructor'].includes(k)&&walk(x[k]));
-    return x===null||typeof x==='string'||typeof x==='boolean'||
-      (typeof x==='number'&&Number.isFinite(x));
-  };
-  if(!walk(parsed))throw Error('Event fields contain unsupported data.');
-  return parsed;
+  return JSON.parse(raw);
 }
 function conditionEntry(entry,weekStart,eventId,label) {
   if(entry==null)return null;
