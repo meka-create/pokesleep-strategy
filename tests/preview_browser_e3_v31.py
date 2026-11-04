@@ -70,4 +70,39 @@ with sync_playwright() as pw:
  assert page.locator("#e3-next").inner_text()=="残り期間を再提案",page.locator("#e3-next").inner_text()
  assert not errors,errors
  print("PASS E3 v31 offline roundtrip: explicit selection, single CTA, zero stock, review/adopt, 04:00 day, unchanged plan before re-proposal.")
+ # Corrupt E2 stock cannot be silently replaced by a valid-looking URL snapshot.
+ page.evaluate("()=>localStorage.setItem('pokesleep-strategy-u2-e2-v1:2026-11-09:timeline','{broken')")
+ page.reload(wait_until="domcontentloaded")
+ assert page.locator("#week-content").is_visible()
+ assert page.locator("#e3-next").inner_text()=="食材在庫を登録"
+ assert not errors,errors
+ ctx.close()
+ # Fresh context: old week-only localStorage never selects an event, and unknown EX stays locked.
+ ctx=browser.new_context(viewport={"width":360,"height":800},timezone_id="Asia/Tokyo")
+ page=ctx.new_page()
+ page.on("pageerror",lambda error:errors.append(str(error)))
+ page.goto(U3+"?previewNow="+NOW,wait_until="domcontentloaded")
+ page.evaluate("()=>localStorage.setItem('pokesleep-strategy-event-start-v2','2026-11-09')")
+ page.reload(wait_until="domcontentloaded")
+ assert page.locator("#e3-next").inner_text()=="イベントを選択"
+ page.locator("#e3-next").click()
+ page.locator("#event-start").fill(WEEK)
+ page.evaluate("""()=>{
+  for (const [id,value] of [['event-field','ワカクサ本島EX'],['event-food','curry']]){
+   const el=document.getElementById(id);el.value=value;
+   el.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+ }""")
+ page.locator("#event-save").click()
+ assert page.locator("#e3-next").inner_text()=="イベント条件を設定"
+ assert not page.locator("#week-content").is_visible()
+ # Complete non-EX conditions become eligible for stock registration, never immediate adoption.
+ page.locator("#e3-next").click()
+ page.evaluate("""()=>{const el=document.getElementById('event-field');el.value='シアンの砂浜';
+  el.dispatchEvent(new Event('change',{bubbles:true}));}""")
+ page.locator("#event-save").click()
+ assert page.locator("#e3-next").inner_text()=="食材在庫を登録"
+ assert not errors,errors
+ ctx.close()
+ print("PASS E3 v31 safeguards: no old implicit week, EX fail-closed, corrupted E2 stock blocks adoption.")
  browser.close()
