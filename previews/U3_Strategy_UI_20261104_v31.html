@@ -1116,17 +1116,17 @@ function arrangePhaseLayout(phase,activePlan,blockers){
    phase==='ended'?'ended':activePlan?'active':'start';
  main.dataset.phaseStage=stage;
  if(stage!==visiblePhaseStage){
-  const nodes=stage==='select'?[conditions,actions,sleep,week,intro]:stage==='preparation'
+  const nodes=stage==='select'?[actions,conditions,sleep,week,intro]:stage==='preparation'
    ?[intro,conditions,sleep,actions,week]:
    stage==='start'
-    ?[conditions,actions,sleep,week,intro]:
+    ?[actions,conditions,sleep,week,intro]:
     activePlan
      ?[week,sleep,actions,conditions,intro]:
      [intro,conditions,actions,sleep,week];
   for(const node of nodes)main.appendChild(node);
   // Opening setup on first entry makes missing required inputs discoverable;
   // user-initiated toggles remain untouched on later rerenders.
-  if(stage==='start')conditions.open=blockers.length>0;
+  if(stage==='start')conditions.open=false;
   else conditions.open=false;
   visiblePhaseStage=stage;
  }
@@ -1443,7 +1443,7 @@ function eventFormDirty(){
   $('#event-field').value!==eventInfo.field||$('#event-food').value!==eventInfo.food||
   switchOn('event-camp')!==eventInfo.camp||
   (!eventInfo.source&&$('#event-manual-name').value!==eventInfo.manualName)||
-  manualSourceRequested||!!pendingEventSource;
+  manualSourceRequested||!!pendingEventSource||!$('#event-source-apply').hidden;
 }
 function missingEventFields(info){
  const missing=[];
