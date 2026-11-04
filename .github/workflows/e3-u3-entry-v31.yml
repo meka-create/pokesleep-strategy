@@ -10,6 +10,15 @@ on:
       - 'development/E3_U3_ENTRY_IMPLEMENTATION_20261104.md'
       - 'development/ROADMAP_CURRENT.md'
       - '.github/workflows/e3-u3-entry-v31.yml'
+  pull_request:
+    branches: [feat/e2-u2-stock-flow-v30-20261104]
+    paths:
+      - 'previews/U2_Prep_Local_Ingredients_20261104_v31.html'
+      - 'previews/U3_Strategy_UI_20261104_v31.html'
+      - 'tests/test_e3_entry_contract_v31.py'
+      - 'tests/preview_browser_e3_v31.py'
+      - 'development/E3_U3_ENTRY_IMPLEMENTATION_20261104.md'
+      - '.github/workflows/e3-u3-entry-v31.yml'
   workflow_dispatch:
 permissions:
   contents: read
