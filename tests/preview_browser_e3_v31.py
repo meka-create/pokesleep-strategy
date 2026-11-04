@@ -105,12 +105,18 @@ with sync_playwright() as pw:
  b_key=f"pokesleep-strategy-u3-e3-v1:{WEEK}:{quote(b_id,safe='')}"
  page.evaluate("([k,v])=>localStorage.setItem(k,v)",[b_key,"{bad-e3-data"])
  page.reload(wait_until="domcontentloaded")
+ print("E3 pre-save corruption",page.evaluate("(k)=>localStorage.getItem(k)",b_key)[:50],flush=True)
  assert page.locator("#week-content").is_hidden()
  page.locator("#e3-primary").click()
  page.locator("#event-manual-name").fill("E3検証イベントB")
  set_select(page,"#event-field","トープ洞窟")
  set_select(page,"#event-food","curry")
  page.locator("#event-save").click()
+ print("E3 post-save",{
+  "toast":page.locator("#ui-toast").inner_text(),
+  "stock":page.evaluate("(k)=>localStorage.getItem(k)",b_key)[:50],
+  "urlEvent":parse_qs(urlsplit(page.url).query).get("eventId"),
+ },flush=True)
  assert "保存できませんでした" in page.locator("#ui-toast").inner_text()
  assert page.evaluate("(k)=>localStorage.getItem(k)",b_key)=="{bad-e3-data"
  # Event A can still recover its own adopted plan.
