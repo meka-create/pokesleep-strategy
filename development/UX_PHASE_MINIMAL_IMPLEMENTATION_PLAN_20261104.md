@@ -1,4 +1,7 @@
 # ポケスリ作戦室 — UI簡素化と三段階導線の具体的実装計画
+
+> **監査前の旧案・このまま実装しないこと。** 2026-11-04の厳密監査で状態・在庫スナップショット・U4/U5責任境界に重大な欠落を確認。修正版は `development/UX_PHASE_MINIMAL_IMPLEMENTATION_PLAN_AUDITED_20261104.md`、監査結果は `development/UX_PHASE_PLAN_AUDIT_20261104.md` を参照。この旧案は判断経緯として保持する。
+
 作成日：2026-11-04
 状態：**提案／ユーザー確認前。実装未着手。正式な確定仕様を上書きしない。**
 基準：`development/PRODUCT_DECISIONS_CURRENT_20261104.md`、`development/U3_UX_REDESIGN_PROPOSAL_20261104.md`、`development/U3_PHASE_JOURNEY_REWORK_20261104.md`
