@@ -26,7 +26,7 @@
 
 ## 4. 未確認ゲート
 
-- **E5最新版のGitHub Actions回帰・Chromium結果**：CIの最新ステータスを確認してから判定する。テスト追加・コード修正が成功しても、実行結果未確認なら自動受入を完了としない。
+- **E5最新版のGitHub Actions回帰・Chromium結果：PASS**。下記の2系統のログで562テストPASS・0失敗を確認。
 - **Android Pixel 7a Chrome実機受入**：E6で利用者が1回にまとめて実施。「画面を見て次の操作がわかる」「今日の4枠が見やすい」を明示受入するまでHOLD。
 - **U5/F工程**：同一オリジン保存、U4実個体データ、実イベント最新ボーナス、食材エナジー最適化はE5の範囲外。
 
@@ -35,3 +35,17 @@
 1. `npm test` + ビルド、E5実ブラウザ、E1〜E4不退化の全CI成功。
 2. 既知の保存失敗・別タブ競合・04:00境界・旧保存保護の検査成功。
 3. E5自動受入合格ならE6へ進み、Pixel 7a実機確認手順をまとめて提示。合格前にmain統合しない。
+
+## 6. 独立監査・最終自動受入結果（2026-11-05）
+
+- **自動受入判定：PASS**。GitHub Actions [Validate PokeSleep Strategy #41883545715](https://github.com/meka-create/pokesleep-strategy/actions/runs/41883545715) は `562 tests / 562 pass / 0 fail`、CIジョブの最終結論 `success`。
+- 既存互換 [Validate STEP 2 #41883545898](https://github.com/meka-create/pokesleep-strategy/actions/runs/41883545898) も `562 tests / 562 pass / 0 fail`、ジョブ最終結論 `success`。
+- E3/E4旧版の静的・実Chromium検証も全体npmテスト内で再実行済み。E5では `test_e5_contract_v33.py` と `preview_browser_e5_integration.py` を追加し、2つの新規NodeテストがPASS。
+- **独立監査の重要発見：** 旧コードで条件変更リスナーが `addEventListener('change',render)` と実装され、E3/E4が後で差し替えた `render` 関数を参照せず、イベント編集直後の主操作が更新されないことが実操作テストで判明。v33では `addEventListener('change',()=>render())` に修正してテストPASS。静的監査にも旧書式禁止を追加。
+- E5の未採用案の再開、未保存条件ゲート、保存失敗ロールバック、準備週と途中在庫更新の往復、別タブ更新レース、04:00境界、終了後read-onlyを自動確認。
+- 凍結したE4 v32など既存原本は変更せず、`compare_commits` では E4ベースに対してE5がahead・behind 0であり、変更ファイルはv33新規プレビュー・E5の試験・E5開発文書・ロードマップのみ。
+- **E6（Pixel 7a / Android Chrome実機受入）・U5同一オリジン保存・F工程の実ゲーム精度は未受入**。自動受入PASSを実機確認済み・main統合済みと混同しない。
+
+### 次工程
+
+**E6：Pixel 7a Android Chromeで1回にまとめて受入検証。** 準備→イベント開始→提案採用→当日閲覧→途中在庫更新→再提案→保存を確認し、読みやすさと次の操作の分かりやすさを利用者が判定する。NGならE3〜E5の該当工程へ戻って修正。E6承認前はDraft PR #113をmainへ統合しない。
