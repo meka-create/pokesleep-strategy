@@ -1,0 +1,58 @@
+name: E3 U3 v31 event-entry and stock-review contract
+on:
+  push:
+    branches: [feat/e3-u3-entry-v31-20261104]
+    paths:
+      - 'previews/U2_Prep_Local_Ingredients_20261104_v31.html'
+      - 'previews/U3_Strategy_UI_20261104_v31.html'
+      - 'tests/test_e3_entry_contract_v31.py'
+      - 'tests/preview_browser_e3_v31.py'
+      - 'development/E3_U3_ENTRY_IMPLEMENTATION_20261104.md'
+      - 'development/ROADMAP_CURRENT.md'
+      - '.github/workflows/e3-u3-entry-v31.yml'
+  pull_request:
+    branches: [feat/e2-u2-stock-flow-v30-20261104]
+    paths:
+      - 'previews/U2_Prep_Local_Ingredients_20261104_v31.html'
+      - 'previews/U3_Strategy_UI_20261104_v31.html'
+      - 'tests/test_e3_entry_contract_v31.py'
+      - 'tests/preview_browser_e3_v31.py'
+      - 'development/E3_U3_ENTRY_IMPLEMENTATION_20261104.md'
+      - '.github/workflows/e3-u3-entry-v31.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit-e3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: E3 contracts and frozen originals
+        run: |
+          python3 -m unittest discover -s tests -p 'test_e3_entry_contract_v31.py' -v
+          python3 -m unittest discover -s tests -p 'test_e2_u2_contract_v30.py' -v
+          python3 -m unittest discover -s tests -p 'test_u3_deprecated_feature_guard.py' -v
+          node --test tests/e1-ux-phase-state.test.cjs
+      - name: E3 offline Chrome end-to-end
+        run: |
+          python3 -m pip install --quiet playwright
+          python3 tests/preview_browser_e3_v31.py
+      - name: Existing storage, import and app build
+        run: |
+          node --test tests/import.test.cjs tests/step2-final-persistence-audit.test.cjs tests/r2-primary-ui.test.cjs
+          npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PokeSleep_E3_U2_U3_v31_20261104
+          path: |
+            previews/U2_Prep_Local_Ingredients_20261104_v31.html
+            previews/U3_Strategy_UI_20261104_v31.html
+            development/E3_U3_ENTRY_IMPLEMENTATION_20261104.md
+            development/UX_PHASE_MINIMAL_IMPLEMENTATION_PLAN_AUDITED_20261104.md
+            development/ROADMAP_CURRENT.md
+          retention-days: 30
+          if-no-files-found: error
