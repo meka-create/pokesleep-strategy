@@ -1483,7 +1483,9 @@ function e3View(){
   dirtyFlags:{conditionsChanged:eventBlockers().includes('イベント条件の保存'),
    inventoryChanged:adoptedOk&&(importedAt!==appliedInventoryAt||
      JSON.stringify(importedStock)!==JSON.stringify(stockConfirmed)),
-   sleepChanged:adoptedOk&&applied.autoSleep!==switchOn('auto-sleep')}
+   sleepChanged:adoptedOk&&(applied.autoSleep!==switchOn('auto-sleep')||
+    (!switchOn('auto-sleep')&&manualSleep.some((team,day)=>!isPastSlot(day,'sleep')&&
+     JSON.stringify(arrangeHealers(team))!==JSON.stringify(applied.days[day].sleep))))}
  });
 }
 render=function(){
@@ -1491,20 +1493,37 @@ render=function(){
  const state=e3View(),card=$('#e3-primary'),button=$('#e3-next'),warning=$('#e3-warning');
  const labels={SELECT_EVENT:'イベントを選択',SET_EVENT:'イベント条件を設定',
   SET_INVENTORY:'食材在庫を登録',PROPOSE:'7日間の作戦を提案',REPROPOSE:'残り期間を再提案'};
- const action=state.primaryAction;
- card.hidden=action==='NONE';
+ // The game day ends at JST 04:00, but after the final sleep slot starts
+ // there is no future slot left to optimize. Preserve read-only viewing.
+ const noFuture=e3Selected&&state.phase==='DURING'&&!hasFutureSlot();
+ const action=noFuture?'NONE':state.primaryAction;
+ card.hidden=action==='NONE'&&!(noFuture&&state.screen!=='ADOPTED_PLAN');
+ button.hidden=action==='NONE';
  button.textContent=labels[action]||'';
  button.dataset.action=action;
- warning.hidden=action!=='SET_EVENT'&&action!=='SET_INVENTORY';
- warning.textContent=action==='SET_EVENT'?'未確定の条件を保存してください。':action==='SET_INVENTORY'?'食材在庫を保存してください。':'';
+ warning.hidden=action!=='SET_EVENT'&&action!=='SET_INVENTORY'&&
+  action!=='REPROPOSE'&&!(noFuture&&state.screen!=='ADOPTED_PLAN');
+ warning.textContent=noFuture?'今週の提案可能な時間帯は終了しました。':
+  action==='SET_EVENT'?'未確定の条件を保存してください。':
+  action==='SET_INVENTORY'?'食材在庫を保存してください。':
+  action==='REPROPOSE'?'変更した内容は、確認・採用後に反映されます。':'';
  const main=document.querySelector('.shell > main');
  if(state.screen==='ADOPTED_PLAN')$('#week-content').after(card);else main.prepend(card);
- document.querySelector('.plan-actions').hidden=action!=='NONE'||!draft;
+ document.querySelector('.plan-actions').hidden=true;
+ const adoptedVisible=state.screen==='ADOPTED_PLAN';
+ $('#e3-update-stock').hidden=!adoptedVisible||state.phase!=='DURING'||noFuture;
+ // Once the event has ended, its saved plan may be viewed, not edited.
+ const sleepControls=document.querySelector('.sleep-settings');
+ sleepControls.hidden=state.phase==='ENDED'||(state.phase==='BEFORE'&&!adoptedVisible);
+ if(state.phase==='ENDED'){
+  $('#event-details').open=false;
+  $('#event-save').disabled=true;
+ }else $('#event-save').disabled=false;
  if(!e3Selected){
   $('#phase-intro').hidden=true;$('#week-content').hidden=true;
   document.querySelector('.sleep-settings').hidden=true;
   document.querySelectorAll('.u2-nav').forEach(link=>link.removeAttribute('href'));
- }else document.querySelector('.sleep-settings').hidden=state.phase==='BEFORE';
+ }
 };
 $('#e3-next').addEventListener('click',()=>{
  const action=$('#e3-next').dataset.action;
