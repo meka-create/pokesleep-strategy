@@ -1,6 +1,6 @@
 """E3 v31 offline U3/U2 cross-page interaction regression (JST mock clock)."""
 from pathlib import Path
-from urllib.parse import urlsplit, parse_qs, urlencode, urlunsplit
+from urllib.parse import urlsplit, parse_qs, urlencode, urlunsplit, quote
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]/"previews"
 U2=(ROOT/"U2_Prep_Local_Ingredients_20261104_v31.html").resolve().as_uri()
@@ -79,7 +79,7 @@ with sync_playwright() as pw:
  first=page.locator("[data-key]").first
  first.fill("37")
  page.locator("#save-inventory").click()
- stock_key=f"pokesleep-strategy-u2-e3-v1:{WEEK}:{event_id}:timeline"
+ stock_key=f"pokesleep-strategy-u2-e3-v1:{WEEK}:{quote(event_id,safe='')}:timeline"
  timeline=page.evaluate("(key)=>JSON.parse(localStorage.getItem(key))",stock_key)
  assert timeline["currentInventory"]["values"]["ふといながねぎ"]==37
  assert timeline["startInventory"] is None
