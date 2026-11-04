@@ -850,7 +850,6 @@ function initialEventStart(){
 let eventInfo={start:initialEventStart(),field:'',food:'',camp:false,manualName:''};
 let conditionLedger=selectedEvent?E1.newConditionLedger(selectedEvent):null;
 let appliedMeta=null,draftMeta=null;
-let pendingEventSource=null,manualSourceRequested=false;
 function persistEventWeek(){
  if(!selectedEvent||selectedEvent.weekStart!==eventInfo.start)return;
  try{
@@ -1409,6 +1408,7 @@ $('#event-source-select').addEventListener('change',()=>{
  const selected=$('#event-source-select').value;
  $('#event-source-apply').hidden=!selected||selected===eventInfo.source?.id;
  manualSourceRequested=!selected&&!!eventInfo.source;
+ $('#manual-event-name-wrap').hidden=!!selected;
  pendingEventSource=null;render();
 });
 $('#event-source-apply').addEventListener('click',()=>{
@@ -1419,26 +1419,46 @@ $('#event-source-apply').addEventListener('click',()=>{
   if(Array.from($('#event-field').options).some(o=>o.value===entry.eligibleFields[0]))$('#event-field').value=entry.eligibleFields[0];
  }
  manualSourceRequested=false;
+ $('#manual-event-name-wrap').hidden=true;
  pendingEventSource={id:entry.id,sourceKey:entry.sourceKey,name:localizeEventName(entry.sourceKey),start:entry.start,end:entry.end,bonus:entry.bonus,unknownEffects:entry.unknownEffects};
  $('#event-source-note').textContent=entry.start+' ～ '+entry.end+'：'+entry.bonus+'。変更は「保存」で確定します。';
  $('#event-source-apply').hidden=true;refreshSelect('event-food');refreshSelect('event-field');render();
 });
-function eventBlockers(){
+
+let e3RevisionSerial=0;
+function revision(){return 'e3:'+Date.now()+':'+(++e3RevisionSerial);}
+function manualEventId(name){
+ const bytes=new TextEncoder().encode(name.normalize('NFKC').trim());
+ if(!bytes.length||bytes.length>96)return null;
+ let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);
+ return 'manual:'+btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function eventFormDirty(){
+ return $('#event-start').value!==eventInfo.start||
+  $('#event-field').value!==eventInfo.field||$('#event-food').value!==eventInfo.food||
+  switchOn('event-camp')!==eventInfo.camp||
+  (!eventInfo.source&&$('#event-manual-name').value!==eventInfo.manualName)||
+  manualSourceRequested||!!pendingEventSource;
+}
+function missingEventFields(info){
  const missing=[];
- const unsaved=$('#event-start').value!==eventInfo.start||$('#event-field').value!==eventInfo.field||
-  $('#event-food').value!==eventInfo.food||switchOn('event-camp')!==eventInfo.camp||
-  manualSourceRequested||(!!pendingEventSource&&JSON.stringify(pendingEventSource)!==JSON.stringify(eventInfo.source||null));
- if(unsaved)missing.push('イベント条件の保存');
- if(!validWeek(eventInfo.start))missing.push('対象週');
- if(!eventInfo.field)missing.push('フィールド');
- if(!['curry','salad','dessert'].includes(eventInfo.food))missing.push('料理カテゴリ');
- if(eventInfo.field&&/EX$/.test(eventInfo.field))missing.push('EX条件の登録（U4連携待ち）');
- if(eventInfo.field==='ワカクサ本島'&&!eventInfo.source?.berriesKnown)
-  missing.push('きのみ条件の登録（U4連携待ち）');
- if(eventInfo.source?.requiresBerries&&!eventInfo.source?.berriesKnown)missing.push('きのみ条件');
+ if(!validWeek(info.start))missing.push('対象週');
+ if(!info.source&&!info.manualName?.trim())missing.push('イベント名');
+ if(!info.field)missing.push('フィールド');
+ if(!['curry','salad','dessert'].includes(info.food))missing.push('料理カテゴリ');
+ if(info.field&&/EX$/.test(info.field))missing.push('EX条件（U4未登録）');
+ if(info.field==='ワカクサ本島'&&!info.source?.berriesKnown)missing.push('きのみ条件（U4未登録）');
+ if(info.source?.requiresBerries&&!info.source?.berriesKnown)missing.push('きのみ条件');
+ if(info.source?.unknownEffects)missing.push('未確認のイベント補正');
  return missing;
 }
-['event-start','event-food','event-field'].forEach(id=>$('#'+id).addEventListener('change',render));
+function eventBlockers(){
+ if(!selectedEvent)return ['対象イベント'];
+ const cv=e3ConditionView(),missing=cv?.missingFields||['イベント条件'];
+ if(eventFormDirty())return ['イベント条件の保存',...missing];
+ return cv?.status==='CONFIRMED'?[]:missing;
+}
+['event-start','event-food','event-field','event-manual-name'].forEach(id=>$('#'+id).addEventListener('change',render));
 $('#event-camp').addEventListener('click',()=>{toggleSwitch('event-camp');render();});
 $('#event-save').onclick=()=>{
  const d=$('#event-start').value;
