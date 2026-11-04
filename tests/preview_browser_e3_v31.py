@@ -95,6 +95,15 @@ with sync_playwright() as pw:
  # Stored A cannot be borrowed by a different event ID in the SAME week.
  page.locator("#event-details > summary").click()
  page.locator("#event-manual-name").fill("E3検証イベントB")
+ print("E3 before switch",page.evaluate("""()=>({
+   handler:typeof document.querySelector('#event-save').onclick,
+   open:document.querySelector('#event-details').open,
+   saveDisabled:document.querySelector('#event-save').disabled,
+   sourceApplyHidden:document.querySelector('#event-source-apply').hidden,
+   manualName:document.querySelector('#event-manual-name').value,
+   previousName:document.querySelector('#event-manual-name').defaultValue,
+   start:document.querySelector('#event-start').value
+ })"""),flush=True)
  page.locator("#event-save").click()
  print("E3 switch diagnostic",{
   "toast":page.locator("#ui-toast").inner_text(),
