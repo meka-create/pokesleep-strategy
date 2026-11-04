@@ -1463,7 +1463,17 @@ function eventBlockers(){
  if(eventFormDirty())return ['イベント条件の保存',...missing];
  return cv?.status==='CONFIRMED'?[]:missing;
 }
-['event-start','event-food','event-field','event-manual-name'].forEach(id=>$('#'+id).addEventListener('change',render));
+// Editing a field must not rerender the roster on blur during a Save pointerdown.
+// The mobile viewport otherwise shifts and the actual click misses Save.
+['event-start','event-food','event-field','event-manual-name'].forEach(
+ id=>$('#'+id).addEventListener('change',()=>{
+  $('#resume-draft').disabled=true;
+  if(eventFormDirty()){
+   const gate=$('#event-gate');
+   gate.textContent='変更した条件は保存後に反映されます。';
+   gate.hidden=false;
+  }
+ }));
 $('#event-camp').addEventListener('click',()=>{toggleSwitch('event-camp');render();});
 
 $('#event-save').onclick=()=>{
