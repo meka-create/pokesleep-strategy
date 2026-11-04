@@ -150,6 +150,12 @@ with sync_playwright() as pw:
  assert page.locator("#auto-sleep").get_attribute("aria-checked")=="false"
  assert "保存できません" in page.locator("#ui-toast").inner_text()
  assert chosen_state(page)["manualSleep"]==sleep_before
+ # Bulk seven-night copy must also fail visibly rather than claim a successful save.
+ page.locator("#sleep-open").click()
+ page.locator("#sleep-copy").click()
+ assert "保存できません" in page.locator("#ui-toast").inner_text()
+ assert chosen_state(page)["manualSleep"]==sleep_before
+ page.locator("#sleep-close").click()
  page.evaluate("""()=>{Storage.prototype.setItem=Storage.prototype.__e5original;
   delete Storage.prototype.__e5original;}""")
  assert page.locator("#e3-primary").is_hidden()
