@@ -1399,6 +1399,70 @@ window.addEventListener('pageshow',event=>{
  refreshInventory();render();
 });
 window.addEventListener('storage',e=>{if(e.key===inventoryKey(eventInfo.start)){refreshInventory();render();}});
+
+/* E3: render one next action from the shared E1 state. This U3 v31 remains a
+   preview; F1-F4 must replace illustrative team/recipe calculations. */
+const e3PreviousRender=render;
+function e3View(){
+ if(!e3Selected)return E1.getPrimaryViewState({selectedEvent:null,nowISO:new Date().toISOString()});
+ const sample=new URLSearchParams(location.search).get('previewNow');
+ const nowISO=sample&&/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(sample)?sample+':00+09:00':new Date().toISOString();
+ let timeline=null;
+ try{
+  const x=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+eventInfo.start+':timeline')||'null');
+  timeline=x?E1.validateInventoryTimeline(x,eventInfo.start):null;
+ }catch(e){}
+ if(!timeline&&hasInventory&&importedStock&&importedAt){
+  try{timeline=E1.applyInventorySave(E1.newInventoryTimeline(eventInfo.start),{
+   savedAt:importedAt,values:importedStock,revision:'bridge-'+e3Revision(importedStock)+'-'+importedAt});
+  }catch(e){}
+ }
+ const stock=timeline?.currentInventory;
+ const adoptedOk=hasApplied&&appliedEventStart===eventInfo.start&&!!appliedEventInfo;
+ const refs={field:appliedEventInfo?.field,food:appliedEventInfo?.food,
+  camp:appliedEventInfo?.camp,source:appliedEventInfo?.source||null};
+ const adopted=adoptedOk?{status:'ADOPTED',weekStart:eventInfo.start,eventId:e3Selected.id,
+  conditionsRevision:e3Revision(refs),inventoryRevision:stock&&importedAt===appliedInventoryAt?stock.revision:'outdated'}:null;
+ return E1.getPrimaryViewState({
+  selectedEvent:e3Selected,nowISO,conditions:e3Conditions(),
+  inventoryTimeline:timeline,adoptedPlan:adopted,
+  dirtyFlags:{conditionsChanged:eventBlockers().includes('イベント条件の保存'),
+   inventoryChanged:adoptedOk&&(importedAt!==appliedInventoryAt||
+     JSON.stringify(importedStock)!==JSON.stringify(stockConfirmed)),
+   sleepChanged:adoptedOk&&applied.autoSleep!==switchOn('auto-sleep')}
+ });
+}
+render=function(){
+ e3PreviousRender();
+ const state=e3View(),card=$('#e3-primary'),button=$('#e3-next'),warning=$('#e3-warning');
+ const labels={SELECT_EVENT:'イベントを選択',SET_EVENT:'イベント条件を設定',
+  SET_INVENTORY:'食材在庫を登録',PROPOSE:'7日間の作戦を提案',REPROPOSE:'残り期間を再提案'};
+ const action=state.primaryAction;
+ card.hidden=action==='NONE';
+ button.textContent=labels[action]||'';
+ button.dataset.action=action;
+ warning.hidden=action!=='SET_EVENT'&&action!=='SET_INVENTORY';
+ warning.textContent=action==='SET_EVENT'?'未確定の条件を保存してください。':action==='SET_INVENTORY'?'食材在庫を保存してください。':'';
+ const main=document.querySelector('.shell > main');
+ if(state.screen==='ADOPTED_PLAN')$('#week-content').after(card);else main.prepend(card);
+ document.querySelector('.plan-actions').hidden=action!=='NONE'||!draft;
+ if(!e3Selected){
+  $('#phase-intro').hidden=true;$('#week-content').hidden=true;
+  document.querySelector('.sleep-settings').hidden=true;
+  document.querySelectorAll('.u2-nav').forEach(link=>link.removeAttribute('href'));
+ }else document.querySelector('.sleep-settings').hidden=state.phase==='BEFORE';
+};
+$('#e3-next').addEventListener('click',()=>{
+ const action=$('#e3-next').dataset.action;
+ if(action==='SELECT_EVENT'||action==='SET_EVENT'){
+  $('#event-details').open=true;
+  $('#event-source-select').focus();
+ }else if(action==='SET_INVENTORY'){
+  const link=$('#stock-gate a.u2-nav')||$('#phase-intro-u2');
+  if(link?.href)location.assign(link.href);
+ }else if(action==='PROPOSE'||action==='REPROPOSE')showProposal();
+});
+
 window.addEventListener('beforeunload',storeState);
 render();
 })();
