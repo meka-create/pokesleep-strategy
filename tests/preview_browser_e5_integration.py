@@ -104,6 +104,33 @@ with sync_playwright() as pw:
   e.value='curry';e.dispatchEvent(new Event('change',{bubbles:true}));}""")
  assert page.locator("#e3-primary").is_hidden()
  assert_narrow(page)
+ # C0: failed storage for manual night editing and automatic toggle must roll back.
+ sleep_before=chosen_state(page)["manualSleep"]
+ page.locator("#sleep-open").click()
+ page.locator("#sleep-change").click()
+ assert page.locator("#edit-dialog").evaluate("(x)=>x.open")
+ page.locator("#pick-grid .pick-select[aria-pressed='true']").first.click()
+ page.locator("#pick-grid .pick-select[aria-pressed='false']:not(:disabled)").last.click()
+ page.evaluate("""()=>{Storage.prototype.__e5original=Storage.prototype.setItem;
+  Storage.prototype.setItem=function(k,v){
+   if(k.startsWith('pokesleep-strategy-u3-e3-v1:')&&k.endsWith(':plan'))
+    throw new DOMException('Quota exceeded','QuotaExceededError');
+   return Storage.prototype.__e5original.call(this,k,v);
+  };}""")
+ page.locator("#edit-save").click()
+ assert page.locator("#edit-dialog").evaluate("(x)=>x.open")
+ assert "保存できません" in page.locator("#edit-error").inner_text()
+ assert chosen_state(page)["manualSleep"]==sleep_before
+ page.locator("#edit-cancel").click()
+ page.locator("#sleep-close").click()
+ assert page.locator("#auto-sleep").get_attribute("aria-checked")=="false"
+ page.locator("#auto-sleep").click()
+ assert page.locator("#auto-sleep").get_attribute("aria-checked")=="false"
+ assert "保存できません" in page.locator("#ui-toast").inner_text()
+ assert chosen_state(page)["manualSleep"]==sleep_before
+ page.evaluate("""()=>{Storage.prototype.setItem=Storage.prototype.__e5original;
+  delete Storage.prototype.__e5original;}""")
+ assert page.locator("#e3-primary").is_hidden()
  # C: updating U2 should preserve the adopted plan and protect Sunday baseline.
  prev=chosen_state(page)["applied"]
  page.locator("#e3-update-stock").click()
