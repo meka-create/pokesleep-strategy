@@ -32,7 +32,7 @@ class UXPlanAuditContract(unittest.TestCase):
             self.assertIn(term, self.plan)
         for term in ("単純合体", "手動編集", "常設タブ"):
             self.assertIn(term, self.plan)
-        self.assertIn("主操作**0〜1個**", self.plan)
+        self.assertIn("主操作が**0〜1個**", self.plan)
 
     def test_preparation_target_baseline_and_explicit_event(self):
         for term in ("未選択", "準備", "カレー・サラダ・デザート",
