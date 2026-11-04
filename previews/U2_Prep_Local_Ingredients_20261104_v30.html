@@ -571,8 +571,21 @@ function readOld(){
   }
  }
  if(!records.length)return E1.newInventoryTimeline(week);
+ const adapt=row=>E1.previewLegacyU2V3({...row,version:3,source:'inventory'},week).timeline;
+ const sunday=records.find(r=>r.source==='sunday'),current=records.find(r=>r.source==='current');
+ // Historical v22 kept a separate, verified Sunday snapshot and in-event
+ // current stock. Reconstruct both when their timestamps are consistent.
+ if(sunday&&current){
+  const start=Date.parse(week+'T04:00:00+09:00');
+  const a=Date.parse(sunday.savedAt),b=Date.parse(current.savedAt);
+  if(a<start&&b>=start&&b<start+7*86400000){
+   const baseline=adapt(sunday),currentRecord=adapt(current);
+   return E1.applyInventorySave(baseline,{savedAt:current.savedAt,
+    revision:'legacy-v2-current:'+current.savedAt,values:currentRecord.currentInventory.values});
+  }
+ }
  records.sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
- return E1.previewLegacyU2V3({...records[0],version:3,source:'inventory'},week).timeline;
+ return adapt(records[0]);
 }
 function load(){
  const value=localStorage.getItem(key(week));
