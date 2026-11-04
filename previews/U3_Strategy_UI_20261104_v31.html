@@ -1468,11 +1468,8 @@ function eventBlockers(){
 ['event-start','event-food','event-field','event-manual-name'].forEach(
  id=>$('#'+id).addEventListener('change',()=>{
   $('#resume-draft').disabled=true;
-  if(eventFormDirty()){
-   const gate=$('#event-gate');
-   gate.textContent='変更した条件は保存後に反映されます。';
-   gate.hidden=false;
-  }
+  // No visible DOM mutation on blur: retain the button's pointer target.
+  // The subsequent Save click is the commit point.
  }));
 $('#event-camp').addEventListener('click',()=>{toggleSwitch('event-camp');render();});
 
