@@ -1336,9 +1336,9 @@ $('#generate').onclick=()=>showProposal();
 $('#repropose').onclick=()=>showProposal();
 $('#resume-draft').onclick=()=>{
  refreshInventory();
- if(!draft)return;
+ if(!draft||!draftMeta)return;
  const blockers=eventBlockers();
- if(eventPhase()!=='during'||!hasInventory||blockers.length){showToast('必須条件を確定してから提案を確認してください。',true);render();return;}
+ if(!e3View().canAdoptDraft||inventoryError||blockers.length){showToast('必須条件を確定してから提案を確認してください。',true);render();return;}
  if(stockPending&&JSON.stringify(stockPending)!==JSON.stringify(importedStock)){showToast('食材在庫が更新されました。再提案してください。',true);return;}
  if(staleSleepProposal()){
   showToast('睡眠編成が変更されています。最新条件で再提案してください。',true);
@@ -1348,40 +1348,45 @@ $('#resume-draft').onclick=()=>{
 };
 $('#review-close').onclick=$('#review-cancel').onclick=closeReview;
 $('#review-adopt').onclick=()=>{
- if(!draft)return;
+ if(!draft||!draftMeta||!selectedEvent)return;
  refreshInventory();
- const blockers=eventBlockers();
- if(eventPhase()!=='during'||!hasInventory||blockers.length){
-  showToast('必要条件が未確定のため、この提案は採用できません。',true);render();return;
- }
- if(stockPending&&JSON.stringify(stockPending)!==JSON.stringify(importedStock)){
-  showToast('食材在庫が更新されました。最新の在庫で再提案してください。',true);
-  return;
- }
- if(staleSleepProposal()){
-  showToast('睡眠編成が変更されています。最新条件で再提案してください。',true);
-  return;
+ const state=e3View(),blockers=eventBlockers();
+ if(!state.canAdoptDraft||blockers.length||inventoryError||staleSleepProposal()){
+  showToast('提案後に条件が変わりました。再提案してください。',true);render();return;
  }
  const next=clone(draft);
- // If time passed after an unadopted proposal was created, its elapsed slots
- // are not a record of what the player actually used.
- if(!hasApplied||appliedEventStart!==eventInfo.start){
+ if(!hasApplied||appliedEventStart!==selectedEvent.weekStart){
   if(!Array.isArray(next.unknownPast))next.unknownPast=[];
   for(let d=0;d<7;d++)for(const slot of SLOT_KEYS){
    if(isPastSlot(d,slot)&&!next.unknownPast.some(x=>x.day===d&&x.slot===slot))
     next.unknownPast.push({day:d,slot});
   }
  }
+ // The previous accepted plan is authoritative for started teams and meals.
  for(let d=0;d<7;d++)for(let i=0;i<SLOT_KEYS.length;i++){
-  const slot=SLOT_KEYS[i];if(!hasApplied||appliedEventStart!==eventInfo.start||!isPastSlot(d,slot))continue;
+  const slot=SLOT_KEYS[i];if(!hasApplied||!isPastSlot(d,slot))continue;
   next.days[d][slot]=[...applied.days[d][slot]];
   if(i<3)next.days[d].recipes[i]=applied.days[d].recipes[i];
  }
- applied=next;hasApplied=true;appliedEventStart=eventInfo.start;appliedEventInfo=clone(eventInfo);
- if(stockPending){stockConfirmed=clone(stockPending);appliedInventoryAt=importedAt;}
- draft=null;stockPending=null;$('#review-dialog').close();selectedDay=currentEventGameDayIndex()??firstFutureDay();
- if(!storeState())showToast('作戦を端末へ保存できませんでした。',true);
- else showToast('作戦を採用しました');render();
+ const previous={applied,hasApplied,appliedEventStart,appliedEventInfo,appliedMeta,
+  stockConfirmed,appliedInventoryAt,draft,draftMeta,stockPending};
+ applied=next;hasApplied=true;appliedEventStart=selectedEvent.weekStart;
+ appliedEventInfo=clone(eventInfo);
+ appliedMeta={status:'ADOPTED',eventId:selectedEvent.id,weekStart:selectedEvent.weekStart,
+  conditionsRevision:draftMeta.conditionsRevision,inventoryRevision:draftMeta.inventoryRevision};
+ stockConfirmed=clone(stockPending);appliedInventoryAt=importedAt;
+ draft=null;draftMeta=null;stockPending=null;
+ if(!storeState()){
+  applied=previous.applied;hasApplied=previous.hasApplied;
+  appliedEventStart=previous.appliedEventStart;appliedEventInfo=previous.appliedEventInfo;
+  appliedMeta=previous.appliedMeta;stockConfirmed=previous.stockConfirmed;
+  appliedInventoryAt=previous.appliedInventoryAt;draft=previous.draft;
+  draftMeta=previous.draftMeta;stockPending=previous.stockPending;
+  showToast('保存に失敗しました。採用中の作戦を保持しています。',true);
+  render();return;
+ }
+ $('#review-dialog').close();selectedDay=currentEventGameDayIndex()??firstFutureDay();
+ showToast('作戦を採用しました');render();
 };
 
 /* U3-only source mock. Real nitoyon/pokesleep-tool synchronization belongs to U5.
@@ -1542,14 +1547,14 @@ $('#event-save').onclick=()=>{
   render();
  }
 };
-$('#review-dialog').addEventListener('close',()=>{if(draft){draft=null;stockPending=null;storeState();render();}});
+$('#review-dialog').addEventListener('close',()=>{if(draft){draft=null;draftMeta=null;stockPending=null;storeState();render();}});
 window.addEventListener('pageshow',event=>{
  // A browser back/forward cache restoration is a new opening;
  // normal rerenders and in-page weekday browsing are not.
  if(event.persisted)selectDayOnOpen();
  refreshInventory();render();
 });
-window.addEventListener('storage',e=>{if(e.key===inventoryKey(eventInfo.start)){refreshInventory();render();}});
+window.addEventListener('storage',e=>{if(selectedEvent&&e.key===inventoryKey(selectedEvent)){refreshInventory();render();}});
 window.addEventListener('beforeunload',storeState);
 render();
 })();
