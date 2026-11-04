@@ -26,7 +26,7 @@ class E2Contract(unittest.TestCase):
   expected=self.old3.replace("U2_Prep_Local_Ingredients_20261104_v29.html",
    "U2_Prep_Local_Ingredients_20261104_v30.html")
   a="url.searchParams.set('eventStart',eventInfo.start);\n document.querySelectorAll('.u2-nav').forEach(link=>link.href=url.href);"
-  b="url.searchParams.set('eventStart',eventInfo.start);\n if(eventPhase()==='during')url.searchParams.set('tab','inventory');\n url.searchParams.set('return','plan');\n const mock=new URLSearchParams(location.search).get('previewNow');\n if(mock)url.searchParams.set('previewNow',mock);\n document.querySelectorAll('.u2-nav').forEach(link=>link.href=url.href);"
+  b="url.searchParams.set('eventStart',eventInfo.start);\n if(nowInJapan()>=eventInfo.start+'T04:00'&&nowInJapan()<dateFor(7)+'T04:00')url.searchParams.set('tab','inventory');\n url.searchParams.set('return','plan');\n const mock=new URLSearchParams(location.search).get('previewNow');\n if(mock)url.searchParams.set('previewNow',mock);\n document.querySelectorAll('.u2-nav').forEach(link=>link.href=url.href);"
   self.assertEqual(self.new3,expected.replace(a,b))
   self.assertNotIn('id="recipe-editor"',self.new3)
   self.assertNotIn('id="recipe-choice"',self.new3)
