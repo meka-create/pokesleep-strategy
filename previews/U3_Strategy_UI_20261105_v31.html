@@ -846,7 +846,7 @@ function validWeek(date){
  const d=new Date(date+'T12:00:00Z');return Number.isFinite(d.valueOf())&&d.toISOString().slice(0,10)===date&&d.getUTCDay()===1;
 }
 function initialEventStart(){
- const fromLink=new URLSearchParams(location.search).get('eventStart');if(validWeek(fromLink))return fromLink;
+ const fromLink=new URLSearchParams(location.search).get('eventStart');if(e3Selected&&fromLink===e3Selected.weekStart&&validWeek(fromLink))return fromLink;
  return e3Selected?.weekStart||DEFAULT_EVENT_WEEK;
 }
 let eventInfo={start:initialEventStart(),field:'',food:'',camp:false};
@@ -1415,7 +1415,7 @@ function e3View(){
  let timeline=null;
  try{
   const x=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+eventInfo.start+':timeline')||'null');
-  timeline=x?E1.validateInventoryTimeline(x,eventInfo.start):null;
+  timeline=x?.eventId===e3Selected.id?E1.validateInventoryTimeline(x,eventInfo.start):null;
  }catch(e){}
  if(!timeline&&hasInventory&&importedStock&&importedAt){
   try{timeline=E1.applyInventorySave(E1.newInventoryTimeline(eventInfo.start),{
