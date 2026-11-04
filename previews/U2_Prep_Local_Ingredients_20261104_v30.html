@@ -614,7 +614,7 @@ function restore(){
  }catch(e){
   blocked=true;q('#save-inventory').disabled=true;
   inputs.forEach(i=>i.value='0');read();
-  q('#error').textContent='保存済みデータを読み取れません。元のデータを保護しています。';
+  q('#error').textContent='保存済みデータを読み取れません。上書きせず保護しています。';
   q('#error').hidden=false;message('');
  }
 }
