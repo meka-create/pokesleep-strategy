@@ -836,7 +836,13 @@ function e3Ledger(){
   return y?.weekStart===e3Selected.weekStart&&y?.eventId===e3Selected.id?y:null;
  }catch(e){return null;}
 }
-function e3Conditions(){const x=e3Ledger();return x?E1.conditionViewFromLedger(x):null;}
+function e3Conditions(){
+ const ledger=e3Ledger();
+ if(!ledger?.confirmed)return null;
+ const actual={field:eventInfo.field,food:eventInfo.food,camp:eventInfo.camp,source:eventInfo.source||null};
+ if(JSON.stringify(ledger.confirmed.fields)!==JSON.stringify(actual))return null;
+ return E1.conditionViewFromLedger(ledger);
+}
 function e3Revision(x){const v=JSON.stringify(x);let h=2166136261;
  for(let i=0;i<v.length;i++){h^=v.charCodeAt(i);h=Math.imul(h,16777619);}
  return 'cond-'+(h>>>0).toString(16);
@@ -1320,7 +1326,7 @@ $('#event-source-apply').addEventListener('click',()=>{
 function eventBlockers(){
  const missing=[];
  if(!e3Selected||e3Selected.weekStart!==eventInfo.start||e3Selected.id!==(eventInfo.source?.id||'manual:'+eventInfo.start))missing.push('イベント選択');
- if(!e3Conditions())missing.push('イベント条件の確定');
+ if(e3Conditions()?.status!=='CONFIRMED')missing.push('イベント条件の確定');
  const unsaved=$('#event-start').value!==eventInfo.start||$('#event-field').value!==eventInfo.field||
   $('#event-food').value!==eventInfo.food||switchOn('event-camp')!==eventInfo.camp||
   manualSourceRequested||(!!pendingEventSource&&JSON.stringify(pendingEventSource)!==JSON.stringify(eventInfo.source||null));
