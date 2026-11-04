@@ -365,3 +365,31 @@ test('same week/date but a different explicitly selected event id does not reuse
  assert.equal(x.screen,'PENDING_PLAN');
  assert.equal(x.primaryAction,'PROPOSE');
 });
+
+test('the nineteen Japanese ingredient keys match BOTH frozen U2 and U3 v29 assets exactly',async()=>{
+ const M=await api;
+ const fs=require('node:fs');
+ const dir=path.resolve(__dirname,'../previews');
+ const u2=fs.readFileSync(path.join(dir,'U2_Prep_Local_Ingredients_20261104_v29.html'),'utf8');
+ const u3=fs.readFileSync(path.join(dir,'U3_Strategy_UI_20261104_v29.html'),'utf8');
+ const u2Names=[...u2.matchAll(/<span class="name">([^<]+)<\/span>/g)].map(m=>m[1]);
+ const u3Names=[...u3.matchAll(/"([^"]+)":"data:image\/png;base64,/g)].map(m=>m[1]);
+ assert.equal(u2Names.length,38); // target + stock each have 19 in the same game order
+ assert.deepEqual(u2Names.slice(0,19),M.INGREDIENT_NAMES);
+ assert.deepEqual(u2Names.slice(19),M.INGREDIENT_NAMES);
+ assert.deepEqual(u3Names,M.INGREDIENT_NAMES);
+});
+
+test('all E1 transitions are pure and do not modify UI state or passed records',async()=>{
+ const M=await api;
+ const original=M.newInventoryTimeline(WEEK),values=inventory(M);
+ const before=JSON.stringify(original);
+ const savedTimeline=saved(M,values,'2026-11-08T22:00:00+09:00','r1',original);
+ assert.equal(JSON.stringify(original),before);
+ const event={...EVENT};
+ const d=M.getPrimaryViewState({...props({inventoryTimeline:savedTimeline}),selectedEvent:event});
+ assert.equal(d.primaryAction,'PROPOSE');
+ assert.deepEqual(event,EVENT);
+ assert.equal(values[M.INGREDIENT_NAMES[0]],0);
+ assert.equal(original.currentInventory,null);
+});
