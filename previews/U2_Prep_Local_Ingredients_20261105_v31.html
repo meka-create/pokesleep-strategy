@@ -645,7 +645,8 @@ function save(){
   // Timestamp is the actual successful save; deterministic preview uses mock JST.
   const prev=load(),t=Math.max(Date.parse(now()),prev.currentInventory?Date.parse(prev.currentInventory.savedAt)+1:0);
   const stamp=new Date(t).toISOString();
-  if(validEventId&&prev.eventId&&prev.eventId!==selectedEventId)throw Error('Event ID mismatch');
+  const stored=JSON.parse(localStorage.getItem(key(week))||'null');
+   if(validEventId&&stored?.eventId&&stored.eventId!==selectedEventId)throw Error('Event ID mismatch');
    const updated=E1.applyInventorySave(prev,{savedAt:stamp,revision:'e2:'+stamp,values:x.values});
    if(validEventId)updated.eventId=selectedEventId;
   // One new key, one atomic write. Never overwrite old v2/v3 source.
