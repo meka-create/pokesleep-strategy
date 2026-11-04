@@ -1353,18 +1353,36 @@ $('#event-save').onclick=()=>{
   if(!pendingEventSource)next.source=null;
  }
  const changed=JSON.stringify(next)!==JSON.stringify(eventInfo);
- if(changed&&oldStart!==next.start)storeState();
- eventInfo=next;
- if(changed){
+ const nextId=next.source?.id||'manual:'+next.start;
+ const selectionChanged=!e3Selected||e3Selected.weekStart!==next.start||e3Selected.id!==nextId;
+ if(selectionChanged&&e3Selected)storeState();
+ const selection={id:nextId,weekStart:next.start};
+ try{localStorage.setItem(E3_SELECTED_KEY,JSON.stringify(selection));}
+ catch(e){showToast('イベントを保存できませんでした。',true);return;}
+ e3Selected=selection;eventInfo=next;
+ if(changed||selectionChanged){
   draft=null;stockPending=null;
   let restored=false;
-  if(oldStart!==next.start){
+  if(selectionChanged){
    restored=restoreState(next.start,true);
    selectDayOnOpen(); // Selecting a different event is a new week-view opening.
    refreshInventory();
   }
   showToast(restored?'この週の保存済みイベント条件と作戦を復元しました':'イベント条件を保存しました');
  }
+ // A fetched candidate becomes confirmed only after the user's Save action.
+ const missing=[];
+ if(!next.field)missing.push('フィールド');
+ if(!['curry','salad','dessert'].includes(next.food))missing.push('料理カテゴリ');
+ if(next.field&&/EX$/.test(next.field))missing.push('EX条件（U4未接続）');
+ if(next.field==='ワカクサ本島'&&!next.source?.berriesKnown)missing.push('きのみ条件（U4未接続）');
+ if(next.source?.requiresBerries&&!next.source?.berriesKnown)missing.push('きのみ条件');
+ try{
+  const prev=e3Ledger()||E1.newConditionLedger(e3Selected);
+  const fields={field:next.field,food:next.food,camp:next.camp,source:next.source||null};
+  const edited=E1.stageConditionEdits(prev,{fields,revision:e3Revision(fields),savedAt:new Date().toISOString(),missingFields:missing});
+  localStorage.setItem(e3ConditionKey(e3Selected),JSON.stringify(E1.confirmEventConditions(edited,{userConfirmed:true})));
+ }catch(e){showToast('イベント条件を保存できませんでした。',true);return;}
  pendingEventSource=null;manualSourceRequested=false;
  syncEventControls();
  persistEventWeek();updateU2Link();
