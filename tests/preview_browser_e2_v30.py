@@ -115,6 +115,11 @@ with sync_playwright() as pw:
  assert page.locator("#save-inventory").is_disabled()
  assert "上書きせず" in page.locator("#error").inner_text()
  assert page.evaluate("(k)=>localStorage.getItem(k)",V4)=='{invalid-json'
+ # A legacy demo week in shared old state must NOT become an explicitly selected event.
+ page.evaluate("()=>localStorage.setItem('pokesleep-strategy-event-start-v2','2026-11-09')")
+ page.goto(U2,wait_until="domcontentloaded")
+ assert page.locator("#u2-week-label").inner_text()=="未選択"
+ assert page.locator("#save-inventory").is_disabled()
  assert not errors,errors
  print("PASS E2 v30: no implicit event; 19 ingredient UI; latest preweek baseline; event stock updates; U3 return; valid URL transfer; corrupt-storage fail-closed.")
  ctx.close()
@@ -140,6 +145,19 @@ with sync_playwright() as pw:
  click_save(page)
  assert stock(page)["startInventory"]["values"]["ふといながねぎ"]==96
  assert page.evaluate("(k)=>localStorage.getItem(k)",V3)==oldText
+ # Storage write failures must never claim success or corrupt the last committed snapshot.
+ original=stock(page)
+ page.evaluate("""()=>{Storage.prototype.__e2Original=Storage.prototype.setItem;
+  Storage.prototype.setItem=function(key,value){
+   if(key.startsWith('pokesleep-strategy-u2-e2-v1:'))throw new DOMException('Quota','QuotaExceededError');
+   return Storage.prototype.__e2Original.call(this,key,value);
+  };}""")
+ page.locator("[data-key]").first.fill("97")
+ page.locator("#save-inventory").click()
+ assert "保存できませんでした" in page.locator("#ui-toast").inner_text()
+ assert stock(page)==original
+ page.evaluate("""()=>{Storage.prototype.setItem=Storage.prototype.__e2Original;
+  delete Storage.prototype.__e2Original;}""")
  assert not errors,errors
- print("PASS E2 v30: legacy v3 is read-only, old first-save initialValues ignored, explicit new save produces v2 E1 timeline.")
+ print("PASS E2 v30: legacy v3 read-only, first-save initialValues ignored, explicit v2 timeline commit, storage-failure rollback.")
  ctx.close();browser.close()
