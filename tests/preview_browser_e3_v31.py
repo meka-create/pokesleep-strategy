@@ -104,7 +104,21 @@ with sync_playwright() as pw:
    previousName:document.querySelector('#event-manual-name').defaultValue,
    start:document.querySelector('#event-start').value
  })"""),flush=True)
+ page.evaluate("""()=>{
+ const el=document.querySelector('#event-save'),old=el.onclick;
+ window.__e3SaveCalls=[];
+ el.onclick=function(evt){
+  window.__e3SaveCalls.push('handler-enter');
+  const out=old.call(this,evt);
+  window.__e3SaveCalls.push('handler-exit');
+  return out;
+ };
+ document.addEventListener('click',e=>{
+  if(e.target===el)window.__e3SaveCalls.push('dom-click');
+ },{once:true,capture:true});
+ }""")
  page.locator("#event-save").click()
+ print("E3 save calls",page.evaluate("()=>window.__e3SaveCalls"),flush=True)
  print("E3 switch diagnostic",{
   "toast":page.locator("#ui-toast").inner_text(),
   "url":page.url,
