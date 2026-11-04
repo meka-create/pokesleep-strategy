@@ -927,6 +927,9 @@ updateU2Link();
 persistEventWeek();
 // Versioned local-only preview persistence. Corrupt/incompatible records fail closed.
 const strategyKey=event=>'pokesleep-strategy-u3-e3-v1:'+event.weekStart+':'+encodeURIComponent(event.id);
+// A corrupted event-specific save is retained read-only; an explicit backup
+// and recovery is required before replacing that key.
+let blockedStrategyKey=null;
 function validTeam(team){return Array.isArray(team)&&team.length===5&&new Set(team).size===5&&team.every(id=>POOL[id]);}
 function validPlan(plan){
  return plan&&Array.isArray(plan.days)&&plan.days.length===7&&
@@ -937,7 +940,7 @@ function validPlan(plan){
 }
 function validTeams(teams){return Array.isArray(teams)&&teams.length===7&&teams.every(validTeam);}
 function storeState(){
- if(!selectedEvent)return false;
+ if(!selectedEvent||blockedStrategyKey===strategyKey(selectedEvent))return false;
  try{
   const record={version:31,selectedEvent:clone(selectedEvent),weekStart:selectedEvent.weekStart,
    eventInfo:clone(eventInfo),conditionLedger:E1.validateConditionLedger(conditionLedger),
@@ -963,7 +966,11 @@ function restoreState(event,resetIfMissing=false){
  if(resetIfMissing)resetPlanForEvent();
  if(!event)return false;
  try{
-  const entry=JSON.parse(localStorage.getItem(strategyKey(event))||'null');
+  const raw=localStorage.getItem(strategyKey(event));
+  if(raw===null)return false;
+  const entry=JSON.parse(raw);
+  // Any unreadable or incompatible entry must not be silently replaced.
+  blockedStrategyKey=strategyKey(event);
   if(!entry||entry.version!==31||entry.weekStart!==event.weekStart||
    entry.selectedEvent?.id!==event.id||entry.eventInfo?.start!==event.weekStart||
    !validTeams(entry.manualSleep))return false;
@@ -985,6 +992,7 @@ function restoreState(event,resetIfMissing=false){
   appliedInventoryAt=entry.appliedInventoryAt||null;
   selectedDay=Number.isInteger(entry.selectedDay)&&entry.selectedDay>=0&&entry.selectedDay<7?entry.selectedDay:0;
   reviewDay=Number.isInteger(entry.reviewDay)&&entry.reviewDay>=0&&entry.reviewDay<7?entry.reviewDay:0;
+  blockedStrategyKey=null;
   return true;
  }catch(e){return false;}
 }
@@ -1177,8 +1185,7 @@ function render(){
  primary.hidden=state.primaryAction==='NONE';
  primary.textContent=labels[state.primaryAction]||'';
  primary.dataset.action=state.primaryAction;
- primary.disabled=!!inventoryError&&state.primaryAction!=='SELECT_EVENT'&&
-  state.primaryAction!=='SET_EVENT';
+ primary.disabled=!!inventoryError&&['PROPOSE','REPROPOSE'].includes(state.primaryAction);
  $('#generate').hidden=true;$('#repropose').hidden=true;
  $('#week-content').hidden=!activePlan;
  arrangePhaseLayout(phase,activePlan,blockers);
