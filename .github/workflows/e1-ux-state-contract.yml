@@ -33,6 +33,8 @@ jobs:
           python3 -m unittest discover -s tests -p 'test_phase_flow_roadmap_contract.py' -v
           python3 -m unittest discover -s tests -p 'test_u3_deprecated_feature_guard.py' -v
           python3 -m unittest discover -s tests -p 'test_preview_contract_v29.py' -v
+      - name: Ensure existing application simulation and storage suites still pass
+        run: npm test
       - name: Make sure production application build is untouched
         run: npm run build
       - name: Export E1 source and tests for review only after checks
