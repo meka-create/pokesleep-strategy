@@ -852,7 +852,7 @@ function initialEventStart(){
 let eventInfo={start:initialEventStart(),field:'',food:'',camp:false};
 function persistEventWeek(){
  if(!e3Selected)return;
- try{localStorage.setItem(EVENT_WEEK_KEY,eventInfo.start);}catch(e){}
+ // Legacy week-only key is read-only; E3 selected event ID is authoritative.
  // Navigation and browser refresh must not reinstate an older eventStart URL.
  try{
   const url=new URL(location.href);
@@ -869,8 +869,9 @@ function persistEventWeek(){
 function updateU2Link(){
  if(!e3Selected)return;
  const base=/^(https?:|file:)/.test(location.href)?location.href:'https://pokesleep-preview.invalid/';
- const url=new URL('U2_Prep_Local_Ingredients_20261104_v30.html',base);
+ const url=new URL('U2_Prep_Local_Ingredients_20261105_v31.html',base);
  url.searchParams.set('eventStart',eventInfo.start);
+ url.searchParams.set('eventId',e3Selected.id);
  if(nowInJapan()>=eventInfo.start+'T04:00'&&nowInJapan()<dateFor(7)+'T04:00')url.searchParams.set('tab','inventory');
  url.searchParams.set('return','plan');
  const mock=new URLSearchParams(location.search).get('previewNow');
@@ -880,6 +881,7 @@ function updateU2Link(){
 let importedStock=null,importedSource=null,importedAt=null,appliedInventoryAt=null,hasInventory=false;
 const inventoryKey=week=>'pokesleep-strategy-u2-v3:'+week+':inventory';
 function normalizeInventory(item){
+ if(!e3Selected||item?.eventId!==e3Selected.id)return null;
  if(!item||item.weekStart!==eventInfo.start||!item.values||typeof item.values!=='object')return null;
  if(!((item.version===3&&item.source==='inventory')||(item.version===2&&['current','sunday'].includes(item.source))))return null;
  const keys=Object.keys(INGREDIENT_ICONS);
@@ -897,10 +899,13 @@ function refreshInventory(){
   const raw=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+eventInfo.start+':timeline')||'null');
   const timeline=raw?E1.validateInventoryTimeline(raw,eventInfo.start):null;
   const v=timeline?.currentInventory;
-  if(v)inStorage=normalizeInventory({version:3,weekStart:eventInfo.start,source:'inventory',savedAt:v.savedAt,values:v.values});
+  if(v)inStorage=normalizeInventory({version:3,weekStart:eventInfo.start,eventId:raw?.eventId||null,source:'inventory',savedAt:v.savedAt,values:v.values});
  }catch(e){inStorage=null;}
- try{if(!inStorage)inStorage=normalizeInventory(JSON.parse(localStorage.getItem(inventoryKey(eventInfo.start))||'null'));}catch(e){}
- try{const raw=new URLSearchParams(location.search).get('pokesleepStock');if(raw&&raw.length<10000)inLink=normalizeInventory(JSON.parse(raw));}catch(e){}
+ // Legacy week-only U2 snapshots are not implicitly promoted to a selected event.
+ try{
+  const params=new URLSearchParams(location.search),raw=params.get('pokesleepStock');
+  if(params.get('eventId')===e3Selected?.id&&raw&&raw.length<10000)inLink=normalizeInventory(JSON.parse(raw));
+ }catch(e){}
  const newest=(!inStorage||((inLink?.savedAt||'')>(inStorage.savedAt||'')))?inLink||inStorage:inStorage;
  hasInventory=!!newest;
  importedStock=newest?clone(newest.values):null;importedSource=newest?.source||null;importedAt=newest?.savedAt||null;
