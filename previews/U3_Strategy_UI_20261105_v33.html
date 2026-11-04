@@ -1240,8 +1240,14 @@ function copySleepNights(day){
  if(!eligible.length)return;
  const team=[...manualSleep[day]];
  if(eligible.some(i=>JSON.stringify(manualSleep[i])!==JSON.stringify(team))&&!confirm('未開始の睡眠編成を、この5匹にそろえますか？'))return;
+ const before=clone(manualSleep);
  eligible.forEach(i=>{manualSleep[i]=[...team];});
- renderSleepSettings();storeState();render();showToast('睡眠編成を設定しました');
+ if(!storeState()){
+  manualSleep=before;
+  showToast('睡眠編成を保存できませんでした。変更前の設定を保持しました。',true);
+  renderSleepSettings();render();return;
+ }
+ renderSleepSettings();render();showToast('睡眠編成を設定しました');
 }
 function openEdit(day,slot){
  if(slot!=='sleep'||isPastSlot(day,'sleep')||switchOn('auto-sleep'))return;
@@ -1253,15 +1259,28 @@ function drawPicker(focusId=null){const grid=$('#pick-grid');grid.textContent=''
 function saveEdit(){
  if(!edit||edit.slot!=='sleep'||edit.picks.length!==5)return;
  if(isPastSlot(edit.day,'sleep')){$('#edit-error').textContent='この夜は開始済みです。';return;}
- const day=edit.day;manualSleep[day]=arrangeHealers(edit.picks);
- $('#edit-dialog').close();edit=null;renderSleepSettings();storeState();render();showToast('睡眠編成を設定しました');
+ const day=edit.day,before=clone(manualSleep);manualSleep[day]=arrangeHealers(edit.picks);
+ if(!storeState()){
+  manualSleep=before;
+  $('#edit-error').textContent='保存できませんでした。設定は変更されていません。';
+  showToast('睡眠編成を保存できませんでした。',true);render();return;
+ }
+ $('#edit-dialog').close();edit=null;renderSleepSettings();render();showToast('睡眠編成を設定しました');
 }
 $('#edit-close').onclick=$('#edit-cancel').onclick=()=>$('#edit-dialog').close();
 $('#edit-dialog').addEventListener('close',()=>{edit=null;});
 $('#edit-save').onclick=saveEdit;
 $('#sleep-open').onclick=()=>{if(switchOn('auto-sleep'))return;selectedSleepDay=firstFutureDay();renderSleepSettings();$('#sleep-dialog').showModal();};
 $('#sleep-close').onclick=()=>$('#sleep-dialog').close();
-$('#auto-sleep').onclick=()=>{toggleSwitch('auto-sleep');storeState();render();};
+$('#auto-sleep').onclick=()=>{
+ const was=switchOn('auto-sleep');
+ toggleSwitch('auto-sleep');
+ if(!storeState()){
+  setSwitch('auto-sleep',was);
+  showToast('自動設定を保存できませんでした。変更を取り消しました。',true);
+ }
+ render();
+};
 $('#sleep-change').onclick=()=>openEdit(selectedSleepDay,'sleep');
 $('#sleep-copy').onclick=()=>copySleepNights(selectedSleepDay);
 $('#generate').onclick=()=>showProposal();
