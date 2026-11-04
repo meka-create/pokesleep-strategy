@@ -21,6 +21,9 @@ class E5Integrity(unittest.TestCase):
   self.assertIn("draft&&e4DraftIsCurrent()",U3)
   self.assertIn("const unsaved=eventBlockers().includes('イベント条件の保存')",U3)
   self.assertIn("const conditions=confirmed?{...confirmed,dirty:unsaved}:null",U3)
+  # E3/E4 replaces render after attaching listeners: old direct callback stays stale.
+  self.assertIn("addEventListener('change',()=>render())",U3)
+  self.assertNotIn("addEventListener('change',render)",U3)
  def test_invariants_and_regression_against_e4(self):
   for old in ("function e4DraftIsCurrent()", "const previous={applied,hasApplied",
    "function currentEventGameDayIndex(", "if(slot!=='sleep'", "e3ConditionKey",
