@@ -140,6 +140,7 @@ main[data-phase-stage="ended"] #week-content{scroll-margin-top:10px}
 </style></head>
 <body><div class="shell"><header class="header"><div><div class="smallcap">POKÉMON SLEEP</div><div class="brand">✦ ポケスリ作戦室</div></div><span class="mock-tag">U3 v31 / E3</span></header>
 <main>
+<section id="e3-primary" class="card" hidden><button type="button" id="e3-next" class="btn full"></button><p id="e3-warning" class="hint" hidden></p></section>
 <section class="phase-intro card" id="phase-intro" hidden aria-label="イベントの進行段階">
  <h2 id="phase-intro-title">準備週</h2>
  <p id="phase-intro-message">食材の備蓄目標を確認しましょう。</p>
@@ -150,7 +151,7 @@ main[data-phase-stage="ended"] #week-content{scroll-margin-top:10px}
 <div class="event-source-row"><select id="event-source-select" aria-label="イベントを選択"><option value="">手動設定</option></select><button type="button" class="btn secondary" id="event-source-fetch">イベント情報を取得</button></div>
 <button type="button" class="btn secondary full" id="event-source-apply" hidden>選択したイベントを反映</button>
 <p id="event-source-note" class="event-source-note">情報取得と選択だけでは、イベント条件や作戦は変更されません。</p>
-</div><label class="field">開始日<input id="event-start" type="date" value="2026-11-09"></label><div class="field"><span>料理</span><select id="event-food"><option value="">未確定（備蓄のみ）</option><option value="curry">カレー</option><option value="salad">サラダ</option><option value="dessert">デザート</option></select></div><div class="field wide"><span>フィールド</span><select id="event-field"><option value="">未設定</option><option>ワカクサ本島</option><option>シアンの砂浜</option><option>トープ洞窟</option><option>ウノハナ雪原</option><option>ラピスラズリ湖畔</option><option>ゴールド旧発電所</option><option>アンバー渓谷</option><option>ワカクサ本島EX</option><option>シアンの砂浜EX</option></select></div><div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="false"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div></div></details>
+</div><label class="field">開始日<input id="event-start" type="date"></label><div class="field"><span>料理</span><select id="event-food"><option value="">未確定（備蓄のみ）</option><option value="curry">カレー</option><option value="salad">サラダ</option><option value="dessert">デザート</option></select></div><div class="field wide"><span>フィールド</span><select id="event-field"><option value="">未設定</option><option>ワカクサ本島</option><option>シアンの砂浜</option><option>トープ洞窟</option><option>ウノハナ雪原</option><option>ラピスラズリ湖畔</option><option>ゴールド旧発電所</option><option>アンバー渓谷</option><option>ワカクサ本島EX</option><option>シアンの砂浜EX</option></select></div><div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="false"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div></div></details>
 <section class="card sleep-settings" aria-label="睡眠編成の設定"><div class="section-head"><h2>睡眠編成</h2><div class="sleep-controls"><button type="button" class="control-toggle sleep-auto-toggle" id="auto-sleep" role="switch" aria-checked="false" aria-label="睡眠編成を自動提案"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button><button type="button" id="sleep-open" class="btn small secondary">設定</button></div></div></section>
 <section class="card plan-actions" aria-label="週間作戦の操作"><button type="button" id="generate" class="btn full">7日間の作戦を提案</button><button type="button" id="repropose" class="btn secondary full" hidden>作戦を再提案</button><button type="button" id="resume-draft" class="btn secondary full" hidden>未採用の提案を確認</button><p class="hint" id="event-gate" role="status" aria-live="polite" hidden></p><p class="hint" id="stock-gate" hidden>食材在庫を保存すると提案できます。<a class="u2-nav" href="U2_Prep_Local_Ingredients_20261104_v30.html">食材在庫へ</a></p><p class="hint" id="inventory-notice" hidden></p><a class="hint u2-nav" href="U2_Prep_Local_Ingredients_20261104_v30.html">食材在庫の入力・修正は準備画面で行う</a><p class="hint" id="mock-note">このプレビューの編成と料理は操作確認用の例です。</p><div id="status" class="status-message" role="status" aria-live="polite"></div></section>
 <section class="card" id="week-content" hidden><div class="section-head"><h2 id="current-state-title">週間編成</h2><span class="energy">週間エナジー <b>—</b></span></div><div class="week-head"><div class="day-title"><span id="day-label">月曜日</span><small id="day-date">11/9</small></div></div><div class="daynav" id="day-nav" role="tablist" aria-label="曜日を選択"></div><div id="slots"></div></section></main></div><div id="ui-toast" class="ui-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
@@ -173,6 +174,356 @@ main[data-phase-stage="ended"] #week-content{scroll-margin-top:10px}
 <script>
 (()=>{'use strict';
 const $=selector=>document.querySelector(selector);
+const E1=(()=>{/**
+ * PokeSleep Strategy — E1 shared, UI-free phase and inventory state model.
+ *
+ * No DOM, storage, network or timers. Used by U2/U3 in E2–E4 and unified U5.
+ * A prior demonstration week is NEVER assumed to be the selected event.
+ * The 04:00 JST game-day boundary is distinct from midnight.
+ */
+const E1_SCHEMA_VERSION = 2;
+const PHASE = Object.freeze({
+  UNSELECTED:'UNSELECTED', BEFORE:'BEFORE', DURING:'DURING', ENDED:'ENDED'
+});
+const PRIMARY_ACTION = Object.freeze({
+  NONE:'NONE', SELECT_EVENT:'SELECT_EVENT', SET_EVENT:'SET_EVENT',
+  SET_INVENTORY:'SET_INVENTORY', PROPOSE:'PROPOSE', REPROPOSE:'REPROPOSE'
+});
+const INGREDIENT_NAMES = Object.freeze([
+  'ふといながねぎ','あじわいキノコ','とくせんエッグ','ほっこりポテト',
+  'とくせんリンゴ','げきからハーブ','マメミート','モーモーミルク',
+  'あまいミツ','ピュアなオイル','あったかジンジャー','あんみんトマト',
+  'リラックスカカオ','おいしいシッポ','ワカクサ大豆','ワカクサコーン',
+  'めざましコーヒー','ずっしりカボチャ','つやつやアボカド'
+]);
+const INGREDIENT_SET = new Set(INGREDIENT_NAMES);
+const MS_DAY = 86_400_000;
+const INSTANT_RE = /^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d{1,3})?)?(?:Z|[+-](?:0\d|1\d|2[0-3]):[0-5]\d)$/;
+const WEEK_RE = /^\d{4}-\d\d-\d\d$/;
+const JST_PARTS = new Intl.DateTimeFormat('en-US', {
+  timeZone:'Asia/Tokyo', year:'numeric',month:'2-digit',day:'2-digit',
+  hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'
+});
+
+function validWeekStart(week) {
+  if(typeof week!=='string'||!WEEK_RE.test(week))return false;
+  const d=new Date(week+'T12:00:00Z');
+  return Number.isFinite(d.getTime()) && d.toISOString().slice(0,10)===week &&
+    d.getUTCDay()===1;
+}
+function instantMs(iso) {
+  if(typeof iso!=='string'||!INSTANT_RE.test(iso))
+    throw new Error('Timestamp requires an explicit UTC offset.');
+  const n=Date.parse(iso);
+  if(!Number.isFinite(n))throw new Error('Invalid timestamp.');
+  return n;
+}
+function japaneseClock(instant) {
+  const ms=instantMs(instant);
+  const p=Object.fromEntries(JST_PARTS.formatToParts(new Date(ms))
+    .filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+  return {date:p.year+'-'+p.month+'-'+p.day, hour:Number(p.hour),
+    minute:Number(p.minute), second:Number(p.second),ms};
+}
+function shiftCalendarDay(date,delta) {
+  const d=new Date(date+'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate()+delta);
+  return d.toISOString().slice(0,10);
+}
+function gameDateInJST(instant) {
+  const clock=japaneseClock(instant);
+  return clock.hour<4?shiftCalendarDay(clock.date,-1):clock.date;
+}
+function gameWeekdayIndex(weekStart,instant) {
+  if(!validWeekStart(weekStart))return null;
+  const day=gameDateInJST(instant);
+  const n=Math.round((Date.parse(day+'T12:00:00Z')-
+    Date.parse(weekStart+'T12:00:00Z'))/MS_DAY);
+  return n>=0&&n<7?n:null;
+}
+function phaseForEvent(selectedEvent,instant) {
+  if(selectedEvent===null || selectedEvent===undefined)return PHASE.UNSELECTED;
+  if(!selectedEvent||typeof selectedEvent!=='object'||
+    typeof selectedEvent.id!=='string'||!selectedEvent.id.trim()||
+    selectedEvent.id.length>160||!validWeekStart(selectedEvent.weekStart))
+    throw new Error('Explicit event ID and Monday start required.');
+  const now=instantMs(instant);
+  const start=Date.parse(selectedEvent.weekStart+'T04:00:00+09:00');
+  if(now<start)return PHASE.BEFORE;
+  if(now>=start+7*MS_DAY)return PHASE.ENDED;
+  return PHASE.DURING;
+}
+function cleanRevision(x) {
+  return typeof x==='string'&&x.length>0&&x.length<=160;
+}
+function cleanInventoryValues(values) {
+  if(!values||typeof values!=='object'||Array.isArray(values))throw Error('Inventory must be an object.');
+  const keys=Object.keys(values);
+  if(keys.length!==19||keys.some(k=>!INGREDIENT_SET.has(k)))throw Error('Exactly 19 known ingredient names required.');
+  const next=Object.create(null);
+  let total=0;
+  for(const key of INGREDIENT_NAMES) {
+    const n=values[key];
+    if(!Number.isSafeInteger(n)||n<0||n>10000)throw Error('Invalid ingredient quantity: '+key);
+    next[key]=n;total+=n;
+  }
+  if(total>10000)throw Error('Inventory capacity safety limit exceeded.');
+  return {...next};
+}
+function cleanSnapshot(raw,week) {
+  if(raw==null)return null;
+  if(typeof raw!=='object'||raw.weekStart!==week||
+    !cleanRevision(raw.revision))throw Error('Invalid inventory snapshot.');
+  const savedAt=raw.savedAt;
+  instantMs(savedAt);
+  return {weekStart:week,savedAt,revision:raw.revision,
+    values:cleanInventoryValues(raw.values)};
+}
+/** Shape is v2 and completely independent of the legacy v1 U3 and v3 U2 keys. */
+function newInventoryTimeline(weekStart) {
+  if(!validWeekStart(weekStart))throw Error('Inventory must belong to a Monday event week.');
+  return {version:E1_SCHEMA_VERSION,weekStart,
+    preparationLatest:null,startInventory:null,currentInventory:null};
+}
+function validateInventoryTimeline(raw,weekStart=raw?.weekStart) {
+  if(!validWeekStart(weekStart)||!raw||typeof raw!=='object'||
+    raw.version!==E1_SCHEMA_VERSION||raw.weekStart!==weekStart)
+    throw Error('Unsupported inventory timeline; old data must be read by the legacy adapter.');
+  const timeline={
+    version:E1_SCHEMA_VERSION,weekStart,
+    preparationLatest:cleanSnapshot(raw.preparationLatest,weekStart),
+    startInventory:cleanSnapshot(raw.startInventory,weekStart),
+    currentInventory:cleanSnapshot(raw.currentInventory,weekStart)
+  };
+  const start=Date.parse(weekStart+'T04:00:00+09:00');
+  const prep=timeline.preparationLatest,baseline=timeline.startInventory,cur=timeline.currentInventory;
+  if(prep&&instantMs(prep.savedAt)>=start)throw Error('Preparation stock saved after event start.');
+  if(baseline&&instantMs(baseline.savedAt)>=start)throw Error('Baseline cannot be an event-time save.');
+  if((prep===null)!==(baseline===null) ||
+    (prep&&JSON.stringify(prep)!==JSON.stringify(baseline)))
+    throw Error('Start stock must equal the final recorded preparation stock.');
+  if(prep&&!cur)throw Error('Latest inventory must include the confirmed pre-event stock.');
+  if(prep&&cur&&instantMs(cur.savedAt)<instantMs(prep.savedAt))
+    throw Error('Latest inventory older than baseline.');
+  return timeline;
+}
+/** Pure transition; never writes to localStorage.
+ * saveAt is the actual commit instant, never a user-editable game day.
+ * The final successful pre-event save becomes the baseline.
+ * After the event starts, only currentInventory can change.
+ */
+function applyInventorySave(raw,{savedAt,values,revision}) {
+  const prev=validateInventoryTimeline(raw);
+  const when=instantMs(savedAt);
+  if(!cleanRevision(revision))throw Error('Every saved inventory needs a revision.');
+  const eventStart=Date.parse(prev.weekStart+'T04:00:00+09:00');
+  if(when>=eventStart+7*MS_DAY)throw Error('Ended event stock cannot be changed.');
+  const previousTime=prev.currentInventory?instantMs(prev.currentInventory.savedAt):-Infinity;
+  if(when<previousTime)throw Error('Stale inventory save; do not overwrite newer values.');
+  if(when>previousTime && prev.currentInventory?.revision===revision)
+    throw Error('A new inventory save must use a new revision.');
+  // Equal timestamp from another mutation cannot determine ordering: reject unless idempotent.
+  const nextSnapshot={weekStart:prev.weekStart,savedAt,revision,values:cleanInventoryValues(values)};
+  if(when===previousTime) {
+    if(JSON.stringify(prev.currentInventory)===JSON.stringify(nextSnapshot))return prev;
+    throw Error('Conflicting inventory save with the same time.');
+  }
+  const future={...prev,currentInventory:nextSnapshot};
+  if(when<eventStart){
+    future.preparationLatest=nextSnapshot;
+    future.startInventory=nextSnapshot;
+  }
+  return validateInventoryTimeline(future);
+}
+/** Read-only adapter for v29 U2 records, never auto-commits a new schema.
+ * v29 initialValues came from the FIRST pre-event save and MUST NOT be treated
+ * as the final start stock, or as a valid historic snapshot after the event began.
+ */
+function previewLegacyU2V3(record,selectedWeek) {
+  if(!validWeekStart(selectedWeek)||!record||record.version!==3||
+    record.weekStart!==selectedWeek||record.source!=='inventory')
+    throw Error('Legacy inventory belongs to a different event week or version.');
+  const values=cleanInventoryValues(Object.fromEntries(
+    INGREDIENT_NAMES.map(key=>[key,record.values?.[key]??0])));
+  // Missing keys from a corrupt old record MUST NOT become a zero value.
+  if(!record.values||INGREDIENT_NAMES.some(k=>!Object.prototype.hasOwnProperty.call(record.values,k))||
+    Object.keys(record.values).length!==19)throw Error('Legacy stock is incomplete.');
+  const savedAt=record.savedAt;
+  const t=instantMs(savedAt);
+  const start=Date.parse(selectedWeek+'T04:00:00+09:00');
+  const converted=newInventoryTimeline(selectedWeek);
+  const snapshot={weekStart:selectedWeek,savedAt,revision:'legacy-v3:'+savedAt,values};
+  if(t<start){
+    converted.preparationLatest=snapshot;
+    converted.startInventory=snapshot;
+  }
+  converted.currentInventory=snapshot;
+  return {timeline:validateInventoryTimeline(converted),
+    warnings:t>=start?['START_STOCK_UNKNOWN_FROM_LEGACY'] : [],
+    requiresExplicitCommit:true};
+}
+/**
+ * An event source is only a CANDIDATE. It cannot change a CONFIRMED event.
+ * First the user applies the verified candidate to the editing form; then an
+ * explicit save creates a confirmed (possibly incomplete) condition snapshot.
+ * Nothing in E1 auto-writes to legacy U3 JSON or triggers a proposal.
+ */
+function cleanFields(input) {
+  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Event fields must be an object.');
+  // Validate before JSON cloning. JSON.stringify silently converts Infinity
+  // to null and silently drops undefined/functions: never auto-confirm that.
+  const visited=new WeakSet();
+  const walk=(x)=>{
+    if(x===null||typeof x==='string'||typeof x==='boolean')return true;
+    if(typeof x==='number')return Number.isFinite(x);
+    if(typeof x!=='object'||visited.has(x))return false;
+    const proto=Object.getPrototypeOf(x);
+    if(!Array.isArray(x)&&proto!==Object.prototype&&proto!==null)return false;
+    visited.add(x);
+    const ok=Array.isArray(x)?x.every(walk):
+      Object.keys(x).every(k=>!['__proto__','prototype','constructor'].includes(k)&&walk(x[k]));
+    visited.delete(x);
+    return ok;
+  };
+  if(!walk(input))throw Error('Event fields contain unsupported data.');
+  const raw=JSON.stringify(input);
+  if(typeof raw!=='string'||raw.length>16000)throw Error('Event fields too large.');
+  return JSON.parse(raw);
+}
+function conditionEntry(entry,weekStart,eventId,label) {
+  if(entry==null)return null;
+  if(!entry||entry.weekStart!==weekStart||entry.eventId!==eventId||
+    !cleanRevision(entry.revision)||!Array.isArray(entry.missingFields)||
+    entry.missingFields.some(x=>typeof x!=='string'||!x.trim()||x.length>120))
+    throw Error('Invalid '+label+' conditions.');
+  instantMs(entry.savedAt);
+  const status=entry.missingFields.length?'MISSING':'CONFIRMED';
+  if(label==='candidate'||label==='editing'){
+    if(entry.status!=='CANDIDATE'&&entry.status!=='EDITING')
+      throw Error('Candidate/editing status expected.');
+  }else if(entry.status!==status)throw Error('Saved conditions status must match unresolved fields.');
+  return {...entry,fields:cleanFields(entry.fields),missingFields:[...new Set(entry.missingFields)]};
+}
+function newConditionLedger(selectedEvent) {
+  phaseForEvent(selectedEvent,'2026-01-01T00:00:00Z');
+  if(!selectedEvent)throw Error('Choose an event first.');
+  return {version:1,weekStart:selectedEvent.weekStart,eventId:selectedEvent.id,
+    candidate:null,editing:null,confirmed:null};
+}
+function validateConditionLedger(raw) {
+  if(!raw||raw.version!==1||!validWeekStart(raw.weekStart)||
+    typeof raw.eventId!=='string'||!raw.eventId.trim()||raw.eventId.length>160)
+    throw Error('Unsupported event condition ledger.');
+  return {version:1,weekStart:raw.weekStart,eventId:raw.eventId,
+    candidate:conditionEntry(raw.candidate,raw.weekStart,raw.eventId,'candidate'),
+    editing:conditionEntry(raw.editing,raw.weekStart,raw.eventId,'editing'),
+    confirmed:conditionEntry(raw.confirmed,raw.weekStart,raw.eventId,'confirmed')};
+}
+function stageConditionCandidate(ledger,{fields,revision,savedAt,missingFields=[]}) {
+  const prev=validateConditionLedger(ledger);
+  const entry=conditionEntry({weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'CANDIDATE',fields,revision,savedAt,missingFields},
+    prev.weekStart,prev.eventId,'candidate');
+  return {...prev,candidate:entry};
+}
+function applyConditionCandidate(ledger,{userApplied=false}={}) {
+  const prev=validateConditionLedger(ledger);
+  if(!userApplied||!prev.candidate)throw Error('User must explicitly apply an available candidate.');
+  return {...prev,editing:{...prev.candidate,status:'EDITING'}};
+}
+function stageConditionEdits(ledger,{fields,revision,savedAt,missingFields=[]}) {
+  const prev=validateConditionLedger(ledger);
+  return {...prev,editing:conditionEntry({weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'EDITING',fields,revision,savedAt,missingFields},
+    prev.weekStart,prev.eventId,'editing')};
+}
+function confirmEventConditions(ledger,{userConfirmed=false}={}) {
+  const prev=validateConditionLedger(ledger);
+  if(!userConfirmed||!prev.editing)throw Error('User must explicitly save edited event conditions.');
+  const candidate={...prev.editing,status:prev.editing.missingFields.length?'MISSING':'CONFIRMED'};
+  if(prev.confirmed&&candidate.revision===prev.confirmed.revision&&
+    JSON.stringify(candidate.fields)!==JSON.stringify(prev.confirmed.fields))
+    throw Error('Revision collision: different event conditions share a revision.');
+  return {...prev,confirmed:candidate,editing:null};
+}
+function conditionViewFromLedger(ledger) {
+  const prev=validateConditionLedger(ledger);
+  const snapshot=prev.confirmed;
+  if(!snapshot)return {weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'MISSING',revision:null,missingFields:['EVENT_CONDITIONS_UNCONFIRMED'],dirty:Boolean(prev.editing)};
+  return {weekStart:prev.weekStart,eventId:prev.eventId,
+    status:snapshot.status,revision:snapshot.revision,
+    missingFields:[...snapshot.missingFields],dirty:Boolean(prev.editing)};
+}
+function conditionView(conditions,selectedEvent) {
+  if(!conditions||typeof conditions!=='object'||conditions.weekStart!==selectedEvent.weekStart||
+    conditions.eventId!==selectedEvent.id)
+    return {ready:false,reason:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
+  const missing=Array.isArray(conditions.missingFields)?conditions.missingFields:null;
+  if(missing===null||missing.some(x=>typeof x!=='string'||!x.trim()||x.length>120))
+    return {ready:false,reason:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
+  if(conditions.status!=='CONFIRMED'||conditions.dirty===true||missing.length ||
+    !cleanRevision(conditions.revision))
+    return {ready:false,reason:missing.length?[...new Set(missing)]:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
+  return {ready:true,reason:[],revision:conditions.revision};
+}
+function confirmedInventory(timeline,event) {
+  if(!timeline)return null;
+  try{
+    return validateInventoryTimeline(timeline,event.weekStart).currentInventory;
+  }catch{return null;}
+}
+/** Pure state presentation used by U2/U3 (E2–E4) and U5.
+ * No UI switching, modal action, implicit selection or storage writes.
+ */
+function getPrimaryViewState({
+  selectedEvent=null,nowISO,conditions=null,inventoryTimeline=null,
+  adoptedPlan=null,draft=null,dirtyFlags={}
+}={}) {
+  const phase=phaseForEvent(selectedEvent,nowISO);
+  if(phase===PHASE.UNSELECTED)
+    return {phase,screen:'NO_EVENT',primaryAction:PRIMARY_ACTION.SELECT_EVENT,
+      compactWarning:'EVENT_NOT_SELECTED',lockReasons:['EVENT_NOT_SELECTED'],
+      canPropose:false,canRepropose:false,canAdoptDraft:false,
+      adoption:'NONE',gameDayIndex:null};
+  const cond=conditionView(conditions,selectedEvent);
+  const stock=confirmedInventory(inventoryTimeline,selectedEvent);
+  const adopted=adoptedPlan?.status==='ADOPTED'&&
+    adoptedPlan.weekStart===selectedEvent.weekStart&&
+    adoptedPlan.eventId===selectedEvent.id;
+  const hasDraft=draft?.status==='DRAFT'&&draft.weekStart===selectedEvent.weekStart&&
+    draft.eventId===selectedEvent.id;
+  const staleDraft=hasDraft&&(draft.conditionsRevision!==cond.revision||
+    draft.inventoryRevision!==stock?.revision||
+    Boolean(dirtyFlags.sleepChanged)||Boolean(dirtyFlags.conditionsChanged)||
+    Boolean(dirtyFlags.inventoryChanged));
+  const canPropose=phase===PHASE.DURING&&cond.ready&&Boolean(stock);
+  const canRepropose=canPropose&&adopted;
+  const canAdoptDraft=canPropose&&hasDraft&&!staleDraft;
+  const reasons=[...cond.reason];
+  if(!stock)reasons.push('INVENTORY_NOT_SAVED');
+  let action=PRIMARY_ACTION.NONE,screen=adopted?'ADOPTED_PLAN':'PENDING_PLAN';
+  if(phase===PHASE.ENDED)screen=adopted?'ADOPTED_PLAN':'EVENT_ENDED';
+  else if(phase===PHASE.BEFORE)screen='PREPARATION';
+  else if(adopted) {
+    if(!cond.ready)action=PRIMARY_ACTION.SET_EVENT;
+    else if(!stock)action=PRIMARY_ACTION.SET_INVENTORY;
+    else if(dirtyFlags.conditionsChanged||dirtyFlags.inventoryChanged||
+      dirtyFlags.sleepChanged||adoptedPlan.inventoryRevision!==stock.revision||
+      adoptedPlan.conditionsRevision!==cond.revision)
+      action=PRIMARY_ACTION.REPROPOSE;
+  }else if(!cond.ready)action=PRIMARY_ACTION.SET_EVENT;
+  else if(!stock)action=PRIMARY_ACTION.SET_INVENTORY;
+  else action=PRIMARY_ACTION.PROPOSE;
+  return {phase,screen,primaryAction:action,
+    compactWarning:action===PRIMARY_ACTION.NONE?null:action,
+    lockReasons:reasons,canPropose,canRepropose,canAdoptDraft,
+    adoption:adopted?'ADOPTED':hasDraft?'DRAFT':'NONE',
+    gameDayIndex:gameWeekdayIndex(selectedEvent.weekStart,nowISO)};
+}
+
+return {getPrimaryViewState,newInventoryTimeline,validateInventoryTimeline,applyInventorySave,newConditionLedger,validateConditionLedger,stageConditionEdits,confirmEventConditions,conditionViewFromLedger};})();
+
 
 // PokéAPI sprites loader: same policy as the app's src/sprites.js.
 // Verifiable species only, IntersectionObserver, CacheStorage, max 3 in flight,
@@ -474,18 +825,33 @@ function eventDisplayName(source){
  return translated===key&&raw?raw:translated;
 }
 const EVENT_WEEK_KEY='pokesleep-strategy-event-start-v2';
-const DEFAULT_EVENT_WEEK='2026-11-09';
+const DEFAULT_EVENT_WEEK='2026-11-09'; // internal placeholder, never a selected event
+const E3_SELECTED_KEY='pokesleep-strategy-u3-e3-v1:selected';
+let e3Selected=null;
+try{const x=JSON.parse(localStorage.getItem(E3_SELECTED_KEY)||'null');if(x&&typeof x.id==='string'&&x.id.length>0&&x.id.length<=160&&validWeek(x.weekStart))e3Selected=x;}catch(e){}
+const e3ConditionKey=e=>'pokesleep-strategy-u3-e3-v1:'+e.weekStart+':'+encodeURIComponent(e.id)+':conditions';
+function e3Ledger(){
+ if(!e3Selected)return null;
+ try{const x=JSON.parse(localStorage.getItem(e3ConditionKey(e3Selected))||'null');const y=x?E1.validateConditionLedger(x):null;
+  return y?.weekStart===e3Selected.weekStart&&y?.eventId===e3Selected.id?y:null;
+ }catch(e){return null;}
+}
+function e3Conditions(){const x=e3Ledger();return x?E1.conditionViewFromLedger(x):null;}
+function e3Revision(x){const v=JSON.stringify(x);let h=2166136261;
+ for(let i=0;i<v.length;i++){h^=v.charCodeAt(i);h=Math.imul(h,16777619);}
+ return 'cond-'+(h>>>0).toString(16);
+}
 function validWeek(date){
  if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;
  const d=new Date(date+'T12:00:00Z');return Number.isFinite(d.valueOf())&&d.toISOString().slice(0,10)===date&&d.getUTCDay()===1;
 }
 function initialEventStart(){
  const fromLink=new URLSearchParams(location.search).get('eventStart');if(validWeek(fromLink))return fromLink;
- try{const saved=localStorage.getItem(EVENT_WEEK_KEY);if(validWeek(saved))return saved;}catch(e){}
- return DEFAULT_EVENT_WEEK;
+ return e3Selected?.weekStart||DEFAULT_EVENT_WEEK;
 }
 let eventInfo={start:initialEventStart(),field:'',food:'',camp:false};
 function persistEventWeek(){
+ if(!e3Selected)return;
  try{localStorage.setItem(EVENT_WEEK_KEY,eventInfo.start);}catch(e){}
  // Navigation and browser refresh must not reinstate an older eventStart URL.
  try{
@@ -501,6 +867,7 @@ function persistEventWeek(){
  }catch(e){/* history may be restricted when testing an offline HTML snapshot */}
 }
 function updateU2Link(){
+ if(!e3Selected)return;
  const base=/^(https?:|file:)/.test(location.href)?location.href:'https://pokesleep-preview.invalid/';
  const url=new URL('U2_Prep_Local_Ingredients_20261104_v30.html',base);
  url.searchParams.set('eventStart',eventInfo.start);
@@ -526,7 +893,13 @@ function normalizeInventory(item){
 }
 function refreshInventory(){
  let inStorage=null,inLink=null;
- try{inStorage=normalizeInventory(JSON.parse(localStorage.getItem(inventoryKey(eventInfo.start))||'null'));}catch(e){}
+ try{
+  const raw=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+eventInfo.start+':timeline')||'null');
+  const timeline=raw?E1.validateInventoryTimeline(raw,eventInfo.start):null;
+  const v=timeline?.currentInventory;
+  if(v)inStorage=normalizeInventory({version:3,weekStart:eventInfo.start,source:'inventory',savedAt:v.savedAt,values:v.values});
+ }catch(e){inStorage=null;}
+ try{if(!inStorage)inStorage=normalizeInventory(JSON.parse(localStorage.getItem(inventoryKey(eventInfo.start))||'null'));}catch(e){}
  try{const raw=new URLSearchParams(location.search).get('pokesleepStock');if(raw&&raw.length<10000)inLink=normalizeInventory(JSON.parse(raw));}catch(e){}
  const newest=(!inStorage||((inLink?.savedAt||'')>(inStorage.savedAt||'')))?inLink||inStorage:inStorage;
  hasInventory=!!newest;
@@ -538,7 +911,7 @@ $('#event-start').value=eventInfo.start;
 updateU2Link();
 persistEventWeek();
 // Versioned local-only preview persistence. Corrupt/incompatible records fail closed.
-const strategyKey=week=>'pokesleep-strategy-u3-v1:'+week;
+const strategyKey=week=>'pokesleep-strategy-u3-e3-v1:'+week+':'+encodeURIComponent(e3Selected?.id||'unselected')+':plan';
 function validTeam(team){return Array.isArray(team)&&team.length===5&&new Set(team).size===5&&team.every(id=>POOL[id]);}
 function validPlan(plan){
  return plan&&Array.isArray(plan.days)&&plan.days.length===7&&
@@ -549,6 +922,7 @@ function validPlan(plan){
 }
 function validTeams(teams){return Array.isArray(teams)&&teams.length===7&&teams.every(validTeam);}
 function storeState(){
+ if(!e3Selected)return false;
  try{
   const record={version:1,weekStart:eventInfo.start,eventInfo:clone(eventInfo),hasApplied,
    applied:hasApplied?clone(applied):null,appliedEventStart,appliedEventInfo:appliedEventInfo?clone(appliedEventInfo):null,
@@ -566,6 +940,7 @@ function restoreState(week,resetIfMissing=false){
  try{
   const entry=JSON.parse(localStorage.getItem(strategyKey(week))||'null');
   if(!entry||entry.version!==1||entry.weekStart!==week||!entry.eventInfo||entry.eventInfo.start!==week||!validTeams(entry.manualSleep))return false;
+  if((entry.eventInfo.source?.id||'manual:'+week)!==e3Selected?.id)return false;
   if(entry.hasApplied&&!validPlan(entry.applied))return false;
   if(entry.draft&&!validPlan(entry.draft))return false;
   eventInfo=clone(entry.eventInfo);hasApplied=!!entry.hasApplied;applied=hasApplied?clone(entry.applied):makeBase();
@@ -580,8 +955,8 @@ function restoreState(week,resetIfMissing=false){
   return true;
  }catch(e){return false;}
 }
-restoreState(eventInfo.start);
-$('#event-start').value=eventInfo.start;
+if(e3Selected)restoreState(eventInfo.start);
+$('#event-start').value=e3Selected?eventInfo.start:'';
 function syncEventControls(){
  $('#event-start').value=eventInfo.start;
  $('#event-field').value=eventInfo.field;$('#event-food').value=eventInfo.food;
@@ -597,7 +972,7 @@ function syncEventControls(){
  }else sourceNote.textContent='情報取得と選択だけでは、イベント条件や作戦は変更されません。';
  refreshSelect('event-source-select');refreshSelect('event-food');refreshSelect('event-field');
 }
-syncEventControls();updateU2Link();
+syncEventControls();if(!e3Selected)$('#event-start').value='';updateU2Link();
 refreshInventory();
 function getPlan(){return applied;}
 function currentRecipes(plan=getPlan()){return RECIPES[plan.foodMode];}
@@ -640,6 +1015,7 @@ selectDayOnOpen();
 function isPastSlot(day,slot){return nowInJapan()>=dateFor(day)+'T'+SLOT_STARTS[slot];}
 function remainingSlots(){let n=0;for(let d=0;d<7;d++)for(const slot of SLOT_KEYS)if(!isPastSlot(d,slot))n++;return n;}
 function eventPhase(){
+ if(!e3Selected)return 'before';
  if(nowInJapan()<eventInfo.start+'T04:00')return 'before';
  if(nowInJapan()>=dateFor(7)+'T04:00'||remainingSlots()===0)return 'ended';
  return 'during';
@@ -938,6 +1314,8 @@ $('#event-source-apply').addEventListener('click',()=>{
 });
 function eventBlockers(){
  const missing=[];
+ if(!e3Selected||e3Selected.weekStart!==eventInfo.start||e3Selected.id!==(eventInfo.source?.id||'manual:'+eventInfo.start))missing.push('イベント選択');
+ if(!e3Conditions())missing.push('イベント条件の確定');
  const unsaved=$('#event-start').value!==eventInfo.start||$('#event-field').value!==eventInfo.field||
   $('#event-food').value!==eventInfo.food||switchOn('event-camp')!==eventInfo.camp||
   manualSourceRequested||(!!pendingEventSource&&JSON.stringify(pendingEventSource)!==JSON.stringify(eventInfo.source||null));
