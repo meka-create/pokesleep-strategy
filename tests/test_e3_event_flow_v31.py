@@ -8,7 +8,7 @@ U2=(P/"U2_Prep_Local_Ingredients_20261105_v31.html").read_text()
 E1=(ROOT/"src/ux-phase-state.js").read_text()
 class TestE3(unittest.TestCase):
  def test_shared_e1_exact_source(self):
-  model=re.sub(r"\\bexport\\s+(?=(?:const|function)\\b)","",E1)
+  model=re.sub(r"\bexport\s+(?=(?:const|function)\b)","",E1)
   self.assertIn("const E1=(()=>{"+model,U3)
  def test_explicit_selection_and_separation(self):
   for term in ("E3_SELECTED_KEY","if(!e3Selected)return","e3ConditionKey",
@@ -30,9 +30,9 @@ class TestE3(unittest.TestCase):
   self.assertIn("SLOT_KEYS.forEach",U3)
  def test_javascript_syntax(self):
   for source in (U2,U3):
-   scripts=re.findall(r"<script(?:\\s[^>]*)?>(.*?)</script>",source,re.S)
+   scripts=re.findall(r"<script(?:\s[^>]*)?>(.*?)</script>",source,re.S)
    self.assertTrue(scripts)
    with tempfile.NamedTemporaryFile(mode="w",suffix=".js") as tmp:
-    tmp.write("\\n".join(scripts));tmp.flush()
+    tmp.write("\n".join(scripts));tmp.flush()
     subprocess.run(["node","--check",tmp.name],check=True,capture_output=True,text=True)
 if __name__=="__main__":unittest.main()
