@@ -79,6 +79,19 @@ with sync_playwright() as pw:
  assert page.locator("#event-details").count()==1
  page.goto(url("2026-11-11T15:00"),wait_until="domcontentloaded")
  assert page.locator("#e3-next").inner_text()=="7日間の作戦を提案"
+ # A1: storage failure while making a draft must not open a nonpersistent review.
+ page.evaluate("""()=>{Storage.prototype.__e5original=Storage.prototype.setItem;
+  Storage.prototype.setItem=function(k,v){
+   if(k.startsWith('pokesleep-strategy-u3-e3-v1:')&&k.endsWith(':plan'))
+    throw new DOMException('Quota exceeded','QuotaExceededError');
+   return Storage.prototype.__e5original.call(this,k,v);
+  };}""")
+ page.locator("#e3-next").click()
+ assert not page.locator("#review-dialog").evaluate("(e)=>e.open")
+ assert chosen_state(page)["draft"] is None
+ assert "保存できません" in page.locator("#ui-toast").inner_text()
+ page.evaluate("""()=>{Storage.prototype.setItem=Storage.prototype.__e5original;
+  delete Storage.prototype.__e5original;}""")
  # B: An unadopted saved draft must remain accessible on reload for review/adoption.
  page.locator("#e3-next").click()
  assert page.locator("#review-dialog").evaluate("(e)=>e.open")
