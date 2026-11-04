@@ -10,9 +10,14 @@ const B=(awaitNotUsed)=>awaitNotUsed;
 const inventory=(M,week=WEEK)=>Object.fromEntries(M.INGREDIENT_NAMES.map(k=>[k,0]));
 const saved=(M,values,when,revision='r1',timeline=M.newInventoryTimeline(WEEK))=>
   M.applyInventorySave(timeline,{savedAt:when,revision,values});
-const COND={status:'CONFIRMED',revision:'event-c1',missingFields:[],dirty:false};
+const COND={status:'CONFIRMED',revision:'event-c1',missingFields:[],dirty:false,weekStart:WEEK,eventId:EVENT.id};
 const adopted={status:'ADOPTED',weekStart:WEEK,eventId:EVENT.id,conditionsRevision:'event-c1',inventoryRevision:'r1'};
-const props=(extra={})=>({selectedEvent:EVENT,nowISO:'2026-11-10T12:00:00+09:00',conditions:COND,...extra});
+const props=(extra={})=>{
+ const state={selectedEvent:EVENT,nowISO:'2026-11-10T12:00:00+09:00',conditions:COND,...extra};
+ if(state.conditions&&state.conditions.weekStart===undefined)
+   state.conditions={...state.conditions,weekStart:WEEK,eventId:EVENT.id};
+ return state;
+};
 
 test('E1 exposes exactly 19 stable names from U2 v29, 0 is a legitimate amount',async()=>{
  const M=await api;
@@ -363,7 +368,7 @@ test('same week/date but a different explicitly selected event id does not reuse
  const x=M.getPrimaryViewState({...props({inventoryTimeline:stock,adoptedPlan:adopted}),selectedEvent:newer});
  assert.equal(x.adoption,'NONE');
  assert.equal(x.screen,'PENDING_PLAN');
- assert.equal(x.primaryAction,'PROPOSE');
+ assert.equal(x.primaryAction,'SET_EVENT'); // another event requires its OWN confirmed conditions
 });
 
 test('the nineteen Japanese ingredient keys match BOTH frozen U2 and U3 v29 assets exactly',async()=>{
@@ -392,4 +397,26 @@ test('all E1 transitions are pure and do not modify UI state or passed records',
  assert.deepEqual(event,EVENT);
  assert.equal(values[M.INGREDIENT_NAMES[0]],0);
  assert.equal(original.currentInventory,null);
+});
+
+test('new changed inventory cannot reuse old revision and silently suppress re-proposal',async()=>{
+ const M=await api;
+ const a=inventory(M),b=inventory(M);
+ b[M.INGREDIENT_NAMES[3]]=7;
+ const first=saved(M,a,'2026-11-08T12:00:00+09:00','initial');
+ assert.throws(()=>saved(M,b,'2026-11-10T12:00:00+09:00','initial',first),/new revision/);
+ const next=saved(M,b,'2026-11-10T12:00:00+09:00','updated',first);
+ const plan={...adopted,inventoryRevision:'initial'};
+ assert.equal(M.getPrimaryViewState(props({inventoryTimeline:next,adoptedPlan:plan})).primaryAction,'REPROPOSE');
+});
+
+test('confirmed conditions from another event or another week are rejected',async()=>{
+ const M=await api;
+ const stock=saved(M,inventory(M),'2026-11-08T12:00:00+09:00','r1');
+ for(const bad of [{...COND,eventId:'different-event'},{...COND,weekStart:'2026-11-16'}]){
+  const v=M.getPrimaryViewState({...props({inventoryTimeline:stock}),conditions:bad});
+  assert.equal(v.primaryAction,'SET_EVENT');
+  assert.equal(v.canPropose,false);
+  assert.equal(v.lockReasons[0],'EVENT_CONDITIONS_UNCONFIRMED');
+ }
 });
