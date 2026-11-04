@@ -113,9 +113,11 @@ with sync_playwright() as pw:
   window.__e3SaveCalls.push('handler-exit');
   return out;
  };
- document.addEventListener('click',e=>{
-  if(e.target===el)window.__e3SaveCalls.push('dom-click');
- },{once:true,capture:true});
+ for(const type of ['pointerdown','pointerup','click']){
+  document.addEventListener(type,e=>{
+   window.__e3SaveCalls.push(type+':'+e.target.tagName+'#'+e.target.id);
+  },{capture:true});
+ }
  }""")
  page.locator("#event-save").click()
  print("E3 save calls",page.evaluate("()=>window.__e3SaveCalls"),flush=True)
