@@ -529,6 +529,8 @@ return {INGREDIENT_NAMES,validWeekStart,phaseForEvent,newInventoryTimeline,valid
 'use strict';
 const q=s=>document.querySelector(s),tabs={goal:q('#btn-goal'),inventory:q('#btn-inventory')}, panels={goal:q('#goal-panel'),inventory:q('#inventory-panel')};
 const inputs=[...panels.inventory.querySelectorAll('[data-key]')],query=new URLSearchParams(location.search),requestedWeek=query.get('eventStart');
+const selectedEventId=query.get('eventId');
+const validEventId=typeof selectedEventId==='string'&&selectedEventId.length>0&&selectedEventId.length<=160;
 const week=E1.validWeekStart(requestedWeek)?requestedWeek:null,requestedValid=requestedWeek===null||!!week;
 const mock=query.get('previewNow'),returnToPlan=query.get('return')==='plan';
 const key=w=>'pokesleep-strategy-u2-e2-v1:'+w+':timeline',oldKey=w=>'pokesleep-strategy-u2-v3:'+w+':inventory';
@@ -593,7 +595,7 @@ function load(){
 }
 function v29Packet(s){
  const snap=s?.currentInventory;
- return snap?{version:3,weekStart:week,source:'inventory',savedAt:snap.savedAt,values:snap.values,initialValues:s.startInventory?.values??null}:null;
+ return snap?{version:3,weekStart:week,source:'inventory',savedAt:snap.savedAt,values:snap.values,eventId:s.eventId||null,initialValues:s.startInventory?.values??null}:null;
 }
 function clearLink(){panels.inventory.querySelector('.u2-transfer')?.remove();}
 function showLink(){
@@ -605,7 +607,7 @@ function showLink(){
  // Old U3 receiver needs the validated payload across file:// storage origins.
  u.searchParams.set('pokesleepStock',JSON.stringify(packet));
  if(mock)u.searchParams.set('previewNow',mock);
- if(query.get('eventId'))u.searchParams.set('eventId',query.get('eventId'));
+ if(validEventId)u.searchParams.set('eventId',selectedEventId);
  u.searchParams.delete('tab');u.searchParams.delete('return');
  a.href=u.href;panels.inventory.querySelector('.inventory-actions').append(a);
 }
@@ -643,7 +645,9 @@ function save(){
   // Timestamp is the actual successful save; deterministic preview uses mock JST.
   const prev=load(),t=Math.max(Date.parse(now()),prev.currentInventory?Date.parse(prev.currentInventory.savedAt)+1:0);
   const stamp=new Date(t).toISOString();
-  const updated=E1.applyInventorySave(prev,{savedAt:stamp,revision:'e2:'+stamp,values:x.values});
+  if(validEventId&&prev.eventId&&prev.eventId!==selectedEventId)throw Error('Event ID mismatch');
+   const updated=E1.applyInventorySave(prev,{savedAt:stamp,revision:'e2:'+stamp,values:x.values});
+   if(validEventId)updated.eventId=selectedEventId;
   // One new key, one atomic write. Never overwrite old v2/v3 source.
   localStorage.setItem(key(week),JSON.stringify(updated));
   timeline=updated;packet=v29Packet(updated);q('#error').hidden=true;message('');
