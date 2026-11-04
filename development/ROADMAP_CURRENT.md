@@ -164,3 +164,23 @@
 - E4の単体静的/JS構文、Android相当Chromium操作シナリオを `tests/test_e4_contract_v32.py`・`tests/preview_browser_e4_v32.py`・`tests/e4-ux-v32.test.cjs` に追加。
 - **E4の完了ゲート**：E4ブラウザテスト（当日優先、火曜03:59/04:00、睡眠手動保持、保存失敗ロールバック、水曜再提案で過去枠保護、320/360/393/430px）と既存E1/E2/E3/全体npmテスト＋ビルドが成功すること。Android Chrome実機承認はE6、F工程の実ゲーム最適化は未着手。
 - 現在は [Draft PR #112](https://github.com/meka-create/pokesleep-strategy/pull/112) に隔離。GitHub Actionsジョブがqueuedの間は**自動受入完了とは書かない**。CIが成功した場合にのみE4自動受入完了とし、次工程E5へ進む。
+
+## 2026-11-05 — E5独立監査・総合回帰 v33（Draft PR #113）
+
+- E4 v32の自動検証は560/560 PASS（GitHub Actions #41878697988、STEP2 #41878697429 のログを確認）。
+- E5ではU2/U3の2画面を維持し、別バージョン `previews/U2_Prep_Local_Ingredients_20261105_v33.html` と `previews/U3_Strategy_UI_20261105_v33.html` を作成。凍結E4 v32、旧main、過去プレビューは修正しない。
+- 独立監査で見つけた「保存済みドラフトが再表示できない」「イベント条件の未保存変更中に再提案ボタン」「睡眠編成・自動トグル・提案作成の保存失敗時の偽成功」をv33で修正。主操作は引き続き最大1つ。
+- `tests/preview_browser_e5_integration.py`、`tests/test_e5_contract_v33.py`、`tests/e5-integration.test.cjs` を追加。準備週日曜の在庫最終訂正→開始→採用→別タブ在庫更新→途中の旧作戦保護→終了後参照、異常/保存競合、320〜430pxを実タップで調べる。
+- 初回E5 CIは準備週の導線期待値が誤っておりFAILしたため、準備週の「準備目標へ→在庫タブ」の設計どおり試験側を修正した。E5の最新版CI完了ゲートは**未判定**。独立監査とCI完了を混同しない。
+- 次工程：E5 Chromium＋全体テスト成功ならE6 Pixel 7a Android Chromeの一括実機受入。F工程の実データ最適化とE7 U5保存統合は引き続き別工程。
+
+
+## 2026-11-05 — E5 v33 自動受入完了 → 次はE6
+
+- **E5は「実装済み＋自動回帰PASS」**。基準：E4 v32 から新規 U2/U3 v33 のみ追加、E4/E3/E2/v29原本と本番mainは不変更。
+- E5独立監査で、未採用ドラフト再読込、未保存イベント条件優先、イベントchangeリスナーの旧render捕捉、提案/睡眠操作の保存失敗ロールバックを修正。昼間21編成・21料理の個別編集廃案は維持。
+- [Validate PokeSleep Strategy #41883545715](https://github.com/meka-create/pokesleep-strategy/actions/runs/41883545715)：**562件PASS、失敗0、success**。E5独立Chromium U2⇄U3総合試験とE1〜E4の全回帰を含む。
+- [Validate STEP 2 #41883545898](https://github.com/meka-create/pokesleep-strategy/actions/runs/41883545898)：**562件PASS、失敗0、success**。ビルドと既存契約も通過。
+- 検証報告：`development/E5_INDEPENDENT_AUDIT_20261105.md`。変更点：`previews/U2_Prep_Local_Ingredients_20261105_v33.html`、`previews/U3_Strategy_UI_20261105_v33.html`。Draft PR #113を維持。
+- **次工程E6：Pixel 7a Android Chrome実機で、開始／採用／当日閲覧／週途中在庫更新／再提案／UIの分かりやすさを一括で確認**。ユーザー明示承認なしにE6完了・本番main統合としない。U4/U5/U6、F1〜F6の実ゲーム最適化も別ゲート。
+
