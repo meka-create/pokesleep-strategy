@@ -26,7 +26,7 @@
 - **監査修正版v2がユーザー正式承認済み**。設計正本 `development/UX_PHASE_MINIMAL_IMPLEMENTATION_PLAN_AUDITED_20261104.md`、監査 `development/UX_PHASE_PLAN_AUDIT_20261104.md` を採用（E0完了）。
 - E1は `src/ux-phase-state.js` の**UI非依存の状態判定モデル**として実装開始：イベントの明示選択／JST04:00・単一の主操作／イベント候補・編集中・明示確定の分離／食材19種の準備最後の保存・イベント開始基準・イベント中現在庫／旧U2 v3互換読み取り。
 - 旧デモイベント週を自動選択しない。旧 `src/storage.js` やU2/U3 v29の保存キーへ**E1から書き込まない**。画面の改修はE2〜E4、U3-D再実機受入はE6、U5統合ナビは後工程。
-- **E1モデル実装・対象範囲の自動検証PASS**（GitHub Actions [#41823339629](https://github.com/meka-create/pokesleep-strategy/actions/runs/41823339629)：新規30件＋設計20件＋旧保存/主要UI22件、合計72件。旧本番ビルドPASS）。HTMLプレビューv29原本・本番main・PR #109は変更していない。次工程はE2。
+- **E1モデル実装・対象範囲の自動検証PASS**（GitHub Actions [#41823339629](https://github.com/meka-create/pokesleep-strategy/actions/runs/41823339629)：新規30件＋設計20件＋旧保存/主要UI22件、合計72件。別run #41823140225で既存全`npm test` 556件もPASS。旧本番ビルドPASS）。HTMLプレビューv29原本・本番main・PR #109は変更していない。次工程はE2。
 
 ## 1. 現状を正しく固定（UI完成と実装完了の混同を禁止）
 
