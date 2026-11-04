@@ -174,3 +174,13 @@
 - 初回E5 CIは準備週の導線期待値が誤っておりFAILしたため、準備週の「準備目標へ→在庫タブ」の設計どおり試験側を修正した。E5の最新版CI完了ゲートは**未判定**。独立監査とCI完了を混同しない。
 - 次工程：E5 Chromium＋全体テスト成功ならE6 Pixel 7a Android Chromeの一括実機受入。F工程の実データ最適化とE7 U5保存統合は引き続き別工程。
 
+
+## 2026-11-05 — E5 v33 自動受入完了 → 次はE6
+
+- **E5は「実装済み＋自動回帰PASS」**。基準：E4 v32 から新規 U2/U3 v33 のみ追加、E4/E3/E2/v29原本と本番mainは不変更。
+- E5独立監査で、未採用ドラフト再読込、未保存イベント条件優先、イベントchangeリスナーの旧render捕捉、提案/睡眠操作の保存失敗ロールバックを修正。昼間21編成・21料理の個別編集廃案は維持。
+- [Validate PokeSleep Strategy #41883545715](https://github.com/meka-create/pokesleep-strategy/actions/runs/41883545715)：**562件PASS、失敗0、success**。E5独立Chromium U2⇄U3総合試験とE1〜E4の全回帰を含む。
+- [Validate STEP 2 #41883545898](https://github.com/meka-create/pokesleep-strategy/actions/runs/41883545898)：**562件PASS、失敗0、success**。ビルドと既存契約も通過。
+- 検証報告：`development/E5_INDEPENDENT_AUDIT_20261105.md`。変更点：`previews/U2_Prep_Local_Ingredients_20261105_v33.html`、`previews/U3_Strategy_UI_20261105_v33.html`。Draft PR #113を維持。
+- **次工程E6：Pixel 7a Android Chrome実機で、開始／採用／当日閲覧／週途中在庫更新／再提案／UIの分かりやすさを一括で確認**。ユーザー明示承認なしにE6完了・本番main統合としない。U4/U5/U6、F1〜F6の実ゲーム最適化も別ゲート。
+
