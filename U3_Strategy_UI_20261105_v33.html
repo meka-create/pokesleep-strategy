@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#101b2b"><meta name="color-scheme" content="dark">
-<title>ポケスリ作戦室 U3 v29（U3-C監査修正版）</title>
+<title>ポケスリ作戦室 U3 v33（E5実機確認版）</title>
 <style>
 :root{--bg:#0e1929;--panel:#1b2c40;--panel2:#253a4f;--line:#344e63;--text:#edf3f8;--muted:#afc0d0;--gold:#f5ca78;--danger:#f8aba3;--green:#9dd3bf}
 *{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;font-size:14px;line-height:1.48}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #ffe6b4;outline-offset:2px}button:disabled{opacity:.45;cursor:not-allowed}h1,h2,h3,p{margin:0}h1{font-size:25px}h2{font-size:16px}h3{font-size:15px}.muted{color:var(--muted)}[hidden]{display:none!important}
@@ -137,9 +137,20 @@
 .phase-intro .btn{display:block;text-align:center;width:100%;min-height:44px;align-content:center}
 main[data-phase-stage="active"] #week-content,
 main[data-phase-stage="ended"] #week-content{scroll-margin-top:10px}
+
+/* E4: compact adopted-day focus; decorative example weekly energy is hidden until F-stage calculations. */
+#week-content{scroll-margin-top:8px}
+#week-content .section-head{margin-bottom:4px}
+#week-content .week-head{margin-top:2px}
+#week-content .slot[data-slot="sleep"]{border-color:#60798c;background:#21384c}
+#week-content .slot[data-slot="sleep"] .slot-title{color:#f2d9a8}
+#e4-changed{font-size:11px;color:var(--gold)}
+#e3-update-stock{width:100%;display:block;margin:8px 0 0;min-height:44px;align-content:center}
+#e3-primary{scroll-margin-top:12px}
 </style></head>
-<body><div class="shell"><header class="header"><div><div class="smallcap">POKÉMON SLEEP</div><div class="brand">✦ ポケスリ作戦室</div></div><span class="mock-tag">U3 v29</span></header>
+<body><div class="shell"><header class="header"><div><div class="smallcap">POKÉMON SLEEP</div><div class="brand">✦ ポケスリ作戦室</div></div><span class="mock-tag">U3 v33 / E5</span></header>
 <main>
+<section id="e3-primary" class="card" hidden><button type="button" id="e3-next" class="btn full"></button><p id="e3-warning" class="hint" hidden></p></section>
 <section class="phase-intro card" id="phase-intro" hidden aria-label="イベントの進行段階">
  <h2 id="phase-intro-title">準備週</h2>
  <p id="phase-intro-message">食材の備蓄目標を確認しましょう。</p>
@@ -150,10 +161,10 @@ main[data-phase-stage="ended"] #week-content{scroll-margin-top:10px}
 <div class="event-source-row"><select id="event-source-select" aria-label="イベントを選択"><option value="">手動設定</option></select><button type="button" class="btn secondary" id="event-source-fetch">イベント情報を取得</button></div>
 <button type="button" class="btn secondary full" id="event-source-apply" hidden>選択したイベントを反映</button>
 <p id="event-source-note" class="event-source-note">情報取得と選択だけでは、イベント条件や作戦は変更されません。</p>
-</div><label class="field">開始日<input id="event-start" type="date" value="2026-11-09"></label><div class="field"><span>料理</span><select id="event-food"><option value="">未確定（備蓄のみ）</option><option value="curry">カレー</option><option value="salad">サラダ</option><option value="dessert">デザート</option></select></div><div class="field wide"><span>フィールド</span><select id="event-field"><option value="">未設定</option><option>ワカクサ本島</option><option>シアンの砂浜</option><option>トープ洞窟</option><option>ウノハナ雪原</option><option>ラピスラズリ湖畔</option><option>ゴールド旧発電所</option><option>アンバー渓谷</option><option>ワカクサ本島EX</option><option>シアンの砂浜EX</option></select></div><div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="false"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div></div></details>
+</div><label class="field">開始日<input id="event-start" type="date"></label><div class="field"><span>料理</span><select id="event-food"><option value="">未確定（備蓄のみ）</option><option value="curry">カレー</option><option value="salad">サラダ</option><option value="dessert">デザート</option></select></div><div class="field wide"><span>フィールド</span><select id="event-field"><option value="">未設定</option><option>ワカクサ本島</option><option>シアンの砂浜</option><option>トープ洞窟</option><option>ウノハナ雪原</option><option>ラピスラズリ湖畔</option><option>ゴールド旧発電所</option><option>アンバー渓谷</option><option>ワカクサ本島EX</option><option>シアンの砂浜EX</option></select></div><div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="false"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div></div></details>
 <section class="card sleep-settings" aria-label="睡眠編成の設定"><div class="section-head"><h2>睡眠編成</h2><div class="sleep-controls"><button type="button" class="control-toggle sleep-auto-toggle" id="auto-sleep" role="switch" aria-checked="false" aria-label="睡眠編成を自動提案"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button><button type="button" id="sleep-open" class="btn small secondary">設定</button></div></div></section>
 <section class="card plan-actions" aria-label="週間作戦の操作"><button type="button" id="generate" class="btn full">7日間の作戦を提案</button><button type="button" id="repropose" class="btn secondary full" hidden>作戦を再提案</button><button type="button" id="resume-draft" class="btn secondary full" hidden>未採用の提案を確認</button><p class="hint" id="event-gate" role="status" aria-live="polite" hidden></p><p class="hint" id="stock-gate" hidden>食材在庫を保存すると提案できます。<a class="u2-nav" href="U2_Prep_Local_Ingredients_20261104_v30.html">食材在庫へ</a></p><p class="hint" id="inventory-notice" hidden></p><a class="hint u2-nav" href="U2_Prep_Local_Ingredients_20261104_v30.html">食材在庫の入力・修正は準備画面で行う</a><p class="hint" id="mock-note">このプレビューの編成と料理は操作確認用の例です。</p><div id="status" class="status-message" role="status" aria-live="polite"></div></section>
-<section class="card" id="week-content" hidden><div class="section-head"><h2 id="current-state-title">週間編成</h2><span class="energy">週間エナジー <b>—</b></span></div><div class="week-head"><div class="day-title"><span id="day-label">月曜日</span><small id="day-date">11/9</small></div></div><div class="daynav" id="day-nav" role="tablist" aria-label="曜日を選択"></div><div id="slots"></div></section></main></div><div id="ui-toast" class="ui-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+<section class="card" id="week-content" hidden><div class="section-head"><h2 id="current-state-title">週間編成</h2><span class="energy" id="e4-result-energy" hidden aria-hidden="true">週間エナジー <b>—</b></span><span id="e4-changed" hidden>更新前の作戦</span></div><div class="week-head"><div class="day-title"><span id="day-label">月曜日</span><small id="day-date">11/9</small></div></div><div class="daynav" id="day-nav" role="tablist" aria-label="曜日を選択"></div><div id="slots"></div><a class="hint u2-nav" id="e3-update-stock" href="U2_Prep_Local_Ingredients_20261105_v33.html">食材在庫を更新</a></section></main></div><div id="ui-toast" class="ui-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 <dialog class="modal sleep-modal" id="sleep-dialog" aria-labelledby="sleep-title"><div class="modal-head"><h2 id="sleep-title">睡眠編成</h2><button type="button" class="btn small ghost" id="sleep-close">閉じる</button></div><p class="review-note">基本の5匹を全7晩に設定し、必要な曜日だけ変更できます。</p><div id="sleep-manual"><div id="sleep-day-nav" class="daynav" role="tablist" aria-label="睡眠設定の曜日"></div><div id="sleep-team-preview" class="sleep-team-preview"></div><div class="sleep-actions"><button type="button" class="btn secondary full" id="sleep-change">この夜の5匹を変更</button><button type="button" class="btn ghost full" id="sleep-copy">この5匹を全7晩に設定</button></div></div></dialog>
 
 <dialog class="modal review-modal" id="review-dialog" aria-labelledby="review-title"><div class="modal-head"><h2 id="review-title">作戦の提案</h2><button type="button" class="btn small ghost" id="review-close">閉じる</button></div><p class="review-note">この画面の編成は表示用の仮提案です。実ゲームの最適化計算は未接続です。採用するまで現在の作戦は変わりません。</p><div class="daynav" id="review-day-nav" role="tablist" aria-label="提案を確認する曜日"></div><div id="review-slots"></div><div class="modal-footer"><button type="button" class="btn ghost" id="review-cancel">キャンセル</button><button type="button" class="btn" id="review-adopt">この作戦を採用</button></div></dialog>
@@ -173,6 +184,356 @@ main[data-phase-stage="ended"] #week-content{scroll-margin-top:10px}
 <script>
 (()=>{'use strict';
 const $=selector=>document.querySelector(selector);
+const E1=(()=>{/**
+ * PokeSleep Strategy — E1 shared, UI-free phase and inventory state model.
+ *
+ * No DOM, storage, network or timers. Used by U2/U3 in E2–E4 and unified U5.
+ * A prior demonstration week is NEVER assumed to be the selected event.
+ * The 04:00 JST game-day boundary is distinct from midnight.
+ */
+const E1_SCHEMA_VERSION = 2;
+const PHASE = Object.freeze({
+  UNSELECTED:'UNSELECTED', BEFORE:'BEFORE', DURING:'DURING', ENDED:'ENDED'
+});
+const PRIMARY_ACTION = Object.freeze({
+  NONE:'NONE', SELECT_EVENT:'SELECT_EVENT', SET_EVENT:'SET_EVENT',
+  SET_INVENTORY:'SET_INVENTORY', PROPOSE:'PROPOSE', REPROPOSE:'REPROPOSE'
+});
+const INGREDIENT_NAMES = Object.freeze([
+  'ふといながねぎ','あじわいキノコ','とくせんエッグ','ほっこりポテト',
+  'とくせんリンゴ','げきからハーブ','マメミート','モーモーミルク',
+  'あまいミツ','ピュアなオイル','あったかジンジャー','あんみんトマト',
+  'リラックスカカオ','おいしいシッポ','ワカクサ大豆','ワカクサコーン',
+  'めざましコーヒー','ずっしりカボチャ','つやつやアボカド'
+]);
+const INGREDIENT_SET = new Set(INGREDIENT_NAMES);
+const MS_DAY = 86_400_000;
+const INSTANT_RE = /^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d{1,3})?)?(?:Z|[+-](?:0\d|1\d|2[0-3]):[0-5]\d)$/;
+const WEEK_RE = /^\d{4}-\d\d-\d\d$/;
+const JST_PARTS = new Intl.DateTimeFormat('en-US', {
+  timeZone:'Asia/Tokyo', year:'numeric',month:'2-digit',day:'2-digit',
+  hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'
+});
+
+function validWeekStart(week) {
+  if(typeof week!=='string'||!WEEK_RE.test(week))return false;
+  const d=new Date(week+'T12:00:00Z');
+  return Number.isFinite(d.getTime()) && d.toISOString().slice(0,10)===week &&
+    d.getUTCDay()===1;
+}
+function instantMs(iso) {
+  if(typeof iso!=='string'||!INSTANT_RE.test(iso))
+    throw new Error('Timestamp requires an explicit UTC offset.');
+  const n=Date.parse(iso);
+  if(!Number.isFinite(n))throw new Error('Invalid timestamp.');
+  return n;
+}
+function japaneseClock(instant) {
+  const ms=instantMs(instant);
+  const p=Object.fromEntries(JST_PARTS.formatToParts(new Date(ms))
+    .filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+  return {date:p.year+'-'+p.month+'-'+p.day, hour:Number(p.hour),
+    minute:Number(p.minute), second:Number(p.second),ms};
+}
+function shiftCalendarDay(date,delta) {
+  const d=new Date(date+'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate()+delta);
+  return d.toISOString().slice(0,10);
+}
+function gameDateInJST(instant) {
+  const clock=japaneseClock(instant);
+  return clock.hour<4?shiftCalendarDay(clock.date,-1):clock.date;
+}
+function gameWeekdayIndex(weekStart,instant) {
+  if(!validWeekStart(weekStart))return null;
+  const day=gameDateInJST(instant);
+  const n=Math.round((Date.parse(day+'T12:00:00Z')-
+    Date.parse(weekStart+'T12:00:00Z'))/MS_DAY);
+  return n>=0&&n<7?n:null;
+}
+function phaseForEvent(selectedEvent,instant) {
+  if(selectedEvent===null || selectedEvent===undefined)return PHASE.UNSELECTED;
+  if(!selectedEvent||typeof selectedEvent!=='object'||
+    typeof selectedEvent.id!=='string'||!selectedEvent.id.trim()||
+    selectedEvent.id.length>160||!validWeekStart(selectedEvent.weekStart))
+    throw new Error('Explicit event ID and Monday start required.');
+  const now=instantMs(instant);
+  const start=Date.parse(selectedEvent.weekStart+'T04:00:00+09:00');
+  if(now<start)return PHASE.BEFORE;
+  if(now>=start+7*MS_DAY)return PHASE.ENDED;
+  return PHASE.DURING;
+}
+function cleanRevision(x) {
+  return typeof x==='string'&&x.length>0&&x.length<=160;
+}
+function cleanInventoryValues(values) {
+  if(!values||typeof values!=='object'||Array.isArray(values))throw Error('Inventory must be an object.');
+  const keys=Object.keys(values);
+  if(keys.length!==19||keys.some(k=>!INGREDIENT_SET.has(k)))throw Error('Exactly 19 known ingredient names required.');
+  const next=Object.create(null);
+  let total=0;
+  for(const key of INGREDIENT_NAMES) {
+    const n=values[key];
+    if(!Number.isSafeInteger(n)||n<0||n>10000)throw Error('Invalid ingredient quantity: '+key);
+    next[key]=n;total+=n;
+  }
+  if(total>10000)throw Error('Inventory capacity safety limit exceeded.');
+  return {...next};
+}
+function cleanSnapshot(raw,week) {
+  if(raw==null)return null;
+  if(typeof raw!=='object'||raw.weekStart!==week||
+    !cleanRevision(raw.revision))throw Error('Invalid inventory snapshot.');
+  const savedAt=raw.savedAt;
+  instantMs(savedAt);
+  return {weekStart:week,savedAt,revision:raw.revision,
+    values:cleanInventoryValues(raw.values)};
+}
+/** Shape is v2 and completely independent of the legacy v1 U3 and v3 U2 keys. */
+function newInventoryTimeline(weekStart) {
+  if(!validWeekStart(weekStart))throw Error('Inventory must belong to a Monday event week.');
+  return {version:E1_SCHEMA_VERSION,weekStart,
+    preparationLatest:null,startInventory:null,currentInventory:null};
+}
+function validateInventoryTimeline(raw,weekStart=raw?.weekStart) {
+  if(!validWeekStart(weekStart)||!raw||typeof raw!=='object'||
+    raw.version!==E1_SCHEMA_VERSION||raw.weekStart!==weekStart)
+    throw Error('Unsupported inventory timeline; old data must be read by the legacy adapter.');
+  const timeline={
+    version:E1_SCHEMA_VERSION,weekStart,
+    preparationLatest:cleanSnapshot(raw.preparationLatest,weekStart),
+    startInventory:cleanSnapshot(raw.startInventory,weekStart),
+    currentInventory:cleanSnapshot(raw.currentInventory,weekStart)
+  };
+  const start=Date.parse(weekStart+'T04:00:00+09:00');
+  const prep=timeline.preparationLatest,baseline=timeline.startInventory,cur=timeline.currentInventory;
+  if(prep&&instantMs(prep.savedAt)>=start)throw Error('Preparation stock saved after event start.');
+  if(baseline&&instantMs(baseline.savedAt)>=start)throw Error('Baseline cannot be an event-time save.');
+  if((prep===null)!==(baseline===null) ||
+    (prep&&JSON.stringify(prep)!==JSON.stringify(baseline)))
+    throw Error('Start stock must equal the final recorded preparation stock.');
+  if(prep&&!cur)throw Error('Latest inventory must include the confirmed pre-event stock.');
+  if(prep&&cur&&instantMs(cur.savedAt)<instantMs(prep.savedAt))
+    throw Error('Latest inventory older than baseline.');
+  return timeline;
+}
+/** Pure transition; never writes to localStorage.
+ * saveAt is the actual commit instant, never a user-editable game day.
+ * The final successful pre-event save becomes the baseline.
+ * After the event starts, only currentInventory can change.
+ */
+function applyInventorySave(raw,{savedAt,values,revision}) {
+  const prev=validateInventoryTimeline(raw);
+  const when=instantMs(savedAt);
+  if(!cleanRevision(revision))throw Error('Every saved inventory needs a revision.');
+  const eventStart=Date.parse(prev.weekStart+'T04:00:00+09:00');
+  if(when>=eventStart+7*MS_DAY)throw Error('Ended event stock cannot be changed.');
+  const previousTime=prev.currentInventory?instantMs(prev.currentInventory.savedAt):-Infinity;
+  if(when<previousTime)throw Error('Stale inventory save; do not overwrite newer values.');
+  if(when>previousTime && prev.currentInventory?.revision===revision)
+    throw Error('A new inventory save must use a new revision.');
+  // Equal timestamp from another mutation cannot determine ordering: reject unless idempotent.
+  const nextSnapshot={weekStart:prev.weekStart,savedAt,revision,values:cleanInventoryValues(values)};
+  if(when===previousTime) {
+    if(JSON.stringify(prev.currentInventory)===JSON.stringify(nextSnapshot))return prev;
+    throw Error('Conflicting inventory save with the same time.');
+  }
+  const future={...prev,currentInventory:nextSnapshot};
+  if(when<eventStart){
+    future.preparationLatest=nextSnapshot;
+    future.startInventory=nextSnapshot;
+  }
+  return validateInventoryTimeline(future);
+}
+/** Read-only adapter for v29 U2 records, never auto-commits a new schema.
+ * v29 initialValues came from the FIRST pre-event save and MUST NOT be treated
+ * as the final start stock, or as a valid historic snapshot after the event began.
+ */
+function previewLegacyU2V3(record,selectedWeek) {
+  if(!validWeekStart(selectedWeek)||!record||record.version!==3||
+    record.weekStart!==selectedWeek||record.source!=='inventory')
+    throw Error('Legacy inventory belongs to a different event week or version.');
+  const values=cleanInventoryValues(Object.fromEntries(
+    INGREDIENT_NAMES.map(key=>[key,record.values?.[key]??0])));
+  // Missing keys from a corrupt old record MUST NOT become a zero value.
+  if(!record.values||INGREDIENT_NAMES.some(k=>!Object.prototype.hasOwnProperty.call(record.values,k))||
+    Object.keys(record.values).length!==19)throw Error('Legacy stock is incomplete.');
+  const savedAt=record.savedAt;
+  const t=instantMs(savedAt);
+  const start=Date.parse(selectedWeek+'T04:00:00+09:00');
+  const converted=newInventoryTimeline(selectedWeek);
+  const snapshot={weekStart:selectedWeek,savedAt,revision:'legacy-v3:'+savedAt,values};
+  if(t<start){
+    converted.preparationLatest=snapshot;
+    converted.startInventory=snapshot;
+  }
+  converted.currentInventory=snapshot;
+  return {timeline:validateInventoryTimeline(converted),
+    warnings:t>=start?['START_STOCK_UNKNOWN_FROM_LEGACY'] : [],
+    requiresExplicitCommit:true};
+}
+/**
+ * An event source is only a CANDIDATE. It cannot change a CONFIRMED event.
+ * First the user applies the verified candidate to the editing form; then an
+ * explicit save creates a confirmed (possibly incomplete) condition snapshot.
+ * Nothing in E1 auto-writes to legacy U3 JSON or triggers a proposal.
+ */
+function cleanFields(input) {
+  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Event fields must be an object.');
+  // Validate before JSON cloning. JSON.stringify silently converts Infinity
+  // to null and silently drops undefined/functions: never auto-confirm that.
+  const visited=new WeakSet();
+  const walk=(x)=>{
+    if(x===null||typeof x==='string'||typeof x==='boolean')return true;
+    if(typeof x==='number')return Number.isFinite(x);
+    if(typeof x!=='object'||visited.has(x))return false;
+    const proto=Object.getPrototypeOf(x);
+    if(!Array.isArray(x)&&proto!==Object.prototype&&proto!==null)return false;
+    visited.add(x);
+    const ok=Array.isArray(x)?x.every(walk):
+      Object.keys(x).every(k=>!['__proto__','prototype','constructor'].includes(k)&&walk(x[k]));
+    visited.delete(x);
+    return ok;
+  };
+  if(!walk(input))throw Error('Event fields contain unsupported data.');
+  const raw=JSON.stringify(input);
+  if(typeof raw!=='string'||raw.length>16000)throw Error('Event fields too large.');
+  return JSON.parse(raw);
+}
+function conditionEntry(entry,weekStart,eventId,label) {
+  if(entry==null)return null;
+  if(!entry||entry.weekStart!==weekStart||entry.eventId!==eventId||
+    !cleanRevision(entry.revision)||!Array.isArray(entry.missingFields)||
+    entry.missingFields.some(x=>typeof x!=='string'||!x.trim()||x.length>120))
+    throw Error('Invalid '+label+' conditions.');
+  instantMs(entry.savedAt);
+  const status=entry.missingFields.length?'MISSING':'CONFIRMED';
+  if(label==='candidate'||label==='editing'){
+    if(entry.status!=='CANDIDATE'&&entry.status!=='EDITING')
+      throw Error('Candidate/editing status expected.');
+  }else if(entry.status!==status)throw Error('Saved conditions status must match unresolved fields.');
+  return {...entry,fields:cleanFields(entry.fields),missingFields:[...new Set(entry.missingFields)]};
+}
+function newConditionLedger(selectedEvent) {
+  phaseForEvent(selectedEvent,'2026-01-01T00:00:00Z');
+  if(!selectedEvent)throw Error('Choose an event first.');
+  return {version:1,weekStart:selectedEvent.weekStart,eventId:selectedEvent.id,
+    candidate:null,editing:null,confirmed:null};
+}
+function validateConditionLedger(raw) {
+  if(!raw||raw.version!==1||!validWeekStart(raw.weekStart)||
+    typeof raw.eventId!=='string'||!raw.eventId.trim()||raw.eventId.length>160)
+    throw Error('Unsupported event condition ledger.');
+  return {version:1,weekStart:raw.weekStart,eventId:raw.eventId,
+    candidate:conditionEntry(raw.candidate,raw.weekStart,raw.eventId,'candidate'),
+    editing:conditionEntry(raw.editing,raw.weekStart,raw.eventId,'editing'),
+    confirmed:conditionEntry(raw.confirmed,raw.weekStart,raw.eventId,'confirmed')};
+}
+function stageConditionCandidate(ledger,{fields,revision,savedAt,missingFields=[]}) {
+  const prev=validateConditionLedger(ledger);
+  const entry=conditionEntry({weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'CANDIDATE',fields,revision,savedAt,missingFields},
+    prev.weekStart,prev.eventId,'candidate');
+  return {...prev,candidate:entry};
+}
+function applyConditionCandidate(ledger,{userApplied=false}={}) {
+  const prev=validateConditionLedger(ledger);
+  if(!userApplied||!prev.candidate)throw Error('User must explicitly apply an available candidate.');
+  return {...prev,editing:{...prev.candidate,status:'EDITING'}};
+}
+function stageConditionEdits(ledger,{fields,revision,savedAt,missingFields=[]}) {
+  const prev=validateConditionLedger(ledger);
+  return {...prev,editing:conditionEntry({weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'EDITING',fields,revision,savedAt,missingFields},
+    prev.weekStart,prev.eventId,'editing')};
+}
+function confirmEventConditions(ledger,{userConfirmed=false}={}) {
+  const prev=validateConditionLedger(ledger);
+  if(!userConfirmed||!prev.editing)throw Error('User must explicitly save edited event conditions.');
+  const candidate={...prev.editing,status:prev.editing.missingFields.length?'MISSING':'CONFIRMED'};
+  if(prev.confirmed&&candidate.revision===prev.confirmed.revision&&
+    JSON.stringify(candidate.fields)!==JSON.stringify(prev.confirmed.fields))
+    throw Error('Revision collision: different event conditions share a revision.');
+  return {...prev,confirmed:candidate,editing:null};
+}
+function conditionViewFromLedger(ledger) {
+  const prev=validateConditionLedger(ledger);
+  const snapshot=prev.confirmed;
+  if(!snapshot)return {weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'MISSING',revision:null,missingFields:['EVENT_CONDITIONS_UNCONFIRMED'],dirty:Boolean(prev.editing)};
+  return {weekStart:prev.weekStart,eventId:prev.eventId,
+    status:snapshot.status,revision:snapshot.revision,
+    missingFields:[...snapshot.missingFields],dirty:Boolean(prev.editing)};
+}
+function conditionView(conditions,selectedEvent) {
+  if(!conditions||typeof conditions!=='object'||conditions.weekStart!==selectedEvent.weekStart||
+    conditions.eventId!==selectedEvent.id)
+    return {ready:false,reason:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
+  const missing=Array.isArray(conditions.missingFields)?conditions.missingFields:null;
+  if(missing===null||missing.some(x=>typeof x!=='string'||!x.trim()||x.length>120))
+    return {ready:false,reason:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
+  if(conditions.status!=='CONFIRMED'||conditions.dirty===true||missing.length ||
+    !cleanRevision(conditions.revision))
+    return {ready:false,reason:missing.length?[...new Set(missing)]:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
+  return {ready:true,reason:[],revision:conditions.revision};
+}
+function confirmedInventory(timeline,event) {
+  if(!timeline)return null;
+  try{
+    return validateInventoryTimeline(timeline,event.weekStart).currentInventory;
+  }catch{return null;}
+}
+/** Pure state presentation used by U2/U3 (E2–E4) and U5.
+ * No UI switching, modal action, implicit selection or storage writes.
+ */
+function getPrimaryViewState({
+  selectedEvent=null,nowISO,conditions=null,inventoryTimeline=null,
+  adoptedPlan=null,draft=null,dirtyFlags={}
+}={}) {
+  const phase=phaseForEvent(selectedEvent,nowISO);
+  if(phase===PHASE.UNSELECTED)
+    return {phase,screen:'NO_EVENT',primaryAction:PRIMARY_ACTION.SELECT_EVENT,
+      compactWarning:'EVENT_NOT_SELECTED',lockReasons:['EVENT_NOT_SELECTED'],
+      canPropose:false,canRepropose:false,canAdoptDraft:false,
+      adoption:'NONE',gameDayIndex:null};
+  const cond=conditionView(conditions,selectedEvent);
+  const stock=confirmedInventory(inventoryTimeline,selectedEvent);
+  const adopted=adoptedPlan?.status==='ADOPTED'&&
+    adoptedPlan.weekStart===selectedEvent.weekStart&&
+    adoptedPlan.eventId===selectedEvent.id;
+  const hasDraft=draft?.status==='DRAFT'&&draft.weekStart===selectedEvent.weekStart&&
+    draft.eventId===selectedEvent.id;
+  const staleDraft=hasDraft&&(draft.conditionsRevision!==cond.revision||
+    draft.inventoryRevision!==stock?.revision||
+    Boolean(dirtyFlags.sleepChanged)||Boolean(dirtyFlags.conditionsChanged)||
+    Boolean(dirtyFlags.inventoryChanged));
+  const canPropose=phase===PHASE.DURING&&cond.ready&&Boolean(stock);
+  const canRepropose=canPropose&&adopted;
+  const canAdoptDraft=canPropose&&hasDraft&&!staleDraft;
+  const reasons=[...cond.reason];
+  if(!stock)reasons.push('INVENTORY_NOT_SAVED');
+  let action=PRIMARY_ACTION.NONE,screen=adopted?'ADOPTED_PLAN':'PENDING_PLAN';
+  if(phase===PHASE.ENDED)screen=adopted?'ADOPTED_PLAN':'EVENT_ENDED';
+  else if(phase===PHASE.BEFORE)screen='PREPARATION';
+  else if(adopted) {
+    if(!cond.ready)action=PRIMARY_ACTION.SET_EVENT;
+    else if(!stock)action=PRIMARY_ACTION.SET_INVENTORY;
+    else if(dirtyFlags.conditionsChanged||dirtyFlags.inventoryChanged||
+      dirtyFlags.sleepChanged||adoptedPlan.inventoryRevision!==stock.revision||
+      adoptedPlan.conditionsRevision!==cond.revision)
+      action=PRIMARY_ACTION.REPROPOSE;
+  }else if(!cond.ready)action=PRIMARY_ACTION.SET_EVENT;
+  else if(!stock)action=PRIMARY_ACTION.SET_INVENTORY;
+  else action=PRIMARY_ACTION.PROPOSE;
+  return {phase,screen,primaryAction:action,
+    compactWarning:action===PRIMARY_ACTION.NONE?null:action,
+    lockReasons:reasons,canPropose,canRepropose,canAdoptDraft,
+    adoption:adopted?'ADOPTED':hasDraft?'DRAFT':'NONE',
+    gameDayIndex:gameWeekdayIndex(selectedEvent.weekStart,nowISO)};
+}
+
+return {getPrimaryViewState,newInventoryTimeline,validateInventoryTimeline,applyInventorySave,newConditionLedger,validateConditionLedger,stageConditionEdits,confirmEventConditions,conditionViewFromLedger};})();
+
 
 // PokéAPI sprites loader: same policy as the app's src/sprites.js.
 // Verifiable species only, IntersectionObserver, CacheStorage, max 3 in flight,
@@ -474,19 +835,40 @@ function eventDisplayName(source){
  return translated===key&&raw?raw:translated;
 }
 const EVENT_WEEK_KEY='pokesleep-strategy-event-start-v2';
-const DEFAULT_EVENT_WEEK='2026-11-09';
+const DEFAULT_EVENT_WEEK='2026-11-09'; // internal placeholder, never a selected event
+const E3_SELECTED_KEY='pokesleep-strategy-u3-e3-v1:selected';
+let e3Selected=null;
+try{const x=JSON.parse(localStorage.getItem(E3_SELECTED_KEY)||'null');if(x&&typeof x.id==='string'&&x.id.length>0&&x.id.length<=160&&validWeek(x.weekStart))e3Selected=x;}catch(e){}
+const e3ConditionKey=e=>'pokesleep-strategy-u3-e3-v1:'+e.weekStart+':'+encodeURIComponent(e.id)+':conditions';
+function e3Ledger(){
+ if(!e3Selected)return null;
+ try{const x=JSON.parse(localStorage.getItem(e3ConditionKey(e3Selected))||'null');const y=x?E1.validateConditionLedger(x):null;
+  return y?.weekStart===e3Selected.weekStart&&y?.eventId===e3Selected.id?y:null;
+ }catch(e){return null;}
+}
+function e3Conditions(){
+ const ledger=e3Ledger();
+ if(!ledger?.confirmed)return null;
+ const actual={field:eventInfo.field,food:eventInfo.food,camp:eventInfo.camp,source:eventInfo.source||null};
+ if(JSON.stringify(ledger.confirmed.fields)!==JSON.stringify(actual))return null;
+ return E1.conditionViewFromLedger(ledger);
+}
+function e3Revision(x){const v=JSON.stringify(x);let h=2166136261;
+ for(let i=0;i<v.length;i++){h^=v.charCodeAt(i);h=Math.imul(h,16777619);}
+ return 'cond-'+(h>>>0).toString(16);
+}
 function validWeek(date){
  if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;
  const d=new Date(date+'T12:00:00Z');return Number.isFinite(d.valueOf())&&d.toISOString().slice(0,10)===date&&d.getUTCDay()===1;
 }
 function initialEventStart(){
- const fromLink=new URLSearchParams(location.search).get('eventStart');if(validWeek(fromLink))return fromLink;
- try{const saved=localStorage.getItem(EVENT_WEEK_KEY);if(validWeek(saved))return saved;}catch(e){}
- return DEFAULT_EVENT_WEEK;
+ const fromLink=new URLSearchParams(location.search).get('eventStart');if(e3Selected&&fromLink===e3Selected.weekStart&&validWeek(fromLink))return fromLink;
+ return e3Selected?.weekStart||DEFAULT_EVENT_WEEK;
 }
 let eventInfo={start:initialEventStart(),field:'',food:'',camp:false};
 function persistEventWeek(){
- try{localStorage.setItem(EVENT_WEEK_KEY,eventInfo.start);}catch(e){}
+ if(!e3Selected)return;
+ // Legacy week-only key is read-only; E3 selected event ID is authoritative.
  // Navigation and browser refresh must not reinstate an older eventStart URL.
  try{
   const url=new URL(location.href);
@@ -501,18 +883,21 @@ function persistEventWeek(){
  }catch(e){/* history may be restricted when testing an offline HTML snapshot */}
 }
 function updateU2Link(){
+ if(!e3Selected)return;
  const base=/^(https?:|file:)/.test(location.href)?location.href:'https://pokesleep-preview.invalid/';
- const url=new URL('U2_Prep_Local_Ingredients_20261104_v30.html',base);
+ const url=new URL('U2_Prep_Local_Ingredients_20261105_v33.html',base);
  url.searchParams.set('eventStart',eventInfo.start);
+ url.searchParams.set('eventId',e3Selected.id);
  if(nowInJapan()>=eventInfo.start+'T04:00'&&nowInJapan()<dateFor(7)+'T04:00')url.searchParams.set('tab','inventory');
  url.searchParams.set('return','plan');
  const mock=new URLSearchParams(location.search).get('previewNow');
  if(mock)url.searchParams.set('previewNow',mock);
  document.querySelectorAll('.u2-nav').forEach(link=>link.href=url.href);
 }
-let importedStock=null,importedSource=null,importedAt=null,appliedInventoryAt=null,hasInventory=false;
+let importedStock=null,importedSource=null,importedAt=null,appliedInventoryAt=null,hasInventory=false,e3InventoryCorrupt=false;
 const inventoryKey=week=>'pokesleep-strategy-u2-v3:'+week+':inventory';
 function normalizeInventory(item){
+ if(!e3Selected||item?.eventId!==e3Selected.id)return null;
  if(!item||item.weekStart!==eventInfo.start||!item.values||typeof item.values!=='object')return null;
  if(!((item.version===3&&item.source==='inventory')||(item.version===2&&['current','sunday'].includes(item.source))))return null;
  const keys=Object.keys(INGREDIENT_ICONS);
@@ -525,10 +910,21 @@ function normalizeInventory(item){
  return {values,source:item.source,savedAt:item.savedAt||null};
 }
 function refreshInventory(){
- let inStorage=null,inLink=null;
- try{inStorage=normalizeInventory(JSON.parse(localStorage.getItem(inventoryKey(eventInfo.start))||'null'));}catch(e){}
- try{const raw=new URLSearchParams(location.search).get('pokesleepStock');if(raw&&raw.length<10000)inLink=normalizeInventory(JSON.parse(raw));}catch(e){}
- const newest=(!inStorage||((inLink?.savedAt||'')>(inStorage.savedAt||'')))?inLink||inStorage:inStorage;
+ let inStorage=null,inLink=null;e3InventoryCorrupt=false;
+ try{
+  const rawText=localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+eventInfo.start+':timeline');
+  const raw=rawText===null?null:JSON.parse(rawText);
+  if(rawText!==null&&(!raw||raw.eventId!==e3Selected?.id))throw Error('Inventory owner missing or invalid');
+  const timeline=raw?E1.validateInventoryTimeline(raw,eventInfo.start):null;
+  const v=timeline?.currentInventory;
+  if(v)inStorage=normalizeInventory({version:3,weekStart:eventInfo.start,eventId:raw?.eventId||null,source:'inventory',savedAt:v.savedAt,values:v.values});
+ }catch(e){inStorage=null;e3InventoryCorrupt=true;}
+ // Legacy week-only U2 snapshots are not implicitly promoted to a selected event.
+ try{
+  const params=new URLSearchParams(location.search),raw=params.get('pokesleepStock');
+  if(params.get('eventId')===e3Selected?.id&&raw&&raw.length<10000)inLink=normalizeInventory(JSON.parse(raw));
+ }catch(e){}
+ const newest=e3InventoryCorrupt?null:(!inStorage||((inLink?.savedAt||'')>(inStorage.savedAt||'')))?inLink||inStorage:inStorage;
  hasInventory=!!newest;
  importedStock=newest?clone(newest.values):null;importedSource=newest?.source||null;importedAt=newest?.savedAt||null;
  if(!hasInventory){importedStock=null;importedAt=null;}
@@ -538,7 +934,7 @@ $('#event-start').value=eventInfo.start;
 updateU2Link();
 persistEventWeek();
 // Versioned local-only preview persistence. Corrupt/incompatible records fail closed.
-const strategyKey=week=>'pokesleep-strategy-u3-v1:'+week;
+const strategyKey=week=>'pokesleep-strategy-u3-e3-v1:'+week+':'+encodeURIComponent(e3Selected?.id||'unselected')+':plan';
 function validTeam(team){return Array.isArray(team)&&team.length===5&&new Set(team).size===5&&team.every(id=>POOL[id]);}
 function validPlan(plan){
  return plan&&Array.isArray(plan.days)&&plan.days.length===7&&
@@ -549,6 +945,7 @@ function validPlan(plan){
 }
 function validTeams(teams){return Array.isArray(teams)&&teams.length===7&&teams.every(validTeam);}
 function storeState(){
+ if(!e3Selected)return false;
  try{
   const record={version:1,weekStart:eventInfo.start,eventInfo:clone(eventInfo),hasApplied,
    applied:hasApplied?clone(applied):null,appliedEventStart,appliedEventInfo:appliedEventInfo?clone(appliedEventInfo):null,
@@ -566,6 +963,7 @@ function restoreState(week,resetIfMissing=false){
  try{
   const entry=JSON.parse(localStorage.getItem(strategyKey(week))||'null');
   if(!entry||entry.version!==1||entry.weekStart!==week||!entry.eventInfo||entry.eventInfo.start!==week||!validTeams(entry.manualSleep))return false;
+  if((entry.eventInfo.source?.id||'manual:'+week)!==e3Selected?.id)return false;
   if(entry.hasApplied&&!validPlan(entry.applied))return false;
   if(entry.draft&&!validPlan(entry.draft))return false;
   eventInfo=clone(entry.eventInfo);hasApplied=!!entry.hasApplied;applied=hasApplied?clone(entry.applied):makeBase();
@@ -580,8 +978,8 @@ function restoreState(week,resetIfMissing=false){
   return true;
  }catch(e){return false;}
 }
-restoreState(eventInfo.start);
-$('#event-start').value=eventInfo.start;
+if(e3Selected)restoreState(eventInfo.start);
+$('#event-start').value=e3Selected?eventInfo.start:'';
 function syncEventControls(){
  $('#event-start').value=eventInfo.start;
  $('#event-field').value=eventInfo.field;$('#event-food').value=eventInfo.food;
@@ -597,7 +995,7 @@ function syncEventControls(){
  }else sourceNote.textContent='情報取得と選択だけでは、イベント条件や作戦は変更されません。';
  refreshSelect('event-source-select');refreshSelect('event-food');refreshSelect('event-field');
 }
-syncEventControls();updateU2Link();
+syncEventControls();if(!e3Selected)$('#event-start').value='';updateU2Link();
 refreshInventory();
 function getPlan(){return applied;}
 function currentRecipes(plan=getPlan()){return RECIPES[plan.foodMode];}
@@ -640,11 +1038,13 @@ selectDayOnOpen();
 function isPastSlot(day,slot){return nowInJapan()>=dateFor(day)+'T'+SLOT_STARTS[slot];}
 function remainingSlots(){let n=0;for(let d=0;d<7;d++)for(const slot of SLOT_KEYS)if(!isPastSlot(d,slot))n++;return n;}
 function eventPhase(){
+ if(!e3Selected)return 'before';
  if(nowInJapan()<eventInfo.start+'T04:00')return 'before';
- if(nowInJapan()>=dateFor(7)+'T04:00'||remainingSlots()===0)return 'ended';
+ if(nowInJapan()>=dateFor(7)+'T04:00')return 'ended';
  return 'during';
 }
 function firstFutureDay(){for(let d=0;d<7;d++)if(SLOT_KEYS.some(slot=>!isPastSlot(d,slot)))return d;return 6;}
+function hasFutureSlot(){return remainingSlots()>0;}
 let toastTimer=null;
 function showToast(message,isError=false){
  const toast=$('#ui-toast');if(toastTimer)clearTimeout(toastTimer);
@@ -746,7 +1146,9 @@ function render(){
  const stockOutdated=hasInventory&&!!hasApplied&&(importedAt!==appliedInventoryAt||JSON.stringify(importedStock)!==JSON.stringify(stockConfirmed));
  $('#inventory-notice').hidden=!stockOutdated;
  $('#inventory-notice').textContent=stockOutdated?'U2で食材在庫が更新されました。「作戦を再提案」で反映できます。':'';
- $('#current-state-title').textContent=pendingCondition?'週間編成（旧条件）':'週間編成';
+ const today=currentEventGameDayIndex();
+ $('#current-state-title').textContent=selectedDay===today?'今日の作戦':'週間編成';
+ $('#e4-changed').hidden=!(pendingCondition||stockOutdated);
  $('#day-label').textContent=FULL[selectedDay];$('#day-date').textContent=formatDate(dateFor(selectedDay));
  const nav=$('#day-nav');nav.textContent='';
  for(let d=0;d<7;d++)nav.append(makeDayButton(d,selectedDay,day=>{selectedDay=day;render();},'採用済みの'));
@@ -810,11 +1212,34 @@ function staleSleepProposal(){
  return manualSleep.some((team,day)=>!isPastSlot(day,'sleep')&&
    JSON.stringify(arrangeHealers(team))!==JSON.stringify(arrangeHealers(draft.days[day].sleep)));
 }
+function e4DraftIsCurrent(){
+ if(!draft?.e4Basis||!e3Selected||!hasInventory)return false;
+ const b=draft.e4Basis;
+ return b.eventId===e3Selected.id&&b.weekStart===eventInfo.start&&
+  b.confirmedRevision===e3Conditions()?.revision&&
+  b.inventoryAt===importedAt&&
+  b.inventoryFingerprint===e3Revision(importedStock)&&
+  b.autoSleep===switchOn('auto-sleep')&&
+  b.manualSleepFingerprint===e3Revision(manualSleep);
+}
 function closeReview(){if($('#review-dialog').open)$('#review-dialog').close();draft=null;stockPending=null;storeState();render();}
 function showProposal(stock=null){
  refreshInventory();const blockers=eventBlockers();if(eventPhase()!=='during'||!hasInventory||blockers.length){showToast(blockers.length?'未確定：'+blockers.join('・'):'先にU2で食材在庫を保存してください。',true);return;}
+ if(!hasFutureSlot()){showToast('残りの時間帯がないため、新しい作戦は提案できません。',true);return;}
+ const previous={draft,stockPending,reviewDay};
  stockPending=clone(importedStock);draft=proposal(stockPending);
- reviewDay=firstFutureDay();storeState();renderReview();$('#review-dialog').showModal();
+ // An unadopted proposal is bound to the exact confirmed event, stock snapshot and sleep choices.
+ draft.e4Basis={eventId:e3Selected?.id,weekStart:eventInfo.start,
+  confirmedRevision:e3Conditions()?.revision,inventoryAt:importedAt,
+  inventoryFingerprint:e3Revision(importedStock),autoSleep:switchOn('auto-sleep'),
+  manualSleepFingerprint:e3Revision(manualSleep)};
+ reviewDay=firstFutureDay();
+ if(!storeState()){
+  ({draft,stockPending,reviewDay}=previous);
+  showToast('提案を保存できませんでした。現在の作戦は変更していません。',true);
+  render();return;
+ }
+ renderReview();$('#review-dialog').showModal();
 }
 function copySleepNights(day){
  if(switchOn('auto-sleep'))return;
@@ -822,8 +1247,14 @@ function copySleepNights(day){
  if(!eligible.length)return;
  const team=[...manualSleep[day]];
  if(eligible.some(i=>JSON.stringify(manualSleep[i])!==JSON.stringify(team))&&!confirm('未開始の睡眠編成を、この5匹にそろえますか？'))return;
+ const before=clone(manualSleep);
  eligible.forEach(i=>{manualSleep[i]=[...team];});
- renderSleepSettings();storeState();render();showToast('睡眠編成を設定しました');
+ if(!storeState()){
+  manualSleep=before;
+  showToast('睡眠編成を保存できませんでした。変更前の設定を保持しました。',true);
+  renderSleepSettings();render();return;
+ }
+ renderSleepSettings();render();showToast('睡眠編成を設定しました');
 }
 function openEdit(day,slot){
  if(slot!=='sleep'||isPastSlot(day,'sleep')||switchOn('auto-sleep'))return;
@@ -835,15 +1266,28 @@ function drawPicker(focusId=null){const grid=$('#pick-grid');grid.textContent=''
 function saveEdit(){
  if(!edit||edit.slot!=='sleep'||edit.picks.length!==5)return;
  if(isPastSlot(edit.day,'sleep')){$('#edit-error').textContent='この夜は開始済みです。';return;}
- const day=edit.day;manualSleep[day]=arrangeHealers(edit.picks);
- $('#edit-dialog').close();edit=null;renderSleepSettings();storeState();render();showToast('睡眠編成を設定しました');
+ const day=edit.day,before=clone(manualSleep);manualSleep[day]=arrangeHealers(edit.picks);
+ if(!storeState()){
+  manualSleep=before;
+  $('#edit-error').textContent='保存できませんでした。設定は変更されていません。';
+  showToast('睡眠編成を保存できませんでした。',true);render();return;
+ }
+ $('#edit-dialog').close();edit=null;renderSleepSettings();render();showToast('睡眠編成を設定しました');
 }
 $('#edit-close').onclick=$('#edit-cancel').onclick=()=>$('#edit-dialog').close();
 $('#edit-dialog').addEventListener('close',()=>{edit=null;});
 $('#edit-save').onclick=saveEdit;
 $('#sleep-open').onclick=()=>{if(switchOn('auto-sleep'))return;selectedSleepDay=firstFutureDay();renderSleepSettings();$('#sleep-dialog').showModal();};
 $('#sleep-close').onclick=()=>$('#sleep-dialog').close();
-$('#auto-sleep').onclick=()=>{toggleSwitch('auto-sleep');storeState();render();};
+$('#auto-sleep').onclick=()=>{
+ const was=switchOn('auto-sleep');
+ toggleSwitch('auto-sleep');
+ if(!storeState()){
+  setSwitch('auto-sleep',was);
+  showToast('自動設定を保存できませんでした。変更を取り消しました。',true);
+ }
+ render();
+};
 $('#sleep-change').onclick=()=>openEdit(selectedSleepDay,'sleep');
 $('#sleep-copy').onclick=()=>copySleepNights(selectedSleepDay);
 $('#generate').onclick=()=>showProposal();
@@ -854,9 +1298,9 @@ $('#resume-draft').onclick=()=>{
  const blockers=eventBlockers();
  if(eventPhase()!=='during'||!hasInventory||blockers.length){showToast('必須条件を確定してから提案を確認してください。',true);render();return;}
  if(stockPending&&JSON.stringify(stockPending)!==JSON.stringify(importedStock)){showToast('食材在庫が更新されました。再提案してください。',true);return;}
- if(staleSleepProposal()){
-  showToast('睡眠編成が変更されています。最新条件で再提案してください。',true);
-  return;
+ if(staleSleepProposal()||!e4DraftIsCurrent()){
+  showToast('条件や在庫が変更されています。最新の状態で再提案してください。',true);
+  draft=null;stockPending=null;storeState();render();return;
  }
  renderReview();$('#review-dialog').showModal();
 };
@@ -865,8 +1309,11 @@ $('#review-adopt').onclick=()=>{
  if(!draft)return;
  refreshInventory();
  const blockers=eventBlockers();
- if(eventPhase()!=='during'||!hasInventory||blockers.length){
-  showToast('必要条件が未確定のため、この提案は採用できません。',true);render();return;
+ if(eventPhase()!=='during'||!hasFutureSlot()||!hasInventory||blockers.length){
+  showToast('必要条件または残り時間帯を確認してください。',true);render();return;
+ }
+ if(!e4DraftIsCurrent()){
+  showToast('条件や在庫が変更されています。最新の状態で再提案してください。',true);render();return;
  }
  if(stockPending&&JSON.stringify(stockPending)!==JSON.stringify(importedStock)){
   showToast('食材在庫が更新されました。最新の在庫で再提案してください。',true);
@@ -877,6 +1324,7 @@ $('#review-adopt').onclick=()=>{
   return;
  }
  const next=clone(draft);
+ delete next.e4Basis; // Validation metadata belongs to the proposal only, not the adopted plan.
  // If time passed after an unadopted proposal was created, its elapsed slots
  // are not a record of what the player actually used.
  if(!hasApplied||appliedEventStart!==eventInfo.start){
@@ -891,11 +1339,19 @@ $('#review-adopt').onclick=()=>{
   next.days[d][slot]=[...applied.days[d][slot]];
   if(i<3)next.days[d].recipes[i]=applied.days[d].recipes[i];
  }
+ // Commit before closing review. Storage failure rolls back both the adopted plan and UI state.
+ const previous={applied,hasApplied,appliedEventStart,appliedEventInfo,
+  stockConfirmed,appliedInventoryAt,draft,stockPending,selectedDay};
  applied=next;hasApplied=true;appliedEventStart=eventInfo.start;appliedEventInfo=clone(eventInfo);
  if(stockPending){stockConfirmed=clone(stockPending);appliedInventoryAt=importedAt;}
- draft=null;stockPending=null;$('#review-dialog').close();selectedDay=currentEventGameDayIndex()??firstFutureDay();
- if(!storeState())showToast('作戦を端末へ保存できませんでした。',true);
- else showToast('作戦を採用しました');render();
+ draft=null;stockPending=null;selectedDay=currentEventGameDayIndex()??firstFutureDay();
+ if(!storeState()){
+  ({applied,hasApplied,appliedEventStart,appliedEventInfo,
+   stockConfirmed,appliedInventoryAt,draft,stockPending,selectedDay}=previous);
+  showToast('保存できませんでした。これまでの作戦を保持しています。',true);
+  render();return;
+ }
+ $('#review-dialog').close();showToast('作戦を採用しました');render();
 };
 
 /* U3-only source mock. Real nitoyon/pokesleep-tool synchronization belongs to U5.
@@ -938,6 +1394,8 @@ $('#event-source-apply').addEventListener('click',()=>{
 });
 function eventBlockers(){
  const missing=[];
+ if(!e3Selected||e3Selected.weekStart!==eventInfo.start||e3Selected.id!==(eventInfo.source?.id||'manual:'+eventInfo.start))missing.push('イベント選択');
+ if(e3Conditions()?.status!=='CONFIRMED')missing.push('イベント条件の確定');
  const unsaved=$('#event-start').value!==eventInfo.start||$('#event-field').value!==eventInfo.field||
   $('#event-food').value!==eventInfo.food||switchOn('event-camp')!==eventInfo.camp||
   manualSourceRequested||(!!pendingEventSource&&JSON.stringify(pendingEventSource)!==JSON.stringify(eventInfo.source||null));
@@ -951,7 +1409,9 @@ function eventBlockers(){
  if(eventInfo.source?.requiresBerries&&!eventInfo.source?.berriesKnown)missing.push('きのみ条件');
  return missing;
 }
-['event-start','event-food','event-field'].forEach(id=>$('#'+id).addEventListener('change',render));
+// The E3/E4 state wrapper replaces render after listeners are registered.
+ // Resolve render when the event fires, not while registering a stale reference.
+ ['event-start','event-food','event-field'].forEach(id=>$('#'+id).addEventListener('change',()=>render()));
 $('#event-camp').addEventListener('click',()=>{toggleSwitch('event-camp');render();});
 $('#event-save').onclick=()=>{
  const d=$('#event-start').value;
@@ -975,18 +1435,36 @@ $('#event-save').onclick=()=>{
   if(!pendingEventSource)next.source=null;
  }
  const changed=JSON.stringify(next)!==JSON.stringify(eventInfo);
- if(changed&&oldStart!==next.start)storeState();
- eventInfo=next;
- if(changed){
+ const nextId=next.source?.id||'manual:'+next.start;
+ const selectionChanged=!e3Selected||e3Selected.weekStart!==next.start||e3Selected.id!==nextId;
+ if(selectionChanged&&e3Selected)storeState();
+ const selection={id:nextId,weekStart:next.start};
+ try{localStorage.setItem(E3_SELECTED_KEY,JSON.stringify(selection));}
+ catch(e){showToast('イベントを保存できませんでした。',true);return;}
+ e3Selected=selection;eventInfo=next;
+ if(changed||selectionChanged){
   draft=null;stockPending=null;
   let restored=false;
-  if(oldStart!==next.start){
+  if(selectionChanged){
    restored=restoreState(next.start,true);
    selectDayOnOpen(); // Selecting a different event is a new week-view opening.
    refreshInventory();
   }
   showToast(restored?'この週の保存済みイベント条件と作戦を復元しました':'イベント条件を保存しました');
  }
+ // A fetched candidate becomes confirmed only after the user's Save action.
+ const missing=[];
+ if(!next.field)missing.push('フィールド');
+ if(!['curry','salad','dessert'].includes(next.food))missing.push('料理カテゴリ');
+ if(next.field&&/EX$/.test(next.field))missing.push('EX条件（U4未接続）');
+ if(next.field==='ワカクサ本島'&&!next.source?.berriesKnown)missing.push('きのみ条件（U4未接続）');
+ if(next.source?.requiresBerries&&!next.source?.berriesKnown)missing.push('きのみ条件');
+ try{
+  const prev=e3Ledger()||E1.newConditionLedger(e3Selected);
+  const fields={field:next.field,food:next.food,camp:next.camp,source:next.source||null};
+  const edited=E1.stageConditionEdits(prev,{fields,revision:e3Revision(fields),savedAt:new Date().toISOString(),missingFields:missing});
+  localStorage.setItem(e3ConditionKey(e3Selected),JSON.stringify(E1.confirmEventConditions(edited,{userConfirmed:true})));
+ }catch(e){showToast('イベント条件を保存できませんでした。',true);return;}
  pendingEventSource=null;manualSourceRequested=false;
  syncEventControls();
  persistEventWeek();updateU2Link();
@@ -1003,6 +1481,105 @@ window.addEventListener('pageshow',event=>{
  refreshInventory();render();
 });
 window.addEventListener('storage',e=>{if(e.key===inventoryKey(eventInfo.start)){refreshInventory();render();}});
+
+/* E3: render one next action from the shared E1 state. This U3 v31 remains a
+   preview; F1-F4 must replace illustrative team/recipe calculations. */
+const e3PreviousRender=render;
+function e3View(){
+ if(!e3Selected)return E1.getPrimaryViewState({selectedEvent:null,nowISO:new Date().toISOString()});
+ const sample=new URLSearchParams(location.search).get('previewNow');
+ const nowISO=sample&&/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(sample)?sample+':00+09:00':new Date().toISOString();
+ let timeline=null;
+ try{
+  const x=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+eventInfo.start+':timeline')||'null');
+  timeline=x?.eventId===e3Selected.id?E1.validateInventoryTimeline(x,eventInfo.start):null;
+ }catch(e){}
+ if(!timeline&&hasInventory&&importedStock&&importedAt){
+  try{timeline=E1.applyInventorySave(E1.newInventoryTimeline(eventInfo.start),{
+   savedAt:importedAt,values:importedStock,revision:'bridge-'+e3Revision(importedStock)+'-'+importedAt});
+  }catch(e){}
+ }
+ const stock=timeline?.currentInventory;
+ const adoptedOk=hasApplied&&appliedEventStart===eventInfo.start&&!!appliedEventInfo;
+ const refs={field:appliedEventInfo?.field,food:appliedEventInfo?.food,
+  camp:appliedEventInfo?.camp,source:appliedEventInfo?.source||null};
+ const adopted=adoptedOk?{status:'ADOPTED',weekStart:eventInfo.start,eventId:e3Selected.id,
+  conditionsRevision:e3Revision(refs),inventoryRevision:stock&&importedAt===appliedInventoryAt?stock.revision:'outdated'}:null;
+ // Uncommitted form changes must lead to the sole conditions Save action,
+ // not to a Re-propose button that fails later when clicked.
+ const confirmed=e3Conditions();
+ const unsaved=eventBlockers().includes('イベント条件の保存');
+ const conditions=confirmed?{...confirmed,dirty:unsaved}:null;
+ return E1.getPrimaryViewState({
+  selectedEvent:e3Selected,nowISO,conditions,
+  inventoryTimeline:timeline,adoptedPlan:adopted,
+  dirtyFlags:{conditionsChanged:eventBlockers().includes('イベント条件の保存'),
+   inventoryChanged:adoptedOk&&(importedAt!==appliedInventoryAt||
+     JSON.stringify(importedStock)!==JSON.stringify(stockConfirmed)),
+   sleepChanged:adoptedOk&&(applied.autoSleep!==switchOn('auto-sleep')||
+    (!switchOn('auto-sleep')&&manualSleep.some((team,day)=>!isPastSlot(day,'sleep')&&
+     JSON.stringify(arrangeHealers(team))!==JSON.stringify(applied.days[day].sleep))))}
+ });
+}
+render=function(){
+ e3PreviousRender();
+ const state=e3View(),card=$('#e3-primary'),button=$('#e3-next'),warning=$('#e3-warning');
+ const labels={SELECT_EVENT:'イベントを選択',SET_EVENT:'イベント条件を設定',
+  SET_INVENTORY:'食材在庫を登録',PROPOSE:'7日間の作戦を提案',
+  REPROPOSE:'残り期間を再提案',RESUME_DRAFT:'未採用の提案を確認'};
+ // The game day ends at JST 04:00, but after the final sleep slot starts
+ // there is no future slot left to optimize. Preserve read-only viewing.
+ const noFuture=e3Selected&&state.phase==='DURING'&&!hasFutureSlot();
+ const canResume=state.phase==='DURING'&&!noFuture&&
+  ['PROPOSE','REPROPOSE'].includes(state.primaryAction)&&
+  draft&&e4DraftIsCurrent();
+ const action=noFuture?'NONE':canResume?'RESUME_DRAFT':state.primaryAction;
+ card.hidden=action==='NONE'&&!(noFuture&&state.screen!=='ADOPTED_PLAN');
+ button.hidden=action==='NONE';
+ button.textContent=labels[action]||'';
+ button.dataset.action=action;
+ warning.hidden=action!=='SET_EVENT'&&action!=='SET_INVENTORY'&&
+  action!=='REPROPOSE'&&!(noFuture&&state.screen!=='ADOPTED_PLAN');
+ warning.textContent=noFuture?'今週の提案可能な時間帯は終了しました。':
+  action==='SET_EVENT'?'未確定の条件を保存してください。':
+  action==='SET_INVENTORY'?'食材在庫を保存してください。':
+  action==='REPROPOSE'?'変更した内容は、確認・採用後に反映されます。':'';
+ const main=document.querySelector('.shell > main');
+ if(state.screen==='ADOPTED_PLAN')$('#week-content').after(card);else main.prepend(card);
+ document.querySelector('.plan-actions').hidden=true;
+ const adoptedVisible=state.screen==='ADOPTED_PLAN';
+ $('#e3-update-stock').hidden=!adoptedVisible||state.phase!=='DURING'||noFuture;
+ // Once the event has ended, its saved plan may be viewed, not edited.
+ const sleepControls=document.querySelector('.sleep-settings');
+ sleepControls.hidden=state.phase==='ENDED'||(state.phase==='BEFORE'&&!adoptedVisible);
+ if(state.phase==='ENDED'){
+  $('#event-details').open=false;
+  $('#event-save').disabled=true;
+ }else $('#event-save').disabled=false;
+ if(!e3Selected){
+  $('#phase-intro').hidden=true;$('#week-content').hidden=true;
+  document.querySelector('.sleep-settings').hidden=true;
+  document.querySelectorAll('.u2-nav').forEach(link=>link.removeAttribute('href'));
+ }
+};
+$('#e3-next').addEventListener('click',()=>{
+ const action=$('#e3-next').dataset.action;
+ if(action==='SELECT_EVENT'||action==='SET_EVENT'){
+  $('#event-details').open=true;
+  $('#event-source-select').focus();
+ }else if(action==='SET_INVENTORY'){
+  const link=$('#stock-gate a.u2-nav')||$('#phase-intro-u2');
+  if(link?.href)location.assign(link.href);
+ }else if(action==='RESUME_DRAFT'){
+  refreshInventory();
+  if(eventPhase()!=='during'||eventBlockers().length||!e4DraftIsCurrent()){
+   showToast('条件が更新されました。新しく作戦を提案してください。',true);
+   draft=null;stockPending=null;storeState();render();return;
+  }
+  renderReview();$('#review-dialog').showModal();
+ }else if(action==='PROPOSE'||action==='REPROPOSE')showProposal();
+});
+
 window.addEventListener('beforeunload',storeState);
 render();
 })();

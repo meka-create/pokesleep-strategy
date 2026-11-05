@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101a29"><title>ポケスリ作戦室 U2準備画面 ローカル画像版</title><style>
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101a29"><title>ポケスリ作戦室 U2 v33（E5実機確認版）</title><style>
 :root{--bg:#0f1c2c;--card:#1b2d40;--card2:#22374e;--line:#3a5269;--ink:#f1f5fa;--muted:#b4c2d1;--gold:#f4ca77;--focus:#ffe0a5}
 *{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,"Noto Sans JP",sans-serif}
 button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:3px solid var(--focus);outline-offset:2px}[hidden]{display:none!important}
@@ -173,122 +173,527 @@ main{padding-top:10px}
 
 </main></div><div id="ui-toast" class="ui-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 <script>
+const E1=(()=>{
+/**
+ * PokeSleep Strategy — E1 shared, UI-free phase and inventory state model.
+ *
+ * No DOM, storage, network or timers. Used by U2/U3 in E2–E4 and unified U5.
+ * A prior demonstration week is NEVER assumed to be the selected event.
+ * The 04:00 JST game-day boundary is distinct from midnight.
+ */
+const E1_SCHEMA_VERSION = 2;
+const PHASE = Object.freeze({
+  UNSELECTED:'UNSELECTED', BEFORE:'BEFORE', DURING:'DURING', ENDED:'ENDED'
+});
+const PRIMARY_ACTION = Object.freeze({
+  NONE:'NONE', SELECT_EVENT:'SELECT_EVENT', SET_EVENT:'SET_EVENT',
+  SET_INVENTORY:'SET_INVENTORY', PROPOSE:'PROPOSE', REPROPOSE:'REPROPOSE'
+});
+const INGREDIENT_NAMES = Object.freeze([
+  'ふといながねぎ','あじわいキノコ','とくせんエッグ','ほっこりポテト',
+  'とくせんリンゴ','げきからハーブ','マメミート','モーモーミルク',
+  'あまいミツ','ピュアなオイル','あったかジンジャー','あんみんトマト',
+  'リラックスカカオ','おいしいシッポ','ワカクサ大豆','ワカクサコーン',
+  'めざましコーヒー','ずっしりカボチャ','つやつやアボカド'
+]);
+const INGREDIENT_SET = new Set(INGREDIENT_NAMES);
+const MS_DAY = 86_400_000;
+const INSTANT_RE = /^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d{1,3})?)?(?:Z|[+-](?:0\d|1\d|2[0-3]):[0-5]\d)$/;
+const WEEK_RE = /^\d{4}-\d\d-\d\d$/;
+const JST_PARTS = new Intl.DateTimeFormat('en-US', {
+  timeZone:'Asia/Tokyo', year:'numeric',month:'2-digit',day:'2-digit',
+  hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'
+});
+
+function validWeekStart(week) {
+  if(typeof week!=='string'||!WEEK_RE.test(week))return false;
+  const d=new Date(week+'T12:00:00Z');
+  return Number.isFinite(d.getTime()) && d.toISOString().slice(0,10)===week &&
+    d.getUTCDay()===1;
+}
+function instantMs(iso) {
+  if(typeof iso!=='string'||!INSTANT_RE.test(iso))
+    throw new Error('Timestamp requires an explicit UTC offset.');
+  const n=Date.parse(iso);
+  if(!Number.isFinite(n))throw new Error('Invalid timestamp.');
+  return n;
+}
+function japaneseClock(instant) {
+  const ms=instantMs(instant);
+  const p=Object.fromEntries(JST_PARTS.formatToParts(new Date(ms))
+    .filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));
+  return {date:p.year+'-'+p.month+'-'+p.day, hour:Number(p.hour),
+    minute:Number(p.minute), second:Number(p.second),ms};
+}
+function shiftCalendarDay(date,delta) {
+  const d=new Date(date+'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate()+delta);
+  return d.toISOString().slice(0,10);
+}
+function gameDateInJST(instant) {
+  const clock=japaneseClock(instant);
+  return clock.hour<4?shiftCalendarDay(clock.date,-1):clock.date;
+}
+function gameWeekdayIndex(weekStart,instant) {
+  if(!validWeekStart(weekStart))return null;
+  const day=gameDateInJST(instant);
+  const n=Math.round((Date.parse(day+'T12:00:00Z')-
+    Date.parse(weekStart+'T12:00:00Z'))/MS_DAY);
+  return n>=0&&n<7?n:null;
+}
+function phaseForEvent(selectedEvent,instant) {
+  if(selectedEvent===null || selectedEvent===undefined)return PHASE.UNSELECTED;
+  if(!selectedEvent||typeof selectedEvent!=='object'||
+    typeof selectedEvent.id!=='string'||!selectedEvent.id.trim()||
+    selectedEvent.id.length>160||!validWeekStart(selectedEvent.weekStart))
+    throw new Error('Explicit event ID and Monday start required.');
+  const now=instantMs(instant);
+  const start=Date.parse(selectedEvent.weekStart+'T04:00:00+09:00');
+  if(now<start)return PHASE.BEFORE;
+  if(now>=start+7*MS_DAY)return PHASE.ENDED;
+  return PHASE.DURING;
+}
+function cleanRevision(x) {
+  return typeof x==='string'&&x.length>0&&x.length<=160;
+}
+function cleanInventoryValues(values) {
+  if(!values||typeof values!=='object'||Array.isArray(values))throw Error('Inventory must be an object.');
+  const keys=Object.keys(values);
+  if(keys.length!==19||keys.some(k=>!INGREDIENT_SET.has(k)))throw Error('Exactly 19 known ingredient names required.');
+  const next=Object.create(null);
+  let total=0;
+  for(const key of INGREDIENT_NAMES) {
+    const n=values[key];
+    if(!Number.isSafeInteger(n)||n<0||n>10000)throw Error('Invalid ingredient quantity: '+key);
+    next[key]=n;total+=n;
+  }
+  if(total>10000)throw Error('Inventory capacity safety limit exceeded.');
+  return {...next};
+}
+function cleanSnapshot(raw,week) {
+  if(raw==null)return null;
+  if(typeof raw!=='object'||raw.weekStart!==week||
+    !cleanRevision(raw.revision))throw Error('Invalid inventory snapshot.');
+  const savedAt=raw.savedAt;
+  instantMs(savedAt);
+  return {weekStart:week,savedAt,revision:raw.revision,
+    values:cleanInventoryValues(raw.values)};
+}
+/** Shape is v2 and completely independent of the legacy v1 U3 and v3 U2 keys. */
+function newInventoryTimeline(weekStart) {
+  if(!validWeekStart(weekStart))throw Error('Inventory must belong to a Monday event week.');
+  return {version:E1_SCHEMA_VERSION,weekStart,
+    preparationLatest:null,startInventory:null,currentInventory:null};
+}
+function validateInventoryTimeline(raw,weekStart=raw?.weekStart) {
+  if(!validWeekStart(weekStart)||!raw||typeof raw!=='object'||
+    raw.version!==E1_SCHEMA_VERSION||raw.weekStart!==weekStart)
+    throw Error('Unsupported inventory timeline; old data must be read by the legacy adapter.');
+  const timeline={
+    version:E1_SCHEMA_VERSION,weekStart,
+    preparationLatest:cleanSnapshot(raw.preparationLatest,weekStart),
+    startInventory:cleanSnapshot(raw.startInventory,weekStart),
+    currentInventory:cleanSnapshot(raw.currentInventory,weekStart)
+  };
+  const start=Date.parse(weekStart+'T04:00:00+09:00');
+  const prep=timeline.preparationLatest,baseline=timeline.startInventory,cur=timeline.currentInventory;
+  if(prep&&instantMs(prep.savedAt)>=start)throw Error('Preparation stock saved after event start.');
+  if(baseline&&instantMs(baseline.savedAt)>=start)throw Error('Baseline cannot be an event-time save.');
+  if((prep===null)!==(baseline===null) ||
+    (prep&&JSON.stringify(prep)!==JSON.stringify(baseline)))
+    throw Error('Start stock must equal the final recorded preparation stock.');
+  if(prep&&!cur)throw Error('Latest inventory must include the confirmed pre-event stock.');
+  if(prep&&cur&&instantMs(cur.savedAt)<instantMs(prep.savedAt))
+    throw Error('Latest inventory older than baseline.');
+  return timeline;
+}
+/** Pure transition; never writes to localStorage.
+ * saveAt is the actual commit instant, never a user-editable game day.
+ * The final successful pre-event save becomes the baseline.
+ * After the event starts, only currentInventory can change.
+ */
+function applyInventorySave(raw,{savedAt,values,revision}) {
+  const prev=validateInventoryTimeline(raw);
+  const when=instantMs(savedAt);
+  if(!cleanRevision(revision))throw Error('Every saved inventory needs a revision.');
+  const eventStart=Date.parse(prev.weekStart+'T04:00:00+09:00');
+  if(when>=eventStart+7*MS_DAY)throw Error('Ended event stock cannot be changed.');
+  const previousTime=prev.currentInventory?instantMs(prev.currentInventory.savedAt):-Infinity;
+  if(when<previousTime)throw Error('Stale inventory save; do not overwrite newer values.');
+  if(when>previousTime && prev.currentInventory?.revision===revision)
+    throw Error('A new inventory save must use a new revision.');
+  // Equal timestamp from another mutation cannot determine ordering: reject unless idempotent.
+  const nextSnapshot={weekStart:prev.weekStart,savedAt,revision,values:cleanInventoryValues(values)};
+  if(when===previousTime) {
+    if(JSON.stringify(prev.currentInventory)===JSON.stringify(nextSnapshot))return prev;
+    throw Error('Conflicting inventory save with the same time.');
+  }
+  const future={...prev,currentInventory:nextSnapshot};
+  if(when<eventStart){
+    future.preparationLatest=nextSnapshot;
+    future.startInventory=nextSnapshot;
+  }
+  return validateInventoryTimeline(future);
+}
+/** Read-only adapter for v29 U2 records, never auto-commits a new schema.
+ * v29 initialValues came from the FIRST pre-event save and MUST NOT be treated
+ * as the final start stock, or as a valid historic snapshot after the event began.
+ */
+function previewLegacyU2V3(record,selectedWeek) {
+  if(!validWeekStart(selectedWeek)||!record||record.version!==3||
+    record.weekStart!==selectedWeek||record.source!=='inventory')
+    throw Error('Legacy inventory belongs to a different event week or version.');
+  const values=cleanInventoryValues(Object.fromEntries(
+    INGREDIENT_NAMES.map(key=>[key,record.values?.[key]??0])));
+  // Missing keys from a corrupt old record MUST NOT become a zero value.
+  if(!record.values||INGREDIENT_NAMES.some(k=>!Object.prototype.hasOwnProperty.call(record.values,k))||
+    Object.keys(record.values).length!==19)throw Error('Legacy stock is incomplete.');
+  const savedAt=record.savedAt;
+  const t=instantMs(savedAt);
+  const start=Date.parse(selectedWeek+'T04:00:00+09:00');
+  const converted=newInventoryTimeline(selectedWeek);
+  const snapshot={weekStart:selectedWeek,savedAt,revision:'legacy-v3:'+savedAt,values};
+  if(t<start){
+    converted.preparationLatest=snapshot;
+    converted.startInventory=snapshot;
+  }
+  converted.currentInventory=snapshot;
+  return {timeline:validateInventoryTimeline(converted),
+    warnings:t>=start?['START_STOCK_UNKNOWN_FROM_LEGACY'] : [],
+    requiresExplicitCommit:true};
+}
+/**
+ * An event source is only a CANDIDATE. It cannot change a CONFIRMED event.
+ * First the user applies the verified candidate to the editing form; then an
+ * explicit save creates a confirmed (possibly incomplete) condition snapshot.
+ * Nothing in E1 auto-writes to legacy U3 JSON or triggers a proposal.
+ */
+function cleanFields(input) {
+  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Event fields must be an object.');
+  // Validate before JSON cloning. JSON.stringify silently converts Infinity
+  // to null and silently drops undefined/functions: never auto-confirm that.
+  const visited=new WeakSet();
+  const walk=(x)=>{
+    if(x===null||typeof x==='string'||typeof x==='boolean')return true;
+    if(typeof x==='number')return Number.isFinite(x);
+    if(typeof x!=='object'||visited.has(x))return false;
+    const proto=Object.getPrototypeOf(x);
+    if(!Array.isArray(x)&&proto!==Object.prototype&&proto!==null)return false;
+    visited.add(x);
+    const ok=Array.isArray(x)?x.every(walk):
+      Object.keys(x).every(k=>!['__proto__','prototype','constructor'].includes(k)&&walk(x[k]));
+    visited.delete(x);
+    return ok;
+  };
+  if(!walk(input))throw Error('Event fields contain unsupported data.');
+  const raw=JSON.stringify(input);
+  if(typeof raw!=='string'||raw.length>16000)throw Error('Event fields too large.');
+  return JSON.parse(raw);
+}
+function conditionEntry(entry,weekStart,eventId,label) {
+  if(entry==null)return null;
+  if(!entry||entry.weekStart!==weekStart||entry.eventId!==eventId||
+    !cleanRevision(entry.revision)||!Array.isArray(entry.missingFields)||
+    entry.missingFields.some(x=>typeof x!=='string'||!x.trim()||x.length>120))
+    throw Error('Invalid '+label+' conditions.');
+  instantMs(entry.savedAt);
+  const status=entry.missingFields.length?'MISSING':'CONFIRMED';
+  if(label==='candidate'||label==='editing'){
+    if(entry.status!=='CANDIDATE'&&entry.status!=='EDITING')
+      throw Error('Candidate/editing status expected.');
+  }else if(entry.status!==status)throw Error('Saved conditions status must match unresolved fields.');
+  return {...entry,fields:cleanFields(entry.fields),missingFields:[...new Set(entry.missingFields)]};
+}
+function newConditionLedger(selectedEvent) {
+  phaseForEvent(selectedEvent,'2026-01-01T00:00:00Z');
+  if(!selectedEvent)throw Error('Choose an event first.');
+  return {version:1,weekStart:selectedEvent.weekStart,eventId:selectedEvent.id,
+    candidate:null,editing:null,confirmed:null};
+}
+function validateConditionLedger(raw) {
+  if(!raw||raw.version!==1||!validWeekStart(raw.weekStart)||
+    typeof raw.eventId!=='string'||!raw.eventId.trim()||raw.eventId.length>160)
+    throw Error('Unsupported event condition ledger.');
+  return {version:1,weekStart:raw.weekStart,eventId:raw.eventId,
+    candidate:conditionEntry(raw.candidate,raw.weekStart,raw.eventId,'candidate'),
+    editing:conditionEntry(raw.editing,raw.weekStart,raw.eventId,'editing'),
+    confirmed:conditionEntry(raw.confirmed,raw.weekStart,raw.eventId,'confirmed')};
+}
+function stageConditionCandidate(ledger,{fields,revision,savedAt,missingFields=[]}) {
+  const prev=validateConditionLedger(ledger);
+  const entry=conditionEntry({weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'CANDIDATE',fields,revision,savedAt,missingFields},
+    prev.weekStart,prev.eventId,'candidate');
+  return {...prev,candidate:entry};
+}
+function applyConditionCandidate(ledger,{userApplied=false}={}) {
+  const prev=validateConditionLedger(ledger);
+  if(!userApplied||!prev.candidate)throw Error('User must explicitly apply an available candidate.');
+  return {...prev,editing:{...prev.candidate,status:'EDITING'}};
+}
+function stageConditionEdits(ledger,{fields,revision,savedAt,missingFields=[]}) {
+  const prev=validateConditionLedger(ledger);
+  return {...prev,editing:conditionEntry({weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'EDITING',fields,revision,savedAt,missingFields},
+    prev.weekStart,prev.eventId,'editing')};
+}
+function confirmEventConditions(ledger,{userConfirmed=false}={}) {
+  const prev=validateConditionLedger(ledger);
+  if(!userConfirmed||!prev.editing)throw Error('User must explicitly save edited event conditions.');
+  const candidate={...prev.editing,status:prev.editing.missingFields.length?'MISSING':'CONFIRMED'};
+  if(prev.confirmed&&candidate.revision===prev.confirmed.revision&&
+    JSON.stringify(candidate.fields)!==JSON.stringify(prev.confirmed.fields))
+    throw Error('Revision collision: different event conditions share a revision.');
+  return {...prev,confirmed:candidate,editing:null};
+}
+function conditionViewFromLedger(ledger) {
+  const prev=validateConditionLedger(ledger);
+  const snapshot=prev.confirmed;
+  if(!snapshot)return {weekStart:prev.weekStart,eventId:prev.eventId,
+    status:'MISSING',revision:null,missingFields:['EVENT_CONDITIONS_UNCONFIRMED'],dirty:Boolean(prev.editing)};
+  return {weekStart:prev.weekStart,eventId:prev.eventId,
+    status:snapshot.status,revision:snapshot.revision,
+    missingFields:[...snapshot.missingFields],dirty:Boolean(prev.editing)};
+}
+function conditionView(conditions,selectedEvent) {
+  if(!conditions||typeof conditions!=='object'||conditions.weekStart!==selectedEvent.weekStart||
+    conditions.eventId!==selectedEvent.id)
+    return {ready:false,reason:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
+  const missing=Array.isArray(conditions.missingFields)?conditions.missingFields:null;
+  if(missing===null||missing.some(x=>typeof x!=='string'||!x.trim()||x.length>120))
+    return {ready:false,reason:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
+  if(conditions.status!=='CONFIRMED'||conditions.dirty===true||missing.length ||
+    !cleanRevision(conditions.revision))
+    return {ready:false,reason:missing.length?[...new Set(missing)]:['EVENT_CONDITIONS_UNCONFIRMED'],revision:null};
+  return {ready:true,reason:[],revision:conditions.revision};
+}
+function confirmedInventory(timeline,event) {
+  if(!timeline)return null;
+  try{
+    return validateInventoryTimeline(timeline,event.weekStart).currentInventory;
+  }catch{return null;}
+}
+/** Pure state presentation used by U2/U3 (E2–E4) and U5.
+ * No UI switching, modal action, implicit selection or storage writes.
+ */
+function getPrimaryViewState({
+  selectedEvent=null,nowISO,conditions=null,inventoryTimeline=null,
+  adoptedPlan=null,draft=null,dirtyFlags={}
+}={}) {
+  const phase=phaseForEvent(selectedEvent,nowISO);
+  if(phase===PHASE.UNSELECTED)
+    return {phase,screen:'NO_EVENT',primaryAction:PRIMARY_ACTION.SELECT_EVENT,
+      compactWarning:'EVENT_NOT_SELECTED',lockReasons:['EVENT_NOT_SELECTED'],
+      canPropose:false,canRepropose:false,canAdoptDraft:false,
+      adoption:'NONE',gameDayIndex:null};
+  const cond=conditionView(conditions,selectedEvent);
+  const stock=confirmedInventory(inventoryTimeline,selectedEvent);
+  const adopted=adoptedPlan?.status==='ADOPTED'&&
+    adoptedPlan.weekStart===selectedEvent.weekStart&&
+    adoptedPlan.eventId===selectedEvent.id;
+  const hasDraft=draft?.status==='DRAFT'&&draft.weekStart===selectedEvent.weekStart&&
+    draft.eventId===selectedEvent.id;
+  const staleDraft=hasDraft&&(draft.conditionsRevision!==cond.revision||
+    draft.inventoryRevision!==stock?.revision||
+    Boolean(dirtyFlags.sleepChanged)||Boolean(dirtyFlags.conditionsChanged)||
+    Boolean(dirtyFlags.inventoryChanged));
+  const canPropose=phase===PHASE.DURING&&cond.ready&&Boolean(stock);
+  const canRepropose=canPropose&&adopted;
+  const canAdoptDraft=canPropose&&hasDraft&&!staleDraft;
+  const reasons=[...cond.reason];
+  if(!stock)reasons.push('INVENTORY_NOT_SAVED');
+  let action=PRIMARY_ACTION.NONE,screen=adopted?'ADOPTED_PLAN':'PENDING_PLAN';
+  if(phase===PHASE.ENDED)screen=adopted?'ADOPTED_PLAN':'EVENT_ENDED';
+  else if(phase===PHASE.BEFORE)screen='PREPARATION';
+  else if(adopted) {
+    if(!cond.ready)action=PRIMARY_ACTION.SET_EVENT;
+    else if(!stock)action=PRIMARY_ACTION.SET_INVENTORY;
+    else if(dirtyFlags.conditionsChanged||dirtyFlags.inventoryChanged||
+      dirtyFlags.sleepChanged||adoptedPlan.inventoryRevision!==stock.revision||
+      adoptedPlan.conditionsRevision!==cond.revision)
+      action=PRIMARY_ACTION.REPROPOSE;
+  }else if(!cond.ready)action=PRIMARY_ACTION.SET_EVENT;
+  else if(!stock)action=PRIMARY_ACTION.SET_INVENTORY;
+  else action=PRIMARY_ACTION.PROPOSE;
+  return {phase,screen,primaryAction:action,
+    compactWarning:action===PRIMARY_ACTION.NONE?null:action,
+    lockReasons:reasons,canPropose,canRepropose,canAdoptDraft,
+    adoption:adopted?'ADOPTED':hasDraft?'DRAFT':'NONE',
+    gameDayIndex:gameWeekdayIndex(selectedEvent.weekStart,nowISO)};
+}
+
+return {INGREDIENT_NAMES,validWeekStart,phaseForEvent,newInventoryTimeline,validateInventoryTimeline,applyInventorySave,previewLegacyU2V3};
+})();
+
 (()=>{
 'use strict';
-const q=s=>document.querySelector(s);
-const tabs={goal:q('#btn-goal'),inventory:q('#btn-inventory')};
-const panels={goal:q('#goal-panel'),inventory:q('#inventory-panel')};
-const keys=['goal','inventory'];
-const inputs=[...panels.inventory.querySelectorAll('[data-key]')];
-const EVENT_WEEK_KEY='pokesleep-strategy-event-start-v2';
-const DEFAULT_EVENT_WEEK='2026-11-09';
-const recordKey=week=>'pokesleep-strategy-u2-v3:'+week+':inventory';
-function validWeek(date){
- if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;
- const d=new Date(date+'T12:00:00Z');return Number.isFinite(d.valueOf())&&d.toISOString().slice(0,10)===date&&d.getUTCDay()===1;
+const q=s=>document.querySelector(s),tabs={goal:q('#btn-goal'),inventory:q('#btn-inventory')}, panels={goal:q('#goal-panel'),inventory:q('#inventory-panel')};
+const inputs=[...panels.inventory.querySelectorAll('[data-key]')],query=new URLSearchParams(location.search),requestedWeek=query.get('eventStart');
+const selectedEventId=query.get('eventId');
+const validEventId=typeof selectedEventId==='string'&&selectedEventId.length>0&&selectedEventId.length<=160;
+const week=E1.validWeekStart(requestedWeek)?requestedWeek:null,requestedValid=requestedWeek===null||!!week;
+const mock=query.get('previewNow'),returnToPlan=query.get('return')==='plan';
+const key=w=>'pokesleep-strategy-u2-e2-v1:'+w+':timeline',oldKey=w=>'pokesleep-strategy-u2-v3:'+w+':inventory';
+let timeline=null,packet=null,blocked=false,toastTimeout=null;
+const foodName=i=>i.closest('.food').querySelector('.name').textContent.trim();
+const zeros=()=>Object.fromEntries(E1.INGREDIENT_NAMES.map(n=>[n,0]));
+function now(){
+ if(!mock)return new Date().toISOString();
+ if(!/^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d)?$/.test(mock))throw Error('Invalid preview time');
+ const iso=mock+(mock.length===16?':00+09:00':'+09:00');
+ if(!Number.isFinite(Date.parse(iso)))throw Error('Invalid preview instant');
+ return iso;
 }
-function activeEventWeek(preferLink=false){
- const fromLink=new URLSearchParams(location.search).get('eventStart');
- if(preferLink&&validWeek(fromLink))return fromLink;
- try{const shared=localStorage.getItem(EVENT_WEEK_KEY);if(validWeek(shared))return shared;}catch(e){}
- if(validWeek(fromLink))return fromLink;
- return DEFAULT_EVENT_WEEK;
+function phase(){return E1.phaseForEvent({id:'explicit-week-preview',weekStart:week},now());}
+function toast(message,err=false){
+ const t=q('#ui-toast');if(toastTimeout)clearTimeout(toastTimeout);
+ t.textContent=message;t.classList.toggle('is-error',err);t.setAttribute('role',err?'alert':'status');
+ t.hidden=false;toastTimeout=setTimeout(()=>{t.hidden=true;toastTimeout=null;},2500);
 }
-let eventWeek=activeEventWeek(true),toastTimer=null;
-function showToast(text,isError=false){
- const t=q('#ui-toast');if(toastTimer)clearTimeout(toastTimer);
- t.textContent=text;t.classList.toggle('is-error',isError);
- t.setAttribute('role',isError?'alert':'status');t.hidden=false;
- toastTimer=setTimeout(()=>{t.hidden=true;toastTimer=null;},2500);
-}
-function dateInJST(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).replaceAll('/','-');}
-function eventHasStarted(){return dateInJST()>=eventWeek;}
-function foodName(input){return input.closest('.food').querySelector('.name').textContent.trim();}
-function zeroValues(){return Object.fromEntries(inputs.map(input=>[foodName(input),0]));}
-function normalizedValues(obj){
- if(!obj||typeof obj!=='object')return null;
- const result={};for(const input of inputs){const name=foodName(input);
-  if(!Object.prototype.hasOwnProperty.call(obj,name))return null;
-  const value=obj[name];
-  if(value!==null&&value!==undefined&&(!Number.isSafeInteger(value)||value<0||value>10000))return null;
-  result[name]=value===null||value===undefined?0:value;
- }return result;
-}
-function loadSaved(week=eventWeek){
- try{
-  const latest=JSON.parse(localStorage.getItem(recordKey(week))||'null');
-  if(latest?.version===3&&latest.weekStart===week&&latest.source==='inventory'&&normalizedValues(latest.values))return latest;
-  // Backward compatible once-only migration from confirmed v22 weekly records.
-  const legacyWhich=eventHasStarted()?'current':'sunday';
-  const backup=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-v2:'+week+':'+legacyWhich)||'null');
-  const alternative=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-v2:'+week+':'+(legacyWhich==='current'?'sunday':'current'))||'null');
-  const previous=[backup,alternative].find(r=>r?.version===2&&r.weekStart===week&&r.values&&normalizedValues(r.values));
-  if(!previous)return null;
-  const migrated={version:3,weekStart:week,source:'inventory',values:normalizedValues(previous.values),savedAt:previous.savedAt,initialValues:previous.source==='sunday'?normalizedValues(previous.values):null};
-  localStorage.setItem(recordKey(week),JSON.stringify(migrated));return migrated;
- }catch(e){return null;}
-}
-function syncWeekUrl(){try{const url=new URL(location.href);url.searchParams.set('eventStart',eventWeek);history.replaceState(history.state,'',url.href);}catch(e){}}
-function showWeekLabel(){const d=new Date(eventWeek+'T12:00:00Z');const lab=q('#u2-week-label');lab.textContent=(d.getUTCMonth()+1)+'/'+d.getUTCDate()+'週';lab.title='イベント開始日 '+eventWeek;}
-function transferLink(record){
- const panel=panels.inventory;let link=panel.querySelector('.u2-transfer');
- if(!link){link=document.createElement('a');link.className='btn secondary u2-transfer';link.textContent='U3で作戦を提案';panel.querySelector('.inventory-actions').append(link);}
- const url=new URL('U3_Strategy_UI_20261104_v25.html',location.href);
- url.searchParams.set('eventStart',eventWeek);url.searchParams.set('pokesleepStock',JSON.stringify(record));link.href=url.href;
-}
-function readInventory(){
- const values={},invalid=[];
- for(const input of inputs){
-  const raw=input.value.trim();const value=raw===''?0:Number(raw);
-  const okay=!input.validity.badInput&&(raw===''||(/^\d+$/.test(raw)&&Number.isSafeInteger(value)&&value>=0&&value<=10000));
-  input.setAttribute('aria-invalid',String(!okay));if(!okay)invalid.push(input);
-  values[foodName(input)]=okay?value:null;
+function read(){
+ const values={},bad=[];
+ for(const i of inputs){
+  const raw=i.value.trim(),v=raw===''?0:Number(raw);
+  const ok=!i.validity.badInput&&(raw===''||(/^\d+$/.test(raw)&&Number.isSafeInteger(v)&&v>=0&&v<=10000));
+  i.setAttribute('aria-invalid',String(!ok));if(!ok)bad.push(i);values[foodName(i)]=ok?v:null;
  }
- const total=Object.values(values).filter(Number.isSafeInteger).reduce((x,y)=>x+y,0);
- q('#sum').textContent=total.toLocaleString('ja-JP')+'個';return {values,total,invalid};
+ const total=Object.values(values).filter(Number.isSafeInteger).reduce((a,b)=>a+b,0);
+ q('#sum').textContent=total.toLocaleString('ja-JP')+'個';return {values,total,bad};
 }
+function readOld(){
+ const old=localStorage.getItem(oldKey(week));
+ if(old!==null)return E1.previewLegacyU2V3(JSON.parse(old),week).timeline;
+ const records=[];
+ for(const source of ['current','sunday']){
+  const val=localStorage.getItem('pokesleep-strategy-u2-v2:'+week+':'+source);
+  if(val!==null){
+   const x=JSON.parse(val);
+   if(x?.version!==2||x.weekStart!==week||x.source!==source)throw Error('Inconsistent legacy stock');
+   records.push(x);
+  }
+ }
+ if(!records.length)return E1.newInventoryTimeline(week);
+ const adapt=row=>E1.previewLegacyU2V3({...row,version:3,source:'inventory'},week).timeline;
+ const sunday=records.find(r=>r.source==='sunday'),current=records.find(r=>r.source==='current');
+ // Historical v22 kept a separate, verified Sunday snapshot and in-event
+ // current stock. Reconstruct both when their timestamps are consistent.
+ if(sunday&&current){
+  const start=Date.parse(week+'T04:00:00+09:00');
+  const a=Date.parse(sunday.savedAt),b=Date.parse(current.savedAt);
+  if(a<start&&b>=start&&b<start+7*86400000){
+   const baseline=adapt(sunday),currentRecord=adapt(current);
+   return E1.applyInventorySave(baseline,{savedAt:current.savedAt,
+    revision:'legacy-v2-current:'+current.savedAt,values:currentRecord.currentInventory.values});
+  }
+ }
+ records.sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
+ return adapt(records[0]);
+}
+function load(){
+ const value=localStorage.getItem(key(week));
+ if(value===null)return readOld();
+ const raw=JSON.parse(value);
+ if(validEventId&&raw?.eventId&&raw.eventId!==selectedEventId)throw Error('Inventory belongs to another event');
+ const clean=E1.validateInventoryTimeline(raw,week);
+ if(raw.eventId)clean.eventId=raw.eventId;
+ return clean;
+}
+function v29Packet(s){
+ const snap=s?.currentInventory;
+ return snap?{version:3,weekStart:week,source:'inventory',savedAt:snap.savedAt,values:snap.values,eventId:s.eventId||null,initialValues:s.startInventory?.values??null}:null;
+}
+function clearLink(){panels.inventory.querySelector('.u2-transfer')?.remove();}
+function showLink(){
+ clearLink();if(blocked||!week||!packet)return;
+ const a=document.createElement('a');a.className='btn secondary u2-transfer';
+ a.textContent=returnToPlan?'作戦へ戻る':'作戦へ';
+ const u=new URL('U3_Strategy_UI_20261105_v33.html',location.href);
+ u.searchParams.set('eventStart',week);
+ // Old U3 receiver needs the validated payload across file:// storage origins.
+ u.searchParams.set('pokesleepStock',JSON.stringify(packet));
+ if(mock)u.searchParams.set('previewNow',mock);
+ if(validEventId)u.searchParams.set('eventId',selectedEventId);
+ u.searchParams.delete('tab');u.searchParams.delete('return');
+ a.href=u.href;panels.inventory.querySelector('.inventory-actions').append(a);
+}
+function message(s){const p=q('#preview-result');p.textContent=s;p.hidden=!s;}
 function restore(){
- const record=loadSaved();for(const input of inputs){const n=foodName(input);input.value=record?String(record.values[n]??0):'0';input.removeAttribute('aria-invalid');}
- const old=panels.inventory.querySelector('.u2-transfer');if(old)old.remove();
- q('#error').hidden=true;readInventory();if(record)transferLink(record);
+ blocked=false;timeline=null;packet=null;clearLink();q('#error').hidden=true;
+ if(!requestedValid||!week){
+  blocked=true;q('#save-inventory').disabled=true;
+  for(const i of inputs){i.value='0';i.removeAttribute('aria-invalid');}
+  read();message(requestedValid?'イベント週が未選択です。':'イベント週の指定が不正です。');return;
+ }
+ try{
+  timeline=load();packet=v29Packet(timeline);
+  const values=timeline.currentInventory?.values??zeros();
+  for(const i of inputs){i.value=String(values[foodName(i)]);i.removeAttribute('aria-invalid');}
+  read();const ended=phase()==='ENDED';
+  q('#save-inventory').disabled=ended;message(ended?'イベントは終了しました。':'');
+  showLink();
+ }catch(e){
+  blocked=true;q('#save-inventory').disabled=true;
+  inputs.forEach(i=>i.value='0');read();
+  q('#error').textContent='保存済みデータを読み取れません。上書きせず保護しています。';
+  q('#error').hidden=false;message('');
+ }
 }
-function saveInventory(){
- const r=readInventory();const error=q('#error');
- if(r.invalid.length||r.total>10000){error.textContent=r.invalid.length?'食材数には0～10000の整数を入力してください。':'食材の合計数が10000を超えています。';
-  error.hidden=false;showToast(error.textContent,true);if(r.invalid.length)r.invalid[0].focus();return;}
- error.hidden=true;
- const previous=loadSaved(),record={version:3,weekStart:eventWeek,source:'inventory',values:r.values,savedAt:new Date().toISOString(),
-  initialValues:previous?.initialValues??(eventHasStarted()?null:structuredClone(r.values))};
- try{localStorage.setItem(recordKey(eventWeek),JSON.stringify(record));}catch(e){error.textContent='ブラウザに保存できませんでした。';error.hidden=false;showToast(error.textContent,true);return;}
- transferLink(record);showToast('食材在庫を保存しました');
+function save(){
+ if(blocked||!week){toast('イベント週または保存データを確認してください。',true);return;}
+ const x=read();
+ if(x.bad.length||x.total>10000){
+  const msg=x.bad.length?'食材数には0～10000の整数を入力してください。':'食材の合計数が10000個を超えています。';
+  q('#error').textContent=msg;q('#error').hidden=false;toast(msg,true);
+  if(x.bad.length)x.bad[0].focus();return;
+ }
+ try{
+  // Timestamp is the actual successful save; deterministic preview uses mock JST.
+  const prev=load(),t=Math.max(Date.parse(now()),prev.currentInventory?Date.parse(prev.currentInventory.savedAt)+1:0);
+  const stamp=new Date(t).toISOString();
+  const stored=JSON.parse(localStorage.getItem(key(week))||'null');
+   if(validEventId&&stored?.eventId&&stored.eventId!==selectedEventId)throw Error('Event ID mismatch');
+   const updated=E1.applyInventorySave(prev,{savedAt:stamp,revision:'e2:'+stamp,values:x.values});
+   if(validEventId)updated.eventId=selectedEventId;
+  // One new key, one atomic write. Never overwrite old v2/v3 source.
+  localStorage.setItem(key(week),JSON.stringify(updated));
+  timeline=updated;packet=v29Packet(updated);q('#error').hidden=true;message('');
+  showLink();toast('食材在庫を保存しました');
+ }catch(e){toast('保存できませんでした。元のデータは保持されています。',true);}
 }
-function show(which,focus=false){for(const k of keys){panels[k].hidden=k!==which;tabs[k].setAttribute('aria-selected',String(k===which));tabs[k].tabIndex=k===which?0:-1;}
- if(focus)tabs[which].focus();window.scrollTo({top:0,behavior:'instant'});}
-for(const [i,k] of keys.entries()){
- tabs[k].addEventListener('click',()=>show(k));tabs[k].addEventListener('keydown',e=>{
-  let next=i;if(e.key==='ArrowRight')next=Math.min(1,i+1);if(e.key==='ArrowLeft')next=Math.max(0,i-1);
-  if(e.key==='Home')next=0;if(e.key==='End')next=1;
-  if(next!==i){e.preventDefault();show(keys[next],true);}
+function show(which,focus=false){
+ for(const k of ['goal','inventory']){
+  panels[k].hidden=which!==k;tabs[k].setAttribute('aria-selected',String(which===k));
+  tabs[k].tabIndex=which===k?0:-1;
+ }
+ if(focus)tabs[which].focus();window.scrollTo({top:0,behavior:'instant'});
+}
+for(const [i,k] of ['goal','inventory'].entries()){
+ tabs[k].addEventListener('click',()=>show(k));
+ tabs[k].addEventListener('keydown',e=>{
+  let n=i;if(e.key==='ArrowRight')n=Math.min(1,i+1);
+  if(e.key==='ArrowLeft')n=Math.max(0,i-1);if(e.key==='Home')n=0;if(e.key==='End')n=1;
+  if(n!==i){e.preventDefault();show(['goal','inventory'][n],true);}
  });
 }
-const prepButton=q('#prep-skill-open'),popup=q('#prep-skill-popover');
-function closePopup(){popup.hidden=true;prepButton.setAttribute('aria-expanded','false');}
-prepButton.addEventListener('click',()=>{const opening=popup.hidden;popup.hidden=!opening;prepButton.setAttribute('aria-expanded',String(opening));});
-document.addEventListener('pointerdown',e=>{if(!popup.hidden&&!popup.contains(e.target)&&!prepButton.contains(e.target))closePopup();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!popup.hidden){closePopup();prepButton.focus();}});
-for(const input of inputs){
- input.type='text';input.inputMode='numeric';input.pattern='[0-9]*';input.placeholder='0';
- input.value='0';
- const selectZero=()=>{if(input.value==='0')input.select();};
- input.addEventListener('focus',selectZero);
- input.addEventListener('click',selectZero);
- input.addEventListener('blur',()=>{if(input.value.trim()==='')input.value='0';readInventory();});
- input.addEventListener('input',()=>{q('#error').hidden=true;input.removeAttribute('aria-invalid');readInventory();const l=panels.inventory.querySelector('.u2-transfer');if(l)l.remove();});
+const prep=q('#prep-skill-open'),popup=q('#prep-skill-popover');
+function closePop(){popup.hidden=true;prep.setAttribute('aria-expanded','false');}
+prep.addEventListener('click',()=>{const open=popup.hidden;popup.hidden=!open;prep.setAttribute('aria-expanded',String(open));});
+document.addEventListener('pointerdown',e=>{if(!popup.hidden&&!popup.contains(e.target)&&!prep.contains(e.target))closePop();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!popup.hidden){closePop();prep.focus();}});
+for(const i of inputs){
+ i.type='text';i.inputMode='numeric';i.pattern='[0-9]*';i.placeholder='0';i.value='0';
+ const select=()=>{if(i.value==='0')i.select();};
+ i.addEventListener('focus',select);i.addEventListener('click',select);
+ i.addEventListener('blur',()=>{if(i.value.trim()==='')i.value='0';read();});
+ i.addEventListener('input',()=>{q('#error').hidden=true;i.removeAttribute('aria-invalid');read();clearLink();});
 }
-q('#save-inventory').addEventListener('click',saveInventory);
-function syncEventWeek(){const next=activeEventWeek();if(next===eventWeek)return;eventWeek=next;syncWeekUrl();showWeekLabel();restore();closePopup();showToast('イベント週を切り替えました');}
-window.addEventListener('pageshow',syncEventWeek);
-window.addEventListener('storage',e=>{if(e.key===EVENT_WEEK_KEY)syncEventWeek();else if(e.key===recordKey(eventWeek))restore();});
-showWeekLabel();restore();show('goal');
+q('#save-inventory').addEventListener('click',save);
+window.addEventListener('pageshow',e=>{if(e.persisted)restore();});
+window.addEventListener('storage',e=>{if(week&&(e.key===key(week)||e.key===oldKey(week)))restore();});
+const badge=q('#u2-week-label');
+if(week){const d=new Date(week+'T12:00:00Z');badge.textContent=(d.getUTCMonth()+1)+'/'+d.getUTCDate()+'週';badge.title='イベント開始日 '+week;}
+else{badge.textContent='未選択';badge.title='イベント未選択';}
+restore();show(query.get('tab')==='inventory'?'inventory':'goal');
 })();
+
 </script></body></html>
