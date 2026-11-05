@@ -42,3 +42,24 @@
 
 ## E6完了後の次工程
 E6の明示承認後、監査修正版v2の **E7=U4 → U5 → U6** に進む。その後 **F1実データ接続 → F2イベント取得 → F3備蓄エナジー最適化 → F4週間共同探索 → F5途中再提案 → F6最終公開監査**。個別マイルストーンと未実証の精度ゲートを分離する。
+
+
+## 2026-11-05 配布物の先祖返り誤認リスクを修正（実機受入前）
+
+**発見した問題**：E6初回案内はGitHubリポジトリ全体のZIPだった。ZIP直下の `index.html` は旧本番 `STEP W4 · v0.5.6` で、`previews` にv24〜v33の旧版が大量に混在。最新U2 v33のHTML `<title>` はv30、U3 v33のHTML `<title>` はv29のままだった。従ってユーザーが旧コードを開く可能性があり、初回のE6配布は不適切だった。
+
+**修正**：GitHub特設 **配布専用ブランチ** `artifact/e6-pixel7a-v33-only-20261105` を作成し、ZIP内ファイルを次の4点だけに固定。
+1. `index.html` = E6受入ガイド（初回の唯一の入口）
+2. `U2_Prep_Local_Ingredients_20261105_v33.html` = E5 v33（タイトルのv30→v33表記のみ修正）
+3. `U3_Strategy_UI_20261105_v33.html` = E5 v33（タイトルのv29→v33表記のみ修正）
+4. `README.md` = 使用法・リスク・E6承認条件
+
+GitHub配布URL：
+`https://github.com/meka-create/pokesleep-strategy/archive/refs/heads/artifact/e6-pixel7a-v33-only-20261105.zip`
+
+配布用コミット：`ff39a3cb3c67f58193579c3dcc8d7e5593afd495`。
+GitHub上でファイル一覧は上記4件のみ、入口HTMLの6リンクはv33のみで全参照ファイルが存在することを確認。U2/U3の動作コードはE5原本と**一文字の変更もなく**、`<title>` の表記だけ修正。元のE5、E6開発、mainはコード変更なし。
+
+**E6判定**：配布構成の静的監査はPASS。**Android実機確認は未実施・HOLD**。特にAndroid Chromeの`file://`保存の持続/共有が端末で有効かは実機で検証し、未確認をPASS扱いしない。U4/U5/Fの後工程には進まない。
+
+**以前案内したリポジトリ全体ZIPでの実機受入は禁止。** 配布専用ZIPの解凍後は、直下の`index.html`のみから始める。
