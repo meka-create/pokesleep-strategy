@@ -103,10 +103,10 @@ with sync_playwright() as pw:
  setval(q,'event-field','ワカクサ本島')
  setval(q,'event-food','salad')
  q.locator('#event-save').click()
- assert q.locator('#e3-next').is_hidden()
+ assert q.locator('#e3-next').inner_text()=='イベント条件を設定',"During event: incomplete berries require condition setup"
  fillberries(q,False)
  q.locator('#event-save').click()
- assert q.locator('#e3-next').is_hidden(),"During event week, actual stock remains required."
+ assert q.locator('#e3-next').inner_text()=='食材在庫を登録',"During event: known conditions but missing stock require inventory"
  # Replay the same confirmed settings on the preceding Sunday: this must allow a preview.
  q.goto(U3+"?previewNow=2026-11-08T16:00&eventStart=2026-11-09",wait_until="domcontentloaded")
  assert q.locator('#e3-next').is_visible(),"The same known conditions allow pre-event planning."
