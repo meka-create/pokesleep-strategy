@@ -106,7 +106,10 @@ with sync_playwright() as pw:
  assert q.locator('#e3-next').is_hidden()
  fillberries(q,False)
  q.locator('#event-save').click()
- assert q.locator('#e3-next').is_visible()
+ assert q.locator('#e3-next').is_hidden(),"During event week, actual stock remains required."
+ # Replay the same confirmed settings on the preceding Sunday: this must allow a preview.
+ q.goto(U3+"?previewNow=2026-11-08T16:00&eventStart=2026-11-09",wait_until="domcontentloaded")
+ assert q.locator('#e3-next').is_visible(),"The same known conditions allow pre-event planning."
  for width in (320,360,393,430):
   q.set_viewport_size({'width':width,'height':852})
   m=q.evaluate("()=>({w:innerWidth,scroll:document.documentElement.scrollWidth})")
