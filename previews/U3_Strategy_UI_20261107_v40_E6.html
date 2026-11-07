@@ -1830,7 +1830,7 @@ render=function(){
  const noFuture=e3Selected&&state.phase==='DURING'&&!hasFutureSlot();
  const earlyReady=state.phase==='BEFORE'&&canPlanNow();
  const canResume=(state.phase==='DURING'||earlyReady)&&!noFuture&&
-  ['PROPOSE','REPROPOSE'].includes(state.primaryAction)&&
+  (earlyReady||['PROPOSE','REPROPOSE'].includes(state.primaryAction))&&
   draft&&e4DraftIsCurrent();
  const action=noFuture?'NONE':canResume?'RESUME_DRAFT':earlyReady?
    (hasApplied?'REPROPOSE':'PROPOSE'):state.primaryAction;
