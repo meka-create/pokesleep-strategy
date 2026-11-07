@@ -20,8 +20,10 @@ def select(page,id,value):
 def ls(page):
  return page.evaluate("""()=>Object.fromEntries(Object.keys(localStorage).filter(k=>k.includes('pokesleep-strategy')).sort().map(k=>[k,localStorage.getItem(k)]))""")
 def stored_prep(page,event_name,start):
- key='pokesleep-strategy-u3-e3-v1:'+start+':'+event_name+':plan'
- return page.evaluate("""k=>JSON.parse(localStorage.getItem(k)||'null')?.eventInfo?.prep??null""",key)
+ return page.evaluate("""([id,week])=>{
+  const key='pokesleep-strategy-u3-e3-v1:'+week+':'+encodeURIComponent(id)+':plan';
+  return JSON.parse(localStorage.getItem(key)||'null')?.eventInfo?.prep??null;
+ }""",[event_name,start])
 def chosen(page):
  return page.locator('[data-stock-type][aria-pressed="true"]').evaluate_all("(xs)=>xs.map(x=>x.dataset.stockType)")
 errors=[]
