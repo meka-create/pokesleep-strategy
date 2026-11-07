@@ -1,0 +1,69 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101a29">
+<title>ポケスリ作戦室 U4 E6 v36（仮画面）</title>
+<style>:root{color-scheme:dark;font-family:system-ui,"Noto Sans JP",sans-serif;background:#101c2b;color:#f0f5fb}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-size:14px;line-height:1.55;background:#101c2b;color:#f0f5fb}
+.mast{max-width:680px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:18px 16px 12px;border-bottom:1px solid #3b5269}
+.sub{font-size:9px;letter-spacing:2px;color:#a5c3da;font-weight:700}.brand{font-size:17px;font-weight:800}.ver{font-size:11px;color:#eecb82}
+main{max-width:680px;margin:0 auto;padding:18px 14px}h1{font-size:18px;margin:0 0 5px}p{margin:5px 0;color:#c1d0df}.card{background:#1b2e44;border:1px solid #394e65;border-radius:12px;padding:17px}
+.state{font-size:12px;color:#f1cb79;font-weight:700}
+</style><style id="e6-v35-foot-style">
+html{scroll-padding-bottom:90px}
+body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
+#e6-footer{position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:60;width:100%;max-width:680px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid #485a6f;background:#142234;box-shadow:0 -4px 18px #09121f88;padding:4px 6px calc(5px + env(safe-area-inset-bottom,0px));font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif}
+#e6-footer a{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:0;min-width:0;min-height:57px;border-radius:9px;text-decoration:none!important;color:#b8c9dc;font-size:14px;font-weight:700;line-height:1.24;padding:4px 1px;outline-offset:-3px;border:1px solid transparent}
+#e6-footer a small{font-size:10px;font-weight:500;color:inherit;opacity:.88;white-space:nowrap}
+#e6-footer a[aria-current="page"]{background:#344761;color:#ffd680;border-color:#677d92}
+#e6-footer a:focus-visible{outline:2px solid #ffdf93}
+#e6-footer .e6-ico{height:18px;width:18px;display:block;margin-bottom:3px;flex:0 0 18px}
+#e6-dev:not([open]){margin-bottom:6px}
+.u2-transfer,#phase-intro-u2,#e3-update-stock{display:none!important}
+@media(max-width:360px){#e6-footer a{font-size:13px}#e6-footer a small{font-size:9px}}
+</style></head>
+<body><header class="mast"><div><div class="sub">POKÉMON SLEEP</div><div class="brand">✦ ポケスリ作戦室</div></div><span class="ver">U4 / E6確認用</span></header>
+<main><section class="card"><div class="state">E7で接続予定</div><h1>ボックス</h1><p>個体管理はまだ実装していません。現在はフッターの3画面切替と位置・操作感を確認するための仮画面です。</p></section></main>
+<nav id="e6-footer" aria-label="メインナビゲーション">
+<a id="e6-footer-plan" href="U3_Strategy_UI_20261107_v36_E6.html" ><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m-14 5h3m4 0h3"/></svg><span>作戦</span><small>当日編成</small></a>
+<a id="e6-footer-prep" href="U2_Prep_Local_Ingredients_20261107_v36_E6.html"><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 9h16v12H4zM3 6h18v3H3zM12 6v15M9 6c-5 0-5-5-1-5 2 0 4 4 4 5zm6 0c5 0 5-5 1-5-2 0-4 4-4 5z"/></svg><span>準備</span><small>目標・在庫</small></a>
+<a id="e6-footer-box" aria-current="page" href="U4_Box_Preview_20261107_v36_E6.html" ><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12m6-12v12"/></svg><span>ボックス</span><small>個体管理</small></a>
+</nav>
+<script id="e6-v35-footer-nav">
+(()=>{
+'use strict';
+const sel=q=>document.querySelector(q),target={
+ plan:'U3_Strategy_UI_20261107_v36_E6.html',prep:'U2_Prep_Local_Ingredients_20261107_v36_E6.html',
+ box:'U4_Box_Preview_20261107_v36_E6.html'};
+const qs=new URLSearchParams(location.search);
+function fromSelected(){
+ try{const x=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');return x?.weekStart&&x?.id?x:null;}catch(e){return null;}
+}
+function contextFromLink(){
+ const u=sel('a.u2-transfer');
+ if(u?.href){try{return new URL(u.href)}catch(e){}}
+ return null;
+}
+function goto(which){
+ const destination=new URL(target[which],location.href);
+ const transfer=contextFromLink();
+ const selected=fromSelected();
+ const fromExisting=new URLSearchParams(location.search);
+ const week=selected?.weekStart||fromExisting.get('eventStart')||transfer?.searchParams.get('eventStart');
+ const eventId=selected?.id||fromExisting.get('eventId')||transfer?.searchParams.get('eventId');
+ const clock=fromExisting.get('previewNow');
+ if(week)destination.searchParams.set('eventStart',week);
+ if(eventId)destination.searchParams.set('eventId',eventId);
+ if(clock)destination.searchParams.set('previewNow',clock);
+ // U2 -> U3 -> U4 must not lose the validated inventory snapshot across file:// origins.
+ const packet=transfer?.searchParams.get('pokesleepStock')||fromExisting.get('pokesleepStock');
+ if(packet&&(which==='plan'||which==='box'))destination.searchParams.set('pokesleepStock',packet);
+ if(which==='prep'&&clock){
+  const now=Date.parse(clock+':00+09:00'),start=Date.parse((week||'2026-11-09')+'T04:00:00+09:00');
+  if(now>=start)destination.searchParams.set('tab','inventory');
+ }
+ location.assign(destination.href);
+}
+for(const [name,id] of [['plan','#e6-footer-plan'],['prep','#e6-footer-prep'],['box','#e6-footer-box']]){
+ const a=sel(id);if(!a)continue;
+ a.addEventListener('click',event=>{event.preventDefault();goto(name);});
+}
+})();
+</script></body></html>
