@@ -66,9 +66,40 @@ with sync_playwright() as pw:
  assert p.locator('#week-content').is_visible(),"Early adopted plan should be viewable in preparation week"
  assert p.locator('#slots>.slot').count()==4
  assert p.locator('#event-food').input_value()=='all'
- p.goto(U3+"?previewNow=2026-11-16T06:00&eventStart=2026-11-16",wait_until="domcontentloaded")
+ # Developer clock buttons must use the selected Nov16 event, not the old Nov9 test week.
+ p.locator('#e6-dev > summary').click()
+ p.locator('[data-e6-stage="start"]').click()
+ p.wait_for_function("""()=>new URL(location.href).searchParams.get('previewNow')==='2026-11-16T06:00'""")
+ assert p.url.split("?")[0]==U3
+ assert 'eventStart=2026-11-16' in p.url
  assert p.locator('#week-content').is_visible(),"Plan must persist across 04:00 transition"
  assert p.locator('#day-label').inner_text()=='月曜日'
+ p.locator('#e6-dev > summary').click()
+ p.locator('[data-e6-stage="during"]').click()
+ p.wait_for_function("""()=>new URL(location.href).searchParams.get('previewNow')==='2026-11-18T15:00'""")
+ assert p.url.split("?")[0]==U3
+ p.locator('#e6-footer-prep').click()
+ p.wait_for_url("**/U2_Prep_Local_Ingredients_20261107_v40_E6.html?*")
+ p.locator('#e6-dev > summary').click()
+ p.locator('[data-e6-stage="prep"]').click()
+ p.wait_for_function("""()=>new URL(location.href).searchParams.get('previewNow')==='2026-11-15T16:00'""")
+ assert p.url.split("?")[0]==U2
+ assert 'eventStart=2026-11-16' in p.url
+ p.locator('#e6-footer-plan').click()
+ p.wait_for_url("**/U3_Strategy_UI_20261107_v40_E6.html?*")
+ assert p.locator('#week-content').is_visible(),"Same adopted plan remains visible before 04:00"
+ # Reset is scoped to the current Nov16 event. The other week is never erased.
+ p.evaluate("""()=>localStorage.setItem('pokesleep-strategy-u3-e3-v1:2026-11-09:other-week','untouched')""")
+ p.on('dialog',lambda dialog:dialog.accept())
+ p.locator('#e6-dev > summary').click()
+ p.locator('#e6-reset').click()
+ p.wait_for_function("""()=>new URL(location.href).pathname.endsWith('U3_Strategy_UI_20261107_v40_E6.html') &&
+  new URL(location.href).searchParams.get('eventStart')==='2026-11-16' &&
+  new URL(location.href).searchParams.get('previewNow')==='2026-11-15T16:00' &&
+  !new URL(location.href).searchParams.has('e6Reset')""",timeout=20000)
+ assert p.evaluate("""()=>localStorage.getItem('pokesleep-strategy-u3-e3-v1:2026-11-09:other-week')""")=='untouched'
+ assert p.evaluate("""()=>localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')""") is None
+ assert p.locator('#week-content').is_hidden(),"Only the selected event was reset"
  # Use a clean browser for random berry and event override gates.
  ctx2=browser.new_context(viewport={"width":393,"height":852},timezone_id="Asia/Tokyo")
  ctx2.route("**/src/data/event.json",lambda route:route.fulfill(status=200,content_type="application/json",body=json.dumps(events)))

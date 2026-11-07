@@ -21,6 +21,13 @@ test('E6 v40: full meal/all option, conditional weekly berry & EX, before-phase 
  assert.match(s,/eventInfo\.berrySetup/);
  assert.match(s,/id="e6-ex-effect"/);
  assert.match(s,/if\(source\.foodAll\)/);
+ const u2=fs.readFileSync(path.join(dir,f[0]),'utf8');
+ for(const markup of [u2,s]){
+  assert.match(markup,/const CLOCKS=\{prep:dateAt\(-1,'16:00'\),start:dateAt\(0,'06:00'\)/);
+  assert.match(markup,/const WEEK=validWeekStart\(qs\.get\('eventStart'\)\)/);
+  assert.match(markup,/const matches=k=>/);
+  assert.match(markup,/selected\?\.weekStart===week/);
+ }
 });
 test('E6 v40: real browser early-planning & all-food scenario',{timeout:180000},()=>{
  execFileSync('python3',['-m','pip','install','--quiet','playwright'],{cwd:root,stdio:'pipe',timeout:120000});
