@@ -26,7 +26,8 @@ test('E6 v40: full meal/all option, conditional weekly berry & EX, before-phase 
   assert.match(markup,/const CLOCKS=\{prep:dateAt\(-1,'16:00'\),start:dateAt\(0,'06:00'\)/);
   assert.match(markup,/const WEEK=validWeekStart\(qs\.get\('eventStart'\)\)/);
   assert.match(markup,/const matches=k=>/);
-  assert.match(markup,/selected\?\.weekStart===week/);
+  assert.match(markup,/\?\.weekStart===week/);
+  assert.match(markup,/k==='pokesleep-strategy-u3-e3-v1:selected'/);
  }
 });
 test('E6 v40: real browser early-planning & all-food scenario',{timeout:180000},()=>{
