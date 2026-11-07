@@ -267,22 +267,40 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 </dialog>
 <script id="e6-dev-reset-bootstrap">
 (()=>{
- const p=new URLSearchParams(location.search),step=p.get('e6Reset');
- if(!step)return;
- const matches=k=>k==='pokesleep-strategy-u3-e3-v1:selected' ||
-  k.startsWith('pokesleep-strategy-u3-e3-v1:2026-11-09:') ||
-  k.startsWith('pokesleep-strategy-u2-e2-v1:2026-11-09:') ||
-  k.startsWith('pokesleep-strategy-u2-v3:2026-11-09:') ||
-  k.startsWith('pokesleep-strategy-u2-v2:2026-11-09:');
- try{
-  for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(matches(k))localStorage.removeItem(k);}
- }catch(e){alert('E6検証用データの初期化に失敗しました。ブラウザの保存権限を確認してください。');return;}
- if(step==='u2'){
-  location.replace('U3_Strategy_UI_20261107_v40_E6.html?previewNow=2026-11-08T16%3A00&eventStart=2026-11-09&e6Reset=u3');
- }else if(step==='u3'){
-  const next=new URL(location.href);next.searchParams.delete('e6Reset');
-  location.replace(next.href);
+'use strict';
+const p=new URLSearchParams(location.search),step=p.get('e6Reset');
+if(!step)return;
+const week=p.get('eventStart');
+function validWeekStart(value){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;
+ const date=new Date(value+'T12:00:00Z');
+ return Number.isFinite(date.valueOf())&&date.toISOString().slice(0,10)===value&&date.getUTCDay()===1;
+}
+if(!validWeekStart(week)){alert('検証週が不明です。データは変更しませんでした。');return;}
+const matches=k=>{
+ if(k==='pokesleep-strategy-u3-e3-v1:selected'){
+  try{return JSON.parse(localStorage.getItem(k)||'null')?.weekStart===week;}
+  catch(e){return false;}
  }
+ return k.startsWith('pokesleep-strategy-u3-e3-v1:'+week+':')||
+  k.startsWith('pokesleep-strategy-u2-e2-v1:'+week+':')||
+  k.startsWith('pokesleep-strategy-u2-v3:'+week+':')||
+  k.startsWith('pokesleep-strategy-u2-v2:'+week+':');
+};
+try{
+ for(let i=localStorage.length-1;i>=0;i--){
+  const k=localStorage.key(i);if(matches(k))localStorage.removeItem(k);
+ }
+}catch(e){alert('検証データの初期化に失敗しました。保存権限を確認してください。');return;}
+const next=new URL(step==='u2'?'U3_Strategy_UI_20261107_v40_E6.html':location.href,location.href);
+if(step==='u2'){
+ const date=new Date(week+'T12:00:00Z');date.setUTCDate(date.getUTCDate()-1);
+ next.searchParams.set('previewNow',date.toISOString().slice(0,10)+'T16:00');
+ next.searchParams.set('eventStart',week);
+ next.searchParams.set('e6Reset','u3');
+}else if(step==='u3')next.searchParams.delete('e6Reset');
+else return;
+location.replace(next.href);
 })();
 </script><script>
 (()=>{'use strict';
@@ -1891,15 +1909,27 @@ autoLoadEventCandidates();
 </script><script id="e6-dev-behavior">
 (()=>{
 'use strict';
-// E6 only: changing the mock instant must NOT navigate between app tabs.
-// The production phase is derived from time + adoption; it is never manually stored.
-const U2='U2_Prep_Local_Ingredients_20261107_v40_E6.html',WEEK='2026-11-09';
-const CLOCKS={prep:'2026-11-08T16:00',start:'2026-11-09T06:00',
- during:'2026-11-11T15:00',ended:'2026-11-16T04:00'};
+// E6 only: date simulation never changes the active footer tab.
+const U2='U2_Prep_Local_Ingredients_20261107_v40_E6.html';
+const qs=new URLSearchParams(location.search);
+function validWeekStart(value){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;
+ const date=new Date(value+'T12:00:00Z');
+ return Number.isFinite(date.valueOf())&&date.toISOString().slice(0,10)===value&&date.getUTCDay()===1;
+}
+let savedWeek=null;
+try{savedWeek=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null')?.weekStart||null;}catch(e){}
+const WEEK=validWeekStart(qs.get('eventStart'))?qs.get('eventStart'):
+ validWeekStart(savedWeek)?savedWeek:'2026-11-09';
+function dateAt(dayOffset,clock){
+ const date=new Date(WEEK+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+dayOffset);
+ return date.toISOString().slice(0,10)+'T'+clock;
+}
+const CLOCKS={prep:dateAt(-1,'16:00'),start:dateAt(0,'06:00'),
+ during:dateAt(2,'15:00'),ended:dateAt(7,'04:00')};
 const labels={prep:'準備週',start:'月曜・開始直後',
  during:'水曜・週途中',ended:'イベント終了後'};
 const panel=document.getElementById('e6-dev');
-const qs=new URLSearchParams(location.search);
 const clock=qs.get('previewNow')||CLOCKS.prep;
 const current=clock<CLOCKS.start?'prep':clock<CLOCKS.during?'start':
  clock<CLOCKS.ended?'during':'ended';
@@ -1912,7 +1942,6 @@ for(const button of panel.querySelectorAll('[data-e6-stage]')){
   url.searchParams.set('previewNow',CLOCKS[stage]);
   url.searchParams.set('eventStart',WEEK);
   url.searchParams.delete('e6Reset');
-  // Retain event ID, stock transfer, the U2 goal/inventory tab, and all saved data.
   location.assign(url.href);
  });
 }
@@ -1920,17 +1949,17 @@ document.getElementById('e6-current').textContent=
  '表示日時：'+labels[current]+'／'+clock.replace('T',' ')+' JST';
 let adopted=false;
 try{
- const s=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');
- if(s){const k='pokesleep-strategy-u3-e3-v1:'+s.weekStart+':'+encodeURIComponent(s.id)+':plan';
-  adopted=Boolean(JSON.parse(localStorage.getItem(k)||'null')?.hasApplied);}
+ const selected=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');
+ if(selected?.weekStart===WEEK){
+  const key='pokesleep-strategy-u3-e3-v1:'+WEEK+':'+encodeURIComponent(selected.id)+':plan';
+  adopted=Boolean(JSON.parse(localStorage.getItem(key)||'null')?.hasApplied);
+ }
 }catch(e){}
 document.getElementById('e6-history').textContent=adopted?
- '採用済み作戦あり。日時の切替では削除しません。初回提案から試す場合のみ初期化してください。':
+ '採用済み作戦あり。日時切替では削除しません。初回から試す場合のみ初期化してください。':
  '採用済み作戦なし。条件・在庫を保存して初回提案できます。';
 document.getElementById('e6-reset').addEventListener('click',()=>{
- if(!confirm('E6検証用の11/9週のデータを初期化して準備週からやり直しますか？\n他の週のデータは消しません。'))return;
- // The reset bootstrap clears both U2/U3 file storage origins before returning
- // to U3; retain that existing two-hop cleanup to avoid stale data on Android.
+ if(!confirm('E6検証用の'+WEEK+'開始週を初期化しますか？\n他の週のデータは削除しません。'))return;
  const url=new URL(U2,location.href);
  url.searchParams.set('previewNow',CLOCKS.prep);
  url.searchParams.set('eventStart',WEEK);
@@ -1941,13 +1970,13 @@ const save=document.getElementById('save-inventory');
 save?.addEventListener('click',e=>{
  if(current!=='prep')return;
  try{
-  const k='pokesleep-strategy-u2-e2-v1:'+WEEK+':timeline';
-  const timeline=JSON.parse(localStorage.getItem(k)||'null');
+  const key='pokesleep-strategy-u2-e2-v1:'+WEEK+':timeline';
+  const timeline=JSON.parse(localStorage.getItem(key)||'null');
   const when=Date.parse(timeline?.currentInventory?.savedAt||'');
   const start=Date.parse(WEEK+'T04:00:00+09:00');
   if(Number.isFinite(when)&&when>=start){
    e.preventDefault();e.stopImmediatePropagation();
-   alert('イベント開始後の在庫記録があります。過去の保存値は上書きせず保護しました。準備週から再試験する場合は「検証データを初期化」を使用してください。');
+   alert('イベント開始後の在庫記録があります。過去の値は上書きせず保護しました。再試験する場合は「検証データを初期化」を使用してください。');
   }
  }catch(err){}
 },true);
