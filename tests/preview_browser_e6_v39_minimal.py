@@ -77,7 +77,7 @@ with sync_playwright() as pw:
  before=ls(p)
  pick(p,"pokesleep-tool:bountiful banquet week vol1:2026-11-16")
  assert not p.locator('[data-stock-count][aria-pressed="true"]').count()
- assert p.locator("#e6-event-heading").inner_text()=="bountiful banquet week vol1"
+ assert p.locator("#e6-event-heading").inner_text()=="なんでもペロリ！ごちそうウィーク vol.1"
  assert p.locator("#e6-bonus-list li").all_inner_texts()==["料理エナジー ×1.5","スキル発生率 ×1.5"] or sorted(p.locator("#e6-bonus-list li").all_inner_texts())==sorted(["料理エナジー ×1.5","スキル発生率 ×1.5"])
  assert ls(p)==before
  p.locator('[data-stock-count="1"]').click()
