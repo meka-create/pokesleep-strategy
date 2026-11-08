@@ -134,7 +134,7 @@ with sync_playwright() as pw:
     assert not p.locator('#e3-primary').is_visible(), 'unchanged prep-week plan must not show re-propose'
     def order():
         return p.evaluate("""()=>[...document.querySelector('main').children]
-            .map(e=>e.id||e.classList[0]).filter(x=>['week-content','e3-primary','sleep-settings','event-details'].includes(x))""")
+            .map(e=>e.id||(e.classList.contains('sleep-settings')?'sleep-settings':e.classList[0])).filter(x=>['week-content','e3-primary','sleep-settings','event-details'].includes(x))""")
     before=order()
     assert before[:4]==['week-content','e3-primary','sleep-settings','event-details'],before
     # The 04:00 transition must not create a button, shift the layout, or destroy the plan.
