@@ -156,6 +156,8 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 </style>
 <style id="e6-v41-prep-style">
 /* Both tabs retain the original aligned ingredient grid. Prep controls follow the complete goal list. */
+#goal-panel>.card>.card-heading,#inventory-panel>.card>.card-heading{min-height:29px;align-items:center;margin-bottom:4px}
+
 #goal-panel .prep-category-card{margin-top:10px;padding:12px}
 #goal-panel .prep-category-card .card-heading{margin-bottom:9px}
 #goal-panel .prep-category-card h2{font-size:14px}
@@ -974,8 +976,8 @@ function goto(which){
  const transfer=contextFromLink();
  const selected=fromSelected();
  const fromExisting=new URLSearchParams(location.search);
- const week=selected?.weekStart||fromExisting.get('eventStart')||transfer?.searchParams.get('eventStart');
- const eventId=selected?.id||fromExisting.get('eventId')||transfer?.searchParams.get('eventId');
+ const week=fromExisting.get('eventStart')||selected?.weekStart||transfer?.searchParams.get('eventStart');
+ const eventId=fromExisting.get('eventId')||selected?.id||transfer?.searchParams.get('eventId');
  const clock=fromExisting.get('previewNow');
  if(week)destination.searchParams.set('eventStart',week);
  if(eventId)destination.searchParams.set('eventId',eventId);
