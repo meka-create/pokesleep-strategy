@@ -2,7 +2,11 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const dir=path.resolve(__dirname,'../previews');
-const parser=require(path.join(dir,'e7-box-csv-v50.js'));
+// The browser adapter is a classic script under a package with "type":"module".
+ // Execute in an isolated CommonJS-compatible VM instead of relying on require(ESM).
+ const sandbox={module:{exports:{}},globalThis:{}};
+ vm.runInNewContext(fs.readFileSync(path.join(dir,'e7-box-csv-v50.js'),'utf8'),sandbox);
+ const parser=sandbox.module.exports;
 const JP=['ニックネーム','ポケモン','レベル','スキルレベル','食材1','食材2','食材3','メインスキル','せいかく','まっしろミント',
  'Lv10','Lv25','Lv50','Lv70','Lv80','一緒に眠った時間','色違い','お気に入り'];
 const basic=['こだわり,ポケモン','ピカチュウ','50','5','とくせんリンゴ','あったかジンジャー','とくせんリンゴ','でんきショック','いじっぱり','1',
@@ -49,7 +53,7 @@ test('E7 malformed quote and invalid row do not lead to partial adoption',()=>{
  assert.throws(()=>parser.parseBox(JP.join(',')+'\n"壊れた行,ピカチュウ'),/引用符/);
  const mixed=csv()+'\n'+basic.map((v,i)=>i===2?'BAD':v.includes(',')?'"'+v+'"':v).join(',');
  const r=parser.parseBox(mixed);
- assert.equal(r.ok,false);assert.deepEqual(r.items,[]);assert.equal(r.errors.length,1);
+ assert.equal(r.ok,false);assert.equal(r.items.length,0);assert.equal(r.errors.length,1);
 });
 test('E7 parser handles quoted multiline field, CRLF and BOM',()=>{
  const input='\uFEFF'+JP.join(',')+'\r\n'+basic.map((x,i)=>i===0?'"改行\n名前"':x.includes(',')?'"'+x+'"':x).join(',')+'\r\n';
