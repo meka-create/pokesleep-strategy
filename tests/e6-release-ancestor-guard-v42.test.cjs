@@ -17,7 +17,7 @@ test('E6 delivery: ZIP contains only exact current v42 files and one README; nev
  // Read the central directory through the platform ZIP validator rather than
  // an ad-hoc parser. unzip verifies offsets and CRC while -p yields exact bytes.
  const listing=execFileSync('unzip',['-Z','-1',packagePath],{encoding:'utf8',timeout:10000});
- const observed=listing.trim().split(/\\r?\\n/);
+ const observed=listing.trim().split(/\r?\n/);
  assert.deepEqual(observed,['00_README_START_HERE.txt',...names],'no ancestor files and no unrelated repository payloads');
  for(const name of observed){
   const entry=execFileSync('unzip',['-p',packagePath,name],{timeout:10000,maxBuffer:2_500_000});
