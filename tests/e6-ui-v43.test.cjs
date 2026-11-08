@@ -32,7 +32,7 @@ test('v43 validation never guesses invalid event start and highlights visible cu
  assert.match(u3,/const control=errors\[0\]==='event-save'\?\$\('#event-save'\):e6VisibleControl\(errors\[0\]\)/);
  assert.match(u3,/if\(!\$\('#event-field'\)\.value\)errors\.push\('event-field'\)/);
  assert.match(u3,/used\.has\(v\)/);
- assert.match(u3,/if\(needsEX\(\).*e6-ex-effect/);
+ assert.match(u3,/if\(needsEX\(\)[\s\S]*?errors\.push\('e6-ex-effect'\)/);
  assert.match(u3,/node\.setAttribute\('aria-invalid','true'\)/);
 });
 test('v43 badge derives from authoritative action, event locked stock and validated week',()=>{
