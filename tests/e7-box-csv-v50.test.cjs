@@ -34,6 +34,16 @@ test('E7 header mapping supports older 16-column headers without positional shif
  assert.equal(got.items[0].mint,null);assert.equal(got.items[0].favorite,null);
  assert.equal(got.items[0].ribbon,500);assert.equal(got.items[0].shiny,false);
 });
+test('E7 transitional 17-column exporter (favorite before mint) preserves favorite without inventing mint',()=>{
+ // Upstream 445bc1d084a1 (2026-10-27): favorites; mint added separately on Oct 29.
+ const head=JP.filter(x=>x!=='まっしろミント');
+ const row=basic.filter((_,i)=>JP[i]!=='まっしろミント');
+ const got=parser.parseBox(csv(head,row));
+ assert.equal(got.ok,true);assert.equal(got.variant,'header-mapped-17');
+ assert.equal(got.items[0].mint,null);
+ assert.equal(got.items[0].favorite,'💛');
+ assert.equal(got.items[0].ribbon,500);
+});
 test('E7 reorders columns correctly, never uses fixed offsets',()=>{
  const indices=[8,0,12,17,9,11,16,1,2,3,4,5,6,7,10,13,14,15];
  const head=indices.map(i=>JP[i]),row=indices.map(i=>basic[i]);

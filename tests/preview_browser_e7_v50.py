@@ -75,8 +75,9 @@ try:
         page.wait_for_url('**tab=plan')
         assert 'U3_Strategy_UI' in page.locator('#e7-frame').get_attribute('src')
         assert page.evaluate("()=>JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:2026-11-09:timeline')).currentInventory") is not None
-        page.go_back()
-        page.wait_for_url('**tab=box')
+        # SPA pushState/popstate is same-document navigation: do not wait for a full load.
+        page.evaluate("history.back()")
+        page.wait_for_url('**tab=box',wait_until='commit')
         assert 'U4_Box_Preview' in page.locator('#e7-frame').get_attribute('src')
         assert frame.locator('#box-count').inner_text().strip()=='1匹'
         # Adopt the illustrative plan, then change stock: the cross-tab dot must survive
