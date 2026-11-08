@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test tests/*.test.cjs",
+    "test": "node scripts/ensure-playwright.cjs && node --test tests/*.test.cjs",
     "check": "npm run build && npm run test",
     "m1:audit": "node scripts/step2-m1-audit.cjs",
     "m1:mixed-meal-provenance": "node scripts/step2-m1-mixed-meal-provenance.cjs",
