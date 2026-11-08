@@ -48,6 +48,9 @@ test('E6 delivery: ZIP contains only exact current v41 files and one README; nev
   for(const n of names)assert.ok(s.includes(n),'mixed-version navigation: '+payload.name+' => '+n);
   assert.doesNotMatch(s,/U[234]_[^"']*20261107_v40_E6\.html/);
   assert.doesNotMatch(s,/<small>(?:当日編成|目標・在庫|個体管理)<\/small>/);
+  const htmlTitle=s.slice(s.indexOf('<title>'),s.indexOf('</title>')+8);
+  assert.ok(htmlTitle.includes('v41'),'browser title must identify current v41: '+payload.name);
+  assert.ok(!/v(?:24|29|30|33|39|40)/.test(htmlTitle),'ancestor browser title: '+payload.name);
  }
 });
 
