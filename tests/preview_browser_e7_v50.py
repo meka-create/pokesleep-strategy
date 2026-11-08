@@ -30,7 +30,18 @@ try:
         page.on('dialog',lambda dialog:dialog.accept())
         page.goto(BASE+'?previewNow=2026-11-08T16:00',wait_until='domcontentloaded')
         frame=page.frame_locator('#e7-frame')
-        assert 'U3_Strategy_UI' in page.locator('#e7-frame').evaluate('(e)=>e.contentWindow.location.href')
+        def wait_frame(fragment):
+            # Parent pushState is synchronous, but iframe location.replace is asynchronous.
+            # Wait for the correct child document to load, not just for the parent's URL.
+            page.wait_for_function("""(fragment)=>{
+                const iframe=document.getElementById('e7-frame');
+                try{
+                    return iframe?.contentWindow?.location?.href.includes(fragment)
+                        && iframe.contentDocument?.readyState==='complete';
+                }catch(e){return false;}
+            }""",arg=fragment,timeout=15000)
+            return page.locator('#e7-frame').evaluate('(e)=>e.contentWindow.location.href')
+        assert 'U3_Strategy_UI' in wait_frame('U3_Strategy_UI')
         # Select an event in the ONE event-conditions screen; U5 must not invent one.
         select(frame,'event-start','2026-11-09')
         select(frame,'event-field','シアンの砂浜')
@@ -41,7 +52,7 @@ try:
         # Footer navigation is controlled by the shell, with browser history.
         frame.locator('#e6-footer-prep').click()
         page.wait_for_url('**tab=prep')
-        assert 'U2_Prep_Local' in page.locator('#e7-frame').evaluate('(e)=>e.contentWindow.location.href')
+        assert 'U2_Prep_Local' in wait_frame('U2_Prep_Local')
         assert 'pokesleepStock=' not in page.locator('#e7-frame').evaluate('(e)=>e.contentWindow.location.href')
         assert 'eventId=manual%3A2026-11-09' in page.locator('#e7-frame').evaluate('(e)=>e.contentWindow.location.href')
         frame.locator('#btn-inventory').click()
@@ -55,7 +66,7 @@ try:
         # Real box registration and player parameters, with explicit confirmation.
         frame.locator('#e6-footer-box').click()
         page.wait_for_url('**tab=box')
-        assert 'U4_Box_Preview' in page.locator('#e7-frame').evaluate('(e)=>e.contentWindow.location.href')
+        assert 'U4_Box_Preview' in wait_frame('U4_Box_Preview')
         frame.locator('#player-pot').fill('57')
         frame.locator('#player-bag').fill('700')
         frame.locator('#e7-bonuses summary').click()
@@ -73,12 +84,12 @@ try:
         assert box['items'][0]['lv70']=='' and box['items'][0]['lv80']==''
         frame.locator('#e6-footer-plan').click()
         page.wait_for_url('**tab=plan')
-        assert 'U3_Strategy_UI' in page.locator('#e7-frame').evaluate('(e)=>e.contentWindow.location.href')
+        assert 'U3_Strategy_UI' in wait_frame('U3_Strategy_UI')
         assert page.evaluate("()=>JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:2026-11-09:timeline')).currentInventory") is not None
         # SPA pushState/popstate is same-document navigation: do not wait for a full load.
         page.evaluate("history.back()")
         page.wait_for_url('**tab=box',wait_until='commit')
-        assert 'U4_Box_Preview' in page.locator('#e7-frame').evaluate('(e)=>e.contentWindow.location.href')
+        assert 'U4_Box_Preview' in wait_frame('U4_Box_Preview')
         assert frame.locator('#box-count').inner_text().strip()=='1匹'
         # Adopt the illustrative plan, then change stock: the cross-tab dot must survive
         # without any pokesleepStock/pokesleepPlanWatch URL packet.
@@ -106,11 +117,11 @@ try:
         assert frame.locator('#e6-footer-plan').get_attribute('data-reproposal')=='false', 'dot did not clear after adoption'
         # NEW launch (no tab query) derives screen from 04:00 JST, not from prior tab browsing.
         page.goto(BASE+'?previewNow=2026-11-08T16:00',wait_until='domcontentloaded')
-        assert 'U2_Prep_Local' in page.locator('#e7-frame').evaluate('(e)=>e.contentWindow.location.href')
+        assert 'U2_Prep_Local' in wait_frame('U2_Prep_Local')
         page.goto(BASE+'?previewNow=2026-11-09T03:59',wait_until='domcontentloaded')
-        assert 'U2_Prep_Local' in page.locator('#e7-frame').evaluate('(e)=>e.contentWindow.location.href')
+        assert 'U2_Prep_Local' in wait_frame('U2_Prep_Local')
         page.goto(BASE+'?previewNow=2026-11-09T04:00',wait_until='domcontentloaded')
-        assert 'U3_Strategy_UI' in page.locator('#e7-frame').evaluate('(e)=>e.contentWindow.location.href')
+        assert 'U3_Strategy_UI' in wait_frame('U3_Strategy_UI')
         # U6: U4 must stay within the narrow Pixel viewport.
         for width in (320,393,430):
             page.set_viewport_size({'width':width,'height':852})
