@@ -22,3 +22,11 @@ test('E7 SW and manifest are scoped to preview folder, not production',()=>{
  assert.match(script,/pokesleep-strategy-e7-v50/);
  for(const name of names)if(name!=='e7-sw-v50.js')assert.ok(script.includes(name)||name==='e7-icon-v50.svg');
 });
+
+test('E7 preview SW fetches online assets before using offline cache (avoid stale v50)',()=>{
+ const script=fs.readFileSync(path.join(root,'previews','e7-sw-v50.js'),'utf8');
+ const network=script.indexOf("fetch(event.request,{cache:'no-store'})");
+ const fallback=script.indexOf('cache.match(canonical.href)');
+ assert.ok(network>0&&fallback>network,'network-first then offline fallback is required');
+ assert.match(script,/if\(response\.ok\)await cache\.put\(canonical\.href,response\.clone\(\)\)/);
+});

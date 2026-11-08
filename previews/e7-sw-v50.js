@@ -19,9 +19,16 @@ self.addEventListener('fetch',event=>{
  if(event.request.method!=='GET')return;
  const canonical=new URL(event.request.url);canonical.search='';canonical.hash='';
  if(!allowed.has(canonical.href))return;
- event.respondWith(caches.open(CACHE).then(async cache=>{
-  // Cached versioned HTML is shared by previewNow/eventId navigation query variants.
-  const hit=await cache.match(canonical.href);
-  return hit||fetch(event.request);
- }));
+ event.respondWith((async()=>{
+  const cache=await caches.open(CACHE);
+  // Prefer the network so a newly reviewed v50 build cannot be masked by a
+  // previous v50 cache. Offline only, fall back to the last valid response.
+  try{
+   const response=await fetch(event.request,{cache:'no-store'});
+   if(response.ok)await cache.put(canonical.href,response.clone());
+   return response;
+  }catch(e){
+   return await cache.match(canonical.href)||Response.error();
+  }
+ })());
 });

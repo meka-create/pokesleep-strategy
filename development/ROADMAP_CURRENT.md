@@ -1,5 +1,14 @@
 # ポケスリ作戦室 — 開発ロードマップ正本（2026-11-04再編・フェーズ導線）
 
+## 2026-11-09 — E7 v50 U6自動検証完了・実機受入待ち（最新状態）
+
+- **E6 v49実機確認を受領**。E7 U4（プレイヤー情報/ボックス）・U5（3画面同一オリジン統合）・U6（自動回帰）を別ブランチのDraft PR #130で進めた。本番main・E6 v49は変更しない。
+- **U6基準CI合格**：コミット `d8dc862beb8ca2837796817dc038b53f65584a41` で Validate PokeSleep Strategy [#42505489703](https://github.com/meka-create/pokesleep-strategy/actions/runs/42505489703) と Validate STEP 2 [#42505489719](https://github.com/meka-create/pokesleep-strategy/actions/runs/42505489719) **各634/634 PASS、失敗0**。E7のHTTP同一オリジンChromium E2E（保存/CSV/画面移動/ブラウザBack/再提案通知/04:00）、旧E1～E6の回帰、ZIP全バイト一致を含む。
+- CSV上流履歴を確認：2026-10-09 16列→10-27 17列（お気に入り）→10-29 18列（まっしろミント）。ヘッダー名で安全に対応し、未知形式は拒否。**マスター値へ自動変換せずF1で照合**。
+- U6監査追加：同じv50のキャッシュを再利用して修正版が隠れないよう、プレビュー用Service Workerを**オンライン優先／オフラインキャッシュ代替**へ修正。最終コミットで両CI再実行後に確定する。
+- 実機受入方法：専用ZIP `deliverables/PokeSleep_Strategy_E7_v50_ONLY_20261109.zip` の全ファイルをPCで展開し、同一LANのPCからHTTPで配信してPixel 7aでU5を開く（詳細はZIPのREADME）。**file:// では同一オリジン試験を判定しない**。
+- **E7最終受入はAndroid Chrome実機確認＋明示承認後。F1～F6の本計算、main統合、データ形式実ゲーム互換はHOLD。**
+
 ## 2026-11-09 — E7 v50 (U4→U5→U6) 開発候補 / E6 v49実機確認済
 
 - ユーザーがE6 v49のPixel 7a実機確認完了を報告し、E7へ進行を指示した。E6版と本番mainを変更せず、v49コミット \`db4ceecd8df4017690959b7919507276f9d87657\` を基準に **E7 v50新規版を非破壊派生**。
