@@ -1182,7 +1182,6 @@ function populateEventOptions(){
 }
 // Explicit per-event preference: never silently choose a stockpile target.
 const STOCK_TYPES=['curry','salad','dessert'];
-let prepDraft=null;
 function normalizePrep(value){
  if(!value||!Number.isInteger(value.count)||value.count<1||value.count>3||
   !Array.isArray(value.categories)||new Set(value.categories).size!==value.categories.length||
@@ -1218,36 +1217,6 @@ function importPrepFromU2(){
  eventInfo.prep=prep;draft=null;stockPending=null;
  if(!storeState()){eventInfo.prep=previous.prep;draft=previous.draft;stockPending=previous.stockPending;}
 }
-function renderPrep(){
- if(!$('#e6-stock-types'))return; // The editable control lives on U2 as of E6 v41.
- const count=prepDraft?.count||0,types=prepDraft?.categories||[];
- document.querySelectorAll('[data-stock-count]').forEach(b=>{
-  b.setAttribute('aria-pressed',String(Number(b.dataset.stockCount)===count));
- });
- $('#e6-stock-types').hidden=count===0||count===3;
- document.querySelectorAll('[data-stock-type]').forEach(b=>{
-  const selected=types.includes(b.dataset.stockType);
-  b.setAttribute('aria-pressed',String(selected||count===3));
-  b.disabled=count===3||(count>0&&!selected&&types.length>=count);
- });
-}
-function checkedPrep(){
- if(prepDraft===null)return null;
- return normalizePrep(prepDraft)||false;
-}
-document.querySelectorAll('[data-stock-count]').forEach(b=>b.addEventListener('click',()=>{
- const count=Number(b.dataset.stockCount);
- if(![1,2,3].includes(count))return;
- prepDraft={count,categories:count===3?[...STOCK_TYPES]:[]};
- renderPrep();
-}));
-document.querySelectorAll('[data-stock-type]').forEach(b=>b.addEventListener('click',()=>{
- if(!prepDraft||prepDraft.count===3)return;
- const type=b.dataset.stockType,idx=prepDraft.categories.indexOf(type);
- if(idx>=0)prepDraft.categories.splice(idx,1);
- else if(prepDraft.categories.length<prepDraft.count)prepDraft.categories.push(type);
- renderPrep();
-}));
 // User-confirmed weekly values are separate from the event bonus.
 const BERRY_TYPES=['ノーマル','ほのお','みず','でんき','くさ','こおり','かくとう','どく','じめん','ひこう','エスパー','むし','いわ','ゴースト','ドラゴン','あく','はがね','フェアリー'];
 const RANDOM_FIELD=new Set(['ワカクサ本島','ワカクサ本島EX','シアンの砂浜EX']);
@@ -1296,10 +1265,9 @@ function syncEventControls(){
  $('#event-field').value=eventInfo.field;$('#event-food').value=eventInfo.food;
  setSwitch('event-camp',eventInfo.camp);
  applySavedBerryEntry();
- prepDraft=normalizePrep(eventInfo.prep);
  populateEventOptions();
  refreshSelect('event-food');refreshSelect('event-field');
- renderPrep();updateEventConditionSummary();
+ updateEventConditionSummary();
 }
 function updateEventConditionSummary(){
  const source=currentEventChoice(),panel=$('#e6-bonus-panel');
@@ -1321,9 +1289,8 @@ $('#event-source-select').addEventListener('change',()=>{
  if(!id){
   pendingEventSource=null;
   manualSourceRequested=Boolean(eventInfo.source);
-  prepDraft=readEventPrep(null,$('#event-start').value||eventInfo.start);
   for(const id of ['#e6-berry-main','#e6-berry-sub1','#e6-berry-sub2','#e6-ex-effect'])$(id).value='';
-  showBerrySetup();renderPrep();
+  showBerrySetup();
  }else{
   const source=eventCandidates.find(x=>x.id===id)||
    (eventInfo.source?.id===id?eventInfo.source:null)||
@@ -1335,11 +1302,10 @@ $('#event-source-select').addEventListener('change',()=>{
   manualSourceRequested=false;
   $('#event-start').value=source.start;
   if(source.foodAll)$('#event-food').value='all';
-  prepDraft=readEventPrep(source,source.start);
   if(source.id!==eventInfo.source?.id){
    for(const id of ['#e6-berry-main','#e6-berry-sub1','#e6-berry-sub2','#e6-ex-effect'])$(id).value='';
   }
-  showBerrySetup();renderPrep();
+  showBerrySetup();
   if(before&&before!==source.start){
    // A new event must not inherit old field/food; known all-category override is safe.
    $('#event-food').value=source.foodAll?'all':'';
@@ -1771,11 +1737,16 @@ $('#event-save').onclick=()=>{
  }
  $('#event-start').removeAttribute('aria-invalid');
  if(pendingEventSource&&pendingEventSource.start!==d){showToast('選んだイベントの開催日と開始日が異なります。',true);return;}
- const prep=checkedPrep();
- if(prep===false){showToast('備蓄するカテゴリを選択してください。',true);return;}
+ // U2 alone edits prep categories. Never copy a category from another event,
+ // and never reinstate an outdated hidden U3 preference during condition save.
+ importPrepFromU2();
+ const nextSource=manualSourceRequested?null:pendingEventSource?clone(pendingEventSource):
+  (eventInfo.start===d?clone(eventInfo.source||null):null);
+ const nextId=nextSource?.id||'manual:'+d;
+ const sameEvent=d===eventInfo.start&&e3Selected?.id===nextId;
+ const prep=sameEvent?normalizePrep(eventInfo.prep):readEventPrep(nextSource,d);
  const next={start:d,field:$('#event-field').value,food:$('#event-food').value,camp:switchOn('event-camp'),
- source:manualSourceRequested?null:pendingEventSource?clone(pendingEventSource):
- (eventInfo.start===d?clone(eventInfo.source||null):null),prep,berrySetup:readBerryEntry()};
+  source:nextSource,prep,berrySetup:readBerryEntry()};
  const oldStart=eventInfo.start;
  if(next.start!==oldStart){
   // Never carry an unedited meal category/field/camp entitlement into a different week.
@@ -1784,7 +1755,6 @@ $('#event-save').onclick=()=>{
   if(next.food===eventInfo.food)next.food='';
  }
  const changed=JSON.stringify(next)!==JSON.stringify(eventInfo);
- const nextId=next.source?.id||'manual:'+next.start;
  const selectionChanged=!e3Selected||e3Selected.weekStart!==next.start||e3Selected.id!==nextId;
  if(selectionChanged&&e3Selected)storeState();
  const selection={id:nextId,weekStart:next.start};
@@ -1796,7 +1766,7 @@ $('#event-save').onclick=()=>{
   let restored=false;
   if(selectionChanged){
    restored=restoreState(next.start,true);
-   eventInfo.prep=prep;
+   eventInfo.prep=normalizePrep(restored?eventInfo.prep:prep);
    selectDayOnOpen(); // Selecting a different event is a new week-view opening.
    refreshInventory();
   }
