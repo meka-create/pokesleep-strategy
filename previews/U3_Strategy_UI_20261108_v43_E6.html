@@ -263,9 +263,9 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 <section class="card sleep-settings" aria-label="睡眠編成の設定"><div class="section-head"><h2>睡眠編成</h2><div class="sleep-controls"><button type="button" class="control-toggle sleep-auto-toggle" id="auto-sleep" role="switch" aria-checked="false" aria-label="睡眠編成を自動提案"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button><button type="button" id="sleep-open" class="btn small secondary">設定</button></div></div></section>
 <section class="card plan-actions" aria-label="週間作戦の操作"><button type="button" id="generate" class="btn full">7日間の作戦を提案</button><button type="button" id="repropose" class="btn secondary full" hidden>作戦を再提案</button><button type="button" id="resume-draft" class="btn secondary full" hidden>未採用の提案を確認</button><p class="hint" id="event-gate" role="status" aria-live="polite" hidden></p><p class="hint" id="stock-gate" hidden>食材在庫を保存すると提案できます。<a class="u2-nav" href="U2_Prep_Local_Ingredients_20261108_v43_E6.html">食材在庫へ</a></p><p class="hint" id="inventory-notice" hidden></p><a class="hint u2-nav" href="U2_Prep_Local_Ingredients_20261108_v43_E6.html">食材在庫の入力・修正は準備画面で行う</a><p class="hint" id="mock-note">このプレビューの編成と料理は操作確認用の例です。</p><div id="status" class="status-message" role="status" aria-live="polite"></div></section>
 <section class="card" id="week-content" hidden><div class="section-head"><h2 id="current-state-title">週間編成</h2><span class="energy" id="e4-result-energy" hidden aria-hidden="true">週間エナジー <b>—</b></span><span id="e4-changed" hidden>更新前の作戦</span></div><div class="week-head"><div class="day-title"><span id="day-label">月曜日</span><small id="day-date">11/9</small></div></div><div class="daynav" id="day-nav" role="tablist" aria-label="曜日を選択"></div><div id="slots"></div><a class="hint u2-nav" id="e3-update-stock" href="U2_Prep_Local_Ingredients_20261108_v43_E6.html">食材在庫を更新</a></section></main></div><nav id="e6-footer" aria-label="メインナビゲーション">
-<a id="e6-footer-plan" href="U3_Strategy_UI_20261108_v43_E6.html" aria-current="page"><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m-14 5h3m4 0h3"/></svg><span>作戦</span></a>
-<a id="e6-footer-prep" href="U2_Prep_Local_Ingredients_20261108_v43_E6.html" ><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 9h16v12H4zM3 6h18v3H3zM12 6v15M9 6c-5 0-5-5-1-5 2 0 4 4 4 5zm6 0c5 0 5-5 1-5-2 0-4 4-4 5z"/></svg><span>準備</span></a>
-<a id="e6-footer-box" href="U4_Box_Preview_20261108_v43_E6.html" ><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12m6-12v12"/></svg><span>ボックス</span></a>
+<a id="e6-footer-plan" href="U3_Strategy_UI_20261108_v43_E6.html" aria-current="page"><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m-14 5h3m4 0h3"/></svg><span>作戦</span></a>
+<a id="e6-footer-prep" href="U2_Prep_Local_Ingredients_20261108_v43_E6.html"><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 8.3c-2.7-3.5-7-2.5-8.5.6-2.6 5.4.6 12.1 4.4 12.1 1.8 0 2.5-.8 3.9-.8s2.2.8 3.9.8c3.8 0 7-6.7 4.4-12.1-1.6-3.1-5.9-4.1-8.6-.6z"/><path d="M12.3 8c0-3.3 1.2-5 3.3-6"/><path d="M12.5 7C14 4.3 17 4.1 19 5c-1.8 2.7-4 3.6-6.5 2z"/></svg><span>準備</span></a>
+<a id="e6-footer-box" href="U4_Box_Preview_20261108_v43_E6.html"><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 3.5 7.4v9.2L12 21.3l8.5-4.7V7.4L12 2.8z"/><path d="M3.5 7.4 12 12l8.5-4.6M12 12v9.3"/></svg><span>ボックス</span></a>
 </nav><div id="ui-toast" class="ui-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 <dialog class="modal sleep-modal" id="sleep-dialog" aria-labelledby="sleep-title"><div class="modal-head"><h2 id="sleep-title">睡眠編成</h2><button type="button" class="btn small ghost" id="sleep-close">閉じる</button></div><p class="review-note">基本の5匹を全7晩に設定し、必要な曜日だけ変更できます。</p><div id="sleep-manual"><div id="sleep-day-nav" class="daynav" role="tablist" aria-label="睡眠設定の曜日"></div><div id="sleep-team-preview" class="sleep-team-preview"></div><div class="sleep-actions"><button type="button" class="btn secondary full" id="sleep-change">この夜の5匹を変更</button><button type="button" class="btn ghost full" id="sleep-copy">この5匹を全7晩に設定</button></div></div></dialog>
 
@@ -1962,7 +1962,7 @@ render=function(){
  // Badge is the very same finalized action as the primary button, not a page-read flag.
  const watch=selected?{version:1,weekStart:eventInfo.start,eventId:e3Selected.id,
   adopted,conditionsReady:ready,hasFuture,nonStockChanged:changes.conditions||changes.sleep,
-  stockConfirmed:adopted?stockConfirmed:null,needsReproposal:action==='REPROPOSE'}:null;
+  stockConfirmed:adopted?stockConfirmed:null,draftReady,needsReproposal:action==='REPROPOSE'}:null;
  const footerPlan=$('#e6-footer-plan');
  footerPlan.dataset.reproposal=String(action==='REPROPOSE');
  footerPlan.dataset.planWatch=watch?JSON.stringify(watch):'';
@@ -2097,6 +2097,70 @@ function contextFromLink(){
  if(u?.href){try{return new URL(u.href)}catch(e){}}
  return null;
 }
+// Event/week-locked watch packet for file:// preview tabs. Not a second source of plans.
+function watchSelection(){
+ const q=new URLSearchParams(location.search),local=fromSelected();
+ const week=q.get('eventStart')||local?.weekStart;
+ const eventId=q.get('eventId')||local?.id;
+ return /^\d{4}-\d{2}-\d{2}$/.test(week||'')&&typeof eventId==='string'&&
+  eventId.length>0&&eventId.length<=160?{week,eventId}:null;
+}
+function watchPacket(){
+ const raw=sel('#e6-footer-plan')?.dataset.planWatch||
+  new URLSearchParams(location.search).get('pokesleepPlanWatch');
+ if(!raw||raw.length>5000)return null;
+ try{
+  const w=JSON.parse(raw),selected=watchSelection();
+  return w?.version===1&&selected&&w.weekStart===selected.week&&
+   w.eventId===selected.eventId&&w.adopted===true&&w.hasFuture===true?w:null;
+ }catch(e){return null;}
+}
+function readNewestInventory(w){
+ const items=[];
+ try{
+  const record=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+w.weekStart+':timeline')||'null');
+  if(record?.eventId===w.eventId&&record.currentInventory)
+   items.push({values:record.currentInventory.values,savedAt:record.currentInventory.savedAt});
+ }catch(e){}
+ const raw=new URLSearchParams(location.search).get('pokesleepStock')||
+  contextFromLink()?.searchParams.get('pokesleepStock');
+ if(raw&&raw.length<6000){
+  try{const obj=JSON.parse(raw);
+   if(obj.eventId===w.eventId&&obj.weekStart===w.weekStart&&obj.values)
+    items.push({values:obj.values,savedAt:obj.savedAt});
+  }catch(e){}
+ }
+ items.sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));
+ return items[0]?.values||null;
+}
+function eventStillActive(week){
+ const date=new Date(week+'T12:00:00Z');
+ if(!Number.isFinite(date.valueOf()))return false;
+ date.setUTCDate(date.getUTCDate()+7);
+ const nextWeek=date.toISOString().slice(0,10);
+ const preview=new URLSearchParams(location.search).get('previewNow');
+ const now=preview&&/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(preview)?
+  Date.parse(preview+':00+09:00'):Date.now();
+ return now<Date.parse(nextWeek+'T04:00:00+09:00');
+}
+function refreshReproposalDot(){
+ const node=sel('#e6-footer-plan');
+ if(!node)return;
+ if(node.getAttribute('aria-current')==='page'){
+  node.setAttribute('aria-label',node.dataset.reproposal==='true'?'作戦（再提案が必要）':'作戦');
+  return;
+ }
+ const w=watchPacket();
+ let needed=false;
+ if(w&&w.conditionsReady===true&&w.draftReady!==true&&eventStillActive(w.weekStart)){
+  const now=readNewestInventory(w);
+  const diff=now&&w.stockConfirmed&&
+   JSON.stringify(now)!==JSON.stringify(w.stockConfirmed);
+  needed=Boolean(w.nonStockChanged||diff);
+ }
+ node.dataset.reproposal=String(needed);
+ node.setAttribute('aria-label',needed?'作戦（再提案が必要）':'作戦');
+}
 function goto(which){
  const destination=new URL(target[which],location.href);
  const transfer=contextFromLink();
@@ -2105,6 +2169,9 @@ function goto(which){
  const week=selected?.weekStart||fromExisting.get('eventStart')||transfer?.searchParams.get('eventStart');
  const eventId=selected?.id||fromExisting.get('eventId')||transfer?.searchParams.get('eventId');
  const clock=fromExisting.get('previewNow');
+ // Keep the signed-by-context event/week and adopted-plan basis when crossing standalone HTML files.
+ const watch=watchPacket();
+ if(watch)destination.searchParams.set('pokesleepPlanWatch',JSON.stringify(watch));
  if(week)destination.searchParams.set('eventStart',week);
  if(eventId)destination.searchParams.set('eventId',eventId);
  if(clock)destination.searchParams.set('previewNow',clock);
@@ -2124,6 +2191,11 @@ function goto(which){
  }
  location.assign(destination.href);
 }
+window.addEventListener('pageshow',refreshReproposalDot);
+window.addEventListener('storage',refreshReproposalDot);
+sel('#save-inventory')?.addEventListener('click',refreshReproposalDot);
+sel('#e6-prep-save')?.addEventListener('click',refreshReproposalDot);
+refreshReproposalDot();
 for(const [name,id] of [['plan','#e6-footer-plan'],['prep','#e6-footer-prep'],['box','#e6-footer-box']]){
  const a=sel(id);if(!a)continue;
  a.addEventListener('click',event=>{event.preventDefault();goto(name);});
