@@ -14,24 +14,13 @@ const packagePath=path.join(root,'deliverables','PokeSleep_Strategy_E6_v42_ONLY_
 const payloads=names.map(n=>({name:n,data:fs.readFileSync(path.join(root,'previews',n))}));
 
 test('E6 delivery: ZIP contains only exact current v42 files and one README; never older previews',{timeout:15000},()=>{
- const zip=fs.readFileSync(packagePath);
- const eocd=zip.length-22;
- assert.equal(zip.readUInt32LE(eocd),0x06054b50,'ZIP end-of-central-directory');
- const count=zip.readUInt16LE(eocd+10);
- assert.equal(count,names.length+1,'no unrelated files or legacy previews');
- let cur=zip.readUInt32LE(eocd+16);
- const observed=[];
- for(let i=0;i<count;i++){
-  assert.equal(zip.readUInt32LE(cur),0x02014b50,'central directory header');
-  const method=zip.readUInt16LE(cur+10);
-  assert.equal(method,0,'uncompressed archive keeps exact source HTML');
-  const nlen=zip.readUInt16LE(cur+28),elen=zip.readUInt16LE(cur+30),clen=zip.readUInt16LE(cur+32);
-  const name=zip.subarray(cur+46,cur+46+nlen).toString('utf8');
-  const dataSize=zip.readUInt32LE(cur+24),localOffset=zip.readUInt32LE(cur+42);
-  assert.equal(zip.readUInt32LE(localOffset),0x04034b50,'local header');
-  const dataOffset=localOffset+30+zip.readUInt16LE(localOffset+26)+zip.readUInt16LE(localOffset+28);
-  const entry=zip.subarray(dataOffset,dataOffset+dataSize);
-  observed.push(name);
+ // Read the central directory through the platform ZIP validator rather than
+ // an ad-hoc parser. unzip verifies offsets and CRC while -p yields exact bytes.
+ const listing=execFileSync('unzip',['-Z','-1',packagePath],{encoding:'utf8',timeout:10000});
+ const observed=listing.trim().split(/\\r?\\n/);
+ assert.deepEqual(observed,['00_README_START_HERE.txt',...names],'no ancestor files and no unrelated repository payloads');
+ for(const name of observed){
+  const entry=execFileSync('unzip',['-p',packagePath,name],{timeout:10000,maxBuffer:2_500_000});
   if(name==='00_README_START_HERE.txt'){
    assert.match(entry.toString('utf8'),/v42/);
    assert.match(entry.toString('utf8'),/v41以前の画面やリポジトリ一式は入っていません/);
@@ -40,9 +29,7 @@ test('E6 delivery: ZIP contains only exact current v42 files and one README; nev
    assert.ok(expected,'unapproved or ancestor filename in ZIP: '+name);
    assert.ok(entry.equals(expected.data),'ZIP source mismatch: '+name);
   }
-  cur+=46+nlen+elen+clen;
  }
- assert.deepEqual(observed,['00_README_START_HERE.txt',...names]);
  for(const payload of payloads){
   const s=payload.data.toString('utf8');
   for(const n of names)assert.ok(s.includes(n),'mixed-version navigation: '+payload.name+' => '+n);
