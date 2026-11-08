@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101a29"><meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="e7-manifest-v50.webmanifest"><title>ポケスリ作戦室 / E7 v50統合</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;background:#101c2b}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#101c2b}
+#e7-frame{display:block;width:100%;height:100vh;height:100dvh;border:0;background:#101c2b;color:white}
+#e7-banner{position:fixed;left:10px;right:10px;top:10px;z-index:99;padding:9px 12px;color:#fff7e6;background:#503e35;border:1px solid #cc9b6a;border-radius:8px;font:12px system-ui}
+#e7-banner[hidden]{display:none}
+</style></head><body>
+<iframe title="ポケスリ作戦室" id="e7-frame" loading="eager"></iframe>
+<div id="e7-banner" hidden role="status"></div>
+<script>
+(()=>{
+'use strict';
+const FILES={
+ plan:'U3_Strategy_UI_20261109_v50_E7.html',
+ prep:'U2_Prep_Local_Ingredients_20261109_v50_E7.html',
+ box:'U4_Box_Preview_20261109_v50_E7.html'
+};
+const LABELS={plan:'作戦',prep:'準備',box:'ボックス'};
+const frame=document.getElementById('e7-frame'),banner=document.getElementById('e7-banner');
+const validTab=key=>Object.hasOwn(FILES,key);
+const weekIsValid=x=>{
+ if(typeof x!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(x))return false;
+ const day=new Date(x+'T12:00:00Z');
+ return Number.isFinite(day.valueOf())&&day.toISOString().slice(0,10)===x&&day.getUTCDay()===1;
+};
+function selected(){
+ try{const v=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');
+  return v&&typeof v.id==='string'&&v.id.length>0&&v.id.length<=160&&weekIsValid(v.weekStart)?v:null;
+ }catch(e){return null;}
+}
+function nowMs(){
+ const preview=new URLSearchParams(location.search).get('previewNow');
+ return preview&&/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/.test(preview)?
+  Date.parse(preview+':00+09:00'):Date.now();
+}
+function initialTab(){
+ const v=selected();if(!v)return 'plan'; // Event selection is only in Strategy.
+ const start=Date.parse(v.weekStart+'T04:00:00+09:00'),now=nowMs();
+ return now<start?'prep':now<start+7*86400000?'plan':'plan';
+}
+let current=null;
+function buildUrl(tab){
+ const url=new URL(FILES[tab],location.href),v=selected(),params=new URLSearchParams(location.search);
+ if(v){url.searchParams.set('eventStart',v.weekStart);url.searchParams.set('eventId',v.id);}
+ const clock=params.get('previewNow');
+ if(clock&&/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/.test(clock))
+  url.searchParams.set('previewNow',clock);
+ if(tab==='prep'&&v&&nowMs()>=Date.parse(v.weekStart+'T04:00:00+09:00'))
+  url.searchParams.set('tab','inventory');
+ // Same-origin localStorage is the authoritative state; no stock/bonus JSON travels in this URL.
+ return url.href;
+}
+function open(tab,push=false){
+ if(!validTab(tab))return;
+ if(push&&current===tab)return;
+ current=tab;
+ const url=new URL(location.href);
+ url.searchParams.set('tab',tab);
+ if(push)history.pushState({e7Tab:tab},'',url.href);
+ else history.replaceState({e7Tab:tab},'',url.href);
+ frame.title='ポケスリ作戦室・'+LABELS[tab];
+ frame.src=buildUrl(tab);
+}
+window.addEventListener('message',event=>{
+ // Never accept arbitrary postMessage navigation from another frame/origin.
+ if(event.source!==frame.contentWindow)return;
+ if(location.protocol==='file:'){
+  if(event.origin!=='null'&&event.origin!==location.origin)return;
+ }else if(event.origin!==location.origin)return;
+ if(event.data?.protocol!=='pokesleep-e7-v50'||event.data.action!=='navigate')return;
+ if(validTab(event.data.tab))open(event.data.tab,true);
+});
+window.addEventListener('popstate',()=>{
+ const tab=new URLSearchParams(location.search).get('tab');
+ open(validTab(tab)?tab:initialTab(),false);
+});
+const request=new URLSearchParams(location.search).get('tab');
+open(validTab(request)?request:initialTab());
+if(location.protocol==='file:'){
+ banner.hidden=false;banner.textContent='この統合プレビューの保存共有は、同一オリジンのHTTPSまたはlocalhostで確認してください。';
+}
+if('serviceWorker'in navigator&&['https:','http:'].includes(location.protocol)){
+ // Registration is scoped to the preview folder, never to the production root.
+ navigator.serviceWorker.register('e7-sw-v50.js',{scope:'./'}).catch(()=>{});
+}
+})();
+</script></body></html>
