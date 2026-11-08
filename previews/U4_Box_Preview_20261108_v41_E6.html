@@ -55,6 +55,13 @@ function goto(which){
  // U2 -> U3 -> U4 must not lose the validated inventory snapshot across file:// origins.
  const packet=transfer?.searchParams.get('pokesleepStock')||fromExisting.get('pokesleepStock');
  if(packet&&(which==='plan'||which==='box'))destination.searchParams.set('pokesleepStock',packet);
+ // Preserve the event-scoped stockpile choice when going through separate file:// previews.
+ let prepPacket=fromExisting.get('pokesleepPrep')||transfer?.searchParams.get('pokesleepPrep')||null;
+ if(!prepPacket&&which==='prep'){
+  const u2link=sel('a.u2-nav');
+  if(u2link?.href){try{prepPacket=new URL(u2link.href).searchParams.get('pokesleepPrep');}catch(e){}}
+ }
+ if(prepPacket&&prepPacket.length<1400)destination.searchParams.set('pokesleepPrep',prepPacket);
  if(which==='prep'&&clock){
   const now=Date.parse(clock+':00+09:00'),start=Date.parse((week||'2026-11-09')+'T04:00:00+09:00');
   if(now>=start)destination.searchParams.set('tab','inventory');
