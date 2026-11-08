@@ -1891,7 +1891,11 @@ function e6RevealConditionIssues(action){
 }
 function e6RefreshIssuesIfVisible(){
  // Do not paint an untouched first-load form red before the user tries to proceed.
- if($('#event-details').dataset.validate==='true')e6PaintConditionIssues(e6DraftProblems());
+ if($('#event-details').dataset.validate!=='true')return;
+ const errors=e6DraftProblems();
+ if(!errors.length&&(!e3Selected||eventBlockers().includes('イベント条件の保存')||!e3Conditions()))
+  errors.push('event-save');
+ e6PaintConditionIssues(errors);
 }
 for(const id of E6_CONDITION_CONTROLS){
  $('#'+id)?.addEventListener('change',e6RefreshIssuesIfVisible);
