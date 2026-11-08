@@ -15,6 +15,10 @@ def sample(p,when,day):
     p.goto(U3+'?previewNow='+when+'&eventStart='+week,wait_until='domcontentloaded')
     assert p.locator('#event-start').input_value()==week
     stage=p.locator('.shell > main').get_attribute('data-phase-stage')
+    if stage=='ended':
+        # Ended weeks display the completion screen; no sleep-edit controls are shown.
+        assert p.locator('#sleep-open').is_hidden()
+        return {'past':None,'allPast':None,'stage':stage}
     p.locator('#sleep-open').click()
     assert p.locator('#sleep-dialog').evaluate('(e)=>e.open')
     p.locator('#sleep-day-nav .daybtn').nth(day).click()
@@ -54,7 +58,7 @@ with sync_playwright() as pw:
     minus=sample(p,'2026-11-16T03:59',6)
     assert minus['past'] is True and minus['stage']!='ended',minus
     end=sample(p,'2026-11-16T04:00',6)
-    assert end['past'] is True and end['stage']=='ended',end
+    assert end['stage']=='ended',end
     assert not errors,errors
     browser.close()
 print('E6 v48 midnight sleep edit gate and week rollover: PASS')
