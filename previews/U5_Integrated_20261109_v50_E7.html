@@ -42,7 +42,7 @@ function initialTab(){
  const start=Date.parse(v.weekStart+'T04:00:00+09:00'),now=nowMs();
  return now<start?'prep':now<start+7*86400000?'plan':'plan';
 }
-let current=null;
+let current=null,frameReady=false;
 function buildUrl(tab){
  const url=new URL(FILES[tab],location.href),v=selected(),params=new URLSearchParams(location.search);
  if(v){url.searchParams.set('eventStart',v.weekStart);url.searchParams.set('eventId',v.id);}
@@ -63,7 +63,11 @@ function open(tab,push=false){
  if(push)history.pushState({e7Tab:tab},'',url.href);
  else history.replaceState({e7Tab:tab},'',url.href);
  frame.title='ポケスリ作戦室・'+LABELS[tab];
- frame.src=buildUrl(tab);
+ // Replacing a child navigation is crucial: ordinary iframe src changes push
+ // extra joint-session-history entries and steal the browser Back action.
+ const next=buildUrl(tab);
+ if(!frameReady){frame.src=next;frameReady=true;}
+ else frame.contentWindow.location.replace(next);
 }
 window.addEventListener('message',event=>{
  // Never accept arbitrary postMessage navigation from another frame/origin.

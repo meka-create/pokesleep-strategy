@@ -91,5 +91,6 @@ test('E7 all screens reference v50 and bridge; shell only has 3 independent tabs
  assert.match(shell,/now<start\?'prep'/);
  assert.match(shell,/event\.source!==frame\.contentWindow/);
  assert.match(shell,/history\.pushState/);
+ assert.match(shell,/frame\.contentWindow\.location\.replace\(next\)/);
  assert.doesNotMatch(shell,/pokesleepStock',JSON\.stringify/);
 });
