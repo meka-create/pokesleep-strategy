@@ -79,6 +79,30 @@ try:
         page.wait_for_url('**tab=box')
         assert 'U4_Box_Preview' in page.locator('#e7-frame').get_attribute('src')
         assert frame.locator('#box-count').inner_text().strip()=='1匹'
+        # Adopt the illustrative plan, then change stock: the cross-tab dot must survive
+        # without any pokesleepStock/pokesleepPlanWatch URL packet.
+        frame.locator('#e6-footer-plan').click()
+        page.wait_for_url('**tab=plan')
+        frame.locator('#e3-next').click()
+        assert frame.locator('#review-dialog').evaluate('(e)=>e.open')
+        frame.locator('#review-adopt').click()
+        frame.locator('#e6-footer-prep').click()
+        page.wait_for_url('**tab=prep')
+        frame.locator('#btn-inventory').click()
+        frame.locator('#inventory-panel [data-key]').first.fill('14')
+        frame.locator('#save-inventory').click()
+        assert frame.locator('#e6-footer-plan').get_attribute('data-reproposal')=='true', 'U2 dot lost'
+        frame.locator('#e6-footer-box').click()
+        page.wait_for_url('**tab=box')
+        assert frame.locator('#e6-footer-plan').get_attribute('data-reproposal')=='true', 'U4 dot lost'
+        frame.locator('#e6-footer-plan').click()
+        page.wait_for_url('**tab=plan')
+        assert frame.locator('#e3-next').inner_text()=='作戦を再提案'
+        frame.locator('#e3-next').click()
+        frame.locator('#review-adopt').click()
+        frame.locator('#e6-footer-box').click()
+        page.wait_for_url('**tab=box')
+        assert frame.locator('#e6-footer-plan').get_attribute('data-reproposal')=='false', 'dot did not clear after adoption'
         # NEW launch (no tab query) derives screen from 04:00 JST, not from prior tab browsing.
         page.goto(BASE+'?previewNow=2026-11-08T16:00',wait_until='domcontentloaded')
         assert 'U2_Prep_Local' in page.locator('#e7-frame').get_attribute('src')
@@ -86,6 +110,23 @@ try:
         assert 'U2_Prep_Local' in page.locator('#e7-frame').get_attribute('src')
         page.goto(BASE+'?previewNow=2026-11-09T04:00',wait_until='domcontentloaded')
         assert 'U3_Strategy_UI' in page.locator('#e7-frame').get_attribute('src')
+        # U6: U4 must stay within the narrow Pixel viewport.
+        for width in (320,393,430):
+            page.set_viewport_size({'width':width,'height':852})
+            page.goto(BASE+'?tab=box&previewNow=2026-11-08T16:00',wait_until='domcontentloaded')
+            docwidth=frame.locator('html').evaluate('(e)=>e.scrollWidth')
+            assert docwidth<=width+2,(width,docwidth)
+        # New upstream columns cannot silently be shifted or discarded.
+        frame.locator('#e7-import-panel summary').click()
+        bad=CSV.split('\n')[0]+',新しい列\n'+CSV.split('\n')[1]+',abc'
+        frame.locator('#upload').set_input_files({'name':'changed.csv','mimeType':'text/csv','buffer':bad.encode('utf-8')})
+        assert frame.locator('#box-commit').is_disabled()
+        assert frame.locator('#box-count').inner_text().strip()=='1匹'
+        # Corrupt existing box content must lock edits rather than overwrite it.
+        page.evaluate("()=>localStorage.setItem('pokesleep-strategy-e7-box-v1','{broken')")
+        page.reload(wait_until='domcontentloaded')
+        assert frame.locator('#e7-blocked').is_visible()
+        assert frame.locator('#player-save').is_disabled()
         assert not errors,errors
         browser.close()
 finally:
