@@ -1823,8 +1823,11 @@ $('#event-save').onclick=()=>{
 };
 $('#review-dialog').addEventListener('close',()=>{
  if(draft&&!(eventPhase()==='before'&&!hasInventory)){
-  draft=null;stockPending=null;storeState();render();
+  draft=null;stockPending=null;storeState();
  }
+ // Refresh the condition-card collapse gate after the first successful proposal,
+ // including an early stock-free preview whose draft must remain recoverable.
+ render();
 });
 window.addEventListener('pageshow',event=>{
  // A browser back/forward cache restoration is a new opening;
