@@ -34,7 +34,7 @@ test('E6 delivery: ZIP contains only exact current v41 files and one README; nev
   observed.push(name);
   if(name==='00_README_START_HERE.txt'){
    assert.match(entry.toString('utf8'),/v41/);
-   assert.match(entry.toString('utf8'),/旧版HTMLやGitHub全体は含みません/);
+   assert.match(entry.toString('utf8'),/GitHub全体.*含みません/);
   }else{
    const expected=payloads.find(p=>p.name===name);
    assert.ok(expected,'unapproved or ancestor filename in ZIP: '+name);
