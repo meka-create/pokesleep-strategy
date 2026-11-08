@@ -26,7 +26,12 @@ with sync_playwright() as pw:
     assert p.locator('#e6-bonus-panel').is_visible()
     assert p.locator('#e6-bonus-list li').all_text_contents()==['料理エナジー ×1.25']
     assert p.locator('#e6-event-heading').count()==0
-    bounds=p.evaluate("""()=>['event-source-select','e6-bonus-panel','event-start'].map(id=>document.getElementById(id).getBoundingClientRect().top)""")
+    # The accessible custom dropdown trigger is visible; its native select is hidden.
+    bounds=p.evaluate("""()=>{
+      const source=document.querySelector('#event-source-select + .custom-select .custom-trigger');
+      return [source,document.querySelector('#e6-bonus-panel'),document.querySelector('#event-start')]
+        .map(node=>node.getBoundingClientRect().top);
+    }""")
     assert bounds[0]<bounds[1]<bounds[2],bounds
     style=p.locator('#e6-bonus-panel').evaluate("""e=>({radius:getComputedStyle(e).borderRadius,background:getComputedStyle(e).backgroundColor,display:getComputedStyle(e).display})""")
     assert style['radius']=='12px',style
