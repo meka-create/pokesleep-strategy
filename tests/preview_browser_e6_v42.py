@@ -119,7 +119,7 @@ with sync_playwright() as pw:
     p.locator('#e6-footer-prep').click()
     p.wait_for_url('**/U2_Prep_Local_Ingredients_20261108_v42_E6.html?*')
     p.locator('#btn-inventory').click()
-    fields=p.locator('#inventory-panel input[type="number"]')
+    fields=p.locator('#inventory-panel input[inputmode="numeric"]')
     assert fields.count()==19, fields.count()
     fields.nth(0).fill('12')
     p.locator('#save-inventory').click()
@@ -152,7 +152,7 @@ with sync_playwright() as pw:
     p.locator('#e6-footer-prep').click()
     p.wait_for_url('**/U2_Prep_Local_Ingredients_20261108_v42_E6.html?*')
     p.locator('#btn-inventory').click()
-    assert p.locator('#inventory-panel input[type="number"]').nth(0).input_value()=='12'
+    assert p.locator('#inventory-panel input[inputmode="numeric"]').nth(0).input_value()=='12'
     p.locator('#save-inventory').click()
     p.locator('#e6-footer-plan').click()
     p.wait_for_url('**/U3_Strategy_UI_20261108_v42_E6.html?*')
