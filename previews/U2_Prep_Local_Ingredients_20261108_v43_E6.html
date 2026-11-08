@@ -972,6 +972,70 @@ function contextFromLink(){
  if(u?.href){try{return new URL(u.href)}catch(e){}}
  return null;
 }
+// Event/week-locked watch packet for file:// preview tabs. Not a second source of plans.
+function watchSelection(){
+ const q=new URLSearchParams(location.search),local=fromSelected();
+ const week=q.get('eventStart')||local?.weekStart;
+ const eventId=q.get('eventId')||local?.id;
+ return /^\d{4}-\d{2}-\d{2}$/.test(week||'')&&typeof eventId==='string'&&
+  eventId.length>0&&eventId.length<=160?{week,eventId}:null;
+}
+function watchPacket(){
+ const raw=sel('#e6-footer-plan')?.dataset.planWatch||
+  new URLSearchParams(location.search).get('pokesleepPlanWatch');
+ if(!raw||raw.length>5000)return null;
+ try{
+  const w=JSON.parse(raw),selected=watchSelection();
+  return w?.version===1&&selected&&w.weekStart===selected.week&&
+   w.eventId===selected.eventId&&w.adopted===true&&w.hasFuture===true?w:null;
+ }catch(e){return null;}
+}
+function readNewestInventory(w){
+ const items=[];
+ try{
+  const record=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+w.weekStart+':timeline')||'null');
+  if(record?.eventId===w.eventId&&record.currentInventory)
+   items.push({values:record.currentInventory.values,savedAt:record.currentInventory.savedAt});
+ }catch(e){}
+ const raw=new URLSearchParams(location.search).get('pokesleepStock')||
+  contextFromLink()?.searchParams.get('pokesleepStock');
+ if(raw&&raw.length<6000){
+  try{const obj=JSON.parse(raw);
+   if(obj.eventId===w.eventId&&obj.weekStart===w.weekStart&&obj.values)
+    items.push({values:obj.values,savedAt:obj.savedAt});
+  }catch(e){}
+ }
+ items.sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));
+ return items[0]?.values||null;
+}
+function eventStillActive(week){
+ const date=new Date(week+'T12:00:00Z');
+ if(!Number.isFinite(date.valueOf()))return false;
+ date.setUTCDate(date.getUTCDate()+7);
+ const nextWeek=date.toISOString().slice(0,10);
+ const preview=new URLSearchParams(location.search).get('previewNow');
+ const now=preview&&/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(preview)?
+  Date.parse(preview+':00+09:00'):Date.now();
+ return now<Date.parse(nextWeek+'T04:00:00+09:00');
+}
+function refreshReproposalDot(){
+ const node=sel('#e6-footer-plan');
+ if(!node)return;
+ if(node.getAttribute('aria-current')==='page'){
+  node.setAttribute('aria-label',node.dataset.reproposal==='true'?'作戦（再提案が必要）':'作戦');
+  return;
+ }
+ const w=watchPacket();
+ let needed=false;
+ if(w&&w.conditionsReady===true&&w.draftReady!==true&&eventStillActive(w.weekStart)){
+  const now=readNewestInventory(w);
+  const diff=now&&w.stockConfirmed&&
+   JSON.stringify(now)!==JSON.stringify(w.stockConfirmed);
+  needed=Boolean(w.nonStockChanged||diff);
+ }
+ node.dataset.reproposal=String(needed);
+ node.setAttribute('aria-label',needed?'作戦（再提案が必要）':'作戦');
+}
 function goto(which){
  const destination=new URL(target[which],location.href);
  const transfer=contextFromLink();
@@ -980,6 +1044,9 @@ function goto(which){
  const week=fromExisting.get('eventStart')||selected?.weekStart||transfer?.searchParams.get('eventStart');
  const eventId=fromExisting.get('eventId')||selected?.id||transfer?.searchParams.get('eventId');
  const clock=fromExisting.get('previewNow');
+ // Keep the signed-by-context event/week and adopted-plan basis when crossing standalone HTML files.
+ const watch=watchPacket();
+ if(watch)destination.searchParams.set('pokesleepPlanWatch',JSON.stringify(watch));
  if(week)destination.searchParams.set('eventStart',week);
  if(eventId)destination.searchParams.set('eventId',eventId);
  if(clock)destination.searchParams.set('previewNow',clock);
@@ -1002,6 +1069,11 @@ function goto(which){
  }
  location.assign(destination.href);
 }
+window.addEventListener('pageshow',refreshReproposalDot);
+window.addEventListener('storage',refreshReproposalDot);
+sel('#save-inventory')?.addEventListener('click',refreshReproposalDot);
+sel('#e6-prep-save')?.addEventListener('click',refreshReproposalDot);
+refreshReproposalDot();
 for(const [name,id] of [['plan','#e6-footer-plan'],['prep','#e6-footer-prep'],['box','#e6-footer-box']]){
  const a=sel(id);if(!a)continue;
  a.addEventListener('click',event=>{event.preventDefault();goto(name);});
