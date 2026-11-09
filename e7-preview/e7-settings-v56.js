@@ -67,7 +67,7 @@ function safeKey(key){
  return typeof key==='string'&&key.startsWith(PREFIX)&&key.length<=600&&
   !/[\u0000-\u001f\u007f]/.test(key);
 }
-function validateRecords(records){
+function validateRecords(records,strictKnown=true){
  if(!Array.isArray(records)||records.length>MAX_RECORDS)throw Error('保存件数が上限を超えています。');
  const seen=new Set();
  let size=0;
@@ -77,7 +77,7 @@ function validateRecords(records){
   seen.add(r.key);
   size+=r.key.length+r.value.length;
   if(size>MAX_BYTES)throw Error('バックアップが大きすぎます。');
-  if(r.key===PLAYER||r.key===BOX||r.key===SELECTED){
+  if(strictKnown&&(r.key===PLAYER||r.key===BOX||r.key===SELECTED)){
    let value;
    try{value=JSON.parse(r.value)}catch{throw Error('重要な保存データがJSONではありません。');}
    if((r.key===PLAYER&&!validPlayer(value))||(r.key===BOX&&!validBox(value))||
@@ -192,7 +192,7 @@ function build(){
  });
  $('e7-settings-export').addEventListener('click',()=>{
   try{
-   const records=validateRecords(readStore());
+   const records=validateRecords(readStore(),false); // Export raw records even when recovery is needed.
    const backup={format:MAGIC,version:1,exportedAt:new Date().toISOString(),records};
    const text=JSON.stringify(backup,null,2);
    if(text.length>MAX_BYTES+MAX_RECORDS*70)throw Error('保存内容が大きすぎます。');
@@ -235,7 +235,7 @@ function build(){
    // Revalidate immediately before mutation; do not trust stale file input.
    validateRecords(pending.records);
    before=readStore();
-   validateRecords(before);
+   validateRecords(before,false); // Allow recovery over a damaged current record.
   }catch(e){
    setStatus('e7-backup-status','復元できません：'+(e.message||'保存領域を確認してください。'),true);return;
   }
