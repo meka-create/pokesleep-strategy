@@ -55,6 +55,28 @@ try:
             'pokesleep-strategy-u3-e3-v1:2026-11-09:manual%3A2026-11-09:plan')
         assert stored['eventInfo']['field']=='ラピスラズリ湖畔'
         assert stored['eventInfo']['food']=='dessert'
+        # Reset from PREPARATION, not only from STRATEGY. All currently loaded
+        # same-week child state must be revoked; other weeks must survive.
+        page.locator('#tab-prep').click()
+        page.wait_for_function("""()=>{
+            const f=document.getElementById('view-prep');
+            return !f.hidden && f.contentDocument?.readyState==='complete'
+                && document.getElementById('status').hidden;
+        }""",timeout=20000)
+        prep=page.frame_locator('#view-prep')
+        prep.locator('#e6-dev summary').click()
+        prep.locator('#e6-reset').click()
+        page.wait_for_function("""()=>{
+            const f=document.getElementById('view-plan');
+            return !f.hidden && f.contentDocument?.readyState==='complete'
+                && document.getElementById('status').hidden
+                && localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')===null;
+        }""",timeout=20000)
+        akey='pokesleep-strategy-u3-e3-v1:2026-11-09:manual%3A2026-11-09:plan'
+        bkey='pokesleep-strategy-u3-e3-v1:2026-11-16:manual%3A2026-11-16:plan'
+        assert page.evaluate('(k)=>localStorage.getItem(k)',akey) is None,'old event resurrected from prep reset'
+        preserved=page.evaluate('(k)=>JSON.parse(localStorage.getItem(k)||"null")',bkey)
+        assert preserved and preserved['eventInfo']['field']=='トープ洞窟','unrelated event was erased'
         assert not problems,problems
         browser.close()
 finally:
