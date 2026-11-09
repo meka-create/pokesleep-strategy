@@ -98,7 +98,10 @@ try:
             timeout=12000)
         plan=tab('plan')
         assert get_marker('plan')=='keep-plan'
-        assert plan.locator('#e3-next').inner_text()=='作戦を再提案'
+        page.wait_for_function("""()=>{
+            const f=document.getElementById('view-plan');
+            return f.contentDocument?.getElementById('e3-next')?.innerText==='作戦を再提案';
+        }""",timeout=15000)
         plan.locator('#e3-next').click()
         plan.locator('#review-adopt').click()
         page.wait_for_function(
