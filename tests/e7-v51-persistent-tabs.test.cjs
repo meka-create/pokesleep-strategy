@@ -45,7 +45,7 @@ test('E7 v53 audit pins exact U2/U3/U4 source bytes, including reset and box saf
   const s=read(names[i]);
   assert.ok(s.includes('<script src="e7-unified-bridge-v51.js"></script>'));
   assert.equal(gitBlobSHA(s),auditedSHA[i],'Unreviewed change to E7 protected UI: '+names[i]);
-  for(const m of s.matchAll(/<script(?:[^>]*)>([\\s\\S]*?)<\\/script>/g))
+  for(const m of s.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
    new vm.Script(m[1]);
  }
  const strategy=read(names[1]),box=read(names[2]);
