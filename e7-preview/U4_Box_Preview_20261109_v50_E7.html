@@ -95,12 +95,21 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
  }
  const boxKeys=['nickname','pokemon','level','skillLevel','ing1','ing2','ing3','mainSkill',
   'nature','mint','lv10','lv25','lv50','lv70','lv80','ribbon','shiny','favorite'];
+ const boxOptionalText=['nickname','ing1','ing2','ing3','mainSkill','lv10','lv25','lv50','lv70','lv80','favorite'];
+ const validBoxText=(value,max=250)=>value===null||
+  (typeof value==='string'&&value.length<=max);
  function validBox(v){
   return !!v&&v.version===1&&Array.isArray(v.items)&&v.items.length<=10000&&
-   v.items.every(item=>item&&typeof item.pokemon==='string'&&item.pokemon.trim()&&
+   v.items.every(item=>item&&
+    boxKeys.every(k=>Object.hasOwn(item,k))&&
+    typeof item.pokemon==='string'&&item.pokemon.trim().length>0&&item.pokemon.length<=160&&
     Number.isInteger(item.level)&&item.level>0&&item.level<=150&&
     Number.isInteger(item.skillLevel)&&item.skillLevel>=1&&item.skillLevel<=8&&
-    typeof item.nature==='string'&&boxKeys.every(k=>Object.hasOwn(item,k)));
+    typeof item.nature==='string'&&item.nature.trim().length>0&&item.nature.length<=80&&
+    boxOptionalText.every(k=>validBoxText(item[k],k==='nickname'?160:250))&&
+    (item.mint===null||typeof item.mint==='boolean')&&
+    (item.shiny===null||typeof item.shiny==='boolean')&&
+    (item.ribbon===null||(Number.isSafeInteger(item.ribbon)&&item.ribbon>=0&&item.ribbon<=100000)));
  }
  let player,box,blocked=false,pending=null;
  const message=(msg,error=false)=>{$('e7-message').textContent=msg;$('e7-message').dataset.error=String(error);};

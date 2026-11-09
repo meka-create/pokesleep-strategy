@@ -1,5 +1,5 @@
 /* E7 v50 preview-only offline cache / persistent v52 tabs; this is NOT the production root service worker. */
-const CACHE='pokesleep-strategy-e7-v52-reset-20261109';
+const CACHE='pokesleep-strategy-e7-v53-audit-20261109';
 const FILES=[
  'index.html','U5_Integrated_20261109_v50_E7.html',
  'U2_Prep_Local_Ingredients_20261109_v50_E7.html',

@@ -1,4 +1,4 @@
-ポケスリ作戦室 E7 v51 — GitHub Pagesプレビュー／高速タブ構造
+ポケスリ作戦室 E7 v53 — GitHub Pagesプレビュー／高速タブ構造
 URL: https://meka-create.github.io/pokesleep-strategy/e7-preview/
 
 【変更】3つの画面を一度読み込んで保持する方式に刷新しました。
