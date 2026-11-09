@@ -33,6 +33,7 @@ try:
                try{
                 return document.documentElement.dataset.activeTab===tab
                     && !f.hidden && f.contentDocument?.readyState==='complete'
+                    && document.getElementById('status').hidden
                     && f.contentWindow.location.href.includes(
                         tab==='plan'?'U3_Strategy_UI':tab==='prep'?'U2_Prep_Local':'U4_Box_Preview');
                }catch(e){return false}
