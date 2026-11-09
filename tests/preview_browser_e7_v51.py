@@ -111,16 +111,21 @@ try:
         box=tab('box')
         assert box.locator('#e6-footer').is_hidden()
         marker('box','keep-box')
-        box.locator('#player-pot').fill('57') # intentionally not saved
-        plan=tab('plan')
-        box=tab('box')
-        assert get_marker('box')=='keep-box','box was reconstructed on ordinary navigation'
-        assert box.locator('#player-pot').input_value()=='57','unsaved input was lost'
-        box.locator('#player-bag').fill('700')
-        box.locator('#player-save').click()
+        assert box.locator('#player-title').is_hidden(), 'Player card should live in Settings'
+        box.locator('#e7-settings-open').click()
+        page.locator('#e7-player-settings > summary').click()
+        page.locator('#e7-settings-pot').fill('57')
+        page.locator('#e7-settings-bag').fill('700')
+        page.locator('#e7-settings-player-save').click()
         saved=page.evaluate(
             "()=>JSON.parse(localStorage.getItem('pokesleep-strategy-e7-player-v1'))")
         assert saved['pot']==57 and saved['bag']==700
+        page.locator('#e7-settings-close').click()
+        box.locator('#box-query').fill('未保存の検索')
+        plan=tab('plan')
+        box=tab('box')
+        assert get_marker('box')=='keep-box','box was reconstructed on ordinary navigation'
+        assert box.locator('#box-query').input_value()=='未保存の検索', 'Unsaved box search was lost'
 
         # Repeated navigation: maintain the 3 documents and scroll position.
         for n in range(6):
@@ -144,7 +149,7 @@ try:
         plan=tab('plan')
         box=tab('box')
         marker('box','keep-box-across-event')
-        box.locator('#player-bag').fill('777') # unsaved global preference
+        box.locator('#box-query').fill('週をまたぐ検索') # unsaved global Box filter
         plan=tab('plan')
         select(plan,'event-start','2026-11-16')
         select(plan,'event-field','シアンの砂浜')
@@ -168,7 +173,7 @@ try:
         assert 'eventId=manual%3A2026-11-16' in src,src
         box=tab('box')
         assert get_marker('box')=='keep-box-across-event','global box reloaded after event change'
-        assert box.locator('#player-bag').input_value()=='777','unsaved global preference lost'
+        assert box.locator('#box-query').input_value()=='週をまたぐ検索','unsaved Box filter lost'
         assert not errors,errors
 
         page.goto(BASE+'?previewNow=2026-11-16T03:59',wait_until='domcontentloaded')
