@@ -9,6 +9,15 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 
 class Quiet(SimpleHTTPRequestHandler):
+    slow_box = False
+    def do_GET(self):
+        # Delay on the threaded HTTP server, never in Playwright's route
+        # callback: blocking that callback would stall the test event loop.
+        if Quiet.slow_box and self.path.split('?', 1)[0].endswith(
+            '/U4_Box_Preview_20261109_v50_E7.html'
+        ):
+            time.sleep(1.1)
+        super().do_GET()
     def log_message(self, *args):
         pass
 
@@ -51,11 +60,8 @@ try:
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))
 
-        def slow_box(route):
-            time.sleep(1.1)
-            route.continue_()
-        page.route('**/U4_Box_Preview_20261109_v50_E7.html*', slow_box)
-        page.goto(base + '?tab=box', wait_until='domcontentloaded')
+        Quiet.slow_box = True
+        page.goto(base + '?tab=box', wait_until='commit')
         status = page.locator('#status')
         page.wait_for_function("""()=>{
           const s=document.getElementById('status');
@@ -72,6 +78,7 @@ try:
         page.wait_for_function("""()=>document.getElementById('status').hidden &&
           document.documentElement.dataset.activeTab==='box'""", timeout=20000)
         assert status.get_attribute('data-show-message') == 'false', 'Timer not reset on load completion'
+        Quiet.slow_box = False
 
         # Rapid tab changes must cancel the old pending timer.
         page.locator('#tab-plan').click()
@@ -90,7 +97,7 @@ try:
         fast = quick.new_page()
         fast_errors = []
         fast.on('pageerror', lambda error: fast_errors.append(str(error)))
-        fast.goto(base + '?tab=box', wait_until='domcontentloaded')
+        fast.goto(base + '?tab=box', wait_until='commit')
         fast.wait_for_function("""()=>document.getElementById('status').hidden &&
           document.documentElement.dataset.activeTab==='box'""", timeout=20000)
         assert fast.locator('#status').get_attribute('data-show-message') == 'false'
