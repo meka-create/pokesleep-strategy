@@ -247,8 +247,7 @@ try:
         selected=page.evaluate("()=>JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected'))")
         assert selected=={'weekStart':'2026-11-16','id':'manual:2026-11-16'},selected
         page.reload(wait_until='domcontentloaded')
-        ready('prep')
-        plan=tab('plan')
+        plan=ready('plan')  # reset explicitly keeps tab=plan in the shell URL
         assert plan.locator('#event-field').input_value()=='トープ洞窟','old event field returned after reload'
         assert plan.locator('#event-food').input_value()=='salad','old food category returned after reload'
         assert not errors,errors
