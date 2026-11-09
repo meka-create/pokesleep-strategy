@@ -94,6 +94,8 @@ function parseBackup(text){
   typeof value.exportedAt!=='string'||!Number.isFinite(Date.parse(value.exportedAt)))
   throw Error('ポケスリ作戦室のバックアップ形式ではありません。');
  validateRecords(value.records);
+ // Normalize external backup ordering for deterministic verification and rollback.
+ value.records.sort((a,b)=>a.key.localeCompare(b.key));
  return value;
 }
 function setStatus(id,message,error=false){
@@ -203,7 +205,8 @@ function build(){
      String(now.getDate()).padStart(2,'0')+'-'+
      String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
    a.download='pokesleep-strategy-backup-'+stamp+'.json';
-   a.href=url;document.body.append(a);a.click();a.remove();
+   // A modal dialog makes outside elements inert; place the download link inside.
+   a.href=url;dialog.append(a);a.click();a.remove();
    setTimeout(()=>URL.revokeObjectURL(url),1000);
    setStatus('e7-backup-status',records.length+'件を書き出しました。');
   }catch(e){
