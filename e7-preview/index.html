@@ -271,7 +271,9 @@ for(const tab of TABS){
  views[tab].addEventListener('load',()=>{
   // Fallback for an older or damaged bridge; never block indefinitely.
   let href;try{href=views[tab].contentWindow.location.href}catch(e){return}
-  finishReady(tab,href,'load');
+  // A DOMContentLoaded postMessage can be queued just behind iframe load.
+  // Give the genuine interactive signal precedence; fall back shortly after.
+  setTimeout(()=>finishReady(tab,href,'load'),120);
  });
  buttons[tab].addEventListener('click',()=>activate(tab,{push:true}));
 }
