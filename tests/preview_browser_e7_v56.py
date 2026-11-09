@@ -30,11 +30,17 @@ try:
               && document.getElementById('view-'+tab).contentDocument?.readyState!=='loading'""",
               arg=tab,timeout=20000)
             return page.frame_locator('#view-'+tab)
+        def open_settings(child):
+            child.locator('#e7-settings-open').click()
+            # Header clicks postMessage asynchronously from the iframe.
+            # Wait for the actual parent dialog, not merely the click event.
+            page.wait_for_function("""()=>document.getElementById(
+              'e7-settings-dialog')?.open===true""",timeout=10000)
         box=open_tab('box')
         assert box.locator('#player-title').is_hidden(),'Player editor must be outside unified Box'
         assert box.locator('#e7-settings-open').is_visible()
         assert page.locator('#e7-settings-dialog').is_hidden()
-        box.locator('#e7-settings-open').click()
+        open_settings(box)
         assert page.locator('#e7-settings-dialog').is_visible()
         assert page.locator('#e7-player-settings').is_visible()
         assert page.locator('#e7-backup-settings').is_visible()
@@ -82,7 +88,7 @@ try:
           localStorage.setItem('unrelated-pwa-token','must-not-export-or-delete');
         }""")
         box=open_tab('box')
-        box.locator('#e7-settings-open').click()
+        open_settings(box)
         page.locator('#e7-backup-settings > summary').click()
         with page.expect_download() as download_event:
             page.locator('#e7-settings-export').click()
@@ -131,7 +137,7 @@ try:
           'unrelated-pwa-token')""")=='must-not-export-or-delete'
         box=page.frame_locator('#view-box')
         assert box.locator('#player-title').is_hidden()
-        box.locator('#e7-settings-open').click()
+        open_settings(box)
         page.locator('#e7-player-settings > summary').click()
         assert page.locator('#e7-settings-pot').input_value()=='57'
         assert page.locator('#e7-settings-bag').input_value()=='700'
@@ -141,7 +147,7 @@ try:
         page.evaluate("""()=>localStorage.setItem(
           'pokesleep-strategy-e7-player-v1','{damaged')""")
         box=page.frame_locator('#view-box')
-        box.locator('#e7-settings-open').click()
+        open_settings(box)
         page.wait_for_function("""()=>{
           const dialog=document.getElementById('e7-settings-dialog');
           return dialog?.open&&document.getElementById('e7-settings-player-save')?.disabled;
