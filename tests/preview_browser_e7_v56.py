@@ -142,6 +142,10 @@ try:
           'pokesleep-strategy-e7-player-v1','{damaged')""")
         box=page.frame_locator('#view-box')
         box.locator('#e7-settings-open').click()
+        page.wait_for_function("""()=>{
+          const dialog=document.getElementById('e7-settings-dialog');
+          return dialog?.open&&document.getElementById('e7-settings-player-save')?.disabled;
+        }""",timeout=10000)
         assert page.locator('#e7-settings-player-save').is_disabled()
         page.locator('#e7-backup-settings > summary').click()
         with page.expect_download() as damaged_download:
