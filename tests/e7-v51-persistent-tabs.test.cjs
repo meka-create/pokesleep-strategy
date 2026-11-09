@@ -14,6 +14,15 @@ const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
 };
+test('E7 v53 midterm preserves production root and records F1–F6 as separate gates',()=>{
+ const root=fs.readFileSync(path.resolve(__dirname,'../index.html'),'utf8');
+ assert.equal(gitBlobSHA(root),'65d5dc64dc757d24875418bd815983f73f6a9cd0',
+  'Do not silently deploy E7 mock UI over the approved production root');
+ const roadmap=fs.readFileSync(path.resolve(__dirname,'../development/ROADMAP_CURRENT.md'),'utf8');
+ assert.match(roadmap,/E7 v53/);
+ assert.match(roadmap,/F1–F6/);
+ assert.match(roadmap,/実ゲーム精度/);
+});
 test('E7 v51 architecture: one persistent frame per tab, one common footer',()=>{
  const html=read('index.html');
  assert.equal((html.match(/class="view"/g)||[]).length,3);
