@@ -22,6 +22,10 @@ self.addEventListener('activate',event=>{
 self.addEventListener('fetch',event=>{
  if(event.request.method!=='GET')return;
  const canonical=new URL(event.request.url);canonical.search='';canonical.hash='';
+ // PWA start_url './' is a directory navigation, not '/index.html'.
+ // Normalize it to the same precached shell; otherwise offline relaunch fails.
+ if(canonical.href===self.registration.scope)
+  canonical.href=new URL('index.html',self.registration.scope).href;
  if(!allowed.has(canonical.href))return;
  event.respondWith((async()=>{
   const cache=await caches.open(CACHE);
