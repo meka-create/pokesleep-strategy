@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101a29"><meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="manifest" href="e7-manifest-v50.webmanifest"><title>ポケスリ作戦室 E7 v55</title>
+<link rel="manifest" href="e7-manifest-v50.webmanifest"><link rel="stylesheet" href="e7-settings-v56.css"><title>ポケスリ作戦室 E7 v56</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;background:#101c2b;color:#edf3fa}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101c2b}
@@ -344,6 +344,14 @@ window.addEventListener('storage',event=>{
  if(current==='plan'&&state.plan.soft){state.plan.soft=false;inform('plan',true);}
  requestAnimationFrame(()=>readBadge());
 });
+// Player settings are edited in the parent dialog. Let event-scoped screens
+// refresh on activation without destroying an unfinished plan or inventory.
+window.addEventListener('e7-player-saved',()=>{
+ for(const tab of ['plan','prep'])state[tab].soft=true;
+ if(current==='plan'&&state.plan.ready){
+  state.plan.soft=false;inform('plan',true);
+ }
+});
 window.addEventListener('popstate',()=>{
  const tab=new URLSearchParams(location.search).get('tab');
  activate(validTab(tab)?tab:initialTab(),{fromHistory:true});
@@ -362,4 +370,4 @@ activate(validTab(explicit)?explicit:initialTab());
 if('serviceWorker'in navigator&&['https:','http:'].includes(location.protocol))
  navigator.serviceWorker.register('e7-sw-v50.js',{scope:'./'}).catch(()=>{});
 })();
-</script></body></html>
+</script><script src="e7-settings-v56.js" defer></script></body></html>
