@@ -144,4 +144,13 @@
  window.addEventListener('storage',()=>requestAnimationFrame(notifyBadge));
  window.addEventListener('pageshow',()=>requestAnimationFrame(notifyBadge));
  requestAnimationFrame(notifyBadge);
+ // All synchronous screen scripts and saved-state restoration have finished
+ // by DOMContentLoaded. The shell may show this screen before images finish.
+ function announceInteractive(){
+  window.parent.postMessage({protocol:'pokesleep-e7-v51',action:'interactive-ready',
+   documentUrl:location.href},location.protocol==='file:'?'*':location.origin);
+ }
+ if(document.readyState==='loading')
+  document.addEventListener('DOMContentLoaded',announceInteractive,{once:true});
+ else announceInteractive();
 })();
