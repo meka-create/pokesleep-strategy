@@ -1,11 +1,11 @@
-/* E7 v50 preview-only offline cache; this is NOT the production root service worker. */
-const CACHE='pokesleep-strategy-e7-v50-20261109';
+/* E7 v50 preview-only offline cache / persistent v51 tabs; this is NOT the production root service worker. */
+const CACHE='pokesleep-strategy-e7-v51-20261109';
 const FILES=[
- 'U5_Integrated_20261109_v50_E7.html',
+ 'index.html','U5_Integrated_20261109_v50_E7.html',
  'U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html',
- 'e7-box-csv-v50.js','e7-unified-bridge-v50.js','e7-manifest-v50.webmanifest','e7-icon-v50.svg'
+ 'e7-box-csv-v50.js','e7-unified-bridge-v51.js','e7-manifest-v50.webmanifest','e7-icon-v50.svg'
 ];
 const allowed=new Set(FILES.map(x=>new URL(x,self.registration.scope).href));
 self.addEventListener('install',event=>{

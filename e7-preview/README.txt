@@ -1,16 +1,17 @@
-ポケスリ作戦室 — E7 v50 GitHub Pagesプレビュー
+ポケスリ作戦室 E7 v51 — GitHub Pagesプレビュー／高速タブ構造
+URL: https://meka-create.github.io/pokesleep-strategy/e7-preview/
 
-入口: https://meka-create.github.io/pokesleep-strategy/e7-preview/
-直リンク: https://meka-create.github.io/pokesleep-strategy/e7-preview/U5_Integrated_20261109_v50_E7.html
+【変更】3つの画面を一度読み込んで保持する方式に刷新しました。
+- フッターは親ページで共通管理。タップ時にページHTMLを再取得しません。
+- 作戦／準備／ボックスの往復で、スクロール位置と未保存の入力を保持します。
+- 初回の各画面ロードは必要。作戦画面表示後の空き時間に他画面を順次事前読込。
+- 在庫を保存すると作戦画面に最新在庫を同期。確定したイベント週・備蓄対象変更時など、
+  古いイベントを表示する危険があるときは該当画面だけを安全に再ロード。
+- ブラウザの戻る履歴は親ページで管理。通知ドットも共通フッターに転送。
+- 既存v50のブックマーク／旧PWA起動先は最新v51入口へリダイレクト。
+- 本番通常版のトップページ（リポジトリroot index.html）は変更しません。
+- 現行個体CSVは旧16列/中間17列/現行18列（まっしろミント独立列）に引続き対応。
 
-E6 v49実機確認後のE7 v50を、既存mainのindex.htmlを置換せず、
-e7-preview/配下に単独配信。F1-F6の実ゲーム最適化計算は未実装。
-モック作戦とボックス実個体登録を混同しないこと。
-このプレビューとmainの通常版は同じgithub.ioオリジンを共有するが、
-E7新規ボックスキー（pokesleep-strategy-e7-...）を使う。
-
-最新作戦/準備/ボックスUIの同一オリジン保存、CSV16/17/18列互換、
-JST04:00遷移、再提案通知、ブラウザ戻るの一括受入用。
-GitHub Pages設定が「GitHub Actions」以外の場合は
-Settings → Pages → Build and deployment → Source → GitHub Actions
-を選択して公開ワークフローを有効化すること。
+【受入】Pixel 7a ChromeからURLを開き、タブ往復、在庫→再提案通知、
+プレイヤー情報・CSV登録、イベント週切替、戻る操作の一括確認。
+注意：週次編成は依然として仮データであり、実ゲーム最適化計算はF1以降です。
