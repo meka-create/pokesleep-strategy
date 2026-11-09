@@ -18,8 +18,27 @@
   document.documentElement.dataset.e7FilePreview='true';
  }
  const style=document.createElement('style');
- style.textContent='#e6-footer{display:none!important} body{padding-bottom:18px!important}';
+ style.textContent='#e6-footer{display:none!important} body{padding-bottom:18px!important}'+
+  '[hidden]{display:none!important}'+
+  '.mast .ver,.header .mock-tag{display:none!important}'+
+  '.e7-header-settings{flex:0 0 42px;min-width:42px;min-height:42px;display:inline-grid;place-items:center;margin-left:10px;border:1px solid #6d879e;border-radius:11px;background:#253b51;color:#f0f5fb;font:25px/1 system-ui;cursor:pointer}'+
+  '.e7-header-settings:focus-visible{outline:2px solid #ffda8a;outline-offset:2px}';
  document.head.append(style);
+ // One consistent settings entry in the existing header on all three tabs.
+ const header=document.querySelector('header.mast,header.header');
+ if(header){
+  const gear=document.createElement('button');
+  gear.type='button';gear.id='e7-settings-open';gear.className='e7-header-settings';
+  gear.textContent='⚙';gear.title='設定';gear.setAttribute('aria-label','設定');
+  gear.addEventListener('click',()=>{
+   window.parent.postMessage({protocol:'pokesleep-e7-v51',action:'open-settings'},location.origin);
+  });
+  header.append(gear);
+ }
+ // Keep the old player editor intact for standalone compatibility only.
+ // In the unified app, the player editor lives in the parent Settings dialog.
+ const playerCard=document.getElementById('player-title')?.closest('section.card');
+ if(playerCard)playerCard.hidden=true;
  // Restore the exact E6 collapsible developer panel in Strategy and Preparation.
  // Its old standalone listeners used location.assign(), which would desynchronize
  // the parent shell. Intercept only its three clock buttons and scoped reset.
