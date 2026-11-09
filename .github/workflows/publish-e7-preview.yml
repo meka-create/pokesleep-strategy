@@ -1,0 +1,49 @@
+name: Publish site with E7 preview
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'e7-preview/**'
+      - '.github/workflows/publish-e7-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+      - name: Prepare production root and E7 isolated preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp index.html _site/index.html
+          cp -R e7-preview _site/e7-preview
+          touch _site/.nojekyll
+          cmp index.html _site/index.html
+          test -f _site/e7-preview/index.html
+          test -f _site/e7-preview/e7-box-csv-v50.js
+          test -f _site/e7-preview/U4_Box_Preview_20261109_v50_E7.html
+          test -f _site/e7-preview/e7-sw-v50.js
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
