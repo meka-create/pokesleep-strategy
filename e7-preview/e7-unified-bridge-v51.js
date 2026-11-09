@@ -22,7 +22,8 @@
   '[hidden]{display:none!important}'+
   '.mast .ver,.header .mock-tag{display:none!important}'+
   '.e7-header-settings{flex:0 0 42px;min-width:42px;min-height:42px;display:inline-grid;place-items:center;margin-left:10px;border:1px solid #6d879e;border-radius:11px;background:#253b51;color:#f0f5fb;font:25px/1 system-ui;cursor:pointer}'+
-  '.e7-header-settings:focus-visible{outline:2px solid #ffda8a;outline-offset:2px}';
+  '.e7-header-settings:focus-visible{outline:2px solid #ffda8a;outline-offset:2px}'+
+  '#e6-dev>summary::before{content:"🧪 "!important}';
  document.head.append(style);
  // One consistent settings entry in the existing header on all three tabs.
  const header=document.querySelector('header.mast,header.header');

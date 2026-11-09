@@ -54,6 +54,26 @@ try:
             assert child.locator('#e7-settings-open').is_visible(), tab
             assert child.locator('#e7-settings-open').get_attribute('aria-label')=='設定'
         assert page.locator('#tabbar button').count()==3,'Settings must not become a fourth tab'
+        # The new header gear must not overlap the title or the week pill,
+        # especially on the smallest supported phone viewport.
+        for width in (320,393,430):
+            page.set_viewport_size({'width':width,'height':852})
+            for tab in ('plan','prep','box'):
+                child=open_tab(tab)
+                shape=child.locator('#e7-settings-open').evaluate("""(gear)=>{
+                  const header=gear.closest('header');
+                  const brand=header.querySelector('.brand');
+                  const week=header.querySelector('#u2-week-label');
+                  const r=gear.getBoundingClientRect(),b=brand.getBoundingClientRect();
+                  const w=week?.getBoundingClientRect();
+                  return {left:r.left,right:r.right,brandRight:b.right,
+                    weekRight:w?.right ?? 0, viewport:document.documentElement.clientWidth};
+                }""")
+                assert shape['left']>shape['brandRight']-2,(tab,width,shape)
+                assert shape['right']<=shape['viewport']+2,(tab,width,shape)
+                if tab=='prep':
+                    assert shape['left']>=shape['weekRight']-2,(tab,width,shape)
+        page.set_viewport_size({'width':393,'height':852})
 
         # A backup must include only this app's keys; never another PWA's data.
         page.evaluate("""()=>{
@@ -115,6 +135,27 @@ try:
         page.locator('#e7-player-settings > summary').click()
         assert page.locator('#e7-settings-pot').input_value()=='57'
         assert page.locator('#e7-settings-bag').input_value()=='700'
+        page.locator('#e7-settings-close').click()
+        # A malformed current player record must not block recovery from a
+        # previously exported valid backup; it must disable ordinary editing.
+        page.evaluate("""()=>localStorage.setItem(
+          'pokesleep-strategy-e7-player-v1','{damaged')""")
+        box=page.frame_locator('#view-box')
+        box.locator('#e7-settings-open').click()
+        assert page.locator('#e7-settings-player-save').is_disabled()
+        page.locator('#e7-backup-settings > summary').click()
+        with page.expect_download() as damaged_download:
+            page.locator('#e7-settings-export').click()
+        damaged=json.loads(Path(damaged_download.value.path()).read_text(encoding='utf-8'))
+        assert any(r['key']=='pokesleep-strategy-e7-player-v1'
+          and r['value']=='{damaged' for r in damaged['records'])
+        page.locator('#e7-settings-import-file').set_input_files({
+          'name':'recover.json','mimeType':'application/json',
+          'buffer':json.dumps(original,ensure_ascii=False).encode('utf-8')})
+        assert page.locator('#e7-settings-restore').is_enabled()
+        page.locator('#e7-settings-restore').click()
+        page.wait_for_function("""()=>JSON.parse(localStorage.getItem(
+          'pokesleep-strategy-e7-player-v1'))?.pot===57""",timeout=15000)
         assert not errors,errors
         browser.close()
 finally:
