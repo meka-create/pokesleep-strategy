@@ -18,8 +18,24 @@
   document.documentElement.dataset.e7FilePreview='true';
  }
  const style=document.createElement('style');
- style.textContent='#e6-dev{display:none!important} #e6-footer{display:none!important} body{padding-bottom:18px!important}';
+ style.textContent='#e6-footer{display:none!important} body{padding-bottom:18px!important}';
  document.head.append(style);
+ // Restore the exact E6 collapsible developer panel in Strategy and Preparation.
+ // Its old standalone listeners used location.assign(), which would desynchronize
+ // the parent shell. Intercept only its three clock buttons and scoped reset.
+ const dev=document.getElementById('e6-dev');
+ if(dev&&new URLSearchParams(location.search).get('devOpen')==='1')dev.open=true;
+ document.addEventListener('click',event=>{
+  if(!dev||!dev.contains(event.target)||event.defaultPrevented)return;
+  const button=event.target?.closest?.('button[data-e6-stage],button#e6-reset');
+  if(!button)return;
+  const stage=button.dataset.e6Stage;
+  if(!(['prep','start','during'].includes(stage)||button.id==='e6-reset'))return;
+  event.preventDefault();event.stopImmediatePropagation();
+  window.parent.postMessage({protocol:'pokesleep-e7-v51',
+   action:button.id==='e6-reset'?'dev-reset':'dev-clock',
+   stage:button.id==='e6-reset'?undefined:stage},location.origin);
+ },true);
  document.addEventListener('click',event=>{
   if(event.defaultPrevented)return;
   const link=event.target?.closest?.('a[href]');if(!link)return;
