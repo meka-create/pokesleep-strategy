@@ -122,7 +122,7 @@ test('E7 v52 reset revokes stale event frames before deleting event-week storage
 
 test('E7 v54 images: 38 placements reuse 19 real external PNGs; no embedded base64',()=>{
  const prep=read(names[0]);
- const entries=[...prep.matchAll(/<img class="pic" src="(assets\/ingredients\/ingredient-\\d{2}\.png)" alt="" draggable="false" loading="lazy" decoding="async">/g)];
+ const entries=[...prep.matchAll(/<img class="pic" src="(assets\/ingredients\/ingredient-\d{2}\.png)" alt="" draggable="false" loading="lazy" decoding="async">/g)];
  assert.equal(entries.length,38,'Both ingredient grids must contain 19 icons');
  const unique=[...new Set(entries.map(x=>x[1]))];
  assert.equal(unique.length,19,'The same icon asset should be reused across both grids');
