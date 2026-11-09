@@ -7,7 +7,7 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-const auditedSHA=['3132baa909da049a053740153ca83e2ae4ec417e',
+const auditedSHA=['76be9d8f32606342b2ca972cdc796373ea1b55c2',
  '6854930024c111acffc01da0094b0d3151746adc',
  'f44094d0936f09aec53f932454c6b5cd73b1374a'];
 const gitBlobSHA=text=>{
@@ -89,7 +89,7 @@ test('E7 v51 manifest uses a persistent app ID with start URL at fast shell',()=
 });
 test('E7 v51 preview cache updates online and supports offline, independent of production root',()=>{
  const sw=read('e7-sw-v50.js');
- assert.match(sw,/pokesleep-strategy-e7-v53-audit/);
+ assert.match(sw,/pokesleep-strategy-e7-v54-first-paint/);
  assert.match(sw,/'index\.html'/);
  assert.match(sw,/'e7-unified-bridge-v51\.js'/);
  assert.match(sw,/fetch\(event\.request,\{cache:'no-store'\}\)/);
@@ -118,4 +118,33 @@ test('E7 v52 reset revokes stale event frames before deleting event-week storage
  assert.match(plan,/function storeState\(\)\{\s*\/\/ A developer reset must never be undone/);
  assert.match(plan,/if\(window\.__pokesleepE7ResetRevoked\)return false/);
  assert.match(plan,/window\.addEventListener\('beforeunload',storeState\)/);
+});
+
+test('E7 v54 images: 38 placements reuse 19 real external PNGs; no embedded base64',()=>{
+ const prep=read(names[0]);
+ const entries=[...prep.matchAll(/<img class="pic" src="(assets\/ingredients\/ingredient-\\d{2}\.png)" alt="" draggable="false" loading="lazy" decoding="async">/g)];
+ assert.equal(entries.length,38,'Both ingredient grids must contain 19 icons');
+ const unique=[...new Set(entries.map(x=>x[1]))];
+ assert.equal(unique.length,19,'The same icon asset should be reused across both grids');
+ assert.doesNotMatch(prep,/data:image\/png;base64,/);
+ for(let i=1;i<=19;i++){
+  const name='assets/ingredients/ingredient-'+String(i).padStart(2,'0')+'.png';
+  assert.ok(unique.includes(name),'Missing icon in source: '+name);
+  const png=fs.readFileSync(path.join(base,name));
+  assert.ok(png.length>100&&png.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex')),
+   'Damaged PNG: '+name);
+ }
+});
+test('E7 v54 first paint: child DOM-ready handshake is generation-guarded and load remains fallback',()=>{
+ const shell=read('index.html'),bridge=read('e7-unified-bridge-v51.js'),sw=read('e7-sw-v50.js');
+ assert.match(shell,/function finishReady\(tab,href,via\)/);
+ assert.match(shell,/interactive-ready/);
+ assert.match(shell,/target\.searchParams\.get\('e7Doc'\)!==String\(s\.loads\)/);
+ assert.match(shell,/url\.searchParams\.set\('e7Doc',String\(state\[tab\]\.loads\)\)/);
+ assert.match(shell,/document\.documentElement\.dataset\.e7ReadyVia=via/);
+ assert.match(bridge,/addEventListener\('DOMContentLoaded',announceInteractive/);
+ assert.match(bridge,/action:'interactive-ready'/);
+ assert.match(sw,/\.\.\.IMAGE_FILES/);
+ assert.match(sw,/if\(imageUrls\.has\(canonical\.href\)\)/);
+ assert.match(sw,/cache\.match\(canonical\.href\)/);
 });
