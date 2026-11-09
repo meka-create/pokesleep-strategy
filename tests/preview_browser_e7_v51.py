@@ -20,7 +20,7 @@ def select(frame,id,value):
         """(e,v)=>{e.value=v;e.dispatchEvent(new Event('change',{bubbles:true}));}""",value)
 try:
     with sync_playwright() as pw:
-        browser=pw.chromium.launch(channel='chrome',headless=True,
+        browser=pw.chromium.launch(headless=True,
             args=['--no-sandbox','--disable-dev-shm-usage'])
         context=browser.new_context(viewport={'width':393,'height':852},
             timezone_id='Asia/Tokyo')
