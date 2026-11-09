@@ -1828,12 +1828,25 @@ $('#event-save').onclick=()=>{
   selectedDay=before.selectedDay;reviewDay=before.reviewDay;setSwitch('auto-sleep',before.autoSleep);
  };
  e3Selected=selection;eventInfo=next;
- let restored=false;
+ let restored=false,restoredUnmodified=false;
  if(changed||switching){
   draft=null;stockPending=null;
   if(switching){
    restored=restoreState(d,true);
-   eventInfo.prep=normalizePrep(restored?eventInfo.prep:prep);
+   // Saved plans may be restored, but an explicitly edited form must never
+   // be overwritten by old event conditions at the moment the user presses Save.
+   const savedInfo=restored?clone(eventInfo):null;
+   const hasEnteredConditions=!!next.field||!!next.food||
+    Boolean(next.berrySetup?.types?.some(type=>!!type));
+   if(restored&&hasEnteredConditions){
+    eventInfo={...next,prep:normalizePrep(prep)||normalizePrep(savedInfo.prep)};
+    if(JSON.stringify(eventInfo)!==JSON.stringify(savedInfo)){
+     draft=null;stockPending=null;
+    }
+   }else{
+    eventInfo.prep=normalizePrep(restored?eventInfo.prep:prep);
+    restoredUnmodified=restored;
+   }
    selectDayOnOpen();refreshInventory();
   }
  }
@@ -1875,7 +1888,7 @@ $('#event-save').onclick=()=>{
  $('#event-details').open=!hasProposed;
  closeSelect(customMenus.get('event-food'));closeSelect(customMenus.get('event-field'));
  $('#event-details').dataset.validate='false';e6PaintConditionIssues([]);
- showToast(restored?'この週の保存済み条件と作戦を復元しました':'入力済みのイベント条件を保存しました');
+ showToast(restoredUnmodified?'この週の保存済み条件と作戦を復元しました':'入力済みのイベント条件を保存しました');
  render();
 };
 $('#review-dialog').addEventListener('close',()=>{
