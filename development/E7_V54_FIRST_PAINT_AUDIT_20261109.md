@@ -11,6 +11,7 @@
 3. U2のPNGデータを19個のバイナリファイルへ抽出・共通化し、38箇所を`loading="lazy"`／`decoding="async"`で参照。HTMLソースは78,784文字（約87%削減）。食材アイコン・順序・サイズ・グリッドCSSは変更しない。
 4. E7専用SWは`pokesleep-strategy-e7-v54-first-paint-20261109`に更新、19アイコンもプレキャッシュしてオフライン維持。HTML／JSはnetwork-firstのまま、静的PNGだけcache-first。
 5. 3タブ・スクロール保持・日時シミュレーション・保存／復元／初期化・通知ドット・U3計算やイベント条件ロジックを不変更。root本番`index.html`を変更しない。
+6. 追加ブラウザ回帰で既存SWがPWA開始URLのディレクトリ`./`を`index.html`とみなさず、オフライン起動時に`ERR_INTERNET_DISCONNECTED`となる問題を再現。SWのfetch対象URLをスコープのディレクトリURLに限ってprecache済みの`index.html`へ正規化し、キャッシュから再開できるよう修正。
 
 ## 回帰対象
 - 起動時のDOM対話可能通知を画像ロード終了より優先すること。
