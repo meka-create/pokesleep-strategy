@@ -139,7 +139,7 @@ function setDevClock(tab,stage){
 function resetDev(tab){
  if(tab!==current||(tab!=='plan'&&tab!=='prep'))return;
  const week=devWeek(tab);
- if(!validWeekStart(week)||!confirm('E6検証用の'+week+'開始週を初期化しますか？\n他の週のデータは削除しません。'))return;
+ if(!validWeekStart(week)||!confirm('E6検証用の'+week+'開始週を初期化しますか？\\n他の週のデータは削除しません。'))return;
  const matches=k=>{
   if(k==='pokesleep-strategy-u3-e3-v1:selected'){
    try{return JSON.parse(localStorage.getItem(k)||'null')?.weekStart===week;}
@@ -151,16 +151,52 @@ function resetDev(tab){
    k.startsWith('pokesleep-strategy-u2-v2:'+week+':')||
    k.startsWith('pokesleep-strategy-u2-e6-prep-v1:'+week+':');
  };
+ // Use the Storage API rather than enumerating its implementation-dependent
+ // named properties; snapshot first so a failed deletion can be rolled back.
+ const saved=[];
  try{
-  const keys=Object.keys(localStorage),toRemove=keys.filter(matches);
-  for(const k of toRemove)localStorage.removeItem(k);
- }catch(e){alert('検証データの初期化に失敗しました。データを確認してください。');return;}
+  for(let i=0;i<localStorage.length;i++){
+   const key=localStorage.key(i);
+   if(key&&matches(key))saved.push([key,localStorage.getItem(key)]);
+  }
+ }catch(e){alert('保存データを確認できず、初期化は実行しませんでした。');return;}
+ // All existing event-scoped frames must be revoked BEFORE localStorage is
+ // cleared. The old plan iframe otherwise writes its deleted plan back from
+ // its beforeunload handler when location.replace() runs.
+ const revoked=[];
+ for(const id of ['plan','prep']){
+  if(!state[id].requested)continue;
+  try{
+   const win=views[id].contentWindow;
+   if(win&&win.location.origin===location.origin){
+    win.__pokesleepE7ResetRevoked=true;
+    revoked.push(win);
+   }
+  }catch(e){}
+ }
+ try{
+  for(const [key] of saved)localStorage.removeItem(key);
+  if(saved.some(([key])=>localStorage.getItem(key)!==null))throw Error('Reset verification failed');
+ }catch(e){
+  let restored=true;
+  for(const [key,value] of saved)try{
+   if(value===null)localStorage.removeItem(key);
+   else localStorage.setItem(key,value);
+  }catch(err){restored=false;}
+  for(const win of revoked)try{win.__pokesleepE7ResetRevoked=false;}catch(err){}
+  alert(restored?'検証データの初期化に失敗しました。元の保存データは保持しています。':
+   '検証データの初期化に失敗しました。保存領域を確認してください。');
+  return;
+ }
  const url=new URL(location.href);
+ for(const key of ['eventStart','eventId','pokesleepStock','pokesleepPrep','pokesleepPlanWatch'])url.searchParams.delete(key);
  url.searchParams.set('previewNow',previewDate(week,'prep'));
  url.searchParams.set('tab','plan');
  history.replaceState({e7Tab:'plan'},'',url.href);
  for(const id of ['plan','prep'])state[id].hard=true;
  state.plan.devOpen=true;
+ // The newly selected plan reloads immediately; the inactive preparation
+ // frame reloads on its next activation and can never persist its old week.
  activate('plan',{fromHistory:true});
 }
 function begin(tab){
