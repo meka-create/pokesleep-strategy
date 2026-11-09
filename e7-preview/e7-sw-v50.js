@@ -1,5 +1,5 @@
-/* E7 v50 preview-only offline cache / persistent v51 tabs; this is NOT the production root service worker. */
-const CACHE='pokesleep-strategy-e7-v51-dev-20261109';
+/* E7 v50 preview-only offline cache / persistent v52 tabs; this is NOT the production root service worker. */
+const CACHE='pokesleep-strategy-e7-v52-reset-20261109';
 const FILES=[
  'index.html','U5_Integrated_20261109_v50_E7.html',
  'U2_Prep_Local_Ingredients_20261109_v50_E7.html',
@@ -21,7 +21,7 @@ self.addEventListener('fetch',event=>{
  if(!allowed.has(canonical.href))return;
  event.respondWith((async()=>{
   const cache=await caches.open(CACHE);
-  // Prefer the network so a newly reviewed v50 build cannot be masked by a
+  // Prefer the network so a newly reviewed v52 build cannot be masked by a
   // previous v50 cache. Offline only, fall back to the last valid response.
   try{
    const response=await fetch(event.request,{cache:'no-store'});

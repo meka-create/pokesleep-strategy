@@ -1107,6 +1107,8 @@ function validStoredState(entry,week,id){
   (!entry.hasApplied||validPlan(entry.applied))&&(!entry.draft||validPlan(entry.draft));
 }
 function storeState(){
+ // A developer reset must never be undone by the old iframe's beforeunload save.
+ if(window.__pokesleepE7ResetRevoked)return false;
  if(!e3Selected)return false;
  try{
   const record={version:1,weekStart:eventInfo.start,eventInfo:clone(eventInfo),hasApplied,hasProposed,
