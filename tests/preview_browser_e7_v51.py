@@ -227,6 +227,30 @@ try:
         assert page.evaluate("localStorage.getItem('pokesleep-strategy-e7-dev-test-keep')")=='keep-me'
         assert page.evaluate("JSON.parse(localStorage.getItem('pokesleep-strategy-e7-player-v1')).pot")==57
         assert page.locator('#tab-plan').get_attribute('aria-current')=='page'
+        # Regression: the discarded plan must NOT be restored by old iframe's
+        # beforeunload autosave. v51 silently resurrected it after reset.
+        old_plan_key='pokesleep-strategy-u3-e3-v1:2026-11-16:manual%3A2026-11-16:plan'
+        old_ledger_key='pokesleep-strategy-u3-e3-v1:2026-11-16:manual%3A2026-11-16:conditions'
+        assert page.evaluate('(key)=>localStorage.getItem(key)',old_plan_key) is None, 'old plan resurrected after reset'
+        assert page.evaluate('(key)=>localStorage.getItem(key)',old_ledger_key) is None, 'old conditions survived reset'
+        assert page.evaluate("localStorage.getItem('pokesleep-strategy-u2-e2-v1:2026-11-16:timeline')") is None
+        # Enter a DIFFERENT event setup for the same week/id, then reload.
+        # The just-entered values, never any pre-reset values, must win.
+        plan=ready('plan')
+        select(plan,'event-start','2026-11-16')
+        select(plan,'event-field','トープ洞窟')
+        select(plan,'event-food','salad')
+        plan.locator('#event-save').click()
+        saved_plan=page.evaluate('(key)=>JSON.parse(localStorage.getItem(key))',old_plan_key)
+        assert saved_plan is not None and saved_plan['eventInfo']['field']=='トープ洞窟', saved_plan
+        assert saved_plan['eventInfo']['food']=='salad',saved_plan
+        selected=page.evaluate("()=>JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected'))")
+        assert selected=={'weekStart':'2026-11-16','id':'manual:2026-11-16'},selected
+        page.reload(wait_until='domcontentloaded')
+        ready('prep')
+        plan=tab('plan')
+        assert plan.locator('#event-field').input_value()=='トープ洞窟','old event field returned after reload'
+        assert plan.locator('#event-food').input_value()=='salad','old food category returned after reload'
         assert not errors,errors
         for width in (320,393,430):
             page.set_viewport_size({'width':width,'height':852})
