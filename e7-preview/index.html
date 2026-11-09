@@ -71,6 +71,7 @@ function stamp(){
  const v=selected();
  return v?v.weekStart+'|'+v.id+'|'+phase(v):'none';
 }
+function stampFor(tab){return tab==='box'?'global-box-v1':stamp();}
 function initialTab(){
  const v=selected();
  return v&&phase(v)==='before'?'prep':'plan';
@@ -104,13 +105,13 @@ function readBadge(tab=current){
 }
 function begin(tab){
  const s=state[tab];if(s.requested)return;
- s.requested=true;s.ready=false;s.hard=false;s.soft=false;s.stamp=stamp();s.loads++;
+ s.requested=true;s.ready=false;s.hard=false;s.soft=false;s.stamp=stampFor(tab);s.loads++;
  views[tab].src=urlFor(tab);
  if(tab===current)loading(true);
 }
 function reload(tab){
  const s=state[tab];if(!s.requested){begin(tab);return}
- s.ready=false;s.hard=false;s.soft=false;s.stamp=stamp();s.loads++;
+ s.ready=false;s.hard=false;s.soft=false;s.stamp=stampFor(tab);s.loads++;
  if(tab===current)loading(true);
  // Replace, do not append a child entry to browser joint session history.
  views[tab].contentWindow.location.replace(urlFor(tab));
@@ -133,7 +134,7 @@ function activate(tab,{push=false,fromHistory=false}={}){
   if(active)buttons[t].setAttribute('aria-current','page');
   else buttons[t].removeAttribute('aria-current');
  }
- const s=state[tab],next=stamp();
+ const s=state[tab],next=stampFor(tab);
  if(!s.requested)begin(tab);
  else if(s.ready&&(s.hard||s.stamp!==next))reload(tab);
  else if(s.ready){
@@ -154,7 +155,7 @@ for(const tab of TABS){
   s.ready=true;
   // A selected event can change during an asynchronous prewarm request.
   // Do not pretend that the stale document contains the new event.
-  if(tab===current&&(s.hard||s.stamp!==stamp())){reload(tab);return;}
+  if(tab===current&&(s.hard||s.stamp!==stampFor(tab))){reload(tab);return;}
   if(tab===current){loading(false);inform(tab,true);readBadge(tab);}
   if(!prewarmStarted&&tab===current)schedulePrewarm();
  });
@@ -194,7 +195,7 @@ window.addEventListener('storage',event=>{
  }else if(event.key==='pokesleep-strategy-u3-e3-v1:selected'){
   // Rebuild the inactive event-scoped view; preserve the active editor.
   for(const tab of ['plan','prep'])if(tab!==current)state[tab].hard=true;
-  if(current==='plan')state.plan.stamp=stamp();
+  if(current==='plan')state.plan.stamp=stampFor('plan');
  }else if(event.key.startsWith('pokesleep-strategy-u2-e2-v1:')){
   state.plan.soft=true;
  }else if(event.key.startsWith('pokesleep-strategy-u2-e6-prep-v1:')){
@@ -218,7 +219,7 @@ window.addEventListener('pageshow',event=>{
 setInterval(()=>{
  if(!current)return;
  const active=state[current];
- if(active.ready&&active.stamp!==stamp())activate(current,{fromHistory:true});
+ if(active.ready&&active.stamp!==stampFor(current))activate(current,{fromHistory:true});
 },60000);
 const explicit=new URLSearchParams(location.search).get('tab');
 activate(validTab(explicit)?explicit:initialTab());

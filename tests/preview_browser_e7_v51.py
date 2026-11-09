@@ -138,6 +138,10 @@ try:
 
         # New week invalidates only event-scoped views.
         plan=tab('plan')
+        box=tab('box')
+        marker('box','keep-box-across-event')
+        box.locator('#player-bag').fill('777') # unsaved global preference
+        plan=tab('plan')
         select(plan,'event-start','2026-11-16')
         select(plan,'event-field','シアンの砂浜')
         select(plan,'event-food','all')
@@ -145,9 +149,22 @@ try:
         selected=page.evaluate("()=>JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected'))")
         assert selected['weekStart']=='2026-11-16',selected
         prep=tab('prep')
+        # Parent tab activation is synchronous; child location.replace is async.
+        # Do not accept the already-loaded previous event's prep document.
+        page.wait_for_function("""()=>{
+            const f=document.getElementById('view-prep');
+            try{return !f.hidden &&
+              f.contentWindow.location.search.includes('eventStart=2026-11-16') &&
+              f.contentDocument.readyState==='complete' &&
+              document.getElementById('status').hidden;}
+            catch(e){return false;}
+        }""",timeout=15000)
         src=page.locator('#view-prep').evaluate('(f)=>f.contentWindow.location.href')
         assert 'eventStart=2026-11-16' in src,src
         assert 'eventId=manual%3A2026-11-16' in src,src
+        box=tab('box')
+        assert get_marker('box')=='keep-box-across-event','global box reloaded after event change'
+        assert box.locator('#player-bag').input_value()=='777','unsaved global preference lost'
         assert not errors,errors
 
         page.goto(BASE+'?previewNow=2026-11-16T03:59',wait_until='domcontentloaded')

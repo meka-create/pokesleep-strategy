@@ -20,6 +20,8 @@ test('E7 v51 architecture: one persistent frame per tab, one common footer',()=>
  assert.equal((html.match(/id="tab-(?:plan|prep|box)"/g)||[]).length,3);
  assert.equal((html.match(/id="tabbar"/g)||[]).length,1);
  assert.match(html,/function activate\(tab/);
+ assert.match(html,/function stampFor\(tab\)/);
+ assert.match(html,/tab==='box'\?'global-box-v1':stamp\(\)/);
  assert.match(html,/views\[t\]\.hidden=!active/);
  assert.match(html,/if\(!s\.requested\)begin\(tab\)/);
  assert.match(html,/else if\(s\.ready\&\&\(s\.hard\|\|s\.stamp!==next\)\)reload\(tab\)/);
