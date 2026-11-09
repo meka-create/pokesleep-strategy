@@ -7,9 +7,9 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-const oldSHA=['0f03f3cee68c7b60631c69d30957ed9daa0fc6ad',
- '03988efbc1e2ddf27c6c61290bb68d3e34e15281',
- '328a5b9e2d6e0605105e175de6b7f3dd275925da'];
+const auditedSHA=['3132baa909da049a053740153ca83e2ae4ec417e',
+ '6854930024c111acffc01da0094b0d3151746adc',
+ 'f44094d0936f09aec53f932454c6b5cd73b1374a'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
@@ -40,29 +40,20 @@ test('E7 v51 architecture: one persistent frame per tab, one common footer',()=>
  assert.doesNotMatch(html,/frame\.src=buildUrl\(tab\)/);
  for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);
 });
-test('E7 v51 U2/U3/U4 protected: no byte changes beyond version labels and bridge entrypoint',()=>{
+test('E7 v53 audit pins exact U2/U3/U4 source bytes, including reset and box safety fixes',()=>{
  for(let i=0;i<names.length;i++){
-  let s=read(names[i]);
+  const s=read(names[i]);
   assert.ok(s.includes('<script src="e7-unified-bridge-v51.js"></script>'));
-  s=s.replace('<script src="e7-unified-bridge-v51.js"></script>',
-   '<script src="e7-unified-bridge-v50.js"></script>');
-  if(i===0)s=s.replace('<title>ポケスリ作戦室 U2 v51',
-                         '<title>ポケスリ作戦室 U2 v50');
-  if(i===1){
-   s=s.replace('<title>ポケスリ作戦室 U3 v51',
-               '<title>ポケスリ作戦室 U3 v50');
-   s=s.replace('<span class="mock-tag">U3 v51 / E7</span>',
-               '<span class="mock-tag">U3 v50 / E7</span>');
-   // v52 only guards against resurrection during developer reset; all UI/game logic is unchanged.
-   s=s.replace(" // A developer reset must never be undone by the old iframe's beforeunload save.\n if(window.__pokesleepE7ResetRevoked)return false;\n",'');
-  }
-  if(i===2){
-   s=s.replace('<title>ポケスリ作戦室 U4 v51',
-               '<title>ポケスリ作戦室 U4 v50');
-   s=s.replace('U4 / E7 v51</span>','U4 / E7 v50</span>');
-  }
-  assert.equal(gitBlobSHA(s),oldSHA[i],'Changed protected UI source: '+names[i]);
+  assert.equal(gitBlobSHA(s),auditedSHA[i],'Unreviewed change to E7 protected UI: '+names[i]);
+  for(const m of s.matchAll(/<script(?:[^>]*)>([\\s\\S]*?)<\\/script>/g))
+   new vm.Script(m[1]);
  }
+ const strategy=read(names[1]),box=read(names[2]);
+ assert.match(strategy,/__pokesleepE7ResetRevoked/);
+ assert.match(strategy,/hasEnteredConditions/);
+ assert.match(strategy,/restoredUnmodified/);
+ assert.match(box,/const boxOptionalText=/);
+ assert.match(box,/function validBox\(v\)/);
 });
 test('E7 v51 bridge navigates only trusted internal child pages; hides duplicated footer',()=>{
  const s=read('e7-unified-bridge-v51.js');
