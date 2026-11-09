@@ -21,6 +21,13 @@ test('E7 v51 architecture: one persistent frame per tab, one common footer',()=>
  assert.equal((html.match(/id="tabbar"/g)||[]).length,1);
  assert.match(html,/function activate\(tab/);
  assert.match(html,/function stampFor\(tab\)/);
+ assert.match(html,/function setDevClock\(tab,stage\)/);
+ assert.match(html,/function resetDev\(tab\)/);
+ assert.match(html,/if\(tab!=='box'&&state\[tab\]\.devOpen\)/);
+ assert.match(html,/setDevClock\(originTab,event\.data\.stage\)/);
+ assert.match(html,/resetDev\(originTab\)/);
+ assert.match(html,/grid-template-columns:repeat\(3,1fr\)/);
+ for(const x of ['tab-plan','tab-prep','tab-box'])assert.ok(html.includes('id="'+x+'"'));
  assert.match(html,/tab==='box'\?'global-box-v1':stamp\(\)/);
  assert.match(html,/views\[t\]\.hidden=!active/);
  assert.match(html,/if\(!s\.requested\)begin\(tab\)/);
@@ -59,6 +66,10 @@ test('E7 v51 bridge navigates only trusted internal child pages; hides duplicate
  const s=read('e7-unified-bridge-v51.js');
  assert.match(s,/if\(window\.parent===window\)return/);
  assert.match(s,/#e6-footer\{display:none!important\}/);
+ assert.doesNotMatch(s,/#e6-dev\{display:none!important\}/);
+ assert.match(s,/const dev=document\.getElementById\('e6-dev'\)/);
+ assert.match(s,/event\.target\?\.closest\?\.\('button\[data-e6-stage\],button#e6-reset'\)/);
+ assert.match(s,/action:button\.id==='e6-reset'\?'dev-reset':'dev-clock'/);
  assert.match(s,/event\.preventDefault\(\);event\.stopImmediatePropagation\(\)/);
  assert.match(s,/window\.parent\.postMessage\(\{protocol:'pokesleep-e7-v51'/);
  assert.match(s,/window\.addEventListener\('message'/);

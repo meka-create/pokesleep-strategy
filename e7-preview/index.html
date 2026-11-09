@@ -51,6 +51,7 @@ const buttons=Object.fromEntries(TABS.map(t=>[t,document.getElementById('tab-'+t
 const state=Object.fromEntries(TABS.map(t=>[t,{requested:false,ready:false,stamp:null,hard:false,soft:false,loads:0}]));
 const status=document.getElementById('status');
 let current=null,prewarmStarted=false,prewarmTimer=null;
+const DEV_STAGES=Object.freeze({prep:{offset:-1,time:'16:00'},start:{offset:0,time:'06:00'},during:{offset:2,time:'15:00'}});
 function selected(){
  try{
   const x=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');
@@ -82,6 +83,7 @@ function urlFor(tab){
  const p=new URLSearchParams(location.search).get('previewNow');
  if(p&&/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/.test(p))url.searchParams.set('previewNow',p);
  if(tab==='prep'&&v&&phase(v)==='during')url.searchParams.set('tab','inventory');
+ if(tab!=='box'&&state[tab].devOpen)url.searchParams.set('devOpen','1');
  return url.href;
 }
 function loading(active){
@@ -102,6 +104,64 @@ function readBadge(tab=current){
    buttons.plan.setAttribute('aria-label',needed?'作戦（再提案が必要）':'作戦');
   }
  }catch(e){}
+}
+// E6 developer controls remain inside U2/U3. Route time changes through the shell
+// to ensure both tabs simulate the same time; Box is event-independent.
+function validWeekStart(week){
+ if(typeof week!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(week))return false;
+ const date=new Date(week+'T12:00:00Z');
+ return Number.isFinite(date.valueOf())&&date.toISOString().slice(0,10)===week&&date.getUTCDay()===1;
+}
+function devWeek(tab){
+ const chosen=selected();if(chosen)return chosen.weekStart;
+ try{
+  const week=new URL(views[tab].contentWindow.location.href).searchParams.get('eventStart');
+  if(validWeekStart(week))return week;
+ }catch(e){}
+ return '2026-11-09'; // E6 baseline when no event is selected.
+}
+function previewDate(week,stage){
+ if(!validWeekStart(week)||!Object.hasOwn(DEV_STAGES,stage))return null;
+ const {offset,time}=DEV_STAGES[stage],d=new Date(week+'T12:00:00Z');
+ d.setUTCDate(d.getUTCDate()+offset);
+ return d.toISOString().slice(0,10)+'T'+time;
+}
+function setDevClock(tab,stage){
+ if(tab!==current||(tab!=='plan'&&tab!=='prep'))return;
+ const clock=previewDate(devWeek(tab),stage);if(!clock)return;
+ state[tab].devOpen=true;
+ const url=new URL(location.href);
+ url.searchParams.set('previewNow',clock);
+ history.replaceState({e7Tab:current},'',url.href);
+ for(const id of ['plan','prep'])state[id].hard=true;
+ reload(tab);
+}
+function resetDev(tab){
+ if(tab!==current||(tab!=='plan'&&tab!=='prep'))return;
+ const week=devWeek(tab);
+ if(!validWeekStart(week)||!confirm('E6検証用の'+week+'開始週を初期化しますか？\n他の週のデータは削除しません。'))return;
+ const matches=k=>{
+  if(k==='pokesleep-strategy-u3-e3-v1:selected'){
+   try{return JSON.parse(localStorage.getItem(k)||'null')?.weekStart===week;}
+   catch(e){return false}
+  }
+  return k.startsWith('pokesleep-strategy-u3-e3-v1:'+week+':')||
+   k.startsWith('pokesleep-strategy-u2-e2-v1:'+week+':')||
+   k.startsWith('pokesleep-strategy-u2-v3:'+week+':')||
+   k.startsWith('pokesleep-strategy-u2-v2:'+week+':')||
+   k.startsWith('pokesleep-strategy-u2-e6-prep-v1:'+week+':');
+ };
+ try{
+  const keys=Object.keys(localStorage),toRemove=keys.filter(matches);
+  for(const k of toRemove)localStorage.removeItem(k);
+ }catch(e){alert('検証データの初期化に失敗しました。データを確認してください。');return;}
+ const url=new URL(location.href);
+ url.searchParams.set('previewNow',previewDate(week,'prep'));
+ url.searchParams.set('tab','plan');
+ history.replaceState({e7Tab:'plan'},'',url.href);
+ for(const id of ['plan','prep'])state[id].hard=true;
+ state.plan.devOpen=true;
+ activate('plan',{fromHistory:true});
 }
 function begin(tab){
  const s=state[tab];if(s.requested)return;
@@ -183,6 +243,10 @@ window.addEventListener('message',event=>{
  if(!originTab||event.data?.protocol!==PROTOCOL)return;
  if(event.data.action==='navigate'&&validTab(event.data.tab)){
   activate(event.data.tab,{push:true});
+ }else if(event.data.action==='dev-clock'&&['prep','start','during'].includes(event.data.stage)){
+  setDevClock(originTab,event.data.stage);
+ }else if(event.data.action==='dev-reset'){
+  resetDev(originTab);
  }else if(event.data.action==='badge'&&originTab===current){
   buttons.plan.dataset.reproposal=String(event.data.needed===true);
   buttons.plan.setAttribute('aria-label',event.data.needed?'作戦（再提案が必要）':'作戦');

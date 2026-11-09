@@ -176,6 +176,58 @@ try:
             wait_until='domcontentloaded')
         page.wait_for_url('**/e7-preview/?tab=box',timeout=12000)
         ready('box')
+        # Original E6 developer controls are restored, but remain an
+        # expandable panel INSIDE U2/U3. The footer/icons stay three tabs.
+        marker('box','dev-global-box')
+        plan=tab('plan')
+        assert plan.locator('#e6-dev').is_visible()
+        assert '開発用・日時切替' in plan.locator('#e6-dev summary').inner_text()
+        assert plan.locator('#e6-dev [data-e6-stage]').count()==3
+        plan.locator('#e6-dev summary').click()
+        plan.locator('#e6-dev [data-e6-stage="start"]').click()
+        page.wait_for_function("""()=>{
+            const f=document.getElementById('view-plan');
+            return new URL(location.href).searchParams.get('previewNow')==='2026-11-16T06:00'
+                && new URL(f.contentWindow.location.href).searchParams.get('previewNow')==='2026-11-16T06:00'
+                && f.contentDocument?.readyState==='complete'
+                && document.getElementById('status').hidden;
+        }""",timeout=15000)
+        assert page.locator('#tab-plan').get_attribute('aria-current')=='page'
+        assert page.frame_locator('#view-plan').locator('#e6-dev').evaluate('(d)=>d.open')
+        box=tab('box')
+        assert get_marker('box')=='dev-global-box','developer clock needlessly reloaded Box'
+        prep=tab('prep')
+        assert prep.locator('#e6-dev').is_visible()
+        prep.locator('#e6-dev summary').click()
+        prep.locator('#e6-dev [data-e6-stage="prep"]').click()
+        page.wait_for_function("""()=>{
+            const f=document.getElementById('view-prep');
+            return new URL(location.href).searchParams.get('previewNow')==='2026-11-15T16:00'
+                && new URL(f.contentWindow.location.href).searchParams.get('previewNow')==='2026-11-15T16:00'
+                && f.contentDocument?.readyState==='complete'
+                && document.getElementById('status').hidden;
+        }""",timeout=15000)
+        assert page.locator('#tab-prep').get_attribute('aria-current')=='page'
+        assert page.frame_locator('#view-prep').locator('#e6-dev').evaluate('(d)=>d.open')
+        plan=tab('plan')
+        assert plan.locator('#e6-dev').is_visible()
+        page.evaluate("""()=>{
+            localStorage.setItem('pokesleep-strategy-e7-dev-test-keep','keep-me');
+            localStorage.setItem('pokesleep-strategy-u2-e2-v1:2026-11-09:sentinel','unrelated-week');
+        }""")
+        plan.locator('#e6-dev #e6-reset').click()
+        page.wait_for_function("""()=>{
+            const plan=document.getElementById('view-plan');
+            return localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')===null
+              && new URL(location.href).searchParams.get('previewNow')==='2026-11-15T16:00'
+              && !plan.hidden && plan.contentDocument?.readyState==='complete'
+              && document.getElementById('status').hidden;
+        }""",timeout=15000)
+        assert page.evaluate("localStorage.getItem('pokesleep-strategy-u2-e2-v1:2026-11-09:sentinel')")=='unrelated-week'
+        assert page.evaluate("localStorage.getItem('pokesleep-strategy-e7-dev-test-keep')")=='keep-me'
+        assert page.evaluate("JSON.parse(localStorage.getItem('pokesleep-strategy-e7-player-v1')).pot")==57
+        assert page.locator('#tab-plan').get_attribute('aria-current')=='page'
+        assert not errors,errors
         for width in (320,393,430):
             page.set_viewport_size({'width':width,'height':852})
             page.wait_for_timeout(30)
