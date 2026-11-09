@@ -53,6 +53,8 @@ test('E7 v51 U2/U3/U4 protected: no byte changes beyond version labels and bridg
                '<title>ポケスリ作戦室 U3 v50');
    s=s.replace('<span class="mock-tag">U3 v51 / E7</span>',
                '<span class="mock-tag">U3 v50 / E7</span>');
+   // v52 only guards against resurrection during developer reset; all UI/game logic is unchanged.
+   s=s.replace(" // A developer reset must never be undone by the old iframe's beforeunload save.\n if(window.__pokesleepE7ResetRevoked)return false;\n",'');
   }
   if(i===2){
    s=s.replace('<title>ポケスリ作戦室 U4 v51',
@@ -96,4 +98,24 @@ test('E7 v51 preview cache updates online and supports offline, independent of p
  new vm.Script(sw);
  const redirect=read('U5_Integrated_20261109_v50_E7.html');
  assert.match(redirect,/location\.replace\('\.\/'\+location\.search\+location\.hash\)/);
+});
+
+test('E7 v52 reset revokes stale event frames before deleting event-week storage',()=>{
+ const html=read('index.html');
+ const plan=read(names[1]);
+ const begin=html.indexOf('function resetDev(tab){');
+ const end=html.indexOf('function begin(tab){',begin);
+ assert.ok(begin>0&&end>begin);
+ const reset=html.slice(begin,end);
+ assert.match(reset,/win\.__pokesleepE7ResetRevoked=true/);
+ assert.ok(reset.indexOf('win.__pokesleepE7ResetRevoked=true')<
+   reset.indexOf('localStorage.removeItem(key)'),'iframe must be revoked before deleting saved plan');
+ assert.match(reset,/localStorage\.key\(i\)/);
+ assert.match(reset,/for\(const \[key,value\] of saved\)/);
+ assert.match(reset,/state\[id\]\.hard=true/);
+ assert.match(reset,/activate\('plan',\{fromHistory:true\}\)/);
+ assert.match(reset,/url\.searchParams\.delete\(key\)/);
+ assert.match(plan,/function storeState\(\)\{\s*\/\/ A developer reset must never be undone/);
+ assert.match(plan,/if\(window\.__pokesleepE7ResetRevoked\)return false/);
+ assert.match(plan,/window\.addEventListener\('beforeunload',storeState\)/);
 });
