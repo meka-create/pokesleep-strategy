@@ -54,7 +54,7 @@ try:
           if(!('serviceWorker' in navigator))return false;
           const reg=await navigator.serviceWorker.ready;
           if(!reg.active)return false;
-          const cache=await caches.open('pokesleep-strategy-e7-v56-settings-20261110');
+          const cache=await caches.open('pokesleep-strategy-e7-v57-more-menu-20261110');
           const base=new URL('assets/ingredients/',reg.scope);
           const hits=await Promise.all(Array.from({length:19},(_,i)=>
             cache.match(new URL('ingredient-'+String(i+1).padStart(2,'0')+'.png',base))));
