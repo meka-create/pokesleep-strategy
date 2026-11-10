@@ -1,0 +1,46 @@
+'use strict';
+const {test}=require('node:test'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..'),dir=path.join(root,'e7-preview');
+const read=n=>fs.readFileSync(path.join(dir,n),'utf8');
+test('E7 v60 only known costumes reuse ordinary art; regional variants retain special IDs',()=>{
+ const species=read('e7-species-v59.js'),sprites=read('e7-sprites-v59.js');
+ const detail=read('e7-box-detail-v60.js'),style=read('e7-box-detail-v60.css');
+ assert.match(species,/"name":"タマザラシ \(ホリデー\)","id":363,"type":"ice"/);
+ assert.match(sprites,/COSTUME_BASE=new Map/);
+ assert.match(sprites,/\['タマザラシ \(ホリデー\)','タマザラシ'\]/);
+ assert.match(sprites,/VARIANTS.get\(name\)/);
+ assert.match(detail,/SPECIES=new Map/);
+ assert.match(detail,/const TYPES=/);
+ assert.match(detail,/root\.PokeSprite\.enhance/);
+ assert.match(detail,/const INGREDIENTS=new Map/);
+ assert.match(detail,/NATURE_EFFECTS/);
+ assert.match(detail,/\.iv-skill/);
+ assert.match(style,/\.iv-nature-row/);
+ assert.match(style,/\.iv-main/);
+ assert.match(style,/\.iv-subskills/);
+ for(const s of [species,sprites,detail])new vm.Script(s);
+ const context={window:{},Map,Set,Object,Number,Array,JSON,String};context.window.window=context.window;
+ vm.runInNewContext(species,context);
+ vm.runInNewContext(sprites,context);
+ const url=(name)=>context.window.PokeSprite.spriteUrl({pokemon:name,shiny:false});
+ assert.ok(url('タマザラシ（ホリデー）').endsWith('/363.png'));
+ assert.ok(url('タマザラシ (ホリデー)').endsWith('/363.png'));
+ assert.ok(url('ロコン（アローラ）').endsWith('/10103.png'));
+ assert.equal(url('タマザラシ（未知）'),'');
+});
+test('E7 v60 collapsed registration contains full delete only inside',()=>{
+ const box=read('U4_Box_Preview_20261109_v50_E7.html');
+ const sec=box.slice(box.indexOf('<section class="card" id="box-registration"'),box.indexOf('<section class="card" aria-labelledby="box-title">'));
+ assert.match(sec,/<details id="e7-import-panel"><summary id="box-import-title">CSV・TSVから登録<\/summary>/);
+ assert.ok(sec.indexOf('id="box-commit"')<sec.indexOf('id="box-clear"'));
+ assert.ok(sec.indexOf('id="box-clear"')<sec.indexOf('</details>'));
+ assert.doesNotMatch(sec,/\bopen\b/);
+ assert.match(box,/icon\.style\.setProperty\('--tone',E7BoxDetail\.tone\(item\)\)/);
+ assert.match(box,/E7BoxDetail\.render\(item\)/);
+ assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v60-box-polish/);
+ assert.match(read('e7-sw-v50.js'),/'e7-box-detail-v60\.js','e7-box-detail-v60\.css'/);
+ assert.match(read('index.html'),/E7 v60/);
+});
+test('E7 v60 actual Chromium: compact import, colored tiles, detail and special form', {timeout:120000},()=>{
+ require('node:child_process').execFileSync('python3',[path.join(__dirname,'preview_browser_e7_v60.py')],{cwd:root,timeout:115000,stdio:'pipe'});
+});
