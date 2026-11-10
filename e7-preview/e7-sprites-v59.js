@@ -3,6 +3,13 @@
  // Use verified local IDs; never guess special-form artwork from a national Pokédex number.
  const SPRITES='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
  const VARIANTS=new Map([['ロコン (アローラ)',10103],['キュウコン (アローラ)',10104],['ウパー (パルデア)',10253]]);
+ // Pokémon Sleep-only costumes have no dedicated PokéAPI art. Use the plain
+ // species sprite exclusively for these verified costumes, never regional forms.
+ const COSTUME_BASE=new Map([
+  ['ピカチュウ (ホリデー)','ピカチュウ'],['ピカチュウ (ハロウィン)','ピカチュウ'],
+  ['ピカチュウ (キャプテン)','ピカチュウ'],['イーブイ (ホリデー)','イーブイ'],
+  ['イーブイ (ハロウィン)','イーブイ'],['タマザラシ (ホリデー)','タマザラシ']
+ ]);
  const species=new Map((root.PokeMaster?.species||[]).map(p=>[p.name,p.id]));
  const CACHE='pokesleep-strategy-sprites-v1';
  const MAX_ACTIVE=3,GAP_MS=150,MAX_RETRIES=2;
@@ -14,8 +21,9 @@
    },{rootMargin:'220px 0px'}):null;
  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function spriteUrl(p){
-  const name=String(p?.pokemon||'');
-  const id=/[(（]/.test(name)?VARIANTS.get(name):species.get(name);
+  const name=String(p?.pokemon||'').normalize('NFKC').replace(/\s*\(/g,' (').trim();
+  const id=name.includes('(')?(VARIANTS.get(name)||
+    (COSTUME_BASE.has(name)?species.get(COSTUME_BASE.get(name)):undefined)):species.get(name);
   if(!Number.isInteger(id)||id<1)return '';
   return SPRITES+(p.shiny?'shiny/':'')+id+'.png';
  }

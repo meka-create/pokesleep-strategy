@@ -1,0 +1,53 @@
+/* E7 v60 — exact U3 stat-modal visual language, adapted for live Box data. */
+.box-detail-dialog{
+ position:fixed;inset:auto 0 0;max-height:min(90dvh,890px);width:min(540px,100%);
+ margin:auto auto 0;border:1px solid #748aa0;border-radius:20px 20px 0 0;
+ background:#17283c;color:#edf3f8;padding:9px 15px 23px;
+ box-shadow:0 -18px 80px #0008;overflow:auto;
+ font:14px/1.48 system-ui,-apple-system,"Noto Sans JP",sans-serif;
+}
+.box-detail-dialog::backdrop{background:#020810b8}
+.box-detail-dialog .iv-close-row{display:flex;justify-content:flex-end;align-items:center;min-height:32px;margin:0 0 5px}
+.box-detail-dialog .iv-close-row button{min-height:32px;border:1px solid #60778c;background:transparent;color:#eef5fb;border-radius:10px;padding:6px 10px;font-size:12px;font-weight:750}
+.box-detail-dialog .iv-hero{display:flex;align-items:flex-start;gap:12px;margin:0 0 8px;padding:0 0 6px}
+.box-detail-dialog .iv-hero-name{display:flex;flex-direction:column;gap:3px;min-width:0;padding-top:5px}
+.box-detail-dialog .iv-hero-name strong{font-size:20px;overflow-wrap:anywhere}
+.box-detail-dialog .iv-hero-name span{color:#f5ca78;font-size:15px;font-weight:800;line-height:1.35}
+.box-detail-dialog .status-portrait{position:relative;width:82px;height:82px;flex:0 0 82px;border-radius:14px;display:grid;place-items:center;font-size:17px;
+ background:color-mix(in srgb,var(--tone,#8ca2b5),#111f30 74%);border:1px solid color-mix(in srgb,var(--tone,#8ca2b5),#4d657a 60%)}
+.box-detail-dialog .status-portrait::after{content:"";position:absolute;bottom:0;left:9px;right:9px;border-bottom:2px solid var(--tone,#8ca2b5);opacity:.7}
+.box-detail-dialog .status-portrait .poke-art{position:relative;display:grid;place-items:center;width:100%;height:100%}
+.box-detail-dialog .status-portrait .poke-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0}
+.box-detail-dialog .status-portrait .poke-art.is-loaded img{opacity:1}
+.box-detail-dialog .status-portrait .poke-art.is-loaded .poke-art-fallback{display:none}
+.box-detail-dialog .iv-base{display:grid;grid-template-columns:minmax(108px,34%) minmax(0,1fr);align-items:center;column-gap:12px;row-gap:0;margin:7px 2px 11px}
+.box-detail-dialog .iv-key{display:flex;align-items:center;min-height:44px;padding:10px 0;color:#c4d3e3;font-size:12px;font-weight:700;line-height:1.35;white-space:nowrap}
+.box-detail-dialog .iv-value{display:flex;align-items:center;min-width:0;min-height:44px;padding:8px 0;color:#edf3f8;font-size:14px;font-weight:730;line-height:1.4;overflow-wrap:anywhere}
+.box-detail-dialog .iv-ingredients{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:3px}
+.box-detail-dialog .iv-ingredient{display:flex;flex-direction:column;align-items:center;min-width:0;gap:3px;text-align:center}
+.box-detail-dialog .iv-ingredient-image{position:relative;display:grid;place-items:center;flex:none;width:clamp(28px,9vw,40px);height:clamp(28px,9vw,40px)}
+.box-detail-dialog .iv-ingredient-image img{width:100%;height:100%;object-fit:contain}
+.box-detail-dialog .ingredient-name{font-size:9px;line-height:1.25;overflow-wrap:anywhere}
+.box-detail-dialog .iv-section-title{margin:14px -2px 9px;padding:4px 8px;background:#557799;color:#fff;font-size:12px;border-radius:5px;font-weight:750}
+.box-detail-dialog .iv-main{display:flex;align-items:baseline;justify-content:flex-start;flex-wrap:wrap;gap:14px;margin:1px 2px 10px;padding:5px 2px 9px;border-bottom:1px solid #547087;background:transparent;font-size:15px;font-weight:780;line-height:1.4}
+.box-detail-dialog .iv-main span{min-width:0;overflow-wrap:anywhere}
+.box-detail-dialog .iv-main em{font-style:normal;color:#f5ca78;white-space:nowrap}
+.box-detail-dialog .iv-subskills{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0}
+.box-detail-dialog .iv-skill{min-height:42px;border:1px solid #6b8091;border-radius:8px;padding:5px 7px;background:#253b50;font-size:13px;font-weight:750;line-height:1.35;display:flex;align-items:center;justify-content:center;text-align:center;box-sizing:border-box}
+.box-detail-dialog .iv-skill>span{display:block;width:100%;overflow-wrap:anywhere}
+.box-detail-dialog .iv-skill.gold{border-color:#a18a59;background:#4c4334}
+.box-detail-dialog .iv-skill.blue{border-color:#5b8eb6;background:#263f60}
+.box-detail-dialog .iv-skill.white{border-color:#8192a4;background:#29394a}
+.box-detail-dialog .iv-skill.unknown{border-style:dashed;border-color:#d4a960}
+.box-detail-dialog .iv-skill.locked{opacity:.64}
+.box-detail-dialog .iv-nature-row{display:grid;grid-template-columns:minmax(108px,38%) minmax(0,1fr);align-items:center;gap:10px;margin:10px 2px 9px}
+.box-detail-dialog .iv-nature-pill{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:2px solid #709dc0;border-radius:999px;background:#23394e;color:#edf3f8;font-size:14px;font-weight:750;line-height:1.35;text-align:center}
+.box-detail-dialog .iv-nature-modifiers{display:flex;flex-direction:column;justify-content:center;gap:7px;min-width:0}
+.box-detail-dialog .iv-nature-effect{display:flex;align-items:baseline;justify-content:flex-start;gap:3px;font-size:13px;line-height:1.4;white-space:normal;font-weight:650}
+.box-detail-dialog .iv-nature-effect span{flex:0 1 auto;min-width:0;overflow-wrap:anywhere}
+.box-detail-dialog .iv-nature-effect b{flex:0 0 auto;white-space:nowrap;font-size:13px;font-weight:900}
+.box-detail-dialog .iv-nature-effect.up b{color:#eda377}
+.box-detail-dialog .iv-nature-effect.down b{color:#82bde8}
+.box-detail-dialog .iv-nature-none{font-size:12px;color:#afc0d0}
+.box-detail-dialog .box-detail-actions{display:flex;justify-content:space-between;gap:12px;margin-top:17px}
+@media(max-width:360px){.box-detail-dialog .iv-base{grid-template-columns:minmax(105px,36%) minmax(0,1fr);column-gap:8px}.box-detail-dialog .iv-key{font-size:11px}}
