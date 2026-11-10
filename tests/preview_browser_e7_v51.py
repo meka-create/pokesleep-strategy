@@ -112,8 +112,11 @@ try:
         assert box.locator('#e6-footer').is_hidden()
         marker('box','keep-box')
         assert box.locator('#player-title').is_hidden(), 'Player card should live in Settings'
-        box.locator('#e7-settings-open').click()
-        page.locator('#e7-player-settings > summary').click()
+        box.locator('#e7-more-open').click()
+        box.locator('#e7-more-player').click()
+        page.wait_for_function("""()=>document.getElementById('e7-settings-dialog')?.open &&
+          document.getElementById('e7-settings-title').textContent==='プレイヤー情報'""",
+          timeout=10000)
         page.locator('#e7-settings-pot').fill('57')
         page.locator('#e7-settings-bag').fill('700')
         page.locator('#e7-settings-player-save').click()
