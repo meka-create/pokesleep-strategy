@@ -30,21 +30,27 @@ try:
               && document.getElementById('view-'+tab).contentDocument?.readyState!=='loading'""",
               arg=tab,timeout=20000)
             return page.frame_locator('#view-'+tab)
-        def open_settings(child):
-            child.locator('#e7-settings-open').click()
-            # Header clicks postMessage asynchronously from the iframe.
-            # Wait for the actual parent dialog, not merely the click event.
-            page.wait_for_function("""()=>document.getElementById(
-              'e7-settings-dialog')?.open===true""",timeout=10000)
+        def open_settings(child,section='player'):
+            child.locator('#e7-more-open').click()
+            child.locator('#e7-more-'+section).click()
+            # Menu selection posts asynchronously from the iframe.
+            page.wait_for_function("""(section)=>{
+              const dialog=document.getElementById('e7-settings-dialog');
+              const title=document.getElementById('e7-settings-title')?.textContent;
+              const player=document.getElementById('e7-player-settings');
+              const backup=document.getElementById('e7-backup-settings');
+              return dialog?.open&&title===(section==='player'?'プレイヤー情報':'バックアップ・復元')&&
+               player.hidden===(section!=='player')&&backup.hidden===(section!=='backup');
+            }""",arg=section,timeout=10000)
         box=open_tab('box')
         assert box.locator('#player-title').is_hidden(),'Player editor must be outside unified Box'
-        assert box.locator('#e7-settings-open').is_visible()
+        assert box.locator('#e7-more-open').is_visible()
         assert page.locator('#e7-settings-dialog').is_hidden()
         open_settings(box)
         assert page.locator('#e7-settings-dialog').is_visible()
         assert page.locator('#e7-player-settings').is_visible()
-        assert page.locator('#e7-backup-settings').is_visible()
-        page.locator('#e7-player-settings > summary').click()
+        assert page.locator('#e7-backup-settings').is_hidden()
+        assert page.locator('#e7-settings-title').inner_text()=='プレイヤー情報'
         page.locator('#e7-settings-pot').fill('57')
         page.locator('#e7-settings-bag').fill('700')
         page.locator('#e7-settings-bonus-0').fill('15')
@@ -57,8 +63,8 @@ try:
         assert page.locator('#e7-settings-dialog').is_hidden()
         for tab in ('prep','plan','box'):
             child=open_tab(tab)
-            assert child.locator('#e7-settings-open').is_visible(), tab
-            assert child.locator('#e7-settings-open').get_attribute('aria-label')=='設定'
+            assert child.locator('#e7-more-open').is_visible(), tab
+            assert child.locator('#e7-more-open').get_attribute('aria-label')=='メニュー'
         assert page.locator('#tabbar button').count()==3,'Settings must not become a fourth tab'
         # The new header gear must not overlap the title or the week pill,
         # especially on the smallest supported phone viewport.
@@ -66,7 +72,7 @@ try:
             page.set_viewport_size({'width':width,'height':852})
             for tab in ('plan','prep','box'):
                 child=open_tab(tab)
-                shape=child.locator('#e7-settings-open').evaluate("""(gear)=>{
+                shape=child.locator('#e7-more-open').evaluate("""(gear)=>{
                   const header=gear.closest('header');
                   const brand=header.querySelector('.brand');
                   const week=header.querySelector('#u2-week-label');
@@ -88,8 +94,7 @@ try:
           localStorage.setItem('unrelated-pwa-token','must-not-export-or-delete');
         }""")
         box=open_tab('box')
-        open_settings(box)
-        page.locator('#e7-backup-settings > summary').click()
+        open_settings(box,'backup')
         with page.expect_download() as download_event:
             page.locator('#e7-settings-export').click()
         download=download_event.value
@@ -138,7 +143,6 @@ try:
         box=page.frame_locator('#view-box')
         assert box.locator('#player-title').is_hidden()
         open_settings(box)
-        page.locator('#e7-player-settings > summary').click()
         assert page.locator('#e7-settings-pot').input_value()=='57'
         assert page.locator('#e7-settings-bag').input_value()=='700'
         page.locator('#e7-settings-close').click()
@@ -153,7 +157,8 @@ try:
           return dialog?.open&&document.getElementById('e7-settings-player-save')?.disabled;
         }""",timeout=10000)
         assert page.locator('#e7-settings-player-save').is_disabled()
-        page.locator('#e7-backup-settings > summary').click()
+        page.locator('#e7-settings-close').click()
+        open_settings(box,'backup')
         with page.expect_download() as damaged_download:
             page.locator('#e7-settings-export').click()
         damaged=json.loads(Path(damaged_download.value.path()).read_text(encoding='utf-8'))
