@@ -28,7 +28,7 @@ test('E7 v56 shared Settings entry and recoverable app-only backup are wired',()
  assert.match(settings,/__pokesleepE7ResetRevoked=true/);
  assert.match(settings,/window\.confirm\(msg\)/);
  assert.match(sw,/'e7-settings-v56\.js','e7-settings-v56\.css'/);
- assert.match(sw,/pokesleep-strategy-e7-v56-settings/);
+ assert.match(sw,/pokesleep-strategy-e7-v57-more-menu/);
  const vm=require('node:vm');
  new vm.Script(settings);new vm.Script(bridge);new vm.Script(sw);
 });
