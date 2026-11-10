@@ -8,8 +8,8 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 const auditedSHA=['76be9d8f32606342b2ca972cdc796373ea1b55c2',
- '6854930024c111acffc01da0094b0d3151746adc',
- '23f862b061463ef99ef2665f24ba2f4b8c40848f'];
+ 'bb3d3f6ea8b000d5e842ac1de857f21b603e0ec3',
+ 'b9d5768f39cd065312bd37fbb8e47e362765897a'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
@@ -89,7 +89,7 @@ test('E7 v51 manifest uses a persistent app ID with start URL at fast shell',()=
 });
 test('E7 v51 preview cache updates online and supports offline, independent of production root',()=>{
  const sw=read('e7-sw-v50.js');
- assert.match(sw,/pokesleep-strategy-e7-v61-level-gap/);
+ assert.match(sw,/pokesleep-strategy-e7-v62-roster-sorting/);
  assert.match(sw,/'index\.html'/);
  assert.match(sw,/'e7-unified-bridge-v51\.js'/);
  assert.match(sw,/fetch\(event\.request,\{cache:'no-store'\}\)/);
