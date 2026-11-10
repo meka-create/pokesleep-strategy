@@ -224,6 +224,12 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 .e6-berry-choices [data-berry-type="はがね"]{--berry-type-color:#849DAC}
 .e6-berry-choices [data-berry-type="フェアリー"]{--berry-type-color:#E3A2C4}
 </style>
+<style id="e7-v62-roster-level">
+/* All existing sprite sizes remain unchanged: 45px, or 42px on narrow screens. */
+.mon{gap:2px}
+.mon-level{display:block;max-width:100%;font-size:10px;line-height:1.15;font-weight:800;color:var(--text);margin:0 0 -1px;white-space:nowrap;text-align:center}
+@media(max-width:385px){.mon-level{font-size:9px}}
+</style>
 </head>
 <body><details id="e6-dev">
 <summary>開発用・日時切替</summary>
@@ -1466,7 +1472,17 @@ function proposal(stock=null){
  }
  return next;
 }
-function avatar(id){const p=POOL[id];const tile=document.createElement('div');tile.className='mon';const icon=document.createElement('button');icon.className='avatar avatar-tap sprite-stage';icon.type='button';icon.style.setProperty('--tone',p.color);icon.setAttribute('aria-label',p.name+'のステータス');appendSprite(icon,p);icon.addEventListener('click',()=>showPokemon(id));const label=document.createElement('span');label.className='mon-name';label.textContent=p.name;tile.append(icon,label);return tile;}
+function avatar(id){
+ const p=POOL[id],tile=document.createElement('div');tile.className='mon';
+ // Use the same illustrative level as the existing U3 status modal.
+ const lv=document.createElement('span');lv.className='mon-level';lv.textContent='Lv.'+(MOCK_STATUS[id]?.[0]??'—');
+ const icon=document.createElement('button');icon.className='avatar avatar-tap sprite-stage';
+ icon.type='button';icon.style.setProperty('--tone',p.color);
+ icon.setAttribute('aria-label',p.name+'のステータス');appendSprite(icon,p);
+ icon.addEventListener('click',()=>showPokemon(id));
+ const label=document.createElement('span');label.className='mon-name';label.textContent=p.name;
+ tile.append(lv,icon,label);return tile;
+}
 
 /* U3-A: Prioritize preparation -> start/setup -> adopted weekly plan.
    This is presentation only. U3-B's current-game-weekday selection is a separate milestone. */

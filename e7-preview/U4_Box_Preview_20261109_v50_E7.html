@@ -39,13 +39,16 @@ details{margin-top:9px}details summary{cursor:pointer;color:#d9e5ef;font-weight:
 #e7-import-panel{margin:0}
 #e7-import-panel>summary{font-size:13px;line-height:1.35;font-weight:700;color:#d9e5ef;padding:5px 0;cursor:pointer}
 #e7-import-panel .import-content{border-top:1px solid #394e65;margin-top:8px;padding-top:11px}
-#e7-import-panel .clear-actions{justify-content:flex-end;margin-top:17px;padding-top:11px;border-top:1px solid #354c63}
+#e7-import-panel .import-actions{display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:stretch;gap:8px;margin-top:13px}
+#e7-import-panel .import-actions #box-commit{flex:1 1 auto;min-width:0}
+#e7-import-panel .import-actions #box-clear{flex:0 0 auto}
+#e7-import-panel .import-actions .btn{height:38px;min-height:38px;padding:6px 10px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;line-height:1.2;white-space:nowrap;box-sizing:border-box}
 button.btn.danger-subtle{padding:7px 11px;min-height:36px;border:1px solid #a56b6c;background:transparent;color:#f2b8b4;font-weight:750}
 button.btn.danger-subtle:disabled{opacity:.45}
 @media(max-width:350px){#box-list{column-gap:4px}.box-avatar{height:56px;width:min(56px,100%)}.box-nickname{font-size:10px}}
 .info{font-size:12px;color:#b9cfe1}#import-summary{margin-top:10px}
 #upload{width:100%;border:1px dashed #7894ab;padding:10px;background:#102136}
-#box-query{width:100%;margin-top:8px}
+#box-query{display:block;width:100%;margin-top:0}
 #e7-message{margin:0;min-height:18px;font-size:12px;color:#cce6c0}#e7-message[data-error=true]{color:#ffb2a5}
 #e7-blocked{border-left:3px solid #e49a83;padding:7px 11px;background:#392f35;color:#ffcbc0}
 #e7-import-preview{list-style:none;padding:0;display:grid;gap:4px;max-height:148px;overflow:auto;font-size:11px;color:#d6e3ee}
@@ -81,12 +84,11 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 <label>ファイル選択<input id="upload" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values"></label>
 <div id="import-summary" class="info" role="status"></div>
 <ul id="e7-import-preview"></ul>
-<div class="actions"><button id="box-commit" type="button" class="btn secondary" disabled>確認した個体を追加</button></div>
-<div class="actions clear-actions"><button type="button" class="btn danger-subtle" id="box-clear">全削除</button></div>
+<div class="actions import-actions"><button id="box-commit" type="button" class="btn secondary" disabled>確認した個体を追加</button><button type="button" class="btn danger-subtle" id="box-clear">全削除</button></div>
 </div></details></section>
 <section class="card" aria-labelledby="box-title">
 <h2 id="box-title">ボックス <span id="box-count" class="muted"></span></h2>
-<label>検索<input type="search" id="box-query" placeholder="ポケモン・ニックネーム（前方一致）" autocomplete="off"></label>
+<input type="search" id="box-query" aria-label="検索" placeholder="検索" autocomplete="off">
 <ul id="box-list" aria-live="polite"></ul>
 <button type="button" class="btn secondary" id="box-more" hidden>さらに表示</button>
 </section>
@@ -103,7 +105,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 <h3 class="iv-section-title">詳細ステータス</h3>
 <div class="iv-nature-wrap" id="box-detail-nature" role="group" aria-label="せいかく"></div>
 <div class="iv-base" id="box-detail-extra"></div>
-<div class="box-detail-actions"><button type="button" class="btn danger-subtle" id="box-delete">削除</button><button type="button" class="btn secondary" id="box-detail-dismiss">閉じる</button></div>
+<div class="box-detail-actions"><button type="button" class="btn danger-subtle" id="box-delete">削除</button></div>
 </dialog>
 <nav id="e6-footer" aria-label="メインナビゲーション">
 <a id="e6-footer-plan" href="U3_Strategy_UI_20261109_v50_E7.html"><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m-14 5h3m4 0h3"/></svg><span>作戦</span></a>
@@ -189,8 +191,11 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
   $('box-count').textContent=box.items.length+'匹';
   $('box-clear').disabled=blocked||box.items.length===0;
   const q=normalizeSearch($('box-query').value.trim());
+  // Sort the DISPLAY only (descending level), preserve CSV order for ties.
+  // Original array indices must remain stable for exact individual deletion.
   const matches=box.items.map((item,index)=>({item,index})).filter(({item})=>
-   !q||normalizeSearch(item.nickname).startsWith(q)||normalizeSearch(item.pokemon).startsWith(q));
+   !q||normalizeSearch(item.nickname).startsWith(q)||normalizeSearch(item.pokemon).startsWith(q))
+   .sort((a,b)=>b.item.level-a.item.level||a.index-b.index);
   const out=$('box-list');out.replaceChildren();
   for(const {item,index} of matches.slice(0,visibleLimit)){
    const li=document.createElement('li');li.className='box-entry';
@@ -242,7 +247,6 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
  $('box-query').addEventListener('input',()=>showBox(true));
  $('box-more').addEventListener('click',()=>{visibleLimit+=100;showBox();});
  $('box-detail-close').addEventListener('click',()=>detail.close());
- $('box-detail-dismiss').addEventListener('click',()=>detail.close());
  detail.addEventListener('close',()=>{selectedIndex=null;});
  $('box-delete').addEventListener('click',()=>{
   if(blocked||selectedIndex===null||!box?.items[selectedIndex])return;

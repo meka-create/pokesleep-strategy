@@ -53,3 +53,7 @@
 .box-detail-dialog .iv-nature-none{font-size:12px;color:#afc0d0}
 .box-detail-dialog .box-detail-actions{display:flex;justify-content:space-between;gap:12px;margin-top:17px}
 @media(max-width:360px){.box-detail-dialog .iv-base{grid-template-columns:minmax(105px,36%) minmax(0,1fr);column-gap:8px}.box-detail-dialog .iv-key{font-size:11px}}
+
+/* E7 v62: only one bottom-right delete action, same height as the top close. */
+.box-detail-dialog .box-detail-actions{justify-content:flex-end}
+.box-detail-dialog #box-delete{height:32px;min-height:32px;padding:6px 10px;font-size:12px;line-height:18px;box-sizing:border-box}

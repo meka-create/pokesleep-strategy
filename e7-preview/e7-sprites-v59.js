@@ -2,7 +2,14 @@
  'use strict';
  // Use verified local IDs; never guess special-form artwork from a national Pokédex number.
  const SPRITES='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
- const VARIANTS=new Map([['ロコン (アローラ)',10103],['キュウコン (アローラ)',10104],['ウパー (パルデア)',10253]]);
+ const VARIANTS=new Map([
+  ['ロコン (アローラ)',10103],['キュウコン (アローラ)',10104],['ウパー (パルデア)',10253],
+  // PokeAPI: small, large, super forms; average uses base national dex sprite.
+  ['バケッチャ (こだましゅ)',10027],['バケッチャ (ちゅうだましゅ)',710],
+  ['バケッチャ (おおだましゅ)',10028],['バケッチャ (ギガだましゅ)',10029],
+  ['パンプジン (こだましゅ)',10030],['パンプジン (ちゅうだましゅ)',711],
+  ['パンプジン (おおだましゅ)',10031],['パンプジン (ギガだましゅ)',10032]
+ ]);
  // Pokémon Sleep-only costumes have no dedicated PokéAPI art. Use the plain
  // species sprite exclusively for these verified costumes, never regional forms.
  const COSTUME_BASE=new Map([
