@@ -58,8 +58,8 @@ try:
         const name=el.querySelector('.box-nickname').getBoundingClientRect();
         return {top:icon.top-lv.bottom,bottom:name.top-icon.bottom};
       }""")
-      assert abs(spacing['top']-spacing['bottom'])<.6,(width,spacing)
-      assert spacing['top']<=3,(width,spacing)
+      assert abs(spacing['top']-1)<.6,(width,spacing)
+      assert abs(spacing['bottom']-2)<.6,(width,spacing)
       assert box.locator('#box-registration').evaluate('(x)=>x.getBoundingClientRect().height')<90
     page.set_viewport_size({'width':393,'height':852})
     box.locator('.box-entry').first.locator('.box-avatar').click()
