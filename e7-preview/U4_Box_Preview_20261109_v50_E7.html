@@ -269,7 +269,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
  $('box-clear').addEventListener('click',()=>{
   if(blocked||!box?.items.length)return;
   const count=box.items.length;
-  if(!confirm('ボックス内の'+count+'匹をすべて削除しますか？\\nプレイヤー情報・イベント・作戦は保持します。'))return;
+  if(!confirm('ボックス内の'+count+'匹をすべて削除しますか？\nプレイヤー情報・イベント・作戦は保持します。'))return;
   try{
    saveBox({...box,items:[]});detail.close();pending=null;
    $('box-commit').disabled=true;$('upload').value='';

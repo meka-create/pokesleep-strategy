@@ -122,7 +122,7 @@ try:
         box=tab('box')
         box.locator('#e7-more-open').click()
         box.locator('#e7-more-backup').click()
-        assert page.locator('#e7-settings-dialog').is_visible()
+        page.wait_for_function("""()=>document.getElementById('e7-settings-dialog')?.open""",timeout=15000)
         page.locator('#e7-settings-close').click()
         box=tab('box')
         box.locator('#box-query').fill('')

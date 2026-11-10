@@ -165,7 +165,7 @@ try:
         page.locator('#e7-settings-import-file').set_input_files({
           'name':'original.json','mimeType':'application/json',
           'buffer':json.dumps(original,ensure_ascii=False).encode('utf-8')})
-        assert page.locator('#e7-settings-restore').is_enabled()
+        page.wait_for_function("""()=>!document.getElementById('e7-settings-restore').disabled""",timeout=15000)
         assert '件の保存データ' in page.locator('#e7-settings-import-summary').inner_text()
         page.locator('#e7-settings-restore').click()
         page.wait_for_function("""()=>JSON.parse(localStorage.getItem(
@@ -206,7 +206,7 @@ try:
         page.locator('#e7-settings-import-file').set_input_files({
           'name':'recover.json','mimeType':'application/json',
           'buffer':json.dumps(original,ensure_ascii=False).encode('utf-8')})
-        assert page.locator('#e7-settings-restore').is_enabled()
+        page.wait_for_function("""()=>!document.getElementById('e7-settings-restore').disabled""",timeout=15000)
         page.locator('#e7-settings-restore').click()
         page.wait_for_function("""()=>JSON.parse(localStorage.getItem(
           'pokesleep-strategy-e7-player-v1'))?.pot===57""",timeout=15000)
