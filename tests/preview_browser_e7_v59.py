@@ -57,7 +57,7 @@ try:
         assert box.locator('#box-list .box-entry').count()==5
         assert box.locator('#box-registration').is_visible()
         assert box.locator('#box-registration').evaluate('(el)=>el.getBoundingClientRect().top') < box.locator('#box-title').evaluate('(el)=>el.getBoundingClientRect().top')
-        assert box.locator('#box-clear').inner_text()=='全削除'
+        assert box.locator('#box-clear').text_content().strip()=='全削除'
         assert box.locator('#box-clear').is_hidden()
         assert not box.locator('#e7-import-panel').evaluate('(el)=>el.open')
         assert box.locator('#box-list').evaluate('(el)=>getComputedStyle(el).gridTemplateColumns.split(" ").length')==4
