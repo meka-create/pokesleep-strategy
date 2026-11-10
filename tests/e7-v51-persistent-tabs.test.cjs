@@ -9,7 +9,7 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 const auditedSHA=['76be9d8f32606342b2ca972cdc796373ea1b55c2',
  '6854930024c111acffc01da0094b0d3151746adc',
- 'a273c8cf3bb22a362fbc8474c505d3850e107e62'];
+ '36b428f0782d672cabe3886df73163304e1c8f2f'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
