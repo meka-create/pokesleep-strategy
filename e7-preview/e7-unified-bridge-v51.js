@@ -84,7 +84,7 @@
   });
   window.addEventListener('message',event=>{
    if(event.origin===location.origin&&event.source===window.parent&&
-    event.data?.protocol==='pokesleep-e7-v51'&&event.data.action==='activate'){
+    event.data?.protocol==='pokesleep-e7-v51'&&['activate','dismiss-menu'].includes(event.data.action)){
     closeMenu();
    }
   });
