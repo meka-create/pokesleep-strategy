@@ -63,7 +63,7 @@ try:
         assert box.locator('#box-list').evaluate('(el)=>getComputedStyle(el).gridTemplateColumns.split(" ").length')==4
         assert box.locator('.box-entry').first.locator('.box-level').inner_text()=='Lv. 56'
         assert box.locator('.box-entry').first.locator('.box-nickname').inner_text()=='ラテ'
-        assert box.locator('.box-entry').nth(2).locator('img[data-sprite-url]').get_attribute('data-sprite-url').endswith('/25.png')
+        assert box.locator('.box-entry').filter(has_text='ぴか').locator('img[data-sprite-url]').get_attribute('data-sprite-url').endswith('/25.png')
         assert box.locator('.box-entry').first.locator('.box-avatar').evaluate('(el)=>getComputedStyle(el).borderTopStyle')=='solid'
 
         # Species and nickname each use normalized prefix, never substring.
