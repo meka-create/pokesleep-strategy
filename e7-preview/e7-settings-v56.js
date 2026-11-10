@@ -1,4 +1,4 @@
-/* E7 v56 app-wide settings: fail-closed player data + localStorage backup/restore.
+/* E7 v57 dedicated dialogs: player data + localStorage backup/restore.
  * All data stays on this browser unless explicitly downloaded by the user.
  */
 (()=>{
@@ -112,10 +112,10 @@ function build(){
  dialog.id='e7-settings-dialog';
  dialog.setAttribute('aria-labelledby','e7-settings-title');
  dialog.innerHTML=[
-  '<div class="settings-top"><h2 id="e7-settings-title">設定</h2>',
+  '<div class="settings-top"><h2 id="e7-settings-title">プレイヤー情報</h2>',
   '<button type="button" id="e7-settings-close" class="settings-close" aria-label="閉じる">×</button></div>',
   '<div class="settings-content">',
-  '<details id="e7-player-settings"><summary>プレイヤー情報</summary><div class="settings-panel">',
+  '<section id="e7-player-settings" class="settings-section"><div class="settings-panel">',
   '<div class="settings-grid">',
   '<label>通常の鍋容量<input id="e7-settings-pot" inputmode="numeric" autocomplete="off" placeholder="未入力"></label>',
   '<label>食材バッグ容量<input id="e7-settings-bag" inputmode="numeric" autocomplete="off" placeholder="未入力"></label>',
@@ -123,8 +123,8 @@ function build(){
   '<div id="e7-settings-bonuses" class="settings-grid"></div>',
   '<div class="settings-actions"><button type="button" id="e7-settings-player-save" class="settings-btn">保存</button></div>',
   '<p id="e7-player-status" class="settings-status" role="status" aria-live="polite"></p>',
-  '</div></details>',
-  '<details id="e7-backup-settings"><summary>バックアップ・復元</summary><div class="settings-panel">',
+  '</div></section>',
+  '<section id="e7-backup-settings" class="settings-section" hidden><div class="settings-panel">',
   '<p class="settings-muted">作戦・在庫・ボックス・プレイヤー情報など、この端末に保存された作戦室データをまとめて保存します。</p>',
   '<div class="settings-actions"><button type="button" id="e7-settings-export" class="settings-btn alt">保存データを書き出す</button></div>',
   '<label>バックアップを読み込む<input id="e7-settings-import-file" type="file" accept=".json,application/json"></label>',
@@ -132,7 +132,7 @@ function build(){
   '<div class="settings-actions"><button type="button" id="e7-settings-restore" class="settings-btn" disabled>バックアップから復元</button></div>',
   '<p class="settings-muted">復元すると現在の作戦室データがバックアップの内容に置き換わります。先に書き出しておくことをおすすめします。ボックスのCSV登録とは別の機能です。</p>',
   '<p id="e7-backup-status" class="settings-status" role="status" aria-live="polite"></p>',
-  '</div></details></div>'
+  '</div></section></div>'
  ].join('');
  document.body.append(dialog);
  for(const [i,field] of FIELDS.entries()){
@@ -167,8 +167,15 @@ function build(){
   $('e7-settings-restore').disabled=true;
   setStatus('e7-backup-status','');
  }
- function open(){
+ function open(section='player'){
+  if(!['player','backup'].includes(section))return;
   if(dialog.open)return;
+  // A separate setting is presented as its own dialog content, not a
+  // settings index with multiple accordions.
+  $('e7-settings-title').textContent=
+   section==='player'?'プレイヤー情報':'バックアップ・復元';
+  $('e7-player-settings').hidden=section!=='player';
+  $('e7-backup-settings').hidden=section!=='backup';
   refresh();
   dialog.showModal();
  }
@@ -272,7 +279,7 @@ function build(){
   if(event.origin!==location.origin||event.data?.protocol!=='pokesleep-e7-v51'||
    event.data.action!=='open-settings')return;
   if(!['view-plan','view-prep','view-box'].some(id=>$(id)?.contentWindow===event.source))return;
-  open();
+  open(event.data.section==='backup'?'backup':'player');
  });
  window.E7Settings=Object.freeze({open,parseBackup,validateRecords,readStore});
 }
