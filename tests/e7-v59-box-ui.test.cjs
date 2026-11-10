@@ -23,10 +23,13 @@ test('E7 v59 retains E7 v58 UI invariants and adds safe compact Box',()=>{
  assert.match(box,/getItem\(BOX\)!==encoded/);
  assert.match(bridge,/#u2-week-label\{display:none!important\}/);
  assert.match(bridge,/header.mast \.brand,header.header \.brand/);
- assert.match(sw,/pokesleep-strategy-e7-v59-compact-box/);
+ assert.match(sw,/pokesleep-strategy-e7-v60-box-polish/);
  assert.match(sw,/'e7-species-v59\.js','e7-sprites-v59\.js'/);
- assert.match(read('index.html'),/E7 v59/);
- assert.equal(sprites,fs.readFileSync(path.join(root,'src/sprites.js'),'utf8'));
+ assert.match(read('index.html'),/E7 v60/);
+ assert.match(sprites,/const COSTUME_BASE=new Map/);
+ assert.match(sprites,/VARIANTS.get\(name\)/);
+ assert.match(sprites,/COSTUME_BASE.has\(name\)/);
+ assert.match(box,/E7BoxDetail.render\(item\)/);
  assert.ok((species.match(/"name":/g)||[]).length>=240);
  assert.match(species,/"name":"ピカチュウ","id":25/);
  for(const [i,source] of [...box.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g)].entries())

@@ -58,6 +58,8 @@ try:
         assert box.locator('#box-registration').is_visible()
         assert box.locator('#box-registration').evaluate('(el)=>el.getBoundingClientRect().top') < box.locator('#box-title').evaluate('(el)=>el.getBoundingClientRect().top')
         assert box.locator('#box-clear').inner_text()=='全削除'
+        assert box.locator('#box-clear').is_hidden()
+        assert not box.locator('#e7-import-panel').evaluate('(el)=>el.open')
         assert box.locator('#box-list').evaluate('(el)=>getComputedStyle(el).gridTemplateColumns.split(" ").length')==4
         assert box.locator('.box-entry').first.locator('.box-level').inner_text()=='Lv. 55'
         assert box.locator('.box-entry').first.locator('.box-nickname').inner_text()=='ラテ'
@@ -74,7 +76,8 @@ try:
         box.locator('.box-entry').nth(1).locator('.box-avatar').click()
         assert box.locator('#box-detail-dialog').is_visible()
         assert box.locator('#box-detail-level').inner_text()=='Lv. 56'
-        assert box.locator('#box-detail-fields dt').count()>=10
+        assert box.locator('#box-detail-fields .iv-key').count()>=2
+        assert box.locator('#box-detail-subskills .iv-skill').count()==5
         box.locator('#box-delete').click()
         assert box.locator('.box-entry').count()==5,'Cancelled delete changed Box'
         assert box.locator('#box-detail-dialog').is_visible()
@@ -107,6 +110,8 @@ try:
 
         # Full delete confirmation protects every non-Box key.
         accept[0]=False
+        box.locator('#e7-import-panel > summary').click()
+        assert box.locator('#box-clear').is_visible()
         box.locator('#box-clear').click()
         assert box.locator('.box-entry').count()==4
         accept[0]=True
