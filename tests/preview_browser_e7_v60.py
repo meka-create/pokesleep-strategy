@@ -74,7 +74,7 @@ try:
     assert box.locator('#box-detail-fields img[src*="ingredient-"]').count()==3
     assert box.locator('#box-detail-fields').inner_text().count('—')>=2
     assert box.locator('#box-delete').is_visible()
-    assert box.locator('#box-detail-title').is_hidden()
+    assert box.locator('#box-detail-title').get_attribute('class')=='visually-hidden'
     box.locator('#box-detail-close').click()
     assert box.locator('#box-detail-dialog').is_hidden()
     # Clear must not leak outside an expanded import section.
