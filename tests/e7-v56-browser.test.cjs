@@ -1,14 +1,14 @@
 'use strict';
 const {test}=require('node:test');
 const {execFileSync}=require('node:child_process'),path=require('node:path');
-test('E7 v56 global Settings, player and lossless scoped backup/restore (Chromium)',
+test('E7 v57 three-dot menu, dedicated player and backup modals (Chromium)',
   {timeout:120000},()=>{
     execFileSync('python3',[path.join(__dirname,'preview_browser_e7_v56.py')],{
       cwd:path.resolve(__dirname,'..'),timeout:115000,stdio:'pipe'
     });
   });
 
-test('E7 v56 shared Settings entry and recoverable app-only backup are wired',()=>{
+test('E7 v57 menu exposes only two settings dialogs and preserves backup safety',()=>{
  const assert=require('node:assert/strict'),fs=require('node:fs');
  const base=path.resolve(__dirname,'../e7-preview');
  const read=p=>fs.readFileSync(path.join(base,p),'utf8');
@@ -18,10 +18,17 @@ test('E7 v56 shared Settings entry and recoverable app-only backup are wired',()
  assert.equal((shell.match(/id="tab-(?:plan|prep|box)"/g)||[]).length,3);
  assert.match(shell,/e7-settings-v56\.css/);
  assert.match(shell,/e7-settings-v56\.js/);
- assert.match(bridge,/gear\.setAttribute\('aria-label','設定'\)/);
+ assert.match(bridge,/more\.setAttribute\('aria-label','メニュー'\)/);
+ assert.match(bridge,/menu\.setAttribute\('role','menu'\)/);
+ assert.match(bridge,/item\.setAttribute\('role','menuitem'\)/);
+ assert.match(bridge,/section},location\.origin/);
+ assert.match(bridge,/action:'dismiss-menu'/);
  assert.match(bridge,/action:'open-settings'/);
  assert.match(bridge,/if\(playerCard\)playerCard\.hidden=true/);
  assert.match(settings,/const PREFIX='pokesleep-strategy-'/);
+ assert.match(settings,/function open\(section='player'\)/);
+ assert.match(settings,/section==='player'\?'プレイヤー情報':'バックアップ・復元'/);
+ assert.match(settings,/\$\('e7-backup-settings'\)\.hidden=section!=='backup'/);
  assert.match(settings,/validPlayer/);
  assert.match(settings,/validBox/);
  assert.match(settings,/validateRecords/);
