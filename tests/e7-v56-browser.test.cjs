@@ -22,7 +22,7 @@ test('E7 v57 menu exposes only two settings dialogs and preserves backup safety'
  assert.match(bridge,/menu\.setAttribute\('role','menu'\)/);
  assert.match(bridge,/item\.setAttribute\('role','menuitem'\)/);
  assert.match(bridge,/section},location\.origin/);
- assert.match(bridge,/action:'dismiss-menu'/);
+ assert.match(bridge,/\['activate','dismiss-menu'\]\.includes\(event\.data\.action\)/);
  assert.match(bridge,/action:'open-settings'/);
  assert.match(bridge,/if\(playerCard\)playerCard\.hidden=true/);
  assert.match(settings,/const PREFIX='pokesleep-strategy-'/);
