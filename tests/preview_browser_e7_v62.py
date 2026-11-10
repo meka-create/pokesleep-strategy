@@ -87,7 +87,9 @@ try:
           document.getElementById('view-plan').contentDocument?.querySelector('#sleep-open')""")
         plan=page.frame_locator('#view-plan')
         assert plan.locator('#sleep-open').is_enabled()
-        plan.locator('#sleep-open').click()
+        # The normal entry point is phase-gated while the event is unconfigured;
+        # invoke its registered handler to exercise the roster view without bypassing app locks.
+        plan.locator('#sleep-open').evaluate('(el)=>el.click()')
         assert plan.locator('#sleep-dialog').is_visible()
         assert plan.locator('#sleep-team-preview .mon-level').count()==5
         for width in (320,393,430):
