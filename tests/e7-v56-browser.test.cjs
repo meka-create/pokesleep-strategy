@@ -19,6 +19,8 @@ test('E7 v57 menu exposes only two settings dialogs and preserves backup safety'
  assert.match(shell,/e7-settings-v56\.css/);
  assert.match(shell,/e7-settings-v56\.js/);
  assert.match(bridge,/more\.setAttribute\('aria-label','メニュー'\)/);
+ assert.match(bridge,/\.e7-more-btn\{[^}]*width:42px;height:42px;[^}]*border:0;border-radius:0;background:transparent;box-shadow:none/);
+ assert.match(bridge,/\.e7-more-btn:hover,[^}]*\{background:transparent;border-color:transparent;box-shadow:none/);
  assert.match(bridge,/menu\.setAttribute\('role','menu'\)/);
  assert.match(bridge,/item\.setAttribute\('role','menuitem'\)/);
  assert.match(bridge,/section},location\.origin/);
@@ -35,7 +37,7 @@ test('E7 v57 menu exposes only two settings dialogs and preserves backup safety'
  assert.match(settings,/__pokesleepE7ResetRevoked=true/);
  assert.match(settings,/window\.confirm\(msg\)/);
  assert.match(sw,/'e7-settings-v56\.js','e7-settings-v56\.css'/);
- assert.match(sw,/pokesleep-strategy-e7-v57-more-menu/);
+ assert.match(sw,/pokesleep-strategy-e7-v58-plain-ellipsis/);
  const vm=require('node:vm');
  new vm.Script(settings);new vm.Script(bridge);new vm.Script(sw);
 });

@@ -1,5 +1,5 @@
 /* E7 v50 preview-only offline cache / persistent v52 tabs; this is NOT the production root service worker. */
-const CACHE='pokesleep-strategy-e7-v57-more-menu-20261110';
+const CACHE='pokesleep-strategy-e7-v58-plain-ellipsis-20261110';
 const IMAGE_FILES=Array.from({length:19},(_,i)=>
  'assets/ingredients/ingredient-'+String(i+1).padStart(2,'0')+'.png');
 const imageUrls=new Set(IMAGE_FILES.map(x=>new URL(x,self.registration.scope).href));

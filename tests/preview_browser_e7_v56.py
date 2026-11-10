@@ -98,9 +98,16 @@ try:
                   const week=header.querySelector('#u2-week-label');
                   const r=gear.getBoundingClientRect(),b=brand.getBoundingClientRect();
                   const w=week?.getBoundingClientRect();
-                  return {left:r.left,right:r.right,brandRight:b.right,
-                    weekRight:w?.right ?? 0, viewport:document.documentElement.clientWidth};
+                  const css=getComputedStyle(gear);
+                  return {left:r.left,right:r.right,width:r.width,height:r.height,
+                    brandRight:b.right,weekRight:w?.right ?? 0,
+                    border:css.borderTopWidth,radius:css.borderTopLeftRadius,
+                    background:css.backgroundColor,shadow:css.boxShadow,
+                    viewport:document.documentElement.clientWidth};
                 }""")
+                assert shape['width']==42 and shape['height']==42,(tab,width,shape)
+                assert shape['border']=='0px' and shape['radius']=='0px',(tab,width,shape)
+                assert shape['background']=='rgba(0, 0, 0, 0)' and shape['shadow']=='none',(tab,width,shape)
                 assert shape['left']>shape['brandRight']-2,(tab,width,shape)
                 assert shape['right']<=shape['viewport']+2,(tab,width,shape)
                 if tab=='prep':
