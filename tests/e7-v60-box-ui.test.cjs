@@ -14,7 +14,7 @@ test('E7 v60 only known costumes reuse ordinary art; regional variants retain sp
  assert.match(detail,/root\.PokeSprite\.enhance/);
  assert.match(detail,/const INGREDIENTS=new Map/);
  assert.match(detail,/NATURE_EFFECTS/);
- assert.match(detail,/\.iv-skill/);
+ assert.match(detail,/badge.className='iv-skill '/);
  assert.match(style,/\.iv-nature-row/);
  assert.match(style,/\.iv-main/);
  assert.match(style,/\.iv-subskills/);
