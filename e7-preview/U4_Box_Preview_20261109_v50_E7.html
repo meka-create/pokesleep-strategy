@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#101a29"><title>ポケスリ作戦室 U4 v59 / E7</title>
+<meta name="theme-color" content="#101a29"><title>ポケスリ作戦室 U4 v60 / E7</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;background:#101c2b;color:#f0f5fb}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;font-size:14px;line-height:1.55;background:#101c2b;color:#f0f5fb}
@@ -23,32 +23,25 @@ details{margin-top:9px}details summary{cursor:pointer;color:#d9e5ef;font-weight:
 .bonus-grid label{font-size:11px}.bonus-grid input{padding:7px}
 /* E7 v59: level / square sprite / nickname */
 #box-list{list-style:none;padding:0;margin:12px 0 0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:7px;row-gap:13px}
-#box-list .box-entry{min-width:0;padding:0;margin:0;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px}
-.box-level{color:#dfe9f2;font-size:12px;font-weight:850;line-height:1.25}
-.box-avatar{position:relative;display:grid;place-items:center;width:min(64px,100%);height:64px;padding:2px;border:1px solid #66849e;border-radius:11px;background:#233950;color:#eaf4fa;cursor:pointer;touch-action:manipulation}
-.box-avatar::after{content:"";position:absolute;bottom:0;left:9px;right:9px;border-bottom:2px solid #f5ca78;opacity:.65}
+#box-list .box-entry{min-width:0;padding:0;margin:0;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px}
+.box-level{color:#dfe9f2;font-size:12px;font-weight:850;line-height:1.2;margin:0;padding:0}
+.box-avatar{position:relative;display:grid;place-items:center;width:min(64px,100%);height:64px;padding:2px;border:1px solid color-mix(in srgb,var(--tone,#8ca2b5),#4d657a 60%);border-radius:11px;background:color-mix(in srgb,var(--tone,#8ca2b5),#111f30 74%);color:#eaf4fa;cursor:pointer;touch-action:manipulation}
+.box-avatar::after{content:"";position:absolute;bottom:0;left:9px;right:9px;border-bottom:2px solid var(--tone,#8ca2b5);opacity:.7}
 .box-avatar:hover,.box-avatar:focus-visible{border-color:#ffda8a}
 .box-avatar .poke-art{position:relative;width:100%;height:100%;display:grid;place-items:center;font-weight:800;font-size:20px}
 .box-avatar .poke-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .12s}
 .box-avatar .poke-art.is-loaded img{opacity:1}.box-avatar .poke-art.is-loaded .poke-art-fallback{display:none}
-.box-nickname{max-width:100%;font-size:11px;line-height:1.3;text-align:center;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;color:#e0e9f1}
+.box-nickname{max-width:100%;font-size:11px;line-height:1.2;margin:0;padding:0;text-align:center;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;color:#e0e9f1}
 #box-list .box-empty{grid-column:1/-1;border:0;background:none;padding:18px 2px;color:#b9c9d9;font-size:13px;text-align:center}
 #box-more{width:100%;margin-top:10px}
-.reg-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:7px}.reg-header h2{margin:0}
+/* CSV controls stay in a compact collapsed card; delete is only inside. */
+#box-registration{padding:9px 13px}
+#e7-import-panel{margin:0}
+#e7-import-panel>summary{font-size:13px;line-height:1.35;font-weight:700;color:#d9e5ef;padding:5px 0;cursor:pointer}
+#e7-import-panel .import-content{border-top:1px solid #394e65;margin-top:8px;padding-top:11px}
+#e7-import-panel .clear-actions{justify-content:flex-end;margin-top:17px;padding-top:11px;border-top:1px solid #354c63}
 button.btn.danger-subtle{padding:7px 11px;min-height:36px;border:1px solid #a56b6c;background:transparent;color:#f2b8b4;font-weight:750}
 button.btn.danger-subtle:disabled{opacity:.45}
-#e7-import-panel{margin-top:2px}#e7-import-panel summary{font-size:13px}
-.box-detail-dialog{width:min(94vw,500px);max-height:min(88dvh,760px);overflow:auto;border:1px solid #7890a9;border-radius:16px;padding:16px;background:#17283c;color:#eef5fb;box-shadow:0 20px 65px #0009}
-.box-detail-dialog::backdrop{background:#020912ba}
-.box-detail-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.box-detail-head h2{font-size:18px;margin:0}
-.box-detail-hero{display:flex;align-items:center;gap:13px;margin:14px 0;padding:0 0 12px;border-bottom:1px solid #465d75}
-.box-detail-hero .box-avatar{flex:none;width:76px;height:76px;cursor:default}
-.box-detail-hero strong{display:block;font-size:18px;overflow-wrap:anywhere}
-.box-detail-hero span.box-hero-level{color:#f6cb80;font-weight:800}
-.box-fields{display:grid;grid-template-columns:minmax(80px,35%) minmax(0,1fr);gap:0 10px;margin:0}
-.box-fields dt,.box-fields dd{padding:9px 0;border-bottom:1px solid #344d63;font-size:12px;overflow-wrap:anywhere}
-.box-fields dt{color:#a9c4d9;font-weight:700}.box-fields dd{margin:0;color:#f0f5fb;font-weight:700}
-.box-detail-actions{display:flex;justify-content:space-between;gap:12px;margin-top:17px}
 @media(max-width:350px){#box-list{column-gap:4px}.box-avatar{height:56px;width:min(56px,100%)}.box-nickname{font-size:10px}}
 .info{font-size:12px;color:#b9cfe1}#import-summary{margin-top:10px}
 #upload{width:100%;border:1px dashed #7894ab;padding:10px;background:#102136}
@@ -58,7 +51,7 @@ button.btn.danger-subtle:disabled{opacity:.45}
 #e7-import-preview{list-style:none;padding:0;display:grid;gap:4px;max-height:148px;overflow:auto;font-size:11px;color:#d6e3ee}
 #e7-import-preview li{padding:4px 0;border-bottom:1px solid #45586b}
 @media(max-width:340px){.form-grid,.bonus-grid{grid-template-columns:1fr}}
-</style>
+</style><link rel="stylesheet" href="e7-box-detail-v60.css">
 <style id="e7-nav-style">
 html{scroll-padding-bottom:90px}
 body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
@@ -82,14 +75,15 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 <div class="actions"><button type="button" class="btn" id="player-save">保存</button></div>
 </section>
 <section class="card" id="box-registration" aria-labelledby="box-import-title">
-<div class="reg-header"><h2 id="box-import-title">CSV・TSVから登録</h2><button type="button" class="btn danger-subtle" id="box-clear">全削除</button></div>
-<details id="e7-import-panel"><summary>ファイルを選択・登録</summary>
+<details id="e7-import-panel"><summary id="box-import-title">CSV・TSVから登録</summary>
+<div class="import-content">
 <p class="muted">pokesleep-toolのCSV・TSVを読み込み、確認後に追加します。</p>
 <label>ファイル選択<input id="upload" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values"></label>
 <div id="import-summary" class="info" role="status"></div>
 <ul id="e7-import-preview"></ul>
 <div class="actions"><button id="box-commit" type="button" class="btn secondary" disabled>確認した個体を追加</button></div>
-</details></section>
+<div class="actions clear-actions"><button type="button" class="btn danger-subtle" id="box-clear">全削除</button></div>
+</div></details></section>
 <section class="card" aria-labelledby="box-title">
 <h2 id="box-title">ボックス <span id="box-count" class="muted"></span></h2>
 <label>検索<input type="search" id="box-query" placeholder="ポケモン・ニックネーム（前方一致）" autocomplete="off"></label>
@@ -98,10 +92,17 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 </section>
 <p id="e7-message" role="status" aria-live="polite"></p>
 </main>
-<dialog id="box-detail-dialog" class="box-detail-dialog" aria-labelledby="box-detail-title">
-<div class="box-detail-head"><h2 id="box-detail-title">個体詳細</h2><button type="button" class="btn secondary" id="box-detail-close">閉じる</button></div>
-<div class="box-detail-hero"><span id="box-detail-avatar" class="box-avatar"></span><div><strong id="box-detail-name"></strong><span id="box-detail-level" class="box-hero-level"></span></div></div>
-<dl class="box-fields" id="box-detail-fields"></dl>
+<dialog id="box-detail-dialog" class="box-detail-dialog stat-modal" aria-labelledby="box-detail-title">
+<h2 id="box-detail-title" class="visually-hidden">ポケモンの詳細</h2>
+<div class="iv-close-row"><button type="button" class="btn secondary" id="box-detail-close" aria-label="ステータスを閉じる">閉じる</button></div>
+<div class="iv-hero"><span id="box-detail-avatar" class="status-portrait"></span><div class="iv-hero-name"><strong id="box-detail-name"></strong><span id="box-detail-level"></span></div></div>
+<div class="iv-base" id="box-detail-fields"></div>
+<h3 class="iv-section-title">メインスキル・サブスキル</h3>
+<div class="iv-main" id="box-detail-main-skill"></div>
+<div class="iv-subskills" id="box-detail-subskills"></div>
+<h3 class="iv-section-title">詳細ステータス</h3>
+<div class="iv-nature-wrap" id="box-detail-nature" role="group" aria-label="せいかく"></div>
+<div class="iv-base" id="box-detail-extra"></div>
 <div class="box-detail-actions"><button type="button" class="btn danger-subtle" id="box-delete">削除</button><button type="button" class="btn secondary" id="box-detail-dismiss">閉じる</button></div>
 </dialog>
 <nav id="e6-footer" aria-label="メインナビゲーション">
@@ -110,7 +111,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 <a id="e6-footer-box" href="U4_Box_Preview_20261109_v50_E7.html" aria-current="page"><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 3.5 7.4v9.2L12 21.3l8.5-4.7V7.4L12 2.8z"/><path d="M3.5 7.4 12 12l8.5-4.6M12 12v9.3"/></svg><span>ボックス</span></a>
 </nav>
 
-<script src="e7-species-v59.js"></script><script src="e7-sprites-v59.js"></script>
+<script src="e7-species-v59.js"></script><script src="e7-sprites-v59.js"></script><script src="e7-box-detail-v60.js"></script>
 <script src="e7-box-csv-v50.js"></script>
 <script id="e7-box">
 (()=>{
@@ -198,6 +199,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
    const name=item.nickname||item.pokemon;
    icon.setAttribute('aria-label',name+'の個体詳細を開く');icon.title=name+' / '+item.pokemon;
    icon.innerHTML=PokeSprite.icon(item);
+   icon.style.setProperty('--tone',E7BoxDetail.tone(item));
    icon.addEventListener('click',()=>openDetail(index));
    const caption=document.createElement('span');caption.className='box-nickname';caption.textContent=name;caption.title=name;
    li.append(lv,icon,caption);out.append(li);
@@ -213,24 +215,9 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
   const item=box?.items[index];
   if(!item||blocked)return;
   selectedIndex=index;
-  $('box-detail-name').textContent=item.nickname||item.pokemon;
-  $('box-detail-level').textContent='Lv. '+item.level;
-  $('box-detail-avatar').innerHTML=PokeSprite.icon(item);
-  const fields=[
-   ['ポケモン',item.pokemon],['メインスキル',(item.mainSkill||'未登録')+' / Lv.'+item.skillLevel],
-   ['せいかく',item.nature],['食材',[item.ing1,item.ing2,item.ing3].map(x=>x||'未設定').join(' / ')],
-   ['Lv.10',item.lv10],['Lv.25',item.lv25],['Lv.50',item.lv50],['Lv.70',item.lv70],['Lv.80',item.lv80],
-   ['まっしろミント',item.mint===true?'使用':item.mint===false?'未使用':'未登録'],
-   ['色違い',item.shiny===true?'はい':item.shiny===false?'いいえ':'未登録'],
-   ['お気に入り',item.favorite],['一緒に眠った時間',item.ribbon==null?'未登録':String(item.ribbon)]
-  ];
-  const rows=$('box-detail-fields');rows.replaceChildren();
-  for(const [key,val] of fields){
-   const dt=document.createElement('dt'),dd=document.createElement('dd');
-   dt.textContent=key;dd.textContent=val==null||val===''?'—':String(val);
-   rows.append(dt,dd);
-  }
-  $('box-delete').disabled=false;detail.showModal();PokeSprite.enhance(detail);
+  E7BoxDetail.render(item);
+  $('box-delete').disabled=false;detail.showModal();
+
  }
  // Verify the persisted snapshot before writing, so same-name duplicates and
  // cross-tab writes never make a deletion hit another specimen.
