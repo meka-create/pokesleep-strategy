@@ -144,11 +144,15 @@ try:
         assert page.evaluate("""()=>JSON.parse(localStorage.getItem(
           'pokesleep-strategy-e7-player-v1')).pot""")==57
 
-        # Change settings, then recover the precise previous snapshot.
+        # Player and backup are separate modals; switch through ⋮ explicitly.
+        page.locator('#e7-settings-close').click()
+        open_settings(box,'player')
         page.locator('#e7-settings-pot').fill('92')
         page.locator('#e7-settings-player-save').click()
         assert page.evaluate("""()=>JSON.parse(localStorage.getItem(
           'pokesleep-strategy-e7-player-v1')).pot""")==92
+        page.locator('#e7-settings-close').click()
+        open_settings(box,'backup')
         page.evaluate("""()=>localStorage.setItem(
           'pokesleep-strategy-e7-v56-after-export','{"new":true}')""")
         page.locator('#e7-settings-import-file').set_input_files({
