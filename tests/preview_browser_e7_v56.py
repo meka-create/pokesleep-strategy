@@ -46,6 +46,26 @@ try:
         assert box.locator('#player-title').is_hidden(),'Player editor must be outside unified Box'
         assert box.locator('#e7-more-open').is_visible()
         assert page.locator('#e7-settings-dialog').is_hidden()
+        assert box.locator('#e7-more-menu').is_hidden()
+        # The three-dot control opens only a compact menu, never a dialog.
+        box.locator('#e7-more-open').click()
+        assert box.locator('#e7-more-menu').is_visible()
+        assert box.locator('#e7-more-open').get_attribute('aria-expanded')=='true'
+        assert box.locator('#e7-more-menu [role=menuitem]').count()==2
+        assert page.locator('#e7-settings-dialog').is_hidden()
+        box.locator('.brand').click()
+        assert box.locator('#e7-more-menu').is_hidden(), 'Outside tap must dismiss menu'
+        box.locator('#e7-more-open').click()
+        box.locator('#e7-more-open').press('Escape')
+        assert box.locator('#e7-more-menu').is_hidden(), 'Escape must dismiss menu'
+        box.locator('#e7-more-open').click()
+        page.locator('#tab-plan').click()
+        page.wait_for_function("""()=>{
+          const f=document.getElementById('view-box');
+          return f?.contentDocument?.getElementById('e7-more-menu')?.hidden;
+        }""",timeout=10000)
+        box=open_tab('box')
+        assert box.locator('#e7-more-menu').is_hidden(), 'Menu reopened on tab return'
         open_settings(box)
         assert page.locator('#e7-settings-dialog').is_visible()
         assert page.locator('#e7-player-settings').is_visible()
@@ -66,7 +86,7 @@ try:
             assert child.locator('#e7-more-open').is_visible(), tab
             assert child.locator('#e7-more-open').get_attribute('aria-label')=='メニュー'
         assert page.locator('#tabbar button').count()==3,'Settings must not become a fourth tab'
-        # The new header gear must not overlap the title or the week pill,
+        # The small menu button must not overlap the title or the week pill,
         # especially on the smallest supported phone viewport.
         for width in (320,393,430):
             page.set_viewport_size({'width':width,'height':852})
@@ -85,6 +105,14 @@ try:
                 assert shape['right']<=shape['viewport']+2,(tab,width,shape)
                 if tab=='prep':
                     assert shape['left']>=shape['weekRight']-2,(tab,width,shape)
+                if width==320:
+                    child.locator('#e7-more-open').click()
+                    menu_shape=child.locator('#e7-more-menu').evaluate("""(el)=>{
+                      const r=el.getBoundingClientRect();
+                      return {left:r.left,right:r.right,width:document.documentElement.clientWidth};
+                    }""")
+                    assert menu_shape['left']>=0 and menu_shape['right']<=menu_shape['width']+1,menu_shape
+                    child.locator('#e7-more-open').click()
         page.set_viewport_size({'width':393,'height':852})
 
         # A backup must include only this app's keys; never another PWA's data.
