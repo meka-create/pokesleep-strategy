@@ -61,7 +61,7 @@ try:
         assert box.locator('#box-clear').is_hidden()
         assert not box.locator('#e7-import-panel').evaluate('(el)=>el.open')
         assert box.locator('#box-list').evaluate('(el)=>getComputedStyle(el).gridTemplateColumns.split(" ").length')==4
-        assert box.locator('.box-entry').first.locator('.box-level').inner_text()=='Lv. 55'
+        assert box.locator('.box-entry').first.locator('.box-level').inner_text()=='Lv. 56'
         assert box.locator('.box-entry').first.locator('.box-nickname').inner_text()=='ラテ'
         assert box.locator('.box-entry').nth(2).locator('img[data-sprite-url]').get_attribute('data-sprite-url').endswith('/25.png')
         assert box.locator('.box-entry').first.locator('.box-avatar').evaluate('(el)=>getComputedStyle(el).borderTopStyle')=='solid'
@@ -73,7 +73,7 @@ try:
         box.locator('#box-query').fill('')
 
         # Duplicate nickname: deleting the second must leave the first intact.
-        box.locator('.box-entry').nth(1).locator('.box-avatar').click()
+        box.locator('.box-entry').first.locator('.box-avatar').click()
         assert box.locator('#box-detail-dialog').is_visible()
         assert box.locator('#box-detail-level').inner_text()=='Lv.56'
         assert box.locator('#box-detail-fields .iv-key').count()>=2

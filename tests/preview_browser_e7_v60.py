@@ -40,10 +40,10 @@ try:
     assert box.locator('#box-clear').is_hidden()
     assert box.locator('#box-registration').evaluate('(x)=>x.getBoundingClientRect().height')<90
     assert box.locator('.box-entry').count()==5
-    assert box.locator('.box-entry').first.locator('img[data-sprite-url]').get_attribute('data-sprite-url').endswith('/363.png')
-    assert box.locator('.box-entry').nth(3).locator('img[data-sprite-url]').get_attribute('data-sprite-url').endswith('/10103.png')
-    assert box.locator('.box-entry').nth(4).locator('img[data-sprite-url]').count()==0
-    assert box.locator('.box-entry').nth(4).locator('.poke-art-fallback').is_visible()
+    assert box.locator('.box-entry').filter(has_text='たま').locator('img[data-sprite-url]').get_attribute('data-sprite-url').endswith('/363.png')
+    assert box.locator('.box-entry').filter(has_text='こおり').locator('img[data-sprite-url]').get_attribute('data-sprite-url').endswith('/10103.png')
+    assert box.locator('.box-entry').filter(has_text='なぞ').locator('img[data-sprite-url]').count()==0
+    assert box.locator('.box-entry').filter(has_text='なぞ').locator('.poke-art-fallback').is_visible()
     tones=[box.locator('.box-entry').nth(i).locator('.box-avatar').evaluate(
       '(el)=>({tone:el.style.getPropertyValue("--tone"),background:getComputedStyle(el).backgroundColor})') for i in range(3)]
     assert len(set(x['tone'] for x in tones))==3,tones
@@ -83,7 +83,7 @@ try:
     assert box.locator('#box-clear').evaluate('(x)=>x.closest(".import-content")!==null')
     assert box.locator('#box-clear').evaluate("""x=>{
       const b=x.getBoundingClientRect(),form=document.getElementById('box-commit').getBoundingClientRect();
-      return b.top>form.bottom
+      return Math.abs(b.top-form.top)<1&&Math.abs(b.height-form.height)<1&&b.left>=form.right
     }""")
     box.locator('#e7-import-panel > summary').click()
     assert box.locator('#box-clear').is_hidden()
