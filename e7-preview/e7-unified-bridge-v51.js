@@ -21,20 +21,73 @@
  style.textContent='#e6-footer{display:none!important} body{padding-bottom:18px!important}'+
   '[hidden]{display:none!important}'+
   '.mast .ver,.header .mock-tag{display:none!important}'+
-  '.e7-header-settings{flex:0 0 42px;min-width:42px;min-height:42px;display:inline-grid;place-items:center;margin-left:10px;border:1px solid #6d879e;border-radius:11px;background:#253b51;color:#f0f5fb;font:25px/1 system-ui;cursor:pointer}'+
-  '.e7-header-settings:focus-visible{outline:2px solid #ffda8a;outline-offset:2px}'+
+  'header.mast,header.header{position:relative;z-index:35;overflow:visible}'+
+  '.e7-more-wrap{position:relative;flex:0 0 42px;margin-left:10px}'+
+  '.e7-more-btn{display:grid;place-items:center;width:42px;height:42px;padding:0;border:1px solid #637c96;border-radius:50%;background:#243b51;color:#e5edf6;font:900 24px/1 system-ui;cursor:pointer;touch-action:manipulation}'+
+  '.e7-more-btn[aria-expanded="true"],.e7-more-btn:active{background:#38526c;border-color:#bbcbdd;color:#fff}'+
+  '.e7-more-btn:focus-visible,.e7-more-item:focus-visible{outline:2px solid #ffda8a;outline-offset:2px}'+
+  '.e7-more-menu{position:absolute;right:0;top:48px;z-index:1100;width:205px;max-width:calc(100vw - 20px);padding:6px;border:1px solid #58718c;border-radius:13px;background:#21364d;box-shadow:0 14px 40px #06111ecc}'+
+  '.e7-more-item{display:block;width:100%;min-height:45px;text-align:left;padding:9px 12px;border:0;border-radius:9px;background:transparent;color:#f1f5fa;font:750 13px/1.45 system-ui;cursor:pointer;touch-action:manipulation}'+
+  '.e7-more-item:active,.e7-more-item:hover{background:#38516c}'+
   '#e6-dev>summary::before{content:"🧪 "!important}';
  document.head.append(style);
- // One consistent settings entry in the existing header on all three tabs.
+ // Match the compact vertical-dot menu used by 個体値ぶっこみスキャン.
+ // The menu belongs to the visible iframe, while dialogs live in the parent.
  const header=document.querySelector('header.mast,header.header');
  if(header){
-  const gear=document.createElement('button');
-  gear.type='button';gear.id='e7-settings-open';gear.className='e7-header-settings';
-  gear.textContent='⚙';gear.title='設定';gear.setAttribute('aria-label','設定');
-  gear.addEventListener('click',()=>{
-   window.parent.postMessage({protocol:'pokesleep-e7-v51',action:'open-settings'},location.origin);
+  const wrap=document.createElement('div');
+  wrap.className='e7-more-wrap';
+  const more=document.createElement('button');
+  more.type='button';more.id='e7-more-open';more.className='e7-more-btn';
+  more.textContent='⋮';more.title='メニュー';
+  more.setAttribute('aria-label','メニュー');
+  more.setAttribute('aria-haspopup','menu');
+  more.setAttribute('aria-expanded','false');
+  more.setAttribute('aria-controls','e7-more-menu');
+  const menu=document.createElement('div');
+  menu.id='e7-more-menu';menu.className='e7-more-menu';
+  menu.setAttribute('role','menu');menu.hidden=true;
+  function closeMenu(restoreFocus=false){
+   if(menu.hidden)return;
+   menu.hidden=true;more.setAttribute('aria-expanded','false');
+   if(restoreFocus)more.focus();
+  }
+  more.addEventListener('click',()=>{
+   const opening=menu.hidden;
+   menu.hidden=!opening;more.setAttribute('aria-expanded',String(opening));
   });
-  header.append(gear);
+  for(const [section,id,label] of [
+   ['player','e7-more-player','プレイヤー情報'],
+   ['backup','e7-more-backup','バックアップ・復元']
+  ]){
+   const item=document.createElement('button');
+   item.type='button';item.id=id;item.className='e7-more-item';
+   item.setAttribute('role','menuitem');
+   item.textContent=label;
+   item.addEventListener('click',()=>{
+    closeMenu();
+    window.parent.postMessage({protocol:'pokesleep-e7-v51',
+     action:'open-settings',section},location.origin);
+   });
+   menu.append(item);
+  }
+  wrap.append(more,menu);header.append(wrap);
+  document.addEventListener('click',event=>{
+   if(!wrap.contains(event.target))closeMenu();
+  });
+  document.addEventListener('keydown',event=>{
+   if(event.key==='Escape'&&!menu.hidden){
+    closeMenu(true);event.preventDefault();
+   }else if(event.key==='ArrowDown'&&document.activeElement===more&&!menu.hidden){
+    menu.querySelector('button')?.focus();event.preventDefault();
+   }
+  });
+  window.addEventListener('message',event=>{
+   if(event.origin===location.origin&&event.source===window.parent&&
+    event.data?.protocol==='pokesleep-e7-v51'&&event.data.action==='activate'){
+    closeMenu();
+   }
+  });
  }
  // Keep the old player editor intact for standalone compatibility only.
  // In the unified app, the player editor lives in the parent Settings dialog.
