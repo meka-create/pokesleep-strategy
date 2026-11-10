@@ -1,4 +1,4 @@
-ポケスリ作戦室 E7 v61 — GitHub Pagesプレビュー／高速タブ構造
+ポケスリ作戦室 E7 v62 — GitHub Pagesプレビュー／高速タブ構造
 URL: https://meka-create.github.io/pokesleep-strategy/e7-preview/
 
 【変更】3つの画面を一度読み込んで保持する方式に刷新しました。
@@ -75,3 +75,10 @@ URL: https://meka-create.github.io/pokesleep-strategy/e7-preview/
 - 実機受入は未実施。F1–F6は別工程。
 
 【v61: Lv.表示の視覚補正】レベルだけアイコンに1px近づけました。ニックネーム側はv60のままです。
+
+【v62】
+- 作戦の週間編成・睡眠編成の各ポケモン画像上部にLvを追加。画像サイズは不変、上1px／下2px。
+- CSV登録と全削除は同じ行・高さ38pxで統一。
+- Boxの検索欄を「検索」に簡略化、表示はレベル高い順（同レベルはCSV登録順）。保存原本順は維持。
+- Boxモーダルの下部閉じるを除去し、右端の削除を上部閉じると同じ高さ32pxへ。
+- バケッチャ・パンプジン4サイズのPokeAPI画像を明示対応。
