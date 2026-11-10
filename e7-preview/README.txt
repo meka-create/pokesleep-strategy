@@ -1,4 +1,4 @@
-ポケスリ作戦室 E7 v60 — GitHub Pagesプレビュー／高速タブ構造
+ポケスリ作戦室 E7 v61 — GitHub Pagesプレビュー／高速タブ構造
 URL: https://meka-create.github.io/pokesleep-strategy/e7-preview/
 
 【変更】3つの画面を一度読み込んで保持する方式に刷新しました。
@@ -73,3 +73,5 @@ URL: https://meka-create.github.io/pokesleep-strategy/e7-preview/
 - 特別衣装「タマザラシ（ホリデー）」はPokeAPIの通常タマザラシ画像(363)に代替。既知衣装だけ明示許可し、リージョンは本来のフォームIDを維持。
 - Box個体詳細はU3作戦タブのステータス画面と同じ構成・文字組・色分け。CSVで取得できないおてつだい時間/最大所持数は不明として「—」表示（試算値は使わない）。
 - 実機受入は未実施。F1–F6は別工程。
+
+【v61: Lv.表示の視覚補正】レベルだけアイコンに1px近づけました。ニックネーム側はv60のままです。
