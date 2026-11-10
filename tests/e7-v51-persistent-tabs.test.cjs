@@ -9,7 +9,7 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 const auditedSHA=['76be9d8f32606342b2ca972cdc796373ea1b55c2',
  '6854930024c111acffc01da0094b0d3151746adc',
- 'f44094d0936f09aec53f932454c6b5cd73b1374a'];
+ 'a273c8cf3bb22a362fbc8474c505d3850e107e62'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
@@ -49,7 +49,7 @@ test('E7 v51 architecture: one persistent frame per tab, one common footer',()=>
  assert.doesNotMatch(html,/frame\.src=buildUrl\(tab\)/);
  for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);
 });
-test('E7 v53 audit pins exact U2/U3/U4 source bytes, including reset and box safety fixes',()=>{
+test('E7 v59 pins U2/U3 audited bytes and reviewed compact Box with unchanged persistence contract',()=>{
  for(let i=0;i<names.length;i++){
   const s=read(names[i]);
   assert.ok(s.includes('<script src="e7-unified-bridge-v51.js"></script>'));
@@ -89,7 +89,7 @@ test('E7 v51 manifest uses a persistent app ID with start URL at fast shell',()=
 });
 test('E7 v51 preview cache updates online and supports offline, independent of production root',()=>{
  const sw=read('e7-sw-v50.js');
- assert.match(sw,/pokesleep-strategy-e7-v58-plain-ellipsis/);
+ assert.match(sw,/pokesleep-strategy-e7-v59-compact-box/);
  assert.match(sw,/'index\.html'/);
  assert.match(sw,/'e7-unified-bridge-v51\.js'/);
  assert.match(sw,/fetch\(event\.request,\{cache:'no-store'\}\)/);
