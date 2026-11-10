@@ -75,7 +75,7 @@ try:
         # Duplicate nickname: deleting the second must leave the first intact.
         box.locator('.box-entry').nth(1).locator('.box-avatar').click()
         assert box.locator('#box-detail-dialog').is_visible()
-        assert box.locator('#box-detail-level').inner_text()=='Lv. 56'
+        assert box.locator('#box-detail-level').inner_text()=='Lv.56'
         assert box.locator('#box-detail-fields .iv-key').count()>=2
         assert box.locator('#box-detail-subskills .iv-skill').count()==5
         box.locator('#box-delete').click()
