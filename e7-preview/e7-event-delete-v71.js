@@ -69,8 +69,10 @@ function remove(storage,before){
  }catch(e){
   let restored=true;
   for(const key of before.keys){
-   try{storage.setItem(key,before.values[key]);}
-   catch(err){restored=false;}
+   try{
+    if(before.values[key]===null)storage.removeItem(key);
+    else storage.setItem(key,before.values[key]);
+   }catch(err){restored=false;}
   }
   throw Error(restored?'削除に失敗しました。元の保存内容を復元しました。':
    '削除に失敗しました。保存領域を確認し、バックアップからの復元を検討してください。');
