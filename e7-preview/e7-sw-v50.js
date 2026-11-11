@@ -1,5 +1,5 @@
 /* E7 v50 preview-only offline cache / persistent v52 tabs; this is NOT the production root service worker. */
-const CACHE='pokesleep-strategy-e7-v68-event-header-20261111';
+const CACHE='pokesleep-strategy-e7-v69-shared-header-temp-icon-20261111';
 const IMAGE_FILES=Array.from({length:19},(_,i)=>
  'assets/ingredients/ingredient-'+String(i+1).padStart(2,'0')+'.png');
 const imageUrls=new Set(IMAGE_FILES.map(x=>new URL(x,self.registration.scope).href));
@@ -9,7 +9,7 @@ const FILES=[
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html',
  'e7-feedback-v66.js','e7-feedback-v66.css',
- 'e7-box-csv-v50.js','e7-species-v59.js','e7-sprites-v59.js','e7-box-detail-v60.js','e7-box-detail-v60.css','e7-unified-bridge-v51.js','e7-settings-v56.js','e7-settings-v56.css',
+ 'e7-box-csv-v50.js','e7-species-v59.js','e7-sprites-v59.js','e7-box-detail-v60.js','e7-box-detail-v60.css','e7-unified-bridge-v51.js','e7-header-temp-v69.png','e7-settings-v56.js','e7-settings-v56.css',
  'e7-manifest-v50.webmanifest','e7-icon-v50.svg',
  ...IMAGE_FILES
 ];

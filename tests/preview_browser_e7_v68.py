@@ -46,6 +46,7 @@ try:
   data={}
   data.update(fixture('2026-11-09','source-halloween','halloween 2026'))
   data.update(fixture('2026-11-09','manual:2026-11-09'))
+  data.update(fixture('2026-11-09','long-holiday','なんでもペロリ！ごちそうウィーク vol.6'))
   page.evaluate("""data=>{
     for(const [k,v] of Object.entries(data))localStorage.setItem(k,JSON.stringify(v));
     localStorage.setItem('pokesleep-strategy-u3-e3-v1:selected',
@@ -70,6 +71,7 @@ try:
    page.set_viewport_size({'width':width,'height':852})
    for tab in ('plan','prep'):
     f=select_tab(tab)
+    f.locator('.e7-header-icon').evaluate('(img)=>img.decode()')
     event=f.locator('#e7-header-event-name')
     event.wait_for(state='visible',timeout=20000)
     assert event.inner_text()==name,(tab,width,event.inner_text())
@@ -77,22 +79,31 @@ try:
       const t=header.querySelector('.brand').getBoundingClientRect();
       const e=header.querySelector('#e7-header-event-name');
       const n=e.getBoundingClientRect();
+      const img=header.querySelector('.e7-header-icon');
+      const icon=img.getBoundingClientRect();
       const b=header.querySelector('#e7-more-open').getBoundingClientRect();
       const r=header.getBoundingClientRect();
-      return {t:t.right,eL:n.left,eR:n.right,b:b.left,
-        avail:innerWidth,headerR:r.right,title:e.title,
-        clipped:e.scrollWidth>e.clientWidth,menuWidth:b.width};
+      const label=e.querySelector('.e7-header-subtitle-text');
+      return {titleL:t.left,titleR:t.right,eventL:n.left,eventR:n.right,iconR:icon.right,
+        bL:b.left,menuR:b.right,avail:innerWidth,headerR:r.right,menuWidth:b.width,
+        iconLoaded:img.complete&&img.naturalWidth>0,subtitle:label.textContent,
+        clipped:label.scrollWidth>label.clientWidth, brand:header.querySelector('.brand').textContent};
     }""")
-    assert sizes['t']<=sizes['eL']+0.5,(tab,width,sizes)
-    assert sizes['eR']<=sizes['b']+0.5,(tab,width,sizes)
+    assert sizes['iconLoaded'],(tab,width,'temporary icon not loaded')
+    assert sizes['iconR']<sizes['titleL'],(tab,width,sizes)
+    assert abs(sizes['titleL']-sizes['eventL'])<=0.5,(tab,width,sizes)
+    assert sizes['eventR']<=sizes['bL']+0.5,(tab,width,sizes)
+    assert sizes['menuR']<=sizes['headerR']+0.5,(tab,width,sizes)
     assert sizes['headerR']<=width+0.5,(tab,width,sizes)
     assert sizes['menuWidth']==42,(tab,width,sizes)
+    assert sizes['brand']=='ポケスリ作戦室',(tab,width,sizes)
     f.locator('#e7-more-open').click()
     assert f.locator('#e7-more-menu').is_visible(),(tab,width)
     f.locator('#e7-more-open').click()
     assert f.locator('#e7-more-menu').is_hidden(),(tab,width)
   box=select_tab('box')
-  assert box.locator('#e7-header-event-name').count()==0
+  assert box.locator('#e7-header-event-name').inner_text()=='for Pokémon Sleep'
+  assert box.locator('.e7-header-calendar').is_hidden()
 
   # Tap an existing saved event, rather than manipulating the header:
   # both tabs must show the new selection and the previously saved plan.
@@ -110,12 +121,33 @@ try:
   assert prep.locator('#e7-header-event-name').inner_text()=='手動設定 · 11/09'
   assert page.evaluate("""()=>JSON.parse(localStorage.getItem(
     'pokesleep-strategy-u3-e3-v1:selected')).id""")=='manual:2026-11-09'
-  # No event selected: leave the middle label hidden (no fake default event).
+  # Very long saved names ellipsize only on the second line; the title,
+  # menu and the complete event name remain accessible.
+  plan=select_tab('plan')
+  plan.locator('.e7-cal-event[data-event-id="long-holiday"]').click()
+  page.wait_for_function("""()=>{
+    const f=document.getElementById('view-plan');
+    const n=f?.contentDocument?.querySelector('#e7-header-event-name');
+    return n?.title.includes('なんでもペロリ！ごちそうウィーク');
+  }""",timeout=20000)
+  page.set_viewport_size({'width':320,'height':852})
+  plan=select_tab('plan')
+  subtitle=plan.locator('.e7-header-subtitle-text')
+  assert subtitle.evaluate("(e)=>e.scrollWidth>e.clientWidth"),'Expected ellipsis at 320px'
+  assert 'なんでもペロリ！ごちそうウィーク' in plan.locator('#e7-header-event-name').get_attribute('title')
+  prep=select_tab('prep')
+  assert 'なんでもペロリ！ごちそうウィーク' in prep.locator('#e7-header-event-name').get_attribute('title')
+  assert prep.locator('.brand').inner_text()=='ポケスリ作戦室'
+  box=select_tab('box')
+  assert box.locator('#e7-header-event-name').inner_text()=='for Pokémon Sleep'
+  page.set_viewport_size({'width':393,'height':852})
+  # No selected event: all tabs show the compact English subtitle.
   page.evaluate("localStorage.removeItem('pokesleep-strategy-u3-e3-v1:selected')")
   page.reload(wait_until='domcontentloaded')
-  for tab in ('plan','prep'):
+  for tab in ('plan','prep','box'):
    f=select_tab(tab)
-   assert f.locator('#e7-header-event-name').is_hidden(),(tab,'unexpected default')
+   assert f.locator('#e7-header-event-name').inner_text()=='for Pokémon Sleep',(tab,'missing default')
+   assert f.locator('.e7-header-calendar').is_hidden(),(tab,'calendar with no event')
   assert not errors,errors
   browser.close()
 finally:
