@@ -49,3 +49,8 @@ test('E7 v63 Chromium: calendar, aligned food tiles, compact cards, picker level
    cwd:root,timeout:115000,stdio:'pipe'
  });
 });
+
+test('E7 v63: short screens use exactly the same ingredient-card padding',()=>{
+ const u2=read('U2_Prep_Local_Ingredients_20261109_v50_E7.html');
+ assert.match(u2,/@media\(max-height:800px\)\{#goal-panel>\.card:first-child,#inventory-panel>\.card:first-child\{padding:9px 9px 7px\}\}/);
+});
