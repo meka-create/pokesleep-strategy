@@ -1,4 +1,4 @@
-"""E7 v68: saved event name in Strategy and Preparation header, not Box."""
+"""E7 v70: selected event name shared in Strategy, Preparation and Box."""
 from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -69,7 +69,7 @@ try:
   assert plan.locator('#e7-more-open').is_visible()
   for width in (320,393,430):
    page.set_viewport_size({'width':width,'height':852})
-   for tab in ('plan','prep'):
+   for tab in ('plan','prep','box')
     f=select_tab(tab)
     f.locator('.e7-header-icon').evaluate('(img)=>img.decode()')
     event=f.locator('#e7-header-event-name')
@@ -102,8 +102,9 @@ try:
     f.locator('#e7-more-open').click()
     assert f.locator('#e7-more-menu').is_hidden(),(tab,width)
   box=select_tab('box')
-  assert box.locator('#e7-header-event-name').inner_text()=='for Pokémon Sleep'
-  assert box.locator('.e7-header-calendar').is_hidden()
+  assert box.locator('#e7-header-event-name').inner_text()==name
+  assert box.locator('#e7-header-event-name').get_attribute('title')=='現在のイベント：'+name
+  assert box.locator('.e7-header-calendar').is_visible()
 
   # Tap an existing saved event, rather than manipulating the header:
   # both tabs must show the new selection and the previously saved plan.
@@ -119,6 +120,9 @@ try:
   prep=select_tab('prep')
   prep.locator('#e7-header-event-name').wait_for(state='visible',timeout=20000)
   assert prep.locator('#e7-header-event-name').inner_text()=='手動設定 · 11/09'
+  box=select_tab('box')
+  assert box.locator('#e7-header-event-name').inner_text()=='手動設定 · 11/09'
+  assert box.locator('.e7-header-calendar').is_visible()
   assert page.evaluate("""()=>JSON.parse(localStorage.getItem(
     'pokesleep-strategy-u3-e3-v1:selected')).id""")=='manual:2026-11-09'
   # Very long saved names ellipsize only on the second line; the title,
@@ -139,7 +143,9 @@ try:
   assert 'なんでもペロリ！ごちそうウィーク' in prep.locator('#e7-header-event-name').get_attribute('title')
   assert prep.locator('.brand').inner_text()=='ポケスリ作戦室'
   box=select_tab('box')
-  assert box.locator('#e7-header-event-name').inner_text()=='for Pokémon Sleep'
+  assert 'なんでもペロリ！ごちそうウィーク' in box.locator('#e7-header-event-name').get_attribute('title')
+  assert box.locator('.e7-header-subtitle-text').evaluate("(e)=>e.scrollWidth>e.clientWidth"),'Box long name should ellipsize'
+  assert box.locator('.e7-header-calendar').is_visible()
   page.set_viewport_size({'width':393,'height':852})
   # No selected event: all tabs show the compact English subtitle.
   page.evaluate("localStorage.removeItem('pokesleep-strategy-u3-e3-v1:selected')")
@@ -153,4 +159,4 @@ try:
 finally:
  server.shutdown()
  server.server_close()
-print('E7 v68 event header: 320/393/430, translated names, both tabs, dot menu, calendar switch, empty selection PASS')
+print('E7 v70 shared event header: 320/393/430, three tabs, localization, calendar switch, empty selection PASS')

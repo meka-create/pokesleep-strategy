@@ -28,9 +28,9 @@ test('E7 v69 uses precisely the temporary comparison icon in the common three-ta
 });
 test('E7 v69 updates offline cache but leaves PWA manifest icon unchanged',()=>{
  const sw=read('e7-sw-v50.js'),html=read('index.html'),manifest=read('e7-manifest-v50.webmanifest');
- assert.match(sw,/pokesleep-strategy-e7-v69-shared-header-temp-icon-20261111/);
+ assert.match(sw,/pokesleep-strategy-e7-v70-shared-event-header-20261111/);
  assert.match(sw,/'e7-header-temp-v69\.png'/);
- assert.match(html,/<title>ポケスリ作戦室 E7 v69<\/title>/);
+ assert.match(html,/<title>ポケスリ作戦室 E7 v70<\/title>/);
  assert.equal(blobSha(Buffer.from(manifest,'utf8')),'c3ea3def021a5b96fdee4a5a17b7f73d8845a028');
  assert.equal(blobSha(Buffer.from(read('e7-icon-v50.svg'),'utf8')),'14e99856886eaf0141ecf95d61b44c2493bc8c7b');
  assert.equal(JSON.parse(manifest).icons[0].src,'e7-icon-v50.svg');
