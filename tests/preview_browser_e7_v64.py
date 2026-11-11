@@ -49,13 +49,30 @@ try:
    }""")
    assert abs(geometry['before']-reference['before'])<.7,(width,geometry,reference)
    assert abs(geometry['after']-reference['after'])<.7,(width,geometry,reference)
+   arrow_box=box.locator('#e7-import-panel > summary').evaluate("""el=>{
+     const p=getComputedStyle(el,'::after');return {border:p.borderRightWidth,style:p.borderRightStyle,transform:p.transform};
+   }""")
+   assert arrow_box['border']=='2px' and arrow_box['style']=='solid',(width,arrow_box)
    box.locator('#e7-import-panel > summary').click()
    plan=tab('plan')
+   divider=plan.locator('#event-details').evaluate("""el=>{
+     const c=el.querySelector('.event-fields').getBoundingClientRect();
+     const a=getComputedStyle(el.querySelector('summary'),'::after');
+     return {top:c.top,arrowBorder:a.borderRightWidth,arrowTransform:a.transform};
+   }""")
    plan.locator('#event-details').evaluate('(el)=>{el.open=false;}')
-   collapsed=plan.locator('#event-details').evaluate('(el)=>el.getBoundingClientRect()')
-   always=plan.locator('.sleep-settings').evaluate('(el)=>el.getBoundingClientRect()')
+   collapsed=plan.locator('#event-details').evaluate("""el=>{
+     const b=el.getBoundingClientRect();return {width:b.width,height:b.height,bottom:b.bottom};
+   }""")
+   always=plan.locator('.sleep-settings').evaluate("""el=>{
+     const b=el.getBoundingClientRect();return {width:b.width,height:b.height};
+   }""")
    assert abs(collapsed['width']-always['width'])<.7,(width,collapsed,always)
    assert abs(collapsed['height']-always['height'])<.7,(width,collapsed,always)
+   assert abs(divider['top']-collapsed['bottom'])<=1.1,(width,divider,collapsed)
+   assert divider['arrowBorder']=='2px' and divider['arrowTransform']!='none',(width,divider)
+   after=plan.locator('#event-details > summary').evaluate("""el=>getComputedStyle(el,'::after').transform""")
+   assert after!=divider['arrowTransform'],(width,after,divider)
    # Full 6-character nickname must fit in actual 2-column picker at phone width,
    # whether the specimen is selected or not. Checkmark lives above right, never
    # consuming nickname line width.
