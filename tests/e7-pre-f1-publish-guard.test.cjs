@@ -22,6 +22,11 @@ test('E7 publishing has a single deployment owner; preflight is read-only',()=>{
  assert.match(wf,/node --test tests\/e7-pre-f1-publish-guard\.test\.cjs/);
  assert.match(read('.github/workflows/ci.yml'),/npm run check/);
  assert.match(read('.github/workflows/check.yml'),/npm run check/);
+ for(const workflow of ['.github/workflows/ci.yml','.github/workflows/check.yml']){
+  const source=read(workflow);
+  assert.match(source,/python -m playwright install chromium/);
+  assert.doesNotMatch(source,/playwright install --with-deps/);
+ }
 });
 test('E7 offline installation precaches every local script, stylesheet and image',()=>{
  const sw=read('e7-preview/e7-sw-v50.js');

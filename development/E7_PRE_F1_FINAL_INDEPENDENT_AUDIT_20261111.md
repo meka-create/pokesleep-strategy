@@ -28,6 +28,11 @@ E7の承認はUI・導線・保存機構に対するもの。F1〜F6の実デー
 直近v70 READMEとロードマップの先頭は「Android実機受入待ち」「F1 HOLD」となっていた。利用者がE7全体の最終受入を明示承認したため、監査基準と区別して最新版のステータスを追加し、履歴は削除しない。
 **是正**：ROADMAP_CURRENTの冒頭に本監査のゲート、受入、残留事項を追記。E7 README末尾に現行判定を追記。
 
+### INFRA-02：Playwright環境準備でUbuntu aptのDNS障害（修正対象）
+監査PR #151の初回GitHub Actions（#43036689475 / #43036689277）では、テスト実行前の `python -m playwright install --with-deps chromium` が追加フォント9パッケージのダウンロード時に `Temporary failure resolving 'azure.archive.ubuntu.com'` で停止し、CIの成功可否を判断できなかった。ログでブラウザの主要な共有ライブラリはrunnerに既存と確認済み。
+**是正**：`.github/workflows/ci.yml` と `check.yml` を `python -m playwright install chromium` へ変更し、毎回の `apt-get` 実行を回避。ブラウザ起動や全テストは引き続き必須。新規ガードで `--with-deps` 再混入を禁止。
+**確認ゲート**：修正版ワークフローでChromium実行と全テストが成功した場合のみPASS。環境依存でブラウザが起動しなければ再び修正し、成功とみなさない。
+
 ## 意図して未完了として残す事項（E7の障害ではない）
 - F1 実データ接続：登録済み実個体と実フィールドボーナス・レシピ・鍋・食材在庫を計算に結ぶ。現時点のE7画面の試算やPTは本計算の精度保証ではない。
 - F2 イベント自動情報取得、F3 備蓄最適化、F4 週間共同探索、F5 週途中の実再探索、F6 統合/正式公開は別工程。
