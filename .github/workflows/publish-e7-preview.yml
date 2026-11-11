@@ -1,4 +1,7 @@
-name: Publish site with E7 preview
+name: Verify E7 preview publication inputs
+# Pages already runs its own "pages build and deployment" workflow on main.
+# Do NOT upload/deploy a second github-pages artifact: the duplicate publisher
+# previously raced the Pages-native build and intermittently failed.
 on:
   push:
     branches: [main]
@@ -9,41 +12,28 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: github-pages
-  cancel-in-progress: false
+  group: e7-preview-preflight-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
-      - name: Prepare production root and E7 isolated preview
-        shell: bash
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify E7 preview content and keep root unchanged
         run: |
           set -euo pipefail
-          mkdir -p _site
-          cp index.html _site/index.html
-          cp -R e7-preview _site/e7-preview
-          touch _site/.nojekyll
-          cmp index.html _site/index.html
-          test -f _site/e7-preview/index.html
-          test -f _site/e7-preview/e7-box-csv-v50.js
-          test -f _site/e7-preview/U4_Box_Preview_20261109_v50_E7.html
-          test -f _site/e7-preview/e7-sw-v50.js
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: _site
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          test -f index.html
+          test -f e7-preview/index.html
+          test -f e7-preview/e7-sw-v50.js
+          test -f e7-preview/e7-header-temp-v69.png
+          node --test tests/e7-pre-f1-publish-guard.test.cjs
+          for file in e7-preview/*.js; do node --check "$file"; done
