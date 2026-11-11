@@ -121,3 +121,10 @@ test('E7 v71: UI, shell, service worker and legacy paths use scoped deletion',()
    assert.doesNotThrow(()=>new vm.Script(match[1]),'inline syntax error');
  }
 });
+
+test('E7 v71 Chromium: delete event without deleting another event in the same week',
+ {timeout:180000},()=>{
+ require('node:child_process').execFileSync('python3',
+ [path.resolve(__dirname,'preview_browser_e7_v71.py')],
+ {cwd:path.resolve(__dirname,'..'),stdio:'pipe',timeout:175000});
+});
