@@ -37,7 +37,7 @@ test('E7 v71: snapshots are read-only, only selected manual event is removed',()
  const future='2026-11-16';
  const initial={...record(manual.id),...record(official),...record('later',future),
   [SELECTED]:JSON.stringify(manual),
-  ['pokesleep-strategy-u2-e2-v1:'+WEEK+':timeline]:
+  ['pokesleep-strategy-u2-e2-v1:'+WEEK+':timeline']:
    JSON.stringify({version:1,weekStart:WEEK,eventId:official,currentInventory:{values:{}}}),
   ['other-project:unrelated']:'untouched'};
  const s=storage(initial);
