@@ -65,17 +65,17 @@ try:
         status = page.locator('#status')
         page.wait_for_function("""()=>{
           const s=document.getElementById('status');
-          return !s.hidden && s.dataset.showMessage==='false';
+          return !!s && !s.hidden && s.dataset.showMessage==='false';
         }""", timeout=12000)
         page.wait_for_timeout(110)
         assert status.get_attribute('data-show-message') == 'false', 'Loading text flashed immediately'
         page.wait_for_function("""()=>{
           const s=document.getElementById('status');
-          return !s.hidden && s.dataset.showMessage==='true';
+          return !!s && !s.hidden && s.dataset.showMessage==='true';
         }""", timeout=12000)
         assert page.evaluate("window.__loadingTrace.some(x=>!x.hidden&&x.message==='true')"), \
                'A genuinely slow load must show its loading explanation'
-        page.wait_for_function("""()=>document.getElementById('status').hidden &&
+        page.wait_for_function("""()=>!!document.getElementById('status') && document.getElementById('status').hidden &&
           document.documentElement.dataset.activeTab==='box'""", timeout=20000)
         assert status.get_attribute('data-show-message') == 'false', 'Timer not reset on load completion'
         Quiet.slow_box = False
@@ -98,7 +98,7 @@ try:
         fast_errors = []
         fast.on('pageerror', lambda error: fast_errors.append(str(error)))
         fast.goto(base + '?tab=box', wait_until='commit')
-        fast.wait_for_function("""()=>document.getElementById('status').hidden &&
+        fast.wait_for_function("""()=>!!document.getElementById('status') && document.getElementById('status').hidden &&
           document.documentElement.dataset.activeTab==='box'""", timeout=20000)
         assert fast.locator('#status').get_attribute('data-show-message') == 'false'
         assert not fast.evaluate("window.__loadingTrace.some(x=>!x.hidden&&x.message==='true')"), \
