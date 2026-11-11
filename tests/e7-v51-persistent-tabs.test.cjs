@@ -8,7 +8,7 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 const auditedSHA=['05c20d9d4af870364a45b8c7eabe50ab30c36c92',
- 'c80872dce5601dbb7da22ddcc672ffce82b0bb90',
+ '40eab947173fc5477070e5a5a6dc2c3025b3aeef',
  '9b2774cff0052ba2f03ef61f42ff87b1371ba4ec'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');

@@ -27,9 +27,11 @@ test('E7 v63 calendar footer artwork uses the same geometry as PWA icon',()=>{
 });
 test('E7 v63 strategy compacts closed panels and preserves accessible controls',()=>{
  const s=read('U3_Strategy_UI_20261109_v50_E7.html');
- assert.match(s,/<details class="card sleep-settings" aria-label="睡眠編成の設定"><summary>睡眠編成<\/summary>/);
- assert.match(s,/\.sleep-settings>summary\{display:list-item\}/);
- assert.match(s,/#event-details>summary,\.sleep-settings>summary\{min-height:0;padding:5px 0;font-size:13px/);
+ assert.match(s,/<section class="card sleep-settings" aria-label="睡眠編成の設定"><div class="section-head"><h2>睡眠編成<\/h2>/);
+ assert.doesNotMatch(s,/<details class="card sleep-settings"/);
+ assert.match(s,/#event-details>summary\{min-height:0;padding:5px 0;font-size:13px/);
+ assert.match(s,/\.sleep-settings\.card\{padding:4px 10px\}/);
+ assert.match(s,/\.sleep-settings \.section-head\{margin:0;gap:6px;min-height:44px\}/);
  assert.match(s,/id="auto-sleep"/);
  assert.match(s,/id="sleep-open"/);
  assert.match(s,/className='pick-meta'/);

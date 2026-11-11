@@ -34,26 +34,29 @@ try:
     plan.locator('#event-details').evaluate("""el=>{
       el.closest('main').dataset.hasProposed='true';el.open=false;
     }""")
-    plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;el.open=false;}')
+    plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;}')
     event=plan.locator('#event-details')
     sleep=plan.locator('.sleep-settings')
     assert event.locator('summary').is_visible()
-    assert sleep.locator('summary').is_visible()
-    assert sleep.locator('#auto-sleep').is_hidden()
-    assert sleep.locator('#sleep-open').is_hidden()
+    assert sleep.locator('.section-head h2').is_visible()
+    assert sleep.locator('summary').count()==0
+    assert sleep.locator('#auto-sleep').is_visible()
+    assert sleep.locator('#sleep-open').is_visible()
     a=event.evaluate('(el)=>el.getBoundingClientRect().height')
     b=sleep.evaluate('(el)=>el.getBoundingClientRect().height')
     box=tab('box')
     c=box.locator('#box-registration').evaluate('(el)=>el.getBoundingClientRect().height')
-    assert abs(a-c)<1 and abs(b-c)<1,(width,a,b,c)
+    assert abs(a-c)<1 and 0<=b-c<=12,(width,a,b,c)
     plan=tab('plan')
-    plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;el.open=false;}')
-    # Header buttons stay usable after expanding sleep settings.
-    plan.locator('.sleep-settings > summary').click()
+    plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;}')
+    # Sleep controls remain visible and operable without expansion.
     assert plan.locator('#auto-sleep').is_visible()
     assert plan.locator('#sleep-open').is_visible()
-    plan.locator('.sleep-settings > summary').click()
-    assert plan.locator('#sleep-open').is_hidden()
+    assert plan.locator('.sleep-settings > summary').count()==0
+    plan.locator('#sleep-open').click()
+    assert plan.locator('#sleep-dialog').is_visible()
+    plan.locator('#sleep-close').click()
+    assert plan.locator('#sleep-dialog').is_hidden()
     # Ingredient tiles must preserve *all* positions during goal / stock tab switch.
     prep=tab('prep')
     prep.locator('#btn-goal').click()
