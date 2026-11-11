@@ -10,6 +10,8 @@ test('E7 v65 saved-event calendar is below the event conditions with a stable 3-
  for(const id of ['e7-cal-month','e7-cal-prev','e7-cal-next','e7-cal-today','e7-cal-weeks'])
   assert.match(u3,new RegExp('id="'+id+'"'));
  assert.match(u3,/#e7-cal-board\{/);
+ assert.ok(u3.includes('min-height:36px;max-height:36px'));
+ assert.ok(u3.includes('grid-template-rows:39px repeat(var(--event-rows),40px)'));
 });
 test('E7 v65 calendars index original confirmed ledgers + same-event plans; no secondary store',()=>{
  assert.match(u3,/const E7_CAL_KEY=\/\^pokesleep-strategy-u3-e3-v1/);
@@ -24,6 +26,7 @@ test('E7 v65 calendars index original confirmed ledgers + same-event plans; no s
  assert.doesNotMatch(u3,/pokesleep-strategy-e7-v65:calendar-store/);
 });
 test('E7 v65 JS compiles and versioned offline cache tracks the new HTML',()=>{
+ assert.match(fs.readFileSync(path.join(base,'index.html'),'utf8'),/<title>ポケスリ作戦室 E7 v65<\/title>/);
  const scripts=[...u3.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g)];
  for(const match of scripts)assert.doesNotThrow(()=>new vm.Script(match[1]));
  const sw=fs.readFileSync(path.join(base,'e7-sw-v50.js'),'utf8');
