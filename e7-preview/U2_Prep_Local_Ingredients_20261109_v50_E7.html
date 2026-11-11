@@ -845,7 +845,7 @@ document.getElementById('e6-reset').addEventListener('click',async()=>{
  let before;
  try{before=PokeE7EventDeletion.snapshot(localStorage,selection,{requireSelected:true});}
  catch(e){await PokeUI.alert(e.message,{title:'初期化できませんでした'});return;}
- if(!(await PokeUI.confirm('選択中のイベント（'+WEEK+'）だけを初期化しますか？\\n同じ週の別イベントは保持します。',{
+ if(!(await PokeUI.confirm('選択中のイベント（'+WEEK+'）だけを初期化しますか？\n同じ週の別イベントは保持します。',{
   title:'イベントを初期化',okText:'このイベントだけ初期化',danger:true})))return;
  try{PokeE7EventDeletion.remove(localStorage,before);}
  catch(e){await PokeUI.alert(e.message,{title:'初期化できませんでした'});return;}
