@@ -46,7 +46,7 @@ try:
     b=sleep.evaluate('(el)=>el.getBoundingClientRect().height')
     box=tab('box')
     c=box.locator('#box-registration').evaluate('(el)=>el.getBoundingClientRect().height')
-    assert abs(a-c)<1 and 0<=b-c<=12,(width,a,b,c)
+    assert abs(a-b)<.7 and 0<=a-c<=12,(width,a,b,c)
     plan=tab('plan')
     plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;}')
     # Sleep controls remain visible and operable without expansion.
