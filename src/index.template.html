@@ -3,7 +3,7 @@
 <!-- BUILD_CSS -->
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div class="brand-text"><span class="eyebrow">POKÉMON SLEEP</span><h1>ポケスリ作戦室</h1></div><span class="step-mark" hidden>STEP W4 · v0.5.6</span><span id="dataState" class="header-status">登録状況を確認中</span></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div class="brand-text"><span class="eyebrow">POKÉMON SLEEP</span><h1>ポケスリ作戦室</h1></div><span class="step-mark" hidden>STEP W4 · v0.5.7</span><span id="dataState" class="header-status">登録状況を確認中</span></header>
   <main>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
     <nav class="tabs" role="tablist" aria-label="機能切り替え">
@@ -204,8 +204,8 @@
  </details>
 </section>
 <section id="panel-prep" class="panel" role="tabpanel" hidden>
- <div class="section-heading"><h3>食材の準備</h3></div>
- <p class="small muted">料理と予定食数から、必要な食材を計算します。</p>
+ <div class="section-heading"><h3>イベント前の準備</h3></div>
+ <p class="small muted">まず備蓄の目標を決めます。日曜夜に実数を入れると、翌週初日の料理と週間編成に反映できます。</p>
  <div class="card form-grid">
   <label class="field wide"><span>イベント週に準備する料理（78品）</span><select id="prepRecipe"></select></label>
   <label class="field"><span>この料理の予定食数（1～21食）</span><input id="prepMeals" type="number" min="1" max="21" step="1" value="21"></label>
@@ -213,18 +213,56 @@
   <button type="button" class="secondary wide" id="prepAddRecipe">別の料理を追加</button>
   <p class="small muted wide">料理の予定食数を合計21食以内にしてください。同じ料理の重複登録はできません。料理する順番や成立確率の最適化ではありません。</p>
   <label class="field"><span>食材バッグ容量（個）</span><input id="prepCapacity" type="number" min="1" max="10000" step="1" value="600"></label>
-  <label class="field wide"><span>準備週の優先方針</span><select id="prepPriority"><option value="stock">備蓄優先（バッグ容量の最大90%を目安に確保）</option><option value="energy">今週のエナジー優先（バッグ容量の最大30%を目安に確保）</option></select></label>
-  <p class="small muted">30%／90%は両方の方針を切り替えるための<strong>仮の運用目標</strong>です。ゲーム仕様やエナジー計算係数ではありません。既存の持ち越し予定数は削除しません。</p>
+  <label class="field wide" hidden><span>準備週の優先方針</span><select id="prepPriority"><option value="stock">備蓄優先（バッグ容量の最大90%を目安に確保）</option><option value="energy">今週のエナジー優先（バッグ容量の最大30%を目安に確保）</option></select></label>
+  <p class="small muted" hidden>30%／90%は両方の方針を切り替えるための<strong>仮の運用目標</strong>です。ゲーム仕様やエナジー計算係数ではありません。既存の持ち越し予定数は削除しません。</p>
  </div>
- <details class="card sim-inventory">
+ <div class="card prep-next-stage">
+  <h4>① 備蓄の目標</h4>
+  <button class="primary full" id="prepNewTarget" type="button">食材・鍋拡張の目標を提案</button>
+  <div id="prepNewTargetResult" class="prep-next-results" hidden>
+   <p id="prepNewTargetSummary" class="small"></p>
+   <div id="prepNewTargetRows" class="step4-ingredient-table"></div>
+   <p id="prepNewPotTarget" class="small muted"></p>
+   <p id="prepSkillTarget" class="small muted"></p>
+  </div>
+ </div>
+ <div class="card prep-next-stage">
+  <h4>② 日曜夜の実績</h4>
+  <details class="prep-actual-details">
+   <summary>食材19種類の実数を入力</summary>
+   <div id="prepActualFields" class="form-grid"></div>
+  </details>
+  <label class="field"><span>現在の鍋拡張（次回料理分）</span>
+   <input id="prepActualPotBonus" type="number" min="0" max="200" step="1" value="0"></label>
+  <details class="prep-actual-details">
+   <summary>メインスキルの発動待機を記録（任意）</summary>
+   <div class="form-grid">
+    <label class="field wide"><span>対象のポケモン</span><select id="prepStockMember"></select></label>
+    <label class="field"><span>待機回数</span><select id="prepStockCount"><option value="1">1回</option><option value="2">2回</option></select></label>
+    <label class="switch-line"><span>確認できた分のみ</span><input type="checkbox" id="prepStockConfirmed"></label>
+    <button type="button" class="secondary wide" id="prepStockAdd">待機を登録</button>
+   </div>
+   <div id="prepStockList" class="prep-stock-list"></div>
+   <p class="small muted">確認できない待機数は推定扱いです。週間エナジーにはまだ加算しません。</p>
+  </details>
+  <button type="button" class="primary full" id="prepSundayEvaluate">実績から翌週初日の計画を作る</button>
+  <div id="prepNextError" class="error" role="alert" hidden></div>
+  <div id="prepNextSummary" class="prep-next-results" hidden>
+   <p id="prepNextSummaryText" class="small"></p>
+   <div id="prepNextMealRows" class="step4-ingredient-table"></div>
+   <p id="prepNextWarnings" class="small muted"></p>
+   <button type="button" class="secondary full" id="prepApplyActual">実際の食材を週間自動編成に反映</button>
+  </div>
+ </div>
+ <details class="card sim-inventory" hidden>
   <summary>イベント週へ持ち越す予定の食材数を入力（19種類）</summary>
   <p class="small muted">現在庫やほかの入手経路から、イベント開始時点に残せる見込みの数を入力してください。未入力は0個と扱い、実際の供給を保証しません。</p>
   <div id="prepCarryFields" class="form-grid"></div>
  </details>
- <button class="primary full" type="button" id="prepCalculate">必要食材・備蓄計画を計算して保存</button>
+ <button class="primary full" type="button" id="prepCalculate" hidden>必要食材・備蓄計画を計算して保存</button>
  <div id="prepError" class="error" role="alert" hidden></div>
  <p id="prepStale" class="small warn" role="status" hidden>条件が変更されています。表示中の計画は変更前の結果です。再計算してください。</p>
- <details class="card prep-forecast-details"><summary>準備週の詳細な試算・比較</summary>
+ <details class="card prep-forecast-details" hidden><summary>準備週の詳細な試算・比較</summary>
  <div class="form-grid">
   <div class="wide"><p class="small muted">準備週のフィールドと計算条件を指定します。</p></div>
   <label class="field wide"><span>準備週のフィールド（必須）</span><input id="prepField" list="maps" maxlength="80" placeholder="準備週のフィールドを選択"></label>
@@ -264,7 +302,7 @@
  </div>
 </section>
 <section id="panel-settings" class="panel" role="tabpanel" hidden>
-      <div class="section-heading"><h3>設定・バックアップ</h3><span class="small muted">v0.5.6</span></div>
+      <div class="section-heading"><h3>設定・バックアップ</h3><span class="small muted">v0.5.7</span></div>
       <div class="card info-card"><h4>個人データの保存先</h4><p>ポケモン情報やイベント条件は、現在のブラウザ内に保存します。外部サーバーへ送信しません。</p><p id="storageNotice" class="small"></p></div>
       <div class="card action-stack"><button class="secondary" id="downloadBackup">データをJSONでバックアップ</button><label class="secondary file-button" for="backupFile">バックアップJSONから復元<input id="backupFile" type="file" accept=".json,application/json"></label><button class="danger-ghost" id="clearData">すべてのローカルデータを消去</button></div>
       <div class="note">バックアップファイルには手持ちポケモンの情報が含まれます。第三者に共有しないでください。</div><p class="small muted sprite-credit">画像提供元：<a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener noreferrer">PokéAPI sprites</a>。ポケモンの著作権・商標は各権利者に帰属します。非公式・非公認の個人用ツールです。</p>

@@ -187,10 +187,31 @@ input[type=checkbox]{accent-color:#f4c862}
 .sprite-credit{margin:18px 2px;line-height:1.7}.sprite-credit a{color:var(--accent)}
 @media(max-width:420px){.shell{padding-left:11px;padding-right:11px}.header h1{font-size:17px}.brand-icon{width:40px;height:40px}.header-status{max-width:34%;font-size:9px}.pokemon-row{gap:8px}.pokemon-row .poke-art{flex-basis:40px;width:40px;height:40px}.pick{padding:8px 7px}.week-overview-period{grid-template-columns:40px minmax(0,1fr)}.team-chip{font-size:10px}.team-chip>span:last-child:not(.poke-art){max-width:68px}}
 
+/* R3: preparation goals and Sunday reality; keep the UX as two compact cards. */
+.prep-next-stage{margin:12px 0 16px;padding:17px}
+.prep-next-stage h4{font-size:15px;letter-spacing:.02em;margin:0 0 12px;color:var(--ink)}
+.prep-next-stage .primary.full,.prep-next-stage .secondary.full{margin:12px 0 0;width:100%}
+.prep-next-results{padding-top:13px;margin-top:13px;border-top:1px solid var(--border)}
+.prep-next-results>p{line-height:1.65;overflow-wrap:anywhere}
+.prep-actual-details{padding:11px 0;border-top:1px solid var(--border)}
+.prep-actual-details>summary{cursor:pointer;font-size:13px;font-weight:750;color:#e5eef7}
+.prep-actual-details[open]>summary{margin-bottom:12px}
+.prep-next-stage>.field{margin-top:12px;margin-bottom:12px}
+.prep-actual-details .form-grid{margin:12px 0;gap:9px}
+.prep-stock-list{display:flex;flex-direction:column;gap:6px}
+.prep-stock-list .step4-ingredient-line{display:flex;gap:10px;align-items:center;justify-content:space-between;line-height:1.5}
+.prep-stock-list .step4-ingredient-line button{flex:0 0 auto;font-size:11px;padding:7px 10px}
+#prepNewTargetRows .step4-ingredient-line,#prepNextMealRows .step4-ingredient-line{margin:7px 0}
+#prepNewTargetRows strong,#prepNextMealRows strong{color:var(--accent)}
+#prepNextWarnings,#prepNewPotTarget,#prepSkillTarget{font-size:12px;color:var(--muted)}
+
+#prepNewTargetRows .step4-ingredient-line span,#prepNextMealRows .step4-ingredient-line span,
+.prep-stock-list .step4-ingredient-line span{color:var(--muted)}
+
 </style>
 </head><body>
 <div class="shell">
-  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div class="brand-text"><span class="eyebrow">POKÉMON SLEEP</span><h1>ポケスリ作戦室</h1></div><span class="step-mark" hidden>STEP W4 · v0.5.6</span><span id="dataState" class="header-status">登録状況を確認中</span></header>
+  <header class="header"><div class="brand-icon" aria-hidden="true">✦</div><div class="brand-text"><span class="eyebrow">POKÉMON SLEEP</span><h1>ポケスリ作戦室</h1></div><span class="step-mark" hidden>STEP W4 · v0.5.7</span><span id="dataState" class="header-status">登録状況を確認中</span></header>
   <main>
     <div id="criticalNotice" class="error" role="alert" hidden></div>
     <nav class="tabs" role="tablist" aria-label="機能切り替え">
@@ -391,8 +412,8 @@ input[type=checkbox]{accent-color:#f4c862}
  </details>
 </section>
 <section id="panel-prep" class="panel" role="tabpanel" hidden>
- <div class="section-heading"><h3>食材の準備</h3></div>
- <p class="small muted">料理と予定食数から、必要な食材を計算します。</p>
+ <div class="section-heading"><h3>イベント前の準備</h3></div>
+ <p class="small muted">まず備蓄の目標を決めます。日曜夜に実数を入れると、翌週初日の料理と週間編成に反映できます。</p>
  <div class="card form-grid">
   <label class="field wide"><span>イベント週に準備する料理（78品）</span><select id="prepRecipe"></select></label>
   <label class="field"><span>この料理の予定食数（1～21食）</span><input id="prepMeals" type="number" min="1" max="21" step="1" value="21"></label>
@@ -400,18 +421,56 @@ input[type=checkbox]{accent-color:#f4c862}
   <button type="button" class="secondary wide" id="prepAddRecipe">別の料理を追加</button>
   <p class="small muted wide">料理の予定食数を合計21食以内にしてください。同じ料理の重複登録はできません。料理する順番や成立確率の最適化ではありません。</p>
   <label class="field"><span>食材バッグ容量（個）</span><input id="prepCapacity" type="number" min="1" max="10000" step="1" value="600"></label>
-  <label class="field wide"><span>準備週の優先方針</span><select id="prepPriority"><option value="stock">備蓄優先（バッグ容量の最大90%を目安に確保）</option><option value="energy">今週のエナジー優先（バッグ容量の最大30%を目安に確保）</option></select></label>
-  <p class="small muted">30%／90%は両方の方針を切り替えるための<strong>仮の運用目標</strong>です。ゲーム仕様やエナジー計算係数ではありません。既存の持ち越し予定数は削除しません。</p>
+  <label class="field wide" hidden><span>準備週の優先方針</span><select id="prepPriority"><option value="stock">備蓄優先（バッグ容量の最大90%を目安に確保）</option><option value="energy">今週のエナジー優先（バッグ容量の最大30%を目安に確保）</option></select></label>
+  <p class="small muted" hidden>30%／90%は両方の方針を切り替えるための<strong>仮の運用目標</strong>です。ゲーム仕様やエナジー計算係数ではありません。既存の持ち越し予定数は削除しません。</p>
  </div>
- <details class="card sim-inventory">
+ <div class="card prep-next-stage">
+  <h4>① 備蓄の目標</h4>
+  <button class="primary full" id="prepNewTarget" type="button">食材・鍋拡張の目標を提案</button>
+  <div id="prepNewTargetResult" class="prep-next-results" hidden>
+   <p id="prepNewTargetSummary" class="small"></p>
+   <div id="prepNewTargetRows" class="step4-ingredient-table"></div>
+   <p id="prepNewPotTarget" class="small muted"></p>
+   <p id="prepSkillTarget" class="small muted"></p>
+  </div>
+ </div>
+ <div class="card prep-next-stage">
+  <h4>② 日曜夜の実績</h4>
+  <details class="prep-actual-details">
+   <summary>食材19種類の実数を入力</summary>
+   <div id="prepActualFields" class="form-grid"></div>
+  </details>
+  <label class="field"><span>現在の鍋拡張（次回料理分）</span>
+   <input id="prepActualPotBonus" type="number" min="0" max="200" step="1" value="0"></label>
+  <details class="prep-actual-details">
+   <summary>メインスキルの発動待機を記録（任意）</summary>
+   <div class="form-grid">
+    <label class="field wide"><span>対象のポケモン</span><select id="prepStockMember"></select></label>
+    <label class="field"><span>待機回数</span><select id="prepStockCount"><option value="1">1回</option><option value="2">2回</option></select></label>
+    <label class="switch-line"><span>確認できた分のみ</span><input type="checkbox" id="prepStockConfirmed"></label>
+    <button type="button" class="secondary wide" id="prepStockAdd">待機を登録</button>
+   </div>
+   <div id="prepStockList" class="prep-stock-list"></div>
+   <p class="small muted">確認できない待機数は推定扱いです。週間エナジーにはまだ加算しません。</p>
+  </details>
+  <button type="button" class="primary full" id="prepSundayEvaluate">実績から翌週初日の計画を作る</button>
+  <div id="prepNextError" class="error" role="alert" hidden></div>
+  <div id="prepNextSummary" class="prep-next-results" hidden>
+   <p id="prepNextSummaryText" class="small"></p>
+   <div id="prepNextMealRows" class="step4-ingredient-table"></div>
+   <p id="prepNextWarnings" class="small muted"></p>
+   <button type="button" class="secondary full" id="prepApplyActual">実際の食材を週間自動編成に反映</button>
+  </div>
+ </div>
+ <details class="card sim-inventory" hidden>
   <summary>イベント週へ持ち越す予定の食材数を入力（19種類）</summary>
   <p class="small muted">現在庫やほかの入手経路から、イベント開始時点に残せる見込みの数を入力してください。未入力は0個と扱い、実際の供給を保証しません。</p>
   <div id="prepCarryFields" class="form-grid"></div>
  </details>
- <button class="primary full" type="button" id="prepCalculate">必要食材・備蓄計画を計算して保存</button>
+ <button class="primary full" type="button" id="prepCalculate" hidden>必要食材・備蓄計画を計算して保存</button>
  <div id="prepError" class="error" role="alert" hidden></div>
  <p id="prepStale" class="small warn" role="status" hidden>条件が変更されています。表示中の計画は変更前の結果です。再計算してください。</p>
- <details class="card prep-forecast-details"><summary>準備週の詳細な試算・比較</summary>
+ <details class="card prep-forecast-details" hidden><summary>準備週の詳細な試算・比較</summary>
  <div class="form-grid">
   <div class="wide"><p class="small muted">準備週のフィールドと計算条件を指定します。</p></div>
   <label class="field wide"><span>準備週のフィールド（必須）</span><input id="prepField" list="maps" maxlength="80" placeholder="準備週のフィールドを選択"></label>
@@ -451,7 +510,7 @@ input[type=checkbox]{accent-color:#f4c862}
  </div>
 </section>
 <section id="panel-settings" class="panel" role="tabpanel" hidden>
-      <div class="section-heading"><h3>設定・バックアップ</h3><span class="small muted">v0.5.6</span></div>
+      <div class="section-heading"><h3>設定・バックアップ</h3><span class="small muted">v0.5.7</span></div>
       <div class="card info-card"><h4>個人データの保存先</h4><p>ポケモン情報やイベント条件は、現在のブラウザ内に保存します。外部サーバーへ送信しません。</p><p id="storageNotice" class="small"></p></div>
       <div class="card action-stack"><button class="secondary" id="downloadBackup">データをJSONでバックアップ</button><label class="secondary file-button" for="backupFile">バックアップJSONから復元<input id="backupFile" type="file" accept=".json,application/json"></label><button class="danger-ghost" id="clearData">すべてのローカルデータを消去</button></div>
       <div class="note">バックアップファイルには手持ちポケモンの情報が含まれます。第三者に共有しないでください。</div><p class="small muted sprite-credit">画像提供元：<a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener noreferrer">PokéAPI sprites</a>。ポケモンの著作権・商標は各権利者に帰属します。非公式・非公認の個人用ツールです。</p>
@@ -562,7 +621,7 @@ input[type=checkbox]{accent-color:#f4c862}
 const KEY='pokesleep-event-planner/step1/v1';
 const defaultSimulation=()=>({teams:{morning:[],noon:[],evening:[]},fieldBonus:0,tapMinutes:150,potSize:57,bagCapacity:0,sleepScore:88,initialEnergy:100,recipeId:'',recipeMode:'fixed',extraMode:'none',successMode:'none',magnetIngredients:[],initialIngredients:{}});
 const defaultWeeklyPlan=()=>({sleepAuto:false,dayTeams:[],manualSleepTeams:[],autoSleepTeams:[]});
-const defaultPreparation=()=>({recipeId:'',meals:21,recipeTargets:[],priority:'stock',bagCapacity:0,carryover:{},field:'',fieldBonus:0,forecastCooking:'none',forecastFoodMode:'random',forecastInventorySource:'carryover'});
+const defaultPreparation=()=>({recipeId:'',meals:21,recipeTargets:[],priority:'stock',bagCapacity:0,carryover:{},field:'',fieldBonus:0,forecastCooking:'none',forecastFoodMode:'random',forecastInventorySource:'carryover',handoff:{inventory:{},potBonus:0,skillStocks:{},eventStart:''}});
 const newState=()=>({version:1,box:[],sleepIds:[],simulation:defaultSimulation(),weeklyPlan:defaultWeeklyPlan(),preparation:defaultPreparation(),event:{name:'',start:'',duration:1,map:'',food1:'random',food2:'random',berries:'',effects:'',campPrep:false,camp1:false,camp2:false},updatedAt:''});
 const cleanText=(v, max=1000)=>typeof v==='string'&&v.length<=max;
 const validEnum=(v,choices)=>choices.includes(v);
@@ -666,6 +725,36 @@ function validateState(x){
  }
  if(Object.values(carryover).reduce((n,v)=>n+v,0)>prep.bagCapacity&&prep.bagCapacity!==0)
   throw Error('準備週の持ち越し食材数がバッグ容量を超えています。');
+ // Sunday's actual stock is separate from speculative preparation-week carryover.
+ // Old version-1 JSON remains valid; never infer "confirmed" skill procs.
+ const rawHandoff=prep.handoff??{inventory:{},potBonus:0,skillStocks:{},eventStart:''};
+ if(!rawHandoff||typeof rawHandoff!=='object'||Array.isArray(rawHandoff)||
+    !rawHandoff.inventory||typeof rawHandoff.inventory!=='object'||Array.isArray(rawHandoff.inventory)||
+    !rawHandoff.skillStocks||typeof rawHandoff.skillStocks!=='object'||Array.isArray(rawHandoff.skillStocks))
+  throw Error('日曜の実績が不正です。');
+ const handoffInventory={};
+ for(const [k,v] of Object.entries(rawHandoff.inventory)){
+  if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)
+   throw Error('日曜の食材実績が不正です。');
+  if(v)handoffInventory[k]=v;
+ }
+ const effectiveCapacity=prep.bagCapacity||simulatedDefaultBagCapacity();
+ function simulatedDefaultBagCapacity(){return x.simulation?.bagCapacity||10000;}
+ if(Object.values(handoffInventory).reduce((n,v)=>n+v,0)>effectiveCapacity)
+  throw Error('日曜の食材実績がバッグ容量を超えています。');
+ if(!Number.isInteger(rawHandoff.potBonus??0)||rawHandoff.potBonus<0||rawHandoff.potBonus>200)
+  throw Error('日曜の鍋拡張が不正です。');
+ const stockEntries=Object.entries(rawHandoff.skillStocks);
+ if(stockEntries.length>1000||stockEntries.some(([id,v])=>typeof id!=='string'||!id||id.length>120||
+    !v||typeof v!=='object'||Array.isArray(v)||!Number.isInteger(v.count)||
+    v.count<1||v.count>2||typeof v.confirmed!=='boolean'))
+  throw Error('日曜のスキルストック実績が不正です。');
+ if(typeof(rawHandoff.eventStart??'')!=='string'||(rawHandoff.eventStart??'').length>10||
+   (rawHandoff.eventStart&&!canonicalDate(rawHandoff.eventStart)))
+  throw Error('日曜のイベント開始日が不正です。');
+ const handoff={inventory:handoffInventory,potBonus:rawHandoff.potBonus??0,
+  skillStocks:Object.fromEntries(stockEntries.map(([id,v])=>[id,{count:v.count,confirmed:v.confirmed}])),
+  eventStart:rawHandoff.eventStart??''};
  const weeklyPlan=validateWeeklyPlan(x.weeklyPlan,ids);
  const sim=x.simulation===undefined?defaultSimulation():x.simulation;
  if(!sim||typeof sim!=='object'||!sim.teams||typeof sim.teams!=='object')throw new Error('計算設定が不正です。');
@@ -681,7 +770,7 @@ function validateState(x){
  const magnet=sim.magnetIngredients??[];
  if(!Array.isArray(magnet)||magnet.length>19||new Set(magnet).size!==magnet.length||magnet.some(k=>typeof k!=='string'||!INGREDIENT_KEYS.has(k)))throw new Error('発見済み食材の設定が不正です。');
  for(const [k,v] of Object.entries(sim.initialIngredients))if(!INGREDIENT_KEYS.has(k)||!Number.isInteger(v)||v<0||v>10000)throw new Error('初期食材数が不正です。');
- return {version:1,box:x.box,sleepIds:[...x.sleepIds],weeklyPlan,preparation:{recipeId:prep.recipeId,meals:prep.meals,recipeTargets,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover,field:prep.field??'',fieldBonus:prep.fieldBonus??0,forecastCooking:prep.forecastCooking??'none',forecastFoodMode:prep.forecastFoodMode??'random',forecastInventorySource:prep.forecastInventorySource??'carryover'},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
+ return {version:1,box:x.box,sleepIds:[...x.sleepIds],weeklyPlan,preparation:{recipeId:prep.recipeId,meals:prep.meals,recipeTargets,priority:prep.priority,bagCapacity:prep.bagCapacity,carryover,field:prep.field??'',fieldBonus:prep.fieldBonus??0,forecastCooking:prep.forecastCooking??'none',forecastFoodMode:prep.forecastFoodMode??'random',forecastInventorySource:prep.forecastInventorySource??'carryover',handoff},simulation:{teams,fieldBonus:sim.fieldBonus,tapMinutes:sim.tapMinutes,potSize:sim.potSize,bagCapacity:sim.bagCapacity??0,sleepScore:sim.sleepScore,initialEnergy:sim.initialEnergy,recipeId:sim.recipeId,recipeMode:sim.recipeMode??'fixed',extraMode:sim.extraMode??'none',successMode:sim.successMode??'none',magnetIngredients:[...magnet],initialIngredients:{...sim.initialIngredients}},event:{name:e.name,start:e.start,duration:Number(e.duration),map:e.map,berries:e.berries,effects:e.effects,food1:e.food1,food2:e.food2,campPrep:e.campPrep,camp1:e.camp1,camp2:e.camp2},updatedAt:typeof x.updatedAt==='string'?x.updatedAt:''};
 }
 // Preserve selected individuals on a refreshed export. Neither row-derived CSV
 // IDs nor identical 16-column records prove identity: an exact fingerprint is
@@ -3644,6 +3733,120 @@ root.PokeStep4=api;
 
 </script>
 <script>
+/* Event preparation: targets before the event; actual Sunday snapshot afterward.
+ * Never derive a whole week's guaranteed ingredient supply from a Sunday stock.
+ * Keep this independent of the legacy STEP4 team-forecast model.
+ */
+(function(root){
+'use strict';
+const Master=root.PokeMaster,Recipes=root.PokeRecipes||[];
+const KEYS=Object.keys(Master.ingredients);
+const validInteger=(x,min,max,label)=>{
+ if(!Number.isSafeInteger(x)||x<min||x>max)throw Error(label+'を確認してください。');
+ return x;
+};
+const countIngredients=x=>KEYS.reduce((sum,key)=>sum+(x[key]||0),0);
+function validateInventory(inventory,capacity){
+ if(!inventory||typeof inventory!=='object'||Array.isArray(inventory)||
+    Object.keys(inventory).some(k=>!KEYS.includes(k)))
+  throw Error('食材の種類を確認してください。');
+ const clean={};
+ for(const [key,n] of Object.entries(inventory)){
+  validInteger(n,0,10000,Master.ingredients[key]+'の数量');
+  if(n)clean[key]=n;
+ }
+ if(countIngredients(clean)>capacity)throw Error('食材の合計がバッグ容量を超えています。');
+ return clean;
+}
+function targets({recipeTargets,bagCapacity,potSize}){
+ const capacity=validInteger(bagCapacity,1,10000,'バッグ容量');
+ const pot=validInteger(potSize,7,300,'通常鍋容量');
+ if(!Array.isArray(recipeTargets)||recipeTargets.length===0||recipeTargets.length>21)
+  throw Error('料理を1品以上選択してください。');
+ const seen=new Set(),items=[],allNeed={},earlyNeed={};
+ let total=0,firstMeal=null;
+ for(const row of recipeTargets){
+  const r=Recipes.find(x=>x.id===row?.recipeId);
+  if(!r||seen.has(r.id))throw Error('料理の選択に重複または未登録があります。');
+  const quantity=validInteger(row.meals,1,21,'料理の予定食数');
+  seen.add(r.id);total+=quantity;
+  if(total>21)throw Error('料理は21食以内にしてください。');
+  const mealUnits=Object.values(r.requirements).reduce((n,v)=>n+v,0);
+  if(!firstMeal)firstMeal={recipeId:r.id,name:r.name,need:mealUnits};
+  const early=Math.min(quantity,Math.max(0,3-items.reduce((n,x)=>n+x.early,0)));
+  for(const [k,required] of Object.entries(r.requirements)){
+   if(!KEYS.includes(k))throw Error('レシピの食材が未登録です。');
+   allNeed[k]=(allNeed[k]||0)+required*quantity;
+   earlyNeed[k]=(earlyNeed[k]||0)+required*early;
+  }
+  items.push({recipeId:r.id,name:r.name,type:r.type,meals:quantity,early,requirements:r.requirements,mealUnits});
+ }
+ // Only the first three planned meals are an actionable pre-event target.
+ // Never misrepresent all 21 meals as fitting in an ingredient bag.
+ const preferredTotal=countIngredients(earlyNeed);
+ const allocated={},remaining=capacity;
+ let space=remaining;
+ // Priority is the order of selected dishes. If the bag cannot cover all
+ // three meals, never report that it can.
+ for(const r of items){
+  for(let n=0;n<r.early;n++)for(const [k,num] of Object.entries(r.requirements)){
+   const take=Math.min(num,space);allocated[k]=(allocated[k]||0)+take;space-=take;
+  }
+ }
+ return {items,allNeed,earlyNeed,target:allocated,capacity,pot,firstMeal,
+  earlyCount:Math.min(total,3),totalMeals:total,preferredTotal,
+  targetTotal:capacity-space,firstPotShortfall:Math.max(0,firstMeal.need-pot),
+  covered:preferredTotal<=capacity};
+}
+function validateHandoff(handoff,capacity,knownIds){
+ if(!handoff||typeof handoff!=='object'||Array.isArray(handoff))throw Error('日曜の実績が不正です。');
+ const inventory=validateInventory(handoff.inventory||{},capacity);
+ const potBonus=validInteger(handoff.potBonus??0,0,200,'鍋拡張');
+ const stocks=handoff.skillStocks??{};
+ if(!stocks||typeof stocks!=='object'||Array.isArray(stocks))throw Error('スキルストック記録が不正です。');
+ const skillStocks={};
+ for(const [id,item] of Object.entries(stocks)){
+  if(!knownIds.has(id)||!item||typeof item!=='object'||Array.isArray(item)||
+     !Number.isInteger(item.count)||item.count<1||item.count>2||
+     typeof item.confirmed!=='boolean')throw Error('スキルストックの個体・回数・確認状況が不正です。');
+  skillStocks[id]={count:item.count,confirmed:item.confirmed};
+ }
+ const eventStart=handoff.eventStart??'';
+ if(typeof eventStart!=='string'||eventStart.length>10||
+    (eventStart&&!/^\d{4}-\d{2}-\d{2}$/.test(eventStart)))throw Error('イベント開始日が不正です。');
+ return {inventory,potBonus,skillStocks,eventStart};
+}
+function evaluate(plan,handoff,knownIds){
+ const actual=validateHandoff(handoff,plan.capacity,knownIds);
+ const remaining={...actual.inventory},meals=[];
+ let first=true;
+ // No projected drops are assumed. Only concrete on-hand ingredients are consumed.
+ for(const item of plan.items)for(let i=0;i<item.early;i++){
+  const availablePot=plan.pot+(first?actual.potBonus:0);
+  const missing=Object.fromEntries(Object.entries(item.requirements)
+   .filter(([k,n])=>(remaining[k]||0)<n).map(([k,n])=>[k,n-(remaining[k]||0)]));
+  const potOk=item.mealUnits<=availablePot,foodOk=Object.keys(missing).length===0;
+  const canCook=potOk&&foodOk;
+  meals.push({name:item.name,recipeId:item.recipeId,type:item.type,canCook,potOk,foodOk,missing,
+   required:item.mealUnits,pot:availablePot});
+  if(canCook)for(const [k,n] of Object.entries(item.requirements))remaining[k]-=n;
+  // A meal *attempt* is scheduled. If it cannot be cooked, the pot boost
+  // stays pending until a successful cooking; we do not silently consume it.
+  if(canCook)first=false;
+ }
+ const shortages=Object.fromEntries(KEYS.filter(k=>(plan.target[k]||0)>(actual.inventory[k]||0))
+  .map(k=>[k,plan.target[k]-(actual.inventory[k]||0)]));
+ return {actual,meals,remaining,shortages,ready:meals.filter(x=>x.canCook).length,
+  targetCoverage:countIngredients(shortages)===0,
+  stockConfirmed:Object.values(actual.skillStocks).filter(x=>x.confirmed).length,
+  stockUnconfirmed:Object.values(actual.skillStocks).filter(x=>!x.confirmed).length};
+}
+root.PokePrepHandoff={targets,validateInventory,validateHandoff,evaluate};
+if(typeof module!=='undefined'&&module.exports)module.exports=root.PokePrepHandoff;
+})(typeof globalThis!=='undefined'?globalThis:this);
+
+</script>
+<script>
 (function(root){
 'use strict';
 // Browser and Node share the evidence contract; this is NOT a game accuracy gate.
@@ -5046,7 +5249,7 @@ function fillPreparation(){
  $('prepMeals').value=targets[0].meals;
  prepExtraEditors=[];$('prepExtraRecipes').replaceChildren();
  for(const target of targets.slice(1))appendPrepRecipeEditor(target);
- $('prepCapacity').value=prep.bagCapacity||state.simulation?.bagCapacity||0;
+ $('prepCapacity').value=prep.bagCapacity||state.simulation?.bagCapacity||600;
  $('prepPriority').value=prep.priority;
  $('prepField').value=prep.field||'';
  $('prepFieldBonus').value=prep.fieldBonus??0;
@@ -5067,6 +5270,7 @@ function fillPreparation(){
  $('prepResult').hidden=true;$('prepStale').hidden=true;$('prepError').hidden=true;
  $('prepForecastResult').hidden=true;$('prepForecastStatus').textContent='';
  $('prepCompareResult').hidden=true;$('prepCompareStatus').textContent='';
+ fillPrepHandoff();
 }
 function readPreparation(){
  const getInt=(id,min,max)=>{
@@ -5098,7 +5302,8 @@ function readPreparation(){
   carryover,field:$('prepField').value.trim(),fieldBonus:getInt('prepFieldBonus',0,100),
   forecastCooking:$('prepForecastCooking').value,
   forecastFoodMode:$('prepForecastFoodMode').value,
-  forecastInventorySource:$('prepForecastStockSource').value};
+  forecastInventorySource:$('prepForecastStockSource').value,
+  handoff:state.preparation?.handoff||{inventory:{},potBonus:0,skillStocks:{},eventStart:''}};
 }
 function calculatePreparation(){
  const error=$('prepError');error.hidden=true;
@@ -5271,6 +5476,202 @@ $('prepCalculate').addEventListener('click',calculatePreparation);
 $('prepForecast').addEventListener('click',forecastPreparation);
 $('prepCompare').addEventListener('click',comparePreparation);
 
+
+
+/* R3: preparation targets and Sunday reality. No preparation-week teams. */
+let prepRealInputs=Object.create(null),prepPendingStocks={},prepLastEvaluation=null;
+function prepTargetForm(){
+ const numeric=(raw,label,min,max)=>{
+  if(String(raw).trim()===''||!Number.isSafeInteger(Number(raw))||Number(raw)<min||Number(raw)>max)
+   throw Error(label+'を確認してください。');
+  return Number(raw);
+ };
+ const targets=[{recipeId:$('prepRecipe').value,meals:numeric($('prepMeals').value,'予定食数',1,21)},
+  ...prepExtraEditors.map(({recipe,count})=>({
+   recipeId:recipe.value,meals:numeric(count.value,'追加料理の食数',1,21)}))];
+ const capacity=numeric($('prepCapacity').value,'食材バッグ容量',1,10000);
+ return {plan:PokePrepHandoff.targets({recipeTargets:targets,bagCapacity:capacity,
+  potSize:state.simulation.potSize}),targets,capacity};
+}
+function prepCurrentHandoff(){
+ const stock=Object.fromEntries(Object.entries(prepPendingStocks).map(([id,v])=>
+  [id,{count:v.count,confirmed:v.confirmed}]));
+ const input={inventory:{},potBonus:Number($('prepActualPotBonus').value),
+  skillStocks:stock,eventStart:state.event.start||''};
+ for(const [key,field] of Object.entries(prepRealInputs)){
+  const raw=String(field.value).trim();
+  if(raw===''||!Number.isSafeInteger(Number(raw))||Number(raw)<0||Number(raw)>10000)
+   throw Error((PokeMaster.ingredients[key]||key)+'の実数を確認してください。');
+  if(Number(raw))input.inventory[key]=Number(raw);
+ }
+ return input;
+}
+function prepKnownIds(){
+ return new Set([...state.box.map(p=>p.id),...Object.keys(prepPendingStocks)]);
+}
+function prepStockCap(p){
+ const sp=PokeMaster.species.find(x=>x.name===p?.pokemon);
+ return sp?.specialty==='Skills'?2:1;
+}
+function populatePrepStockMembers(){
+ const select=$('prepStockMember'),current=select.value;
+ select.replaceChildren();
+ const empty=document.createElement('option');empty.value='';empty.textContent='ポケモンを選択';select.append(empty);
+ for(const p of state.box){
+  const opt=document.createElement('option');opt.value=p.id;
+  opt.textContent=(p.nickname||p.pokemon)+'（'+p.pokemon+' Lv'+p.level+'）';
+  select.append(opt);
+ }
+ if(state.box.some(p=>p.id===current))select.value=current;
+ const second=Array.from($('prepStockCount').options||$('prepStockCount').children||[])
+  .find(option=>option.value==='2');
+ const onlyOne=prepStockCap(state.box.find(p=>p.id===select.value))!==2;
+ if(second)second.disabled=onlyOne;
+ if(onlyOne&&$('prepStockCount').value==='2')$('prepStockCount').value='1';
+}
+function renderPrepStockList(){
+ const list=$('prepStockList');list.replaceChildren();
+ for(const [id,v] of Object.entries(prepPendingStocks)){
+  const p=state.box.find(x=>x.id===id);
+  const line=document.createElement('div');line.className='step4-ingredient-line';
+  const label=document.createElement('span');
+  label.textContent=(p?(p.nickname||p.pokemon):'再取り込み前の個体（再設定が必要）')+
+   ' ／ '+v.count+'回'+(v.confirmed?'（確認済み）':'（推定）');
+  const remove=document.createElement('button');remove.type='button';remove.className='secondary';
+  remove.textContent='削除';remove.addEventListener('click',()=>{
+   delete prepPendingStocks[id];renderPrepStockList();$('prepNextSummary').hidden=true;prepLastEvaluation=null;
+  });
+  line.append(label,remove);list.append(line);
+ }
+}
+function fillPrepHandoff(){
+ const prior=state.preparation?.handoff||{inventory:{},potBonus:0,skillStocks:{}};
+ const fields=$('prepActualFields');fields.replaceChildren();
+ prepRealInputs=Object.create(null);
+ for(const [key,name] of Object.entries(PokeMaster.ingredients)){
+  const label=document.createElement('label');label.className='field';
+  const span=document.createElement('span');span.textContent=name;
+  const input=document.createElement('input');input.type='number';input.min='0';input.max='10000';input.step='1';
+  input.value=prior.inventory?.[key]||0;
+  input.setAttribute('aria-label',name+' の日曜実数');
+  label.append(span,input);fields.append(label);prepRealInputs[key]=input;
+ }
+ $('prepActualPotBonus').value=prior.potBonus||0;
+ prepPendingStocks=Object.fromEntries(Object.entries(prior.skillStocks||{}).map(([id,v])=>[id,{...v}]));
+ populatePrepStockMembers();renderPrepStockList();
+ $('prepNewTargetResult').hidden=true;$('prepNextSummary').hidden=true;
+ $('prepNextError').hidden=true;prepLastEvaluation=null;
+}
+function prepTargetSummary(plan){
+ $('prepNewTargetResult').hidden=false;
+ $('prepNewTargetSummary').textContent='イベント初日・最初の'+plan.earlyCount+
+  '食の目標：食材'+plan.targetTotal+'個（バッグ容量 '+plan.capacity+'個）。'+
+  (plan.covered?'':'バッグ容量だけでは最初の3食分を全て備蓄できません。')+
+  (state.event.food1==='random'?' 料理カテゴリが未確定なので実際の成立はカテゴリ一致が条件です。':'');
+ const rows=$('prepNewTargetRows');rows.replaceChildren();
+ for(const [key,number] of Object.entries(plan.earlyNeed)){
+  if(!number)continue;
+  const line=document.createElement('div');line.className='step4-ingredient-line';
+  const title=document.createElement('strong');title.textContent=PokeMaster.ingredients[key];
+  const details=document.createElement('span');details.textContent='目標 '+(plan.target[key]||0)+
+   '個／最初の3食に必要 '+number+'個／週間の参考総需要 '+(plan.allNeed[key]||0)+'個';
+  line.append(title,details);rows.append(line);
+ }
+ $('prepNewPotTarget').textContent='鍋拡張の最低目安：最初の料理に対して +'+plan.firstPotShortfall+
+  ' 個（通常鍋'+plan.pot+'個、必要'+plan.firstMeal.need+'個）。事前に発動し、その後の料理で消費しない場合に持ち越せます。';
+ $('prepSkillTarget').textContent='スキル待機の目安：翌週開始時に使いたい効果は可能なら1回分、スキルとくい個体では最大2回分を目指す。ただし未確認の待機を確定扱いしません。';
+}
+function prepSaveTargets({plan,targets,capacity}){
+ const prior=state.preparation;
+ const carry=prior?.carryover||{};
+ if(Object.values(carry).reduce((a,b)=>a+b,0)>capacity)
+  throw Error('旧方式で保存した持ち越し予定数が、新しいバッグ容量を超えます。以前の数を保護するため保存を中止しました。');
+ state.preparation={...prior,recipeId:targets[0].recipeId,meals:targets[0].meals,
+  recipeTargets:targets,bagCapacity:capacity};
+ if(!save()){state.preparation=prior;throw Error('準備の目標を保存できませんでした。');}
+ return plan;
+}
+function prepPlanAndSave(){
+ const data=prepTargetForm();prepSaveTargets(data);prepTargetSummary(data.plan);
+ return data.plan;
+}
+$('prepNewTarget').addEventListener('click',()=>{
+ try{prepPlanAndSave();$('prepNextError').hidden=true;toast('準備目標を保存しました。');}
+ catch(e){$('prepNextError').textContent=e.message||String(e);$('prepNextError').hidden=false;}
+});
+$('prepStockMember').addEventListener('change',populatePrepStockMembers);
+$('prepStockAdd').addEventListener('click',()=>{
+ const p=state.box.find(x=>x.id===$('prepStockMember').value);
+ if(!p){toast('ポケモンを選択してください。');return;}
+ const count=Number($('prepStockCount').value);
+ if(!Number.isInteger(count)||count<1||count>prepStockCap(p)){
+  toast('この個体のメインスキル待機上限を超えています。');return;
+ }
+ prepPendingStocks[p.id]={count,confirmed:$('prepStockConfirmed').checked};
+ renderPrepStockList();$('prepNextSummary').hidden=true;prepLastEvaluation=null;
+});
+$('prepSundayEvaluate').addEventListener('click',()=>{
+ const error=$('prepNextError');error.hidden=true;prepLastEvaluation=null;
+ try{
+  if(hasUnsavedEventEdits())throw Error('イベント条件を先に保存してください。');
+  const plan=prepPlanAndSave();
+  const oldStart=state.preparation?.handoff?.eventStart;
+  if(oldStart&&state.event.start&&oldStart!==state.event.start&&
+      !confirm('前回イベントの実績が入力されています。今回のイベントにもこの数値を使いますか？'))
+   throw Error('今回のイベントの実数を入力してください。前回の実績は保護しました。');
+  const raw=prepCurrentHandoff();
+  const result=PokePrepHandoff.evaluate(plan,raw,prepKnownIds());
+  const prior=state.preparation;
+  state.preparation={...prior,handoff:result.actual};
+  if(!save()){state.preparation=prior;throw Error('日曜の実績を保存できませんでした。');}
+  prepLastEvaluation={plan,result,event:JSON.stringify(state.event)};
+  const missing=Object.entries(result.shortages).map(([k,n])=>PokeMaster.ingredients[k]+' '+n+'個').join('、');
+  const eventFood=state.event.food1;
+  const mismatched=eventFood!=='random'&&plan.items.some(r=>r.type!==eventFood);
+  $('prepNextSummaryText').textContent='実際の食材 '+Object.values(result.actual.inventory).reduce((a,b)=>a+b,0)+
+   '個／最初の'+plan.earlyCount+'食のうち在庫と鍋だけなら成立する料理 '+result.ready+'食。'+
+   (eventFood==='random'?'料理カテゴリ未確定のため確実な成立数ではありません。':
+    mismatched?'選んだ料理とイベント料理カテゴリが一致していません。':'')+
+   (missing?'準備目標からの不足：'+missing:'準備目標は数量上達成しています。');
+  const holder=$('prepNextMealRows');holder.replaceChildren();
+  result.meals.forEach((meal,i)=>{
+   const row=document.createElement('div');row.className='step4-ingredient-line';
+   const title=document.createElement('strong');title.textContent=(i+1)+'食目：'+meal.name;
+   const desc=document.createElement('span');desc.textContent=eventFood!=='random'&&meal.type!==eventFood?
+    '指定したイベント料理カテゴリでは作れません。':
+    meal.canCook?(eventFood==='random'?'カテゴリ一致時には在庫と鍋で成立':'在庫と鍋容量で成立'):
+    (!meal.potOk?'鍋容量不足 '+Math.max(0,meal.required-meal.pot)+'個。':'')+
+    (!meal.foodOk?'食材不足：'+Object.entries(meal.missing).map(([k,n])=>PokeMaster.ingredients[k]+' '+n).join('、'):'');
+   row.append(title,desc);holder.append(row);
+  });
+  $('prepNextWarnings').textContent='日曜の実績を保存しました。料理は入力順の初日3食を、今ある在庫だけで判定した参考案です。スキル待機'+
+   Object.keys(result.actual.skillStocks).length+'匹分（推定'+result.stockUnconfirmed+'匹）と鍋拡張+'+
+   result.actual.potBonus+'は記録済みですが、スキル待機・初期鍋拡張は現行週間エナジー計算にまだ未反映です。イベント補正と週間最適順位もHOLDです。';
+  $('prepNextSummary').hidden=false;
+ }catch(e){error.textContent=e.message||String(e);error.hidden=false;$('prepNextSummary').hidden=true;}
+});
+$('prepApplyActual').addEventListener('click',()=>{
+ try{
+  if(!prepLastEvaluation||prepLastEvaluation.event!==JSON.stringify(state.event))
+   throw Error('イベント条件が変わりました。日曜の実績から再計算してください。');
+  const stored=state.preparation.handoff;
+  if(JSON.stringify(stored)!==JSON.stringify(prepLastEvaluation.result.actual))
+   throw Error('日曜の実績が変更されています。再計算してください。');
+  const previous=state.simulation;
+  state.simulation={...previous,initialIngredients:{...stored.inventory},
+   bagCapacity:prepLastEvaluation.plan.capacity};
+  if(!save()){state.simulation=previous;throw Error('週間計算への反映を保存できませんでした。');}
+  fillSimulation();markResultsStale();invalidateWeekProposal();
+  setTab('strategy');
+  toast('実際の食材を週間計算へ反映しました。週間チームを自動提案してください。');
+ }catch(e){$('prepNextError').textContent=e.message||String(e);$('prepNextError').hidden=false;}
+});
+$('prepActualFields').addEventListener('change',()=>{$('prepNextSummary').hidden=true;prepLastEvaluation=null;});
+$('prepActualPotBonus').addEventListener('change',()=>{$('prepNextSummary').hidden=true;prepLastEvaluation=null;});
+for(const id of ['prepRecipe','prepMeals','prepCapacity','prepAddRecipe']){
+ $(id).addEventListener('change',()=>{$('prepNewTargetResult').hidden=true;$('prepNextSummary').hidden=true;prepLastEvaluation=null;});
+}
+$('prepExtraRecipes').addEventListener('change',()=>{$('prepNewTargetResult').hidden=true;$('prepNextSummary').hidden=true;prepLastEvaluation=null;});
 
 /* W3: compact day-by-day editing. Keep seven manual nights independent
  * from opt-in automatic nights, and never mutate them on a mere toggle.

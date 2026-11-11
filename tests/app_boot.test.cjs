@@ -53,7 +53,7 @@ function boot({noSleep=false,withSixth=false,withHealers=false}={}){
   Date:TestDate,setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout(){}};
  ctx.globalThis=ctx;ctx.window=ctx;
  vm.createContext(ctx);
- for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','week-optimizer.js','step4.js','observation.js','app.js'])
+ for(const name of ['csv.js','storage.js','master.js','recipes.js','ingredient-distribution.js','simulator.js','step3.js','week-optimizer.js','step4.js','prep-handoff.js','observation.js','app.js'])
   vm.runInContext(fs.readFileSync(path.join(base,name),'utf8'),ctx,{filename:name});
  return {ctx,items,rosters,callbacks,data,
   setFailWrites:value=>{failWrites=value;},
@@ -1236,4 +1236,41 @@ test('W4 browser: failed localStorage write rolls back weekly sleep bulk action'
  assert.equal(app.data.get(key),before);
  assert.deepEqual(JSON.parse(app.data.get(key)).weeklyPlan,undefined);
  assert.equal(app.items.get('weekAutoSleep').checked,false);
+});
+
+
+test('R3 Sunday actual inventory is saved separately, then explicitly passed into weekly planning',()=>{
+ const app=boot();
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepMeals').value='3';
+ app.items.get('prepCapacity').value='600';
+ app.callbacks.get('prepNewTarget:click')();
+ assert.equal(app.items.get('prepNewTargetResult').hidden,false,
+  app.items.get('prepNextError').textContent);
+ const actualFields=app.items.get('prepActualFields').children;
+ assert.equal(actualFields.length,19);
+ // Master order: leek, mushroom, egg, potato, apple.
+ actualFields[4].children[1].value='21';
+ app.callbacks.get('prepSundayEvaluate:click')();
+ assert.equal(app.items.get('prepNextError').hidden,true,app.items.get('prepNextError').textContent);
+ assert.equal(app.items.get('prepNextSummary').hidden,false);
+ let saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(saved.preparation.handoff.inventory.apple,21);
+ assert.equal(saved.simulation.initialIngredients.apple,undefined,'no implicit simulation input mutation');
+ app.callbacks.get('prepApplyActual:click')();
+ saved=JSON.parse(app.data.get('pokesleep-event-planner/step1/v1'));
+ assert.equal(saved.simulation.initialIngredients.apple,21);
+ assert.equal(saved.preparation.handoff.inventory.apple,21);
+});
+test('R3 refuses invalid Sunday quantities without deleting previous saved state',()=>{
+ const app=boot();
+ app.items.get('prepRecipe').value='apple_curry';
+ app.items.get('prepMeals').value='3';
+ app.items.get('prepCapacity').value='600';
+ app.callbacks.get('prepNewTarget:click')();
+ const prior=app.data.get('pokesleep-event-planner/step1/v1');
+ app.items.get('prepActualFields').children[4].children[1].value='601';
+ app.callbacks.get('prepSundayEvaluate:click')();
+ assert.equal(app.items.get('prepNextError').hidden,false);
+ assert.equal(app.data.get('pokesleep-event-planner/step1/v1'),prior);
 });

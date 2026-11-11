@@ -21,7 +21,9 @@ test('R2: the weekly proposal is visible first and long legacy tools are hidden 
  assert.match(template,/<div\b[^>]*class="card sim-setup step3-candidates" hidden>/);
  assert.match(template,/<details\b[^>]*class="card legacy-setup">/);
  assert.match(template,/<details\b[^>]*class="card advanced-settings">/);
- assert.match(template,/<details\b[^>]*class="card prep-forecast-details">/);
+ assert.match(template,/<details\b[^>]*class="card prep-forecast-details" hidden>/);
+ assert.match(template,/id="prepNewTarget"/);
+ assert.match(template,/id="prepSundayEvaluate"/);
  assert.ok(template.indexOf('id="weekSearch"')<template.indexOf('id="weekOverview"'));
  assert.ok(template.indexOf('id="weekProposal"')<template.indexOf('id="weekOverview"'));
  assert.equal((template.match(/<details\b[^>]*hidden>/g)||[]).length>=3,true);
