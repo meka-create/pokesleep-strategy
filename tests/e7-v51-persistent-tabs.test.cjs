@@ -89,7 +89,7 @@ test('E7 v51 manifest uses a persistent app ID with start URL at fast shell',()=
 });
 test('E7 v51 preview cache updates online and supports offline, independent of production root',()=>{
  const sw=read('e7-sw-v50.js');
- assert.match(sw,/pokesleep-strategy-e7-v70-shared-event-header/);
+ assert.match(sw,/pokesleep-strategy-e7-v71-event-scoped-delete/);
  assert.match(sw,/'index\.html'/);
  assert.match(sw,/'e7-unified-bridge-v51\.js'/);
  assert.match(sw,/fetch\(event\.request,\{cache:'no-store'\}\)/);
@@ -109,9 +109,9 @@ test('E7 v52 reset revokes stale event frames before deleting event-week storage
  const reset=html.slice(begin,end);
  assert.match(reset,/win\.__pokesleepE7ResetRevoked=true/);
  assert.ok(reset.indexOf('win.__pokesleepE7ResetRevoked=true')<
-   reset.indexOf('localStorage.removeItem(key)'),'iframe must be revoked before deleting saved plan');
- assert.match(reset,/localStorage\.key\(i\)/);
- assert.match(reset,/for\(const \[key,value\] of saved\)/);
+   reset.indexOf('PokeE7EventDeletion.remove(localStorage,before)'),'iframe must be revoked before event-scoped deletion');
+ assert.match(reset,/PokeE7EventDeletion\.snapshot\(localStorage,selection/);
+ assert.doesNotMatch(reset,/startsWith\('pokesleep-strategy-u3-e3-v1:'\+week/);
  assert.match(reset,/state\[id\]\.hard=true/);
  assert.match(reset,/activate\('plan',\{fromHistory:true\}\)/);
  assert.match(reset,/url\.searchParams\.delete\(key\)/);
