@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101a29"><meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="manifest" href="e7-manifest-v50.webmanifest"><link rel="stylesheet" href="e7-settings-v56.css"><title>ポケスリ作戦室 E7 v65</title>
+<link rel="manifest" href="e7-manifest-v50.webmanifest"><link rel="stylesheet" href="e7-settings-v56.css"><title>ポケスリ作戦室 E7 v66</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;background:#101c2b;color:#edf3fa}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101c2b}
@@ -19,6 +19,7 @@
 #tab-plan[data-reproposal="true"]::after{content:"";position:absolute;top:4px;left:calc(50% + 7px);width:8px;height:8px;border:2px solid #142234;border-radius:50%;background:#f5bc53;box-sizing:content-box}
 @media(prefers-reduced-motion:reduce){#tabbar button{transition:none}}
 </style>
+<link rel="stylesheet" href="e7-feedback-v66.css"><script src="e7-feedback-v66.js"></script>
 </head><body>
 <div id="views">
  <iframe class="view" id="view-plan" title="作戦" data-tab="plan" loading="eager"></iframe>
@@ -153,10 +154,10 @@ function setDevClock(tab,stage){
  for(const id of ['plan','prep'])state[id].hard=true;
  reload(tab);
 }
-function resetDev(tab){
+async function resetDev(tab){
  if(tab!==current||(tab!=='plan'&&tab!=='prep'))return;
  const week=devWeek(tab);
- if(!validWeekStart(week)||!confirm('E6検証用の'+week+'開始週を初期化しますか？\n他の週のデータは削除しません。'))return;
+ if(!validWeekStart(week)||!(await PokeUI.confirm('E6検証用の'+week+'開始週を初期化しますか？\n他の週のデータは削除しません。',{title:'検証データを初期化',okText:'初期化する',danger:true})))return;
  const matches=k=>{
   if(k==='pokesleep-strategy-u3-e3-v1:selected'){
    try{return JSON.parse(localStorage.getItem(k)||'null')?.weekStart===week;}
@@ -176,7 +177,7 @@ function resetDev(tab){
    const key=localStorage.key(i);
    if(key&&matches(key))saved.push([key,localStorage.getItem(key)]);
   }
- }catch(e){alert('保存データを確認できず、初期化は実行しませんでした。');return;}
+ }catch(e){PokeUI.alert('保存データを確認できず、初期化は実行しませんでした。',{title:'初期化できませんでした'});return;}
  // All existing event-scoped frames must be revoked BEFORE localStorage is
  // cleared. The old plan iframe otherwise writes its deleted plan back from
  // its beforeunload handler when location.replace() runs.
@@ -201,8 +202,8 @@ function resetDev(tab){
    else localStorage.setItem(key,value);
   }catch(err){restored=false;}
   for(const win of revoked)try{win.__pokesleepE7ResetRevoked=false;}catch(err){}
-  alert(restored?'検証データの初期化に失敗しました。元の保存データは保持しています。':
-   '検証データの初期化に失敗しました。保存領域を確認してください。');
+  PokeUI.alert(restored?'検証データの初期化に失敗しました。元の保存データは保持しています。':
+   '検証データの初期化に失敗しました。保存領域を確認してください。',{title:'初期化できませんでした'});
   return;
  }
  const url=new URL(location.href);

@@ -29,13 +29,9 @@ try:
         browser=pw.chromium.launch(headless=True,args=['--no-sandbox','--disable-dev-shm-usage'])
         context=browser.new_context(viewport={'width':393,'height':852},timezone_id='Asia/Tokyo')
         page=context.new_page()
-        errors=[];prompts=[];accept=[False]
+        errors=[];prompts=[];native=[]
         page.on('pageerror',lambda e:errors.append(str(e)))
-        def dialog(d):
-            prompts.append(d.message)
-            if accept[0]: d.accept()
-            else: d.dismiss()
-        page.on('dialog',dialog)
+        page.on('dialog',lambda d:(native.append(d.message),d.dismiss()))
         page.goto(BASE+'?tab=box',wait_until='domcontentloaded')
         page.evaluate("""(payload)=>{
           localStorage.setItem('pokesleep-strategy-e7-box-v1',JSON.stringify(payload));
@@ -79,10 +75,14 @@ try:
         assert box.locator('#box-detail-fields .iv-key').count()>=2
         assert box.locator('#box-detail-subskills .iv-skill').count()==5
         box.locator('#box-delete').click()
+        box.locator('#e7-feedback-dialog').wait_for(state='visible')
+        prompts.append(box.locator('#e7-feedback-message').inner_text())
+        box.locator('#e7-feedback-cancel').click()
         assert box.locator('.box-entry').count()==5,'Cancelled delete changed Box'
         assert box.locator('#box-detail-dialog').is_visible()
-        accept[0]=True
         box.locator('#box-delete').click()
+        box.locator('#e7-feedback-dialog').wait_for(state='visible')
+        box.locator('#e7-feedback-ok').click()
         page.wait_for_function("""()=>JSON.parse(localStorage.getItem('pokesleep-strategy-e7-box-v1')).items.length===4""")
         assert box.locator('.box-entry').count()==4
         remaining=page.evaluate("""()=>JSON.parse(localStorage.getItem('pokesleep-strategy-e7-box-v1')).items""")
@@ -109,13 +109,16 @@ try:
         box=tab('box')
 
         # Full delete confirmation protects every non-Box key.
-        accept[0]=False
         box.locator('#e7-import-panel > summary').click()
         assert box.locator('#box-clear').is_visible()
         box.locator('#box-clear').click()
+        box.locator('#e7-feedback-dialog').wait_for(state='visible')
+        prompts.append(box.locator('#e7-feedback-message').inner_text())
+        box.locator('#e7-feedback-cancel').click()
         assert box.locator('.box-entry').count()==4
-        accept[0]=True
         box.locator('#box-clear').click()
+        box.locator('#e7-feedback-dialog').wait_for(state='visible')
+        box.locator('#e7-feedback-ok').click()
         page.wait_for_function("""()=>JSON.parse(localStorage.getItem('pokesleep-strategy-e7-box-v1')).items.length===0""")
         assert box.locator('#box-clear').is_disabled()
         assert box.locator('.box-empty').is_visible()
@@ -150,9 +153,13 @@ try:
           localStorage.setItem(key,JSON.stringify(box));
         }""")
         box.locator('#box-delete').click()
+        box.locator('#e7-feedback-dialog').wait_for(state='visible')
+        box.locator('#e7-feedback-ok').click()
         assert page.evaluate("""()=>JSON.parse(localStorage.getItem('pokesleep-strategy-e7-box-v1')).items.length""")==2
-        assert '削除できませんでした' in box.locator('#e7-message').inner_text()
+        box.locator('#e7-feedback-toast').wait_for(state='visible')
+        assert '削除できませんでした' in box.locator('#e7-feedback-toast').inner_text()
         box.locator('#box-detail-close').click()
+        assert not native,native
         assert not errors,errors
         browser.close()
 finally:

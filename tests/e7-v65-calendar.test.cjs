@@ -19,18 +19,18 @@ test('E7 v65 calendars index original confirmed ledgers + same-event plans; no s
  assert.match(u3,/validStoredState\(plan,selection\.weekStart,id\)/);
  assert.match(u3,/!ledger\.confirmed/);
  assert.match(u3,/function e7OpenSavedEvent\(selection\)/);
- assert.match(u3,/if\(dirty&&!confirm\(/);
+ assert.match(u3,/if\(dirty&&\!\(await PokeUI\.confirm\(/);
  assert.match(u3,/if\(e3Selected&&!storeState\(\)\)/);
  assert.match(u3,/window\.__pokesleepE7ResetRevoked=true/);
  assert.match(u3,/localStorage\.setItem\(E3_SELECTED_KEY,JSON\.stringify\(selection\)\)/);
  assert.doesNotMatch(u3,/pokesleep-strategy-e7-v65:calendar-store/);
 });
 test('E7 v65 JS compiles and versioned offline cache tracks the new HTML',()=>{
- assert.match(fs.readFileSync(path.join(base,'index.html'),'utf8'),/<title>ポケスリ作戦室 E7 v65<\/title>/);
+ assert.match(fs.readFileSync(path.join(base,'index.html'),'utf8'),/<title>ポケスリ作戦室 E7 v66<\/title>/);
  const scripts=[...u3.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g)];
  for(const match of scripts)assert.doesNotThrow(()=>new vm.Script(match[1]));
  const sw=fs.readFileSync(path.join(base,'e7-sw-v50.js'),'utf8');
- assert.match(sw,/pokesleep-strategy-e7-v65-saved-event-calendar-20261111/);
+ assert.match(sw,/pokesleep-strategy-e7-v66-feedback-modal-20261111/);
  assert.match(sw,/U3_Strategy_UI_20261109_v50_E7\.html/);
 });
 test('E7 v65 Chromium: month crossing, safe recall, saved plan, dirty cancellation, mobile fit',

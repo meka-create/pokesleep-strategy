@@ -297,6 +297,7 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 #e7-cal-empty{margin:0;font-size:11px;color:#b9c9d9}
 @media(max-width:360px){#e7-event-calendar{padding:9px 7px}#e7-cal-heading{gap:4px}#e7-cal-tools{gap:2px}#e7-cal-month{min-width:76px}#e7-cal-today{padding:5px 6px}.e7-cal-event{padding:4px 4px;font-size:10px;margin-left:2px;margin-right:2px}}
 </style>
+<link rel="stylesheet" href="e7-feedback-v66.css"><script src="e7-feedback-v66.js"></script>
 </head>
 <body><details id="e6-dev">
 <summary>開発用・日時切替</summary>
@@ -381,7 +382,7 @@ function validWeekStart(value){
  const date=new Date(value+'T12:00:00Z');
  return Number.isFinite(date.valueOf())&&date.toISOString().slice(0,10)===value&&date.getUTCDay()===1;
 }
-if(!validWeekStart(week)){alert('検証週が不明です。データは変更しませんでした。');return;}
+if(!validWeekStart(week)){PokeUI.alert('検証週が不明です。データは変更しませんでした。',{title:'操作を中止しました'});return;}
 const matches=k=>{
  if(k==='pokesleep-strategy-u3-e3-v1:selected'){
   try{return JSON.parse(localStorage.getItem(k)||'null')?.weekStart===week;}
@@ -396,7 +397,7 @@ try{
  for(let i=localStorage.length-1;i>=0;i--){
   const k=localStorage.key(i);if(matches(k))localStorage.removeItem(k);
  }
-}catch(e){alert('検証データの初期化に失敗しました。保存権限を確認してください。');return;}
+}catch(e){PokeUI.alert('検証データの初期化に失敗しました。保存権限を確認してください。',{title:'初期化できませんでした'});return;}
 const next=new URL(step==='u2'?'U3_Strategy_UI_20261109_v50_E7.html':location.href,location.href);
 if(step==='u2'){
  const date=new Date(week+'T12:00:00Z');date.setUTCDate(date.getUTCDate()-1);
@@ -1521,13 +1522,7 @@ function eventPhase(){
 }
 function firstFutureDay(){for(let d=0;d<7;d++)if(SLOT_KEYS.some(slot=>!isPastSlot(d,slot)))return d;return 6;}
 function hasFutureSlot(){return remainingSlots()>0;}
-let toastTimer=null;
-function showToast(message,isError=false){
- const toast=$('#ui-toast');if(toastTimer)clearTimeout(toastTimer);
- toast.textContent=message;toast.classList.toggle('is-error',isError);
- toast.setAttribute('role',isError?'alert':'status');toast.hidden=false;
- toastTimer=setTimeout(()=>{toast.hidden=true;toastTimer=null;},2500);
-}
+function showToast(message,isError=false){PokeUI.toast(message,{error:isError});}
 function flash(text,isError=false){
  const e=$('#status');
  if(isError){e.textContent=text;e.classList.add('error');}
@@ -1731,12 +1726,12 @@ function showProposal(stock=null){
  }
  renderReview();$('#review-dialog').showModal();
 }
-function copySleepNights(day){
+async function copySleepNights(day){
  if(switchOn('auto-sleep'))return;
  const eligible=Array.from({length:7},(_,i)=>i).filter(i=>!isPastSlot(i,'sleep'));
  if(!eligible.length)return;
  const team=[...manualSleep[day]];
- if(eligible.some(i=>JSON.stringify(manualSleep[i])!==JSON.stringify(team))&&!confirm('未開始の睡眠編成を、この5匹にそろえますか？'))return;
+ if(eligible.some(i=>JSON.stringify(manualSleep[i])!==JSON.stringify(team))&&!(await PokeUI.confirm('未開始の睡眠編成を、この5匹にそろえますか？',{title:'睡眠編成を一括設定',okText:'設定する'})))return;
  const before=clone(manualSleep);
  eligible.forEach(i=>{manualSleep[i]=[...team];});
  if(!storeState()){
@@ -2081,7 +2076,7 @@ function e7MoveMonth(direction){
  if(next.getUTCFullYear()<2020||next.getUTCFullYear()>2100)return;
  e7CalendarMonth=next.toISOString().slice(0,7);renderE7Calendar();
 }
-function e7OpenSavedEvent(selection){
+async function e7OpenSavedEvent(selection){
  // Revalidate immediately before switching: storage may have changed
  // since the month was painted by another browser tab.
  const item=e7SavedEvents().find(e=>e.selection.weekStart===selection.weekStart&&
@@ -2095,7 +2090,11 @@ function e7OpenSavedEvent(selection){
    !switchOn('event-camp')||pendingEventSource||manualSourceRequested||
    readBerryEntry()?.types?.some(Boolean));
  if(same&&!dirty){$('#event-details').scrollIntoView({block:'start',behavior:'instant'});return;}
- if(dirty&&!confirm('未保存のイベント条件があります。変更を破棄して保存済みイベントを開きますか？'))return;
+ if(dirty&&!(await PokeUI.confirm('未保存のイベント条件があります。変更を破棄して保存済みイベントを開きますか？',{title:'変更を破棄しますか？',okText:'破棄して開く',danger:true})))return;
+ // Revalidate the saved target after awaiting the confirmation.
+ if(!e7SavedEvents().some(e=>e.selection.weekStart===selection.weekStart&&e.selection.id===selection.id)){
+  showToast('保存済みイベントが変更されました。切り替えを中止しました。',true);renderE7Calendar();return;
+ }
  if(e3Selected&&!storeState()){
   showToast('現在の作戦を保存できませんでした。切り替えを中止しました。',true);return;
  }
@@ -2395,8 +2394,8 @@ try{
 document.getElementById('e6-history').textContent=adopted?
  '採用済み作戦あり。日時切替では削除しません。初回から試す場合のみ初期化してください。':
  '採用済み作戦なし。条件・在庫を保存して初回提案できます。';
-document.getElementById('e6-reset').addEventListener('click',()=>{
- if(!confirm('E6検証用の'+WEEK+'開始週を初期化しますか？\n他の週のデータは削除しません。'))return;
+document.getElementById('e6-reset').addEventListener('click',async()=>{
+ if(!(await PokeUI.confirm('E6検証用の'+WEEK+'開始週を初期化しますか？\n他の週のデータは削除しません。',{title:'検証データを初期化',okText:'初期化する',danger:true})))return;
  const url=new URL(U2,location.href);
  url.searchParams.set('previewNow',CLOCKS.prep);
  url.searchParams.set('eventStart',WEEK);
@@ -2413,7 +2412,7 @@ save?.addEventListener('click',e=>{
   const start=Date.parse(WEEK+'T04:00:00+09:00');
   if(Number.isFinite(when)&&when>=start){
    e.preventDefault();e.stopImmediatePropagation();
-   alert('イベント開始後の在庫記録があります。過去の値は上書きせず保護しました。再試験する場合は「検証データを初期化」を使用してください。');
+   PokeUI.alert('イベント開始後の在庫記録があります。過去の値は上書きせず保護しました。再試験する場合は「検証データを初期化」を使用してください。',{title:'在庫を保護しました'});
   }
  }catch(err){}
 },true);

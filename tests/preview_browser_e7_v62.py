@@ -66,6 +66,8 @@ try:
         }""")
         assert abs(button_sizes['top']-button_sizes['bottom'])<1,button_sizes
         box.locator('#box-delete').click()
+        box.locator('#e7-feedback-dialog').wait_for(state='visible')
+        box.locator('#e7-feedback-ok').click()
         page.wait_for_function("""()=>JSON.parse(localStorage.getItem('pokesleep-strategy-e7-box-v1')).items.length===7""")
         saved=page.evaluate("""()=>JSON.parse(localStorage.getItem('pokesleep-strategy-e7-box-v1')).items""")
         assert [x['level'] for x in saved]==[20,45,50,45,32,25,40],'Original CSV order changed by display sort'

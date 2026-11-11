@@ -67,7 +67,8 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 #e6-footer a:focus-visible{outline:2px solid #ffdf93}
 #e6-footer .e6-ico{height:24px;width:24px;display:block;margin-bottom:1px;flex:0 0 24px}
 #e6-footer-plan[data-reproposal="true"]::after{content:"";position:absolute;top:7px;left:calc(50% + 7px);width:8px;height:8px;background:#f5bc53;border:2px solid #142234;border-radius:50%;box-sizing:content-box;pointer-events:none}
-</style></head><body>
+</style><link rel="stylesheet" href="e7-feedback-v66.css"><script src="e7-feedback-v66.js"></script>
+</head><body>
 <header class="mast"><div><div class="sub">POKÉMON SLEEP</div><div class="brand">✦ ポケスリ作戦室</div></div><span class="ver">U4 / E7 v51</span></header>
 <main>
 <section id="e7-blocked" hidden role="alert">保存済み情報を読み取れないため、上書きを止めています。バックアップを確認してください。</section>
@@ -78,7 +79,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 <label>食材バッグ容量<input id="player-bag" inputmode="numeric" placeholder="未入力" autocomplete="off"></label>
 </div>
 <details id="e7-bonuses"><summary>フィールドボーナス</summary><div id="e7-bonus-fields" class="bonus-grid"></div></details>
-<div class="actions"><button type="button" class="btn" id="player-save">保存</button></div>
+<div class="actions"><button type="button" class="btn" id="player-save">保存</button></div><p id="e7-player-error" role="alert" class="info" hidden></p>
 </section>
 <section class="card" id="box-registration" aria-labelledby="box-import-title">
 <details id="e7-import-panel"><summary id="box-import-title">CSV・TSVから登録</summary>
@@ -95,7 +96,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 <ul id="box-list" aria-live="polite"></ul>
 <button type="button" class="btn secondary" id="box-more" hidden>さらに表示</button>
 </section>
-<p id="e7-message" role="status" aria-live="polite"></p>
+
 </main>
 <dialog id="box-detail-dialog" class="box-detail-dialog stat-modal" aria-labelledby="box-detail-title">
 <h2 id="box-detail-title" class="visually-hidden">ポケモンの詳細</h2>
@@ -153,7 +154,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
     (item.ribbon===null||(Number.isSafeInteger(item.ribbon)&&item.ribbon>=0&&item.ribbon<=100000)));
  }
  let player,box,blocked=false,pending=null,selectedIndex=null,visibleLimit=100;
- const message=(msg,error=false)=>{$('e7-message').textContent=msg;$('e7-message').dataset.error=String(error);};
+ const message=(msg,error=false)=>{PokeUI.toast(msg,{error});};
  const read=(key,def,valid)=>{
   const data=localStorage.getItem(key);
   if(data===null)return def();
@@ -164,7 +165,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
  function lock(err){
   blocked=true;pending=null;$('e7-blocked').hidden=false;
   $('player-save').disabled=$('box-commit').disabled=$('upload').disabled=$('box-clear').disabled=$('box-delete').disabled=true;
-  message('保存済みデータを保護しています。上書きは行いません。',true);
+  // The persistent #e7-blocked warning remains visible until recovery.
  }
  const form=$('e7-bonus-fields');
  for(const [index,field] of FIELDS.entries()){
@@ -173,6 +174,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
   input.placeholder='未入力';input.autocomplete='off';label.append(input);form.append(label);
  }
  const pot=$('player-pot'),bag=$('player-bag');
+ document.querySelectorAll('#player-pot,#player-bag,#e7-bonus-fields input').forEach(input=>input.addEventListener('input',()=>{$('e7-player-error').hidden=true;}));
  function showPlayer(){
   if(!player)return;
   pot.value=player.pot??'';bag.value=player.bag??'';
@@ -251,19 +253,23 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
  $('box-more').addEventListener('click',()=>{visibleLimit+=100;showBox();});
  $('box-detail-close').addEventListener('click',()=>detail.close());
  detail.addEventListener('close',()=>{selectedIndex=null;});
- $('box-delete').addEventListener('click',()=>{
+ $('box-delete').addEventListener('click',async()=>{
   if(blocked||selectedIndex===null||!box?.items[selectedIndex])return;
   const item=box.items[selectedIndex],label=item.nickname||item.pokemon;
-  if(!confirm(label+'（Lv.'+item.level+'）をボックスから削除しますか？'))return;
+  if(!(await PokeUI.confirm(label+'（Lv.'+item.level+'）をボックスから削除しますか？',{title:'個体を削除',okText:'削除する',danger:true})))return;
+  if(blocked||selectedIndex===null||!box?.items[selectedIndex]||JSON.stringify(box.items[selectedIndex])!==JSON.stringify(item)){
+   message('対象個体が変更されたため、削除を中止しました。',true);return;
+  }
   try{
    saveBox({...box,items:box.items.filter((_,i)=>i!==selectedIndex)});
    detail.close();message('個体を削除しました。');
   }catch(e){message('個体を削除できませんでした。ボックスを更新してから再試行してください。',true);}
  });
- $('box-clear').addEventListener('click',()=>{
+ $('box-clear').addEventListener('click',async()=>{
   if(blocked||!box?.items.length)return;
   const count=box.items.length;
-  if(!confirm('ボックス内の'+count+'匹をすべて削除しますか？\nプレイヤー情報・イベント・作戦は保持します。'))return;
+  if(!(await PokeUI.confirm('ボックス内の'+count+'匹をすべて削除しますか？\nプレイヤー情報・イベント・作戦は保持します。',{title:'ボックスを全削除',okText:'全削除する',danger:true})))return;
+  if(blocked||box?.items.length!==count){message('ボックスが変更されました。全削除を中止しました。',true);return;}
   try{
    saveBox({...box,items:[]});detail.close();pending=null;
    $('box-commit').disabled=true;$('upload').value='';
@@ -282,13 +288,15 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
   next.pot=toNumber(pot,1,5000);next.bag=toNumber(bag,1,5000);
   for(const el of form.querySelectorAll('input[data-field]'))next.bonuses[el.dataset.field]=toNumber(el,0,100,5);
   if(next.pot===undefined||next.bag===undefined||Object.values(next.bonuses).some(v=>v===undefined)){
-   message('数値を確認してください。フィールドボーナスは5%刻みです。',true);return;
+   $('e7-player-error').textContent='数値を確認してください。フィールドボーナスは5%刻みです。';
+   $('e7-player-error').hidden=false;
+   document.querySelector('#player-pot[aria-invalid="true"],#player-bag[aria-invalid="true"],#e7-bonus-fields input[aria-invalid="true"]')?.focus();return;
   }
   try{
    // Re-read to reject writes over external/corrupt changes.
    read(PLAYER,emptyPlayer,validPlayer);
    localStorage.setItem(PLAYER,JSON.stringify(next));player=next;
-   message('プレイヤー情報を保存しました。');
+   $('e7-player-error').hidden=true;message('プレイヤー情報を保存しました。');
   }catch(e){message('保存できませんでした。元の設定を保持しています。',true);}
  });
  $('upload').addEventListener('change',async event=>{
@@ -311,12 +319,14 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
    $('box-commit').disabled=false;
   }catch(e){
    $('import-summary').textContent='読み込み不可：'+(e.message||'形式を確認してください。');
-   message('データは追加していません。',true);
+   message('CSVを読み込めませんでした。データは追加していません。',true);
   }
  });
- $('box-commit').addEventListener('click',()=>{
+ $('box-commit').addEventListener('click',async()=>{
   if(!pending||blocked)return;
-  if(!confirm(pending.items.length+'匹をボックスに追加しますか？\n既存データは維持します。'))return;
+  const source=pending;
+  if(!(await PokeUI.confirm(source.items.length+'匹をボックスに追加しますか？\n既存データは維持します。',{title:'個体を追加',okText:'追加する'})))return;
+  if(blocked||pending!==source){message('読み込み対象が変更されました。追加を中止しました。',true);return;}
   try{
    const current=read(BOX,emptyBox,validBox);
    const merged=[...current.items,...pending.items];

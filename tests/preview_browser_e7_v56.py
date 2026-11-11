@@ -168,6 +168,11 @@ try:
         page.wait_for_function("""()=>!document.getElementById('e7-settings-restore').disabled""",timeout=15000)
         assert '件の保存データ' in page.locator('#e7-settings-import-summary').inner_text()
         page.locator('#e7-settings-restore').click()
+        page.locator('#e7-feedback-dialog').wait_for(state='visible',timeout=15000)
+        assert page.locator('#e7-feedback-title').inner_text()=='バックアップを復元'
+        page.locator('#e7-feedback-ok').click()
+        page.wait_for_function("""()=>document.getElementById('e7-feedback-title')?.textContent==='復元完了'&&document.getElementById('e7-feedback-dialog')?.open""",timeout=15000)
+        page.locator('#e7-feedback-ok').click()
         page.wait_for_function("""()=>JSON.parse(localStorage.getItem(
           'pokesleep-strategy-e7-player-v1'))?.pot===57""",timeout=15000)
         page.wait_for_function("""()=>document.getElementById('status').hidden
@@ -208,6 +213,11 @@ try:
           'buffer':json.dumps(original,ensure_ascii=False).encode('utf-8')})
         page.wait_for_function("""()=>!document.getElementById('e7-settings-restore').disabled""",timeout=15000)
         page.locator('#e7-settings-restore').click()
+        page.locator('#e7-feedback-dialog').wait_for(state='visible',timeout=15000)
+        assert page.locator('#e7-feedback-title').inner_text()=='バックアップを復元'
+        page.locator('#e7-feedback-ok').click()
+        page.wait_for_function("""()=>document.getElementById('e7-feedback-title')?.textContent==='復元完了'&&document.getElementById('e7-feedback-dialog')?.open""",timeout=15000)
+        page.locator('#e7-feedback-ok').click()
         page.wait_for_function("""()=>JSON.parse(localStorage.getItem(
           'pokesleep-strategy-e7-player-v1'))?.pot===57""",timeout=15000)
         assert not errors,errors
