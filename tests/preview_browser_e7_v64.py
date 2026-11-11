@@ -74,6 +74,8 @@ try:
    assert abs(collapsed['height']-always['height'])<.7,(width,collapsed,always)
    assert abs(divider['top']-collapsed['bottom'])<=1.1,(width,divider,collapsed)
    assert divider['arrowBorder']=='2px' and divider['arrowTransform']!='none',(width,divider)
+   # Let the 150ms disclosure chevron transition settle before comparing states.
+   page.wait_for_timeout(200)
    after=plan.locator('#event-details > summary').evaluate("""el=>getComputedStyle(el,'::after').transform""")
    assert after!=divider['arrowTransform'],(width,after,divider)
    # Full 6-character nickname must fit in actual 2-column picker at phone width,
