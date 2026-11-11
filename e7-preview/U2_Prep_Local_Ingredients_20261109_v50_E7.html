@@ -261,8 +261,15 @@ if(!p.has('e6Reset'))return;
 const url=new URL(location.href);
 url.searchParams.delete('e6Reset');
 try{history.replaceState(history.state,'',url.href);}catch(e){}
-PokeUI.alert('旧形式の週一括初期化リンクは無効になりました。イベントを選択し、「イベントを削除」を使用してください。',{
- title:'安全のため中止しました'
+const week=p.get('eventStart');
+const d=typeof week==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(week)?
+ new Date(week+'T12:00:00Z'):null;
+const valid=!!d&&Number.isFinite(d.getTime())&&
+ d.toISOString().slice(0,10)===week&&d.getUTCDay()===1;
+PokeUI.alert(valid?
+ '旧形式の週一括初期化リンクは無効になりました。イベントを選択し、「イベントを削除」を使用してください。':
+ '検証週が不明です。データは変更しませんでした。',{
+ title:'操作を中止しました'
 });
 })();
 </script><script>
@@ -846,7 +853,7 @@ document.getElementById('e6-reset').addEventListener('click',async()=>{
  try{before=PokeE7EventDeletion.snapshot(localStorage,selection,{requireSelected:true});}
  catch(e){await PokeUI.alert(e.message,{title:'初期化できませんでした'});return;}
  if(!(await PokeUI.confirm('選択中のイベント（'+WEEK+'）だけを初期化しますか？\n同じ週の別イベントは保持します。',{
-  title:'イベントを初期化',okText:'このイベントだけ初期化',danger:true})))return;
+  title:'検証データを初期化',okText:'このイベントだけ初期化',danger:true})))return;
  try{PokeE7EventDeletion.remove(localStorage,before);}
  catch(e){await PokeUI.alert(e.message,{title:'初期化できませんでした'});return;}
  window.__pokesleepE7ResetRevoked=true;
