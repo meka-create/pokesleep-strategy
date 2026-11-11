@@ -8,11 +8,11 @@ test('E7 v68 header uses the saved validated event and U3 Japanese translation o
  assert.match(u3,/const selection=e3Selected,confirmed=e3Ledger\(\)\?\.confirmed/);
  assert.match(u3,/eventDisplayName\(source\)/);
  assert.match(bridge,/const isEventTab=\/\^U\[23\]_\//);
- assert.match(bridge,/header\.append\(eventNode\)/);
+ assert.match(bridge,/copy\.append\(eventNode\)/);
  assert.match(bridge,/wrap\.append\(more,menu\);header\.append\(wrap\)/);
  assert.match(bridge,/const result=plan\?\.__e7CurrentEventHeader\?\.\(\)/);
  assert.match(bridge,/result\.weekStart===selected\.weekStart/);
- assert.match(bridge,/textContent=name/);
+ assert.match(bridge,/caption\.textContent=name\|\|'for Pokémon Sleep'/);
  assert.match(bridge,/text-overflow:ellipsis/);
  assert.match(bridge,/document\.addEventListener\('click',e=>\{/);
  assert.match(bridge,/sibling\?\.addEventListener\('load',refreshEventHeader\)/);
@@ -22,12 +22,12 @@ test('E7 v68 header uses the saved validated event and U3 Japanese translation o
   assert.doesNotThrow(()=>new vm.Script(m[1]));
 });
 test('E7 v68 renders two-page header and preserves old three-dot menu, full root app remains frozen',()=>{
- assert.match(read('index.html'),/<title>ポケスリ作戦室 E7 v68<\/title>/);
- assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v68-event-header-20261111/);
+ assert.match(read('index.html'),/<title>ポケスリ作戦室 E7 v69<\/title>/);
+ assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v69-shared-header-temp-icon-20261111/);
  assert.match(read('e7-sw-v50.js'),/'e7-unified-bridge-v51\.js'/);
  const bridge=read('e7-unified-bridge-v51.js');
  assert.match(bridge,/eventNode\.title='現在のイベント：'\+name/);
- assert.match(bridge,/eventNode\.hidden=!name/);
+ assert.match(bridge,/calendar\.toggleAttribute\('hidden',!name\)/);
 });
 test('E7 v68 Chromium: plan/prep event labels and header geometry',
  {timeout:170000},()=>{

@@ -1,4 +1,4 @@
-/* E7 v50: narrow navigation adapter for the single-origin U5 shell.
+/* E7 v69: common two-line header and navigation adapter for the U5 shell.
  * Standalone U2/U3/U4 continue to navigate normally.
  * Never transfer inventory snapshots through the app-shell navigation URL.
  */
@@ -21,17 +21,22 @@
  style.textContent='#e6-footer{display:none!important} body{padding-bottom:18px!important}'+
   '[hidden]{display:none!important}'+
   '.mast .ver,.header .mock-tag{display:none!important}'+
-  'header.mast,header.header{position:relative;z-index:35;overflow:visible;box-sizing:border-box;min-height:74px;padding:18px 16px 12px;border-bottom:1px solid #3b5269;display:flex;align-items:center;justify-content:space-between}'+
+  'header.mast,header.header{position:relative;z-index:35;overflow:visible;box-sizing:border-box;min-height:76px;padding:12px 16px;border-bottom:1px solid #3b5269;display:flex;align-items:center;justify-content:space-between;gap:8px}'+
    '.shell>header.mast,.shell>header.header{width:min(100vw,680px);max-width:none;margin-left:50%;transform:translateX(-50%)}'+
-   'header.mast .brand,header.header .brand{font:800 17px/1.4 system-ui,-apple-system,"Noto Sans JP",sans-serif;letter-spacing:0}'+
+   'header.mast .brand,header.header .brand{font:800 19px/1.32 system-ui,-apple-system,"Noto Sans JP",sans-serif;letter-spacing:0;white-space:nowrap;color:#f2f5fa}'+
    'header.mast .sub,header.mast .subbrand,header.header .smallcap{font:700 9px/1.2 system-ui,-apple-system,"Noto Sans JP",sans-serif;letter-spacing:2px;color:#a5c3da}'+
    '#u2-week-label{display:none!important}'+
-  /* Preserve the title and 42px menu; only the centre label may truncate. */
-  'header.mast>div:first-child,header.header>div:first-child{flex:0 0 auto;white-space:nowrap;min-width:0}'+
-  '.e7-header-event-name{display:block;flex:1 1 0;min-width:0;margin-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;color:#f4d58f;font:750 12px/1.5 system-ui,-apple-system,"Noto Sans JP",sans-serif}'+
-  '.e7-header-event-name[hidden]{display:none!important}'+
-  '@media(max-width:360px){.e7-header-event-name{font-size:10px;margin-left:4px}}'+
-  '.e7-more-wrap{position:relative;flex:0 0 42px;margin-left:10px}'+
+  /* Shared two-line identity for all three tabs. Only the subtitle may clip. */
+  'header.mast>.e7-header-identity,header.header>.e7-header-identity{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 0}'+
+  '.e7-header-icon{display:block;flex:0 0 44px;width:44px;height:44px;object-fit:cover;border-radius:11px}'+
+  '.e7-header-copy{display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0;flex:1 1 0}'+
+  '.e7-header-subtitle{display:flex;align-items:center;gap:5px;min-width:0;max-width:100%;height:19px;color:#a5c3da;font:700 12px/1.4 system-ui,-apple-system,"Noto Sans JP",sans-serif;letter-spacing:.1px}'+
+  '.e7-header-subtitle[data-kind="event"]{color:#f4d58f}'+
+  '.e7-header-subtitle-text{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}'+
+  '.e7-header-calendar{width:15px;height:15px;flex:0 0 15px;stroke:currentColor;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round}'+
+  '.e7-header-calendar[hidden]{display:none!important}'+
+  '@media(max-width:360px){header.mast .brand,header.header .brand{font-size:17px}.e7-header-icon{flex-basis:40px;width:40px;height:40px}.e7-header-subtitle{font-size:11px}}'+
+  '.e7-more-wrap{position:relative;flex:0 0 42px;margin-left:0}'+
   '.e7-more-btn{display:grid;place-items:center;width:42px;height:42px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#e5edf6;font:900 24px/1 system-ui;cursor:pointer;touch-action:manipulation}'+
   '.e7-more-btn:hover,.e7-more-btn[aria-expanded="true"],.e7-more-btn:active{background:transparent;border-color:transparent;box-shadow:none;color:#fff}'+
   '.e7-more-btn:focus-visible,.e7-more-item:focus-visible{outline:2px solid #ffda8a;outline-offset:2px}'+
@@ -80,18 +85,42 @@
    });
    menu.append(item);
   }
-  // Only Strategy and Preparation show the selected event, between the app
-  // title and the existing dot menu. Box keeps its existing compact header.
+  // The header identity is shared across Strategy, Preparation and Box.
+  // This temporary icon is sourced from the approved comparison mockup;
+  // the PWA manifest icon is deliberately unchanged.
+  const titleNode=header.querySelector('.brand');
+  const titleWrap=titleNode?.parentElement;
+  if(!titleNode||!titleWrap)throw new Error('E7 header brand is missing');
+  titleNode.textContent='ポケスリ作戦室';
+  titleWrap.querySelector('.sub,.subbrand,.smallcap')?.remove();
+  titleWrap.classList.add('e7-header-identity');
+  const icon=document.createElement('img');
+  icon.className='e7-header-icon';
+  icon.src='e7-header-temp-v69.png';
+  icon.alt='';
+  icon.width=44;icon.height=44;
+  icon.setAttribute('aria-hidden','true');
+  titleWrap.insertBefore(icon,titleNode);
+  const copy=document.createElement('div');
+  copy.className='e7-header-copy';
+  titleNode.remove();copy.append(titleNode);
+  const eventNode=document.createElement('span');
+  eventNode.id='e7-header-event-name';
+  eventNode.className='e7-header-subtitle';
+  eventNode.setAttribute('aria-live','polite');
+  eventNode.setAttribute('aria-atomic','true');
+  const calendar=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  calendar.classList.add('e7-header-calendar');
+  calendar.setAttribute('viewBox','0 0 24 24');
+  calendar.setAttribute('aria-hidden','true');
+  calendar.innerHTML='<rect x="3" y="5" width="18" height="16" rx="2"/>'+
+    '<path d="M8 3v4M16 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>';
+  const caption=document.createElement('span');
+  caption.className='e7-header-subtitle-text';
+  eventNode.append(calendar,caption);
+  copy.append(eventNode);
+  titleWrap.append(copy);
   const isEventTab=/^U[23]_/.test(location.pathname.split('/').pop()||'');
-  const eventNode=isEventTab?document.createElement('span'):null;
-  if(eventNode){
-   eventNode.id='e7-header-event-name';
-   eventNode.className='e7-header-event-name';
-   eventNode.setAttribute('aria-live','polite');
-   eventNode.setAttribute('aria-atomic','true');
-   eventNode.hidden=true;
-   header.append(eventNode);
-  }
   function selectionIdentity(){
    try{
     const x=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');
@@ -134,16 +163,16 @@
    return '';
   }
   function refreshEventHeader(){
-   if(!eventNode)return;
-   const name=selectedEventHeader().trim().slice(0,160);
-   if(eventNode.textContent!==name)eventNode.textContent=name;
-   eventNode.hidden=!name;
+   const name=isEventTab?selectedEventHeader().trim().slice(0,160):'';
+   caption.textContent=name||'for Pokémon Sleep';
+   calendar.toggleAttribute('hidden',!name);
+   eventNode.dataset.kind=name?'event':'default';
    if(name){
     eventNode.title='現在のイベント：'+name;
     eventNode.setAttribute('aria-label','現在のイベント：'+name);
    }else{
     eventNode.removeAttribute('title');
-    eventNode.removeAttribute('aria-label');
+    eventNode.setAttribute('aria-label','for Pokémon Sleep');
    }
   }
   if(eventNode){
