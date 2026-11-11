@@ -165,7 +165,7 @@
   function refreshEventHeader(){
    const name=isEventTab?selectedEventHeader().trim().slice(0,160):'';
    caption.textContent=name||'for Pokémon Sleep';
-   calendar.hidden=!name;
+   calendar.toggleAttribute('hidden',!name);
    eventNode.dataset.kind=name?'event':'default';
    if(name){
     eventNode.title='現在のイベント：'+name;

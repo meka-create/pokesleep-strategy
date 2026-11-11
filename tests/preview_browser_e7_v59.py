@@ -102,7 +102,7 @@ try:
                 if name=='prep':
                     assert child.locator('#u2-week-label').is_hidden()
             for name in ('plan','prep','box'):
-                assert shapes[name]['font']=='17px' and shapes[name]['weight']=='800',shapes
+                assert shapes[name]['font']==('17px' if width<=360 else '19px') and shapes[name]['weight']=='800',shapes
                 assert abs(shapes[name]['left']-shapes['box']['left'])<=2,(width,shapes)
                 assert abs(shapes[name]['right']-shapes['box']['right'])<=2,(width,shapes)
         page.set_viewport_size({'width':393,'height':852})

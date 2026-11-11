@@ -27,7 +27,7 @@ test('E7 v68 renders two-page header and preserves old three-dot menu, full root
  assert.match(read('e7-sw-v50.js'),/'e7-unified-bridge-v51\.js'/);
  const bridge=read('e7-unified-bridge-v51.js');
  assert.match(bridge,/eventNode\.title='現在のイベント：'\+name/);
- assert.match(bridge,/calendar\.hidden=!name/);
+ assert.match(bridge,/calendar\.toggleAttribute\('hidden',!name\)/);
 });
 test('E7 v68 Chromium: plan/prep event labels and header geometry',
  {timeout:170000},()=>{

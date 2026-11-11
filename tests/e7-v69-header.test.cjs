@@ -17,7 +17,7 @@ test('E7 v69 uses precisely the temporary comparison icon in the common three-ta
  assert.match(bridge,/titleWrap\.querySelector\('\.sub,\.subbrand,\.smallcap'\)\?\.remove\(\)/);
  assert.match(bridge,/copy\.append\(eventNode\)/);
  assert.match(bridge,/caption\.textContent=name\|\|'for Pokémon Sleep'/);
- assert.match(bridge,/calendar\.hidden=!name/);
+ assert.match(bridge,/calendar\.toggleAttribute\('hidden',!name\)/);
  assert.match(bridge,/const name=isEventTab\?selectedEventHeader\(\)/);
  assert.match(bridge,/eventNode\.dataset\.kind=name\?'event':'default'/);
  assert.match(bridge,/titleWrap\.append\(copy\)/);
