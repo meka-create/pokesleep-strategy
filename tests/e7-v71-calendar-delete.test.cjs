@@ -99,6 +99,21 @@ test('E7 v71: a failed storage write rolls back all removed records',()=>{
  assert.throws(()=>e.remove(s,before),/元の保存内容を復元/);
  assert.deepEqual(values(s),start);
 });
+test('E7 v71: rollback does not materialize an originally absent prep key',()=>{
+ const e=engine(),selection={id:'manual:'+WEEK,weekStart:WEEK};
+ const initial={...record(selection.id),[SELECTED]:JSON.stringify(selection)};
+ const prep='pokesleep-strategy-u2-e6-prep-v1:'+WEEK+':'+encodeURIComponent(selection.id);
+ delete initial[prep];
+ const s=storage(initial),before=e.snapshot(s,selection,{requireSelected:true});
+ const original=s.removeItem.bind(s);let failed=false;
+ s.removeItem=(key)=>{
+  if(key===SELECTED&&!failed){failed=true;throw Error('quota');}
+  original(key);
+ };
+ assert.throws(()=>e.remove(s,before),/元の保存内容を復元/);
+ assert.deepEqual(values(s),initial);
+ assert.equal(s.getItem(prep),null);
+});
 test('E7 v71: UI, shell, service worker and legacy paths use scoped deletion',()=>{
  const u3=read('U3_Strategy_UI_20261109_v50_E7.html');
  const u2=read('U2_Prep_Local_Ingredients_20261109_v50_E7.html');
