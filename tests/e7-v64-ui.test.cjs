@@ -20,3 +20,17 @@ test('E7 v64 card parity and six-character picker contract',()=>{
 test('E7 v64 Chromium: card geometry, divider spacing, full-width names',{timeout:120000},()=>{
  require('node:child_process').execFileSync('python3',[path.resolve(__dirname,'preview_browser_e7_v64.py')],{cwd:path.resolve(__dirname,'..'),stdio:'pipe',timeout:115000});
 });
+
+test('E7 v64 calendar looks proportionate without enlarging nav targets',()=>{
+ const html=get('index.html');
+ const pos=html.indexOf('id="tab-plan"');
+ const svg=html.slice(html.indexOf('<svg',pos),html.indexOf('</svg>',pos)+6);
+ assert.match(svg,/viewBox="60 60 392 392"/);
+ assert.match(svg,/stroke-width="23"/);
+ assert.match(svg,/x="103" y="125" width="306" height="272"/);
+ for(const filename of ['U2_Prep_Local_Ingredients_20261109_v50_E7.html','U3_Strategy_UI_20261109_v50_E7.html','U4_Box_Preview_20261109_v50_E7.html']){
+  const source=get(filename),p=source.indexOf('id="e6-footer-plan"');
+  const fragment=source.slice(source.indexOf('<svg',p),source.indexOf('</svg>',p)+6);
+  assert.match(fragment,/viewBox="60 60 392 392"/,filename);
+ }
+});
