@@ -250,9 +250,11 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 #event-details.card,.sleep-settings.card{width:100%;min-width:0}
 #event-details.card:not([open]){padding:4px 10px;min-height:54px}
 #event-details.card:not([open])>summary{height:44px;min-height:44px;padding:0;line-height:1.35}
-/* Match Box CSV spacing: 8px to the divider, then 11px content padding
-   plus the Box description's 7px top margin = 18px to the first visible label.
-   Preserve the pre-proposal setup layout (it uses a separate heading). */
+/* In the proposed state, the opened divider occupies the same y-coordinate
+   as the closed card's bottom: border 1 + padding 4 + heading 40 + gap 8 + divider 1 = 54px.
+   Keep the Box accordion's 8px above the rule and 18px to its first text. */
+main[data-has-proposed="true"] #event-details[open]{padding:4px 10px}
+main[data-has-proposed="true"] #event-details[open]>summary{height:40px;min-height:40px;padding:0;line-height:1.35}
 main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px;padding-top:18px;border-top-color:#394e65}
 /* More horizontal room for six full-width nickname characters on phones. */
 #pick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
