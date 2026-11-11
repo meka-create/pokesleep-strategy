@@ -55,36 +55,43 @@ try:
    assert arrow_box['border']=='2px' and arrow_box['style']=='solid',(width,arrow_box)
    box.locator('#e7-import-panel > summary').click()
    plan=tab('plan')
-   # Phase-gated settings are intentionally hidden without a selected event;
-   # restore the test-only visibility when comparing card dimensions.
-   plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;}')
-   # Returning to the tab re-applies the genuine unconfigured phase state.
-   # Recreate the proposed accordion state ONLY within this isolated geometry test.
-   plan.locator('#event-details').evaluate("""el=>{
-      el.closest('main').dataset.hasProposed='true';el.open=true;
+   # Exercise proposed/closed geometry within a single browser task, avoiding
+   # unrelated phase-render updates restoring the genuine unconfigured UI.
+   metrics=plan.locator('#event-details').evaluate("""el=>{
+     const main=el.closest('main'),sleep=main.querySelector('.sleep-settings');
+     const heading=el.querySelector(':scope>summary');
+     const originalDisplay=heading.style.getPropertyValue('display');
+     const originalPriority=heading.style.getPropertyPriority('display');
+     const originalSleepDisplay=sleep.style.getPropertyValue('display');
+     const originalSleepPriority=sleep.style.getPropertyPriority('display');
+     main.dataset.hasProposed='true';sleep.hidden=false;
+     sleep.style.setProperty('display','block','important');
+     heading.style.setProperty('display','flex','important');
+     const testCSS=document.createElement('style');
+     testCSS.textContent='.event-details>summary::after{transition:none!important}';
+     document.head.append(testCSS);
+     el.open=true;
+     const rule=el.querySelector('.event-fields').getBoundingClientRect();
+     const arrowOpen=getComputedStyle(heading,'::after');
+     const divider={top:rule.top,arrowBorder:arrowOpen.borderRightWidth,arrowTransform:arrowOpen.transform};
+     el.open=false;
+     const cr=el.getBoundingClientRect(),sr=sleep.getBoundingClientRect();
+     const closed={width:cr.width,height:cr.height,bottom:cr.bottom};
+     const always={width:sr.width,height:sr.height};
+     const arrowClosed=getComputedStyle(heading,'::after').transform;
+     testCSS.remove();
+     if(originalDisplay)heading.style.setProperty('display',originalDisplay,originalPriority);
+     else heading.style.removeProperty('display');
+     if(originalSleepDisplay)sleep.style.setProperty('display',originalSleepDisplay,originalSleepPriority);
+     else sleep.style.removeProperty('display');
+     return {divider,closed,always,arrowClosed};
    }""")
-   page.wait_for_timeout(180)
-   divider=plan.locator('#event-details').evaluate("""el=>{
-     const c=el.querySelector('.event-fields').getBoundingClientRect();
-     const a=getComputedStyle(el.querySelector('summary'),'::after');
-     return {top:c.top,arrowBorder:a.borderRightWidth,arrowTransform:a.transform};
-   }""")
-   plan.locator('#event-details').evaluate('(el)=>{el.open=false;}')
-   collapsed=plan.locator('#event-details').evaluate("""el=>{
-     const b=el.getBoundingClientRect();return {width:b.width,height:b.height,bottom:b.bottom};
-   }""")
-   plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;}')
-   always=plan.locator('.sleep-settings').evaluate("""el=>{
-     const b=el.getBoundingClientRect();return {width:b.width,height:b.height};
-   }""")
-   assert abs(collapsed['width']-always['width'])<.7,(width,collapsed,always)
-   assert abs(collapsed['height']-always['height'])<.7,(width,collapsed,always)
-   assert abs(divider['top']-collapsed['bottom'])<=1.1,(width,divider,collapsed)
-   assert divider['arrowBorder']=='2px' and divider['arrowTransform']!='none',(width,divider)
-   # Let the 150ms disclosure chevron transition settle before comparing states.
-   page.wait_for_timeout(200)
-   after=plan.locator('#event-details > summary').evaluate("""el=>getComputedStyle(el,'::after').transform""")
-   assert after!=divider['arrowTransform'],(width,after,divider)
+   divider,collapsed,always=metrics['divider'],metrics['closed'],metrics['always']
+   assert abs(collapsed['width']-always['width'])<.7,(width,metrics)
+   assert abs(collapsed['height']-always['height'])<.7,(width,metrics)
+   assert abs(divider['top']-collapsed['bottom'])<=1.1,(width,metrics)
+   assert divider['arrowBorder']=='2px' and divider['arrowTransform']!='none',(width,metrics)
+   assert metrics['arrowClosed']!=divider['arrowTransform'],(width,metrics)
    # Full 6-character nickname must fit in actual 2-column picker at phone width,
    # whether the specimen is selected or not. Checkmark lives above right, never
    # consuming nickname line width.
