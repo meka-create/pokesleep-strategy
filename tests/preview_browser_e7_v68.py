@@ -69,7 +69,7 @@ try:
   assert plan.locator('#e7-more-open').is_visible()
   for width in (320,393,430):
    page.set_viewport_size({'width':width,'height':852})
-   for tab in ('plan','prep','box')
+   for tab in ('plan','prep','box'):
     f=select_tab(tab)
     f.locator('.e7-header-icon').evaluate('(img)=>img.decode()')
     event=f.locator('#e7-header-event-name')
