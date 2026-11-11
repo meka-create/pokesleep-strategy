@@ -267,6 +267,36 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 #pick-grid .pick-select .selected-check{position:absolute;right:3px;top:3px;display:grid;place-items:center;width:18px;height:18px;border:1px solid #d4b375;border-radius:50%;background:#403b33;color:var(--gold);font-size:12px;font-weight:800;line-height:1;pointer-events:none}
 #pick-grid .pick-select .selected-check:empty{display:none}
 </style>
+<style id="e7-v65-event-calendar-style">
+/* Local saved-event navigation. No external calendar or parallel data store. */
+#e7-event-calendar{padding:11px 10px;min-width:0;display:grid;gap:9px}
+#e7-cal-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+#e7-cal-heading h2{font-size:13px;font-weight:700;line-height:1.4;margin:0}
+#e7-cal-tools{display:flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0}
+#e7-cal-month{font-size:12px;font-weight:700;white-space:nowrap;min-width:80px;text-align:center}
+.e7-cal-nav{width:34px;height:34px;flex:0 0 34px;border:1px solid #41546d;border-radius:9px;background:#101f31;color:#e4edf8;font-size:19px;cursor:pointer}
+.e7-cal-nav:focus-visible,.e7-cal-event:focus-visible{outline:2px solid #f4d48e;outline-offset:1px}
+#e7-cal-today{font-size:11px;white-space:nowrap}
+#e7-cal-board{overflow:hidden;border:1px solid #3b5069;border-radius:10px;min-width:0}
+#e7-cal-weekdays,.e7-cal-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+#e7-cal-weekdays{background:#101d2d;color:#c9d7e9}
+#e7-cal-weekdays>span{padding:6px 0;text-align:center;font-size:11px;font-weight:700}
+#e7-cal-weekdays>span:nth-child(6){color:#7abaff}
+#e7-cal-weekdays>span:nth-child(7){color:#f19baa}
+.e7-cal-week{grid-template-rows:39px repeat(var(--event-rows),40px);border-top:1px solid #40536a;background:#122136;min-width:0}
+.e7-cal-date{grid-row:1;min-width:0;padding:5px 3px 0 6px;border-right:1px solid #34465c;font-size:11px;line-height:18px;color:#dae4ee}
+.e7-cal-date:nth-child(7){border-right:0}
+.e7-cal-date[data-outside="true"]{color:#6d8097}
+.e7-cal-date[data-saturday="true"]{color:#75b6fb;background:#14283e}
+.e7-cal-date[data-sunday="true"]{color:#ee9eaf;background:#271e30}
+.e7-cal-date[data-today="true"] span{display:inline-grid;place-items:center;min-width:23px;height:23px;margin:-3px 0 0 -4px;border-radius:50%;background:#e2ecf6;color:#132439;font-weight:800}
+.e7-cal-event{position:relative;align-self:center;min-width:0;min-height:36px;max-height:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;padding:4px 7px;margin:1px 3px 1px 4px;border:1px solid #4a93bb;border-radius:7px;background:#174c60;color:#f1f9ff;font-size:11px;font-weight:700;cursor:pointer}
+.e7-cal-event[data-status="missing"]{background:#343d50;border-color:#69758c;color:#d8e2ed}
+.e7-cal-event[aria-pressed="true"]{background:#665027;border-color:#efbf65;color:#fff3d8;box-shadow:inset 0 0 0 1px #e6b35b}
+.e7-cal-event[data-has-plan="true"]::before{content:"●";font-size:8px;color:#a2eed2;margin-right:4px}
+#e7-cal-empty{margin:0;font-size:11px;color:#b9c9d9}
+@media(max-width:360px){#e7-event-calendar{padding:9px 7px}#e7-cal-heading{gap:4px}#e7-cal-tools{gap:2px}#e7-cal-month{min-width:76px}#e7-cal-today{padding:5px 6px}.e7-cal-event{padding:4px 4px;font-size:10px;margin-left:2px;margin-right:2px}}
+</style>
 </head>
 <body><details id="e6-dev">
 <summary>開発用・日時切替</summary>
@@ -307,6 +337,16 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 </div>
 
 <div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="true"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div></div></details>
+<section class="card" id="e7-event-calendar" aria-label="保存済みイベントカレンダー">
+ <div id="e7-cal-heading"><h2>イベントカレンダー</h2><div id="e7-cal-tools">
+ <button type="button" class="e7-cal-nav" id="e7-cal-prev" aria-label="前の月">‹</button>
+ <span id="e7-cal-month" aria-live="polite"></span>
+ <button type="button" class="e7-cal-nav" id="e7-cal-next" aria-label="次の月">›</button>
+ <button type="button" class="btn small secondary" id="e7-cal-today">今月</button>
+ </div></div>
+ <div id="e7-cal-board"><div id="e7-cal-weekdays" aria-hidden="true"><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span><span>日</span></div><div id="e7-cal-weeks"></div></div>
+ <p id="e7-cal-empty" hidden>この月に保存済みのイベントはありません。</p>
+</section>
 <section class="card sleep-settings" aria-label="睡眠編成の設定"><div class="section-head"><h2>睡眠編成</h2><div class="sleep-controls"><button type="button" class="control-toggle sleep-auto-toggle" id="auto-sleep" role="switch" aria-checked="false" aria-label="睡眠編成を自動提案"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button><button type="button" id="sleep-open" class="btn small secondary">設定</button></div></div></section>
 <section class="card plan-actions" aria-label="週間作戦の操作"><button type="button" id="generate" class="btn full">7日間の作戦を提案</button><button type="button" id="repropose" class="btn secondary full" hidden>作戦を再提案</button><button type="button" id="resume-draft" class="btn secondary full" hidden>未採用の提案を確認</button><p class="hint" id="event-gate" role="status" aria-live="polite" hidden></p><p class="hint" id="stock-gate" hidden>食材在庫を保存すると提案できます。<a class="u2-nav" href="U2_Prep_Local_Ingredients_20261109_v50_E7.html">食材在庫へ</a></p><p class="hint" id="inventory-notice" hidden></p><a class="hint u2-nav" href="U2_Prep_Local_Ingredients_20261109_v50_E7.html">食材在庫の入力・修正は準備画面で行う</a><p class="hint" id="mock-note">このプレビューの編成と料理は操作確認用の例です。</p><div id="status" class="status-message" role="status" aria-live="polite"></div></section>
 <section class="card" id="week-content" hidden><div class="section-head"><h2 id="current-state-title">週間編成</h2><span class="energy" id="e4-result-energy" hidden aria-hidden="true">週間エナジー <b>—</b></span><span id="e4-changed" hidden>更新前の作戦</span></div><div class="week-head"><div class="day-title"><span id="day-label">月曜日</span><small id="day-date">11/9</small></div></div><div class="daynav" id="day-nav" role="tablist" aria-label="曜日を選択"></div><div id="slots"></div><a class="hint u2-nav" id="e3-update-stock" href="U2_Prep_Local_Ingredients_20261109_v50_E7.html">食材在庫を更新</a></section></main></div><nav id="e6-footer" aria-label="メインナビゲーション">
@@ -1232,7 +1272,11 @@ function populateEventOptions(){
  const menu=$('#event-source-select'),current=currentEventChoice();
  const now=Date.parse(nowInJapan()+':00+09:00');
  const visible=eventCandidates.filter(x=>Date.parse(x.end+'T04:00:00+09:00')>now);
- // Even a stored event is not offered again once it has finished.
+ // Only the currently selected finished source may remain visible as its
+ // saved name. Other ended events never reappear as selectable candidates.
+ if(eventInfo.source&&e3Selected?.id===eventInfo.source.id&&
+   e3Selected.weekStart===eventInfo.start&&
+   !visible.some(x=>x.id===eventInfo.source.id))visible.push({...eventInfo.source,start:eventInfo.start});
  menu.replaceChildren();
  const manual=document.createElement('option');manual.value='';manual.textContent='手動設定';menu.append(manual);
  for(const event of visible){
@@ -1535,7 +1579,8 @@ function arrangePhaseLayout(phase,activePlan,blockers){
  main.dataset.phaseStage=phase==='ended'?'ended':layout;
  main.dataset.hasProposed=String(hasProposed);
  if(layout!==visiblePhaseStage){
-  const nodes=[primary,week,sleep,conditions,actions,intro];
+  const calendar=$('#e7-event-calendar');
+  const nodes=[primary,week,sleep,conditions,calendar,actions,intro];
   for(const node of nodes)main.appendChild(node);
   // Initial conditions stay expanded until the first actual successful proposal.
   // Phase clock transitions never collapse a card opened by the player.
@@ -1941,9 +1986,151 @@ $('#event-save').onclick=()=>{
  $('#event-details').open=!hasProposed;
  closeSelect(customMenus.get('event-food'));closeSelect(customMenus.get('event-field'));
  $('#event-details').dataset.validate='false';e6PaintConditionIssues([]);
+ renderE7Calendar();
  showToast(restoredUnmodified?'この週の保存済み条件と作戦を復元しました':'入力済みのイベント条件を保存しました');
  render();
 };
+
+/* E7 v65: saved conditions and plans are indexed, never copied into a second store. */
+const E7_CAL_PREFIX='pokesleep-strategy-u3-e3-v1:';
+const E7_CAL_KEY=/^pokesleep-strategy-u3-e3-v1:(\d{4}-\d{2}-\d{2}):(.+):conditions$/;
+const e7MonthBase=e3Selected?.weekStart||nowInJapan().slice(0,10);
+let e7CalendarMonth=e7MonthBase.slice(0,7);
+const e7Date=(date)=>new Date(date+'T12:00:00Z');
+const e7ISO=(date)=>date.toISOString().slice(0,10);
+function e7ShiftDays(date,days){const d=e7Date(date);d.setUTCDate(d.getUTCDate()+days);return e7ISO(d);}
+function e7SavedEvents(){
+ const entries=[];
+ try{
+  // Read only explicitly saved, validated records. Missing/corrupt plans are
+  // not clickable; an invalid backup must never become an active event.
+  for(let i=0;i<localStorage.length;i++){
+   const key=localStorage.key(i),parts=E7_CAL_KEY.exec(key||'');
+   if(!parts||!validWeek(parts[1]))continue;
+   let id;try{id=decodeURIComponent(parts[2]);}catch(e){continue;}
+   if(!id||id.length>160||encodeURIComponent(id)!==parts[2])continue;
+   const raw=localStorage.getItem(key);
+   if(!raw||raw.length>32000)continue;
+   let ledger;try{ledger=E1.validateConditionLedger(JSON.parse(raw));}catch(e){continue;}
+   if(ledger.weekStart!==parts[1]||ledger.eventId!==id||!ledger.confirmed)continue;
+   const selection={weekStart:parts[1],id};
+   const planKey=E7_CAL_PREFIX+selection.weekStart+':'+parts[2]+':plan';
+   const planRaw=localStorage.getItem(planKey);
+   if(!planRaw||planRaw.length>250000)continue;
+   let plan;try{plan=JSON.parse(planRaw);}catch(e){continue;}
+   if(!validStoredState(plan,selection.weekStart,id))continue;
+   const fields=ledger.confirmed.fields;
+   // The condition ledger is the saved-event index; no upstream event is
+   // considered saved until its explicit Save wrote both records.
+   const source=fields?.source||plan.eventInfo.source||null;
+   const name=source?eventDisplayName(source):
+    '手動設定 · '+selection.weekStart.slice(5).replace('-','/');
+   entries.push({selection,name:String(name||'保存済みイベント').slice(0,100),
+    status:ledger.confirmed.status,hasPlan:plan.hasApplied===true});
+  }
+ }catch(e){/* Storage unavailable: show no fabricated saved events. */}
+ return entries.sort((a,b)=>a.selection.weekStart.localeCompare(b.selection.weekStart)||
+  a.selection.id.localeCompare(b.selection.id));
+}
+function renderE7Calendar(){
+ const first=e7Date(e7CalendarMonth+'-01'),year=first.getUTCFullYear(),month=first.getUTCMonth();
+ if(!Number.isFinite(first.valueOf())||year<2020||year>2100)return;
+ $('#e7-cal-month').textContent=year+'年'+(month+1)+'月';
+ const grid=$('#e7-cal-weeks');grid.replaceChildren();
+ const start=e7ISO(new Date(Date.UTC(year,month,1-((first.getUTCDay()+6)%7),12)));
+ const last=new Date(Date.UTC(year,month+1,0,12));
+ const end=e7ISO(new Date(Date.UTC(year,month+1,0+((7-((last.getUTCDay()+6)%7)-1)%7),12)));
+ const events=e7SavedEvents(),today=nowInJapan().slice(0,10);
+ let found=false;
+ for(let week=start;week<=end;week=e7ShiftDays(week,7)){
+  const weekEntries=events.filter(e=>e.selection.weekStart===week);
+  if(weekEntries.length)found=true;
+  const row=document.createElement('div');row.className='e7-cal-week';
+  row.style.setProperty('--event-rows',String(weekEntries.length));
+  for(let day=0;day<7;day++){
+   const date=e7ShiftDays(week,day),dayNode=document.createElement('div');
+   dayNode.className='e7-cal-date';dayNode.dataset.outside=String(date.slice(0,7)!==e7CalendarMonth);
+   if(day===5)dayNode.dataset.saturday='true';
+   if(day===6)dayNode.dataset.sunday='true';
+   if(date===today)dayNode.dataset.today='true';
+   const num=document.createElement('span');num.textContent=String(Number(date.slice(8)));
+   dayNode.append(num);row.append(dayNode);
+  }
+  weekEntries.forEach((e,i)=>{
+   const button=document.createElement('button');button.type='button';
+   button.className='e7-cal-event';button.style.gridColumn='1 / span 7';
+   button.style.gridRow=String(i+2);
+   button.dataset.weekStart=e.selection.weekStart;
+   button.dataset.eventId=e.selection.id;
+   button.dataset.status=e.status.toLowerCase();
+   button.dataset.hasPlan=String(e.hasPlan);
+   const active=e3Selected?.weekStart===e.selection.weekStart&&e3Selected.id===e.selection.id;
+   button.setAttribute('aria-pressed',String(active));
+   button.textContent=e.name;button.title=e.name;
+   button.setAttribute('aria-label',e.name+'（'+week+'開始）'+(e.hasPlan?'・作戦あり':'・条件のみ')+'を呼び出す');
+   button.addEventListener('click',()=>e7OpenSavedEvent(e.selection));
+   row.append(button);
+  });
+  grid.append(row);
+ }
+ $('#e7-cal-empty').hidden=found;
+}
+function e7MoveMonth(direction){
+ const [y,m]=e7CalendarMonth.split('-').map(Number);
+ const next=new Date(Date.UTC(y,m-1+direction,1,12));
+ if(next.getUTCFullYear()<2020||next.getUTCFullYear()>2100)return;
+ e7CalendarMonth=next.toISOString().slice(0,7);renderE7Calendar();
+}
+function e7OpenSavedEvent(selection){
+ // Revalidate immediately before switching: storage may have changed
+ // since the month was painted by another browser tab.
+ const item=e7SavedEvents().find(e=>e.selection.weekStart===selection.weekStart&&
+  e.selection.id===selection.id);
+ if(!item){showToast('保存データを確認できません。イベントは切り替えませんでした。',true);renderE7Calendar();return;}
+ const same=e3Selected?.weekStart===selection.weekStart&&e3Selected.id===selection.id;
+ // An untouched first-run form is not a dirty event. The old eventStart
+ // placeholder is internal, while the visible start input is intentionally empty.
+ const dirty=e3Selected?eventBlockers().includes('イベント条件の保存'):
+  Boolean($('#event-start').value||$('#event-field').value||$('#event-food').value||
+   !switchOn('event-camp')||pendingEventSource||manualSourceRequested||
+   readBerryEntry()?.types?.some(Boolean));
+ if(same&&!dirty){$('#event-details').scrollIntoView({block:'start',behavior:'instant'});return;}
+ if(dirty&&!confirm('未保存のイベント条件があります。変更を破棄して保存済みイベントを開きますか？'))return;
+ if(e3Selected&&!storeState()){
+  showToast('現在の作戦を保存できませんでした。切り替えを中止しました。',true);return;
+ }
+ let previous;
+ try{
+  previous=localStorage.getItem(E3_SELECTED_KEY);
+  localStorage.setItem(E3_SELECTED_KEY,JSON.stringify(selection));
+ }catch(e){showToast('イベントの選択を保存できませんでした。切り替えを中止しました。',true);return;}
+ const url=new URL(location.href);
+ url.searchParams.set('eventStart',selection.weekStart);
+ url.searchParams.set('eventId',selection.id);
+ for(const key of ['pokesleepStock','pokesleepPrep','pokesleepPlanWatch'])url.searchParams.delete(key);
+ // The departing iframe has already saved the old week's plan. Prevent its
+ // beforeunload handler from rewriting data after the selection changes.
+ window.__pokesleepE7ResetRevoked=true;
+ try{location.replace(url.href);}catch(e){
+  window.__pokesleepE7ResetRevoked=false;
+  try{
+   if(previous===null)localStorage.removeItem(E3_SELECTED_KEY);
+   else localStorage.setItem(E3_SELECTED_KEY,previous);
+  }catch(err){}
+  showToast('イベント切替に失敗しました。現在の画面を維持します。',true);
+ }
+}
+$('#e7-cal-prev').addEventListener('click',()=>e7MoveMonth(-1));
+$('#e7-cal-next').addEventListener('click',()=>e7MoveMonth(1));
+$('#e7-cal-today').addEventListener('click',()=>{
+ e7CalendarMonth=nowInJapan().slice(0,7);renderE7Calendar();
+});
+window.addEventListener('pageshow',()=>renderE7Calendar());
+window.addEventListener('storage',e=>{
+ if(e.key===null||e.key===E3_SELECTED_KEY||
+  (typeof e.key==='string'&&e.key.startsWith(E7_CAL_PREFIX)))renderE7Calendar();
+});
+
 $('#review-dialog').addEventListener('close',()=>{
  if(draft&&!(eventPhase()==='before'&&!hasInventory)){
   draft=null;stockPending=null;storeState();
@@ -2152,7 +2339,7 @@ $('#e3-next').addEventListener('click',()=>{
 });
 
 window.addEventListener('beforeunload',storeState);
-render();
+render();renderE7Calendar();
 // Automatically load event candidates; choosing one never commits inventory goals.
 autoLoadEventCandidates();
 })();
