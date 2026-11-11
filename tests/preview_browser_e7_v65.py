@@ -124,8 +124,15 @@ try:
         assert f.locator('#event-field').input_value()=='シアンの砂浜'
         # Same-week different event ID is a separate record, not an alias.
         f.locator('.e7-cal-event[data-event-id="manual:2026-11-09"]').click()
-        page.wait_for_function("""()=>JSON.parse(localStorage.getItem(
-          'pokesleep-strategy-u3-e3-v1:selected')).id==='manual:2026-11-09'""",timeout=20000)
+        # Selection pointer changes synchronously; wait for the iframe to
+        # finish replacing the previous saved event before reading its form.
+        page.wait_for_function("""()=>{
+          const f=document.getElementById('view-plan');
+          const p=f?.contentWindow?.location;
+          const doc=f?.contentDocument;
+          return new URL(p.href).searchParams.get('eventId')==='manual:2026-11-09' &&
+            doc?.readyState!=='loading'&&doc?.querySelector('#event-food')?.value==='';
+        }""",timeout=20000)
         f=plan()
         assert f.locator('#event-food').input_value()==''
         assert not f.locator('#week-content').is_visible()
