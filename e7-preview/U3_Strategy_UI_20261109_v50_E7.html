@@ -1276,7 +1276,7 @@ function populateEventOptions(){
  // saved name. Other ended events never reappear as selectable candidates.
  if(eventInfo.source&&e3Selected?.id===eventInfo.source.id&&
    e3Selected.weekStart===eventInfo.start&&
-   !visible.some(x=>x.id===eventInfo.source.id))visible.push(eventInfo.source);
+   !visible.some(x=>x.id===eventInfo.source.id))visible.push({...eventInfo.source,start:eventInfo.start});
  menu.replaceChildren();
  const manual=document.createElement('option');manual.value='';manual.textContent='手動設定';menu.append(manual);
  for(const event of visible){
@@ -2088,7 +2088,12 @@ function e7OpenSavedEvent(selection){
   e.selection.id===selection.id);
  if(!item){showToast('保存データを確認できません。イベントは切り替えませんでした。',true);renderE7Calendar();return;}
  const same=e3Selected?.weekStart===selection.weekStart&&e3Selected.id===selection.id;
- const dirty=eventBlockers().includes('イベント条件の保存');
+ // An untouched first-run form is not a dirty event. The old eventStart
+ // placeholder is internal, while the visible start input is intentionally empty.
+ const dirty=e3Selected?eventBlockers().includes('イベント条件の保存'):
+  Boolean($('#event-start').value||$('#event-field').value||$('#event-food').value||
+   !switchOn('event-camp')||pendingEventSource||manualSourceRequested||
+   readBerryEntry()?.types?.some(Boolean));
  if(same&&!dirty){$('#event-details').scrollIntoView({block:'start',behavior:'instant'});return;}
  if(dirty&&!confirm('未保存のイベント条件があります。変更を破棄して保存済みイベントを開きますか？'))return;
  if(e3Selected&&!storeState()){

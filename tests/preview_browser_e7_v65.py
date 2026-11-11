@@ -141,6 +141,23 @@ try:
         f=plan()
         assert f.locator('#event-food').input_value()==''
 
+        # A first-run form with no selection is intentionally blank, not dirty.
+        fresh=browser.new_context(viewport={'width':393,'height':852},timezone_id='Asia/Tokyo')
+        fresh_page=fresh.new_page()
+        fresh_page.goto(BASE+'?tab=plan',wait_until='domcontentloaded')
+        fresh_page.evaluate("""data=>{
+          for(const [key,val] of Object.entries(data))localStorage.setItem(key,JSON.stringify(val));
+        }""",data)
+        fresh_page.reload(wait_until='domcontentloaded')
+        dialogs=[]
+        fresh_page.on('dialog',lambda dialog:(dialogs.append(dialog.message),dialog.dismiss()))
+        fresh_page.frame_locator('#view-plan').locator(
+          '.e7-cal-event[data-event-id="saved-nov-event"]').click()
+        fresh_page.wait_for_function("""()=>JSON.parse(localStorage.getItem(
+          'pokesleep-strategy-u3-e3-v1:selected')||'null')?.id==='saved-nov-event'""",timeout=20000)
+        assert not dialogs,'Untouched first-run form must not show a discard dialog'
+        fresh.close()
+
         empty=browser.new_context(viewport={'width':320,'height':800},timezone_id='Asia/Tokyo')
         other=empty.new_page()
         other.goto(BASE+'?tab=plan',wait_until='domcontentloaded')
