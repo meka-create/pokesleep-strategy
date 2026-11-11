@@ -93,15 +93,18 @@ try:
         f.locator('#event-food').evaluate("""e=>{
           e.value='dessert';e.dispatchEvent(new Event('change',{bubbles:true}));
         }""")
-        page.once('dialog',lambda dialog:dialog.dismiss())
         f.locator('.e7-cal-event[data-week-start="2026-10-26"]').click()
+        f.locator('#e7-feedback-dialog').wait_for(state='visible')
+        assert f.locator('#e7-feedback-title').inner_text()=='変更を破棄しますか？'
+        f.locator('#e7-feedback-cancel').click()
         assert page.evaluate("""()=>JSON.parse(localStorage.getItem(
            'pokesleep-strategy-u3-e3-v1:selected')).id""")=='saved-nov-event'
         assert f.locator('#event-food').input_value()=='dessert'
 
         # Confirm discarding the unsaved form; the validated old saved plan survives.
-        page.once('dialog',lambda dialog:dialog.accept())
         f.locator('.e7-cal-event[data-week-start="2026-10-26"]').click()
+        f.locator('#e7-feedback-dialog').wait_for(state='visible')
+        f.locator('#e7-feedback-ok').click()
         f=plan()
         f.locator('#event-start').wait_for(state='attached')
         page.wait_for_function("""()=>document.getElementById('view-plan').contentDocument

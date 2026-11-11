@@ -66,6 +66,9 @@ try:
         prep=page.frame_locator('#view-prep')
         prep.locator('#e6-dev summary').click()
         prep.locator('#e6-reset').click()
+        page.locator('#e7-feedback-dialog').wait_for(state='visible',timeout=15000)
+        assert page.locator('#e7-feedback-title').inner_text()=='検証データを初期化'
+        page.locator('#e7-feedback-ok').click()
         page.wait_for_function("""()=>{
             const f=document.getElementById('view-plan');
             return !f.hidden && f.contentDocument?.readyState==='complete'

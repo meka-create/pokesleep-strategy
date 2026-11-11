@@ -99,7 +99,9 @@ function parseBackup(text){
  return value;
 }
 function setStatus(id,message,error=false){
- const node=$(id);node.textContent=message;node.dataset.error=String(error);
+ const node=$(id);node.textContent=error?message:'';node.dataset.error=String(error);
+ if(message&&error)PokeUI.toast('');
+ if(message&&!error)PokeUI.toast(message);
 }
 function numberInput(input,min,max,step=1){
  const raw=input.value.trim();
@@ -188,7 +190,8 @@ function build(){
   next.bag=numberInput($('e7-settings-bag'),1,5000);
   for(const input of bonusInputs)next.bonuses[input.dataset.field]=numberInput(input,0,100,5);
   if(!validPlayer(next)){
-   setStatus('e7-player-status','数値を確認してください。フィールドボーナスは5%刻みです。',true);return;
+   setStatus('e7-player-status','数値を確認してください。フィールドボーナスは5%刻みです。',true);
+    dialog.querySelector('[aria-invalid="true"]')?.focus();return;
   }
   try{
    readPlayer(); // fail closed on corrupted data
@@ -238,7 +241,7 @@ function build(){
    setStatus('e7-backup-status','読み込みできません：'+(e.message||'形式を確認してください。'),true);
   }
  });
- $('e7-settings-restore').addEventListener('click',()=>{
+ $('e7-settings-restore').addEventListener('click',async()=>{
   if(!pending)return;
   let before;
   try{
@@ -251,7 +254,9 @@ function build(){
   }
   const msg='現在の作戦室データ '+before.length+'件を、選択したバックアップ '+
     pending.records.length+'件に置き換えます。\n未保存の入力も失われます。復元しますか？';
-  if(!window.confirm(msg))return;
+  const selectedBackup=pending;
+  if(!(await PokeUI.confirm(msg,{title:'バックアップを復元',okText:'復元する',danger:true})))return;
+  if(pending!==selectedBackup){setStatus('e7-backup-status','復元対象が変更されました。もう一度確認してください。',true);return;}
   const same=(actual,expected)=>actual.length===expected.length&&
    actual.every((r,i)=>r.key===expected[i].key&&r.value===expected[i].value);
   const put=(records)=>{
@@ -260,6 +265,7 @@ function build(){
    if(!same(readStore(),records))throw Error('書き込み内容が一致しません。');
   };
   try{
+   if(!same(readStore(),before))throw Error('現在のデータが変更されました。');
    put(pending.records);
   }catch(e){
    try{put(before);setStatus('e7-backup-status','復元に失敗したため、元のデータに戻しました。',true);}
@@ -272,7 +278,7 @@ function build(){
     win.__pokesleepE7ResetRevoked=true;
    }catch{}
   }
-  window.alert('バックアップから復元しました。画面を再読み込みします。');
+  await PokeUI.alert('バックアップから復元しました。画面を再読み込みします。',{title:'復元完了'});
   location.reload();
  });
  window.addEventListener('message',event=>{
