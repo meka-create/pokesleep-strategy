@@ -100,6 +100,7 @@ function parseBackup(text){
 }
 function setStatus(id,message,error=false){
  const node=$(id);node.textContent=error?message:'';node.dataset.error=String(error);
+ if(message&&error)PokeUI.toast('');
  if(message&&!error)PokeUI.toast(message);
 }
 function numberInput(input,min,max,step=1){

@@ -228,6 +228,9 @@ try:
             localStorage.setItem('pokesleep-strategy-u2-e2-v1:2026-11-09:sentinel','unrelated-week');
         }""")
         plan.locator('#e6-dev #e6-reset').click()
+        page.locator('#e7-feedback-dialog').wait_for(state='visible',timeout=15000)
+        assert page.locator('#e7-feedback-title').inner_text()=='検証データを初期化'
+        page.locator('#e7-feedback-ok').click()
         page.wait_for_function("""()=>{
             const plan=document.getElementById('view-plan');
             return localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')===null

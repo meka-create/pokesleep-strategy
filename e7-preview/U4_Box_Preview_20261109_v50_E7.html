@@ -289,7 +289,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
   for(const el of form.querySelectorAll('input[data-field]'))next.bonuses[el.dataset.field]=toNumber(el,0,100,5);
   if(next.pot===undefined||next.bag===undefined||Object.values(next.bonuses).some(v=>v===undefined)){
    $('e7-player-error').textContent='数値を確認してください。フィールドボーナスは5%刻みです。';
-   $('e7-player-error').hidden=false;
+   $('e7-player-error').hidden=false;PokeUI.toast('');
    document.querySelector('#player-pot[aria-invalid="true"],#player-bag[aria-invalid="true"],#e7-bonus-fields input[aria-invalid="true"]')?.focus();return;
   }
   try{
@@ -319,7 +319,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
    $('box-commit').disabled=false;
   }catch(e){
    $('import-summary').textContent='読み込み不可：'+(e.message||'形式を確認してください。');
-   message('CSVを読み込めませんでした。データは追加していません。',true);
+   // The precise parsing problem remains visible directly under the file input.
   }
  });
  $('box-commit').addEventListener('click',async()=>{

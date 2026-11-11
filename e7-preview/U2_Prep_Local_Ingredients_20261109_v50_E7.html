@@ -757,7 +757,7 @@ function save(){
  const x=read();
  if(x.bad.length||x.total>10000){
   const msg=x.bad.length?'食材数には0～10000の整数を入力してください。':'食材の合計数が10000個を超えています。';
-  q('#error').textContent=msg;q('#error').hidden=false;toast(msg,true);
+  q('#error').textContent=msg;q('#error').hidden=false;PokeUI.toast('');
   if(x.bad.length)x.bad[0].focus();return;
  }
  try{

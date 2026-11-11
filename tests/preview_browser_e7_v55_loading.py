@@ -16,7 +16,7 @@ class Quiet(SimpleHTTPRequestHandler):
         if Quiet.slow_box and self.path.split('?', 1)[0].endswith(
             '/U4_Box_Preview_20261109_v50_E7.html'
         ):
-            time.sleep(1.1)
+            time.sleep(2.2)
         super().do_GET()
     def log_message(self, *args):
         pass
