@@ -175,8 +175,8 @@ try:
         page.locator('#e7-feedback-ok').click()
         page.wait_for_function("""()=>JSON.parse(localStorage.getItem(
           'pokesleep-strategy-e7-player-v1'))?.pot===57""",timeout=15000)
-        page.wait_for_function("""()=>document.getElementById('status').hidden
-          && document.getElementById('view-box').contentDocument?.readyState!=='loading'""",
+        page.wait_for_function("""()=>document.getElementById('status')?.hidden===true
+          && document.getElementById('view-box')?.contentDocument?.readyState!=='loading'""",
           timeout=20000)
         assert page.evaluate("""()=>localStorage.getItem(
           'pokesleep-strategy-e7-v56-after-export')""") is None
