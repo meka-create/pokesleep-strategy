@@ -47,6 +47,7 @@ try:
     c=box.locator('#box-registration').evaluate('(el)=>el.getBoundingClientRect().height')
     assert abs(a-c)<1 and abs(b-c)<1,(width,a,b,c)
     plan=tab('plan')
+    plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;el.open=false;}')
     # Header buttons stay usable after expanding sleep settings.
     plan.locator('.sleep-settings > summary').click()
     assert plan.locator('#auto-sleep').is_visible()
