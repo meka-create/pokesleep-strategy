@@ -164,7 +164,7 @@ async function resetDev(tab){
  let before;
  try{before=PokeE7EventDeletion.snapshot(localStorage,selection,{requireSelected:true});}
  catch(e){await PokeUI.alert(e.message,{title:'初期化できませんでした'});return;}
- const ok=await PokeUI.confirm('選択中のイベント（'+selection.weekStart+'）だけを初期化しますか？\\n同じ週の別イベントとその保存データは保持します。',{
+ const ok=await PokeUI.confirm('選択中のイベント（'+selection.weekStart+'）だけを初期化しますか？\n同じ週の別イベントとその保存データは保持します。',{
   title:'イベントを初期化',okText:'このイベントだけ初期化',danger:true
  });
  if(!ok)return;
