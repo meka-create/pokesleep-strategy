@@ -7,6 +7,12 @@ test('E7 v64 card parity and six-character picker contract',()=>{
  const u3=get('U3_Strategy_UI_20261109_v50_E7.html');
  assert.match(u3,/#event-details\.card,\.sleep-settings\.card\{width:100%;min-width:0\}/);
  assert.match(u3,/#event-details\.card:not\(\[open\]\)\{padding:4px 10px;min-height:54px\}/);
+ assert.match(u3,/main\[data-has-proposed="true"\] #event-details\[open\]\{padding:4px 10px\}/);
+ assert.match(u3,/main\[data-has-proposed="true"\] #event-details\[open\]>summary\{height:40px;min-height:40px;padding:0;line-height:1.35\}/);
+ const u4=get('U4_Box_Preview_20261109_v50_E7.html');
+ assert.match(u4,/#e7-import-panel>summary::after\{content:""/);
+ assert.match(u4,/#e7-import-panel\[open\]>summary::after\{transform:rotate\(225deg\)/);
+ assert.match(u3,/\.event-details\[open\]>summary::after\{transform:rotate\(225deg\)/);
  assert.match(u3,/main\[data-has-proposed="true"\] #event-details\[open\]>.event-fields\{margin-top:8px;padding-top:18px;border-top-color:#394e65\}/);
  assert.match(u3,/#pick-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
  assert.match(u3,/#pick-grid \.pick-select \.selected-check\{position:absolute;right:3px;top:3px/);
