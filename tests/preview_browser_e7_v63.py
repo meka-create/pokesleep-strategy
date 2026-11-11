@@ -62,7 +62,7 @@ try:
       const box=el.getBoundingClientRect(),img=el.querySelector('.food-media').getBoundingClientRect();
       return {x:box.left,y:box.top,imgx:img.left,imgy:img.top};
     })""")
-    goalHeading=prep.locator('#goal-panel > .card > .card-heading h2').evaluate(
+    goalHeading=prep.locator('#goal-panel > .card:first-child > .card-heading h2').evaluate(
       '(el)=>({font:getComputedStyle(el).fontSize,height:el.parentNode.getBoundingClientRect().height})')
     prep.locator('#btn-inventory').click()
     assert prep.locator('#inventory-panel .actual-grid .food').count()==19
@@ -70,10 +70,11 @@ try:
       const box=el.getBoundingClientRect(),img=el.querySelector('.food-media').getBoundingClientRect();
       return {x:box.left,y:box.top,imgx:img.left,imgy:img.top};
     })""")
-    inventoryHeading=prep.locator('#inventory-panel > .card .card-heading h2').evaluate(
+    inventoryHeading=prep.locator('#inventory-panel > .card:first-child > .card-heading h2').evaluate(
       '(el)=>({font:getComputedStyle(el).fontSize,height:el.parentNode.getBoundingClientRect().height})')
     assert goalHeading==inventoryHeading, (width,goalHeading,inventoryHeading)
     assert goalHeading['font']=='15px'
+    assert prep.locator('#goal-panel .prep-category-card h2').evaluate('(el)=>getComputedStyle(el).fontSize')=='14px'
     for i,(g,s) in enumerate(zip(goal,stock)):
       assert all(abs(g[k]-s[k])<1 for k in ('x','y','imgx','imgy')),(width,i,g,s)
   # Exercise the actual edit modal, not just an inert DOM mock.

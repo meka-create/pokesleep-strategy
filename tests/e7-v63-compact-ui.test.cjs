@@ -41,8 +41,8 @@ test('E7 v63 strategy compacts closed panels and preserves accessible controls',
 });
 test('E7 v63 prep font and header geometry are identical',()=>{
  const s=read('U2_Prep_Local_Ingredients_20261109_v50_E7.html');
- assert.match(s,/#goal-panel>\.card>\.card-heading,#inventory-panel>\.card>\.card-heading\{min-height:30px;height:30px/);
- assert.match(s,/#goal-panel>\.card>\.card-heading h2,#inventory-panel>\.card>\.card-heading h2\{font-size:15px;line-height:1\.25\}/);
+ assert.match(s,/#goal-panel>\.card:first-child>\.card-heading,#inventory-panel>\.card:first-child>\.card-heading\{min-height:30px;height:30px/);
+ assert.match(s,/#goal-panel>\.card:first-child>\.card-heading h2,#inventory-panel>\.card:first-child>\.card-heading h2\{font-size:15px;line-height:1\.25\}/);
 });
 test('E7 v63 Chromium: calendar, aligned food tiles, compact cards, picker level',{timeout:120000},()=>{
  require('node:child_process').execFileSync('python3',[path.join(__dirname,'preview_browser_e7_v63.py')],{
