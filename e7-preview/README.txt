@@ -1,4 +1,4 @@
-ポケスリ作戦室 E7 v64 — GitHub Pagesプレビュー／高速タブ構造
+ポケスリ作戦室 E7 v70 — GitHub Pagesプレビュー（以下にv64以前からの変更履歴を収録）
 URL: https://meka-create.github.io/pokesleep-strategy/e7-preview/
 
 【変更】3つの画面を一度読み込んで保持する方式に刷新しました。
@@ -144,3 +144,8 @@ URL: https://meka-create.github.io/pokesleep-strategy/e7-preview/
 - イベントを選択していない、または保存済み条件が確認できない場合、3タブとも「for Pokémon Sleep」を表示する。
 - 既存の共通ヘッダー実装とU3の表示名・保存済み条件情報を再利用。ボックス内に独自のイベント管理、保存キー、計算処理を追加しない。
 - 比較案の暫定ヘッダーアイコンと既存の三点メニューを維持。PWA本体アイコンは未変更。E7 v67のトースト1pxを含めAndroid実機確認前の仕様は未確定。
+
+【E7全体の最終受入承認・F1前独立監査（2026-11-11）】
+- ユーザーによるE7 v70のUI全体受入と共通ヘッダー承認は正式完了。従前の「実機確認待ち」は履歴。
+- 保存データと最適化ロジックを変更せず、Pages二重デプロイの競合可能性を解消するため、追加E7公開Workflowをread-onlyの公開入力検証へ改修。標準Pagesだけが本番サイトのデプロイを担当。
+- 監査正本は development/E7_PRE_F1_FINAL_INDEPENDENT_AUDIT_20261111.md。F1は未着手、正式PWAアイコンは後日の差替項目。
