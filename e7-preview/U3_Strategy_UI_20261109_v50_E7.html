@@ -2118,7 +2118,7 @@ $('#e7-event-delete').addEventListener('click',async()=>{
  try{before=PokeE7EventDeletion.snapshot(localStorage,selected,{requireSelected:true});}
  catch(e){showToast(e.message||'削除対象を確認できません。',true);return;}
  const label=e7SavedEvents().find(e=>e.selection.id===selected.id&&e.selection.weekStart===selected.weekStart)?.name||'保存済みイベント';
- const ok=await PokeUI.confirm('「'+label+'」を削除しますか？\\nこのイベントの条件・作戦・専用の備蓄設定を削除します。同じ週の別イベントは削除しません。',{
+ const ok=await PokeUI.confirm('「'+label+'」を削除しますか？\nこのイベントの条件・作戦・専用の備蓄設定を削除します。同じ週の別イベントは削除しません。',{
   title:'イベントを削除',okText:'このイベントを削除',danger:true
  });
  if(!ok)return;
@@ -2420,7 +2420,7 @@ document.getElementById('e6-reset').addEventListener('click',async()=>{
  let before;
  try{before=PokeE7EventDeletion.snapshot(localStorage,selection,{requireSelected:true});}
  catch(e){await PokeUI.alert(e.message,{title:'初期化できませんでした'});return;}
- if(!(await PokeUI.confirm('選択中のイベント（'+WEEK+'）だけを初期化しますか？\\n同じ週の別イベントは保持します。',{
+ if(!(await PokeUI.confirm('選択中のイベント（'+WEEK+'）だけを初期化しますか？\n同じ週の別イベントは保持します。',{
   title:'イベントを初期化',okText:'このイベントだけ初期化',danger:true})))return;
  try{PokeE7EventDeletion.remove(localStorage,before);}
  catch(e){await PokeUI.alert(e.message,{title:'初期化できませんでした'});return;}
