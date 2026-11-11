@@ -33,9 +33,11 @@ try:
     # otherwise its next render can revoke the test-only closed state.
     page.wait_for_timeout(180)
     plan.locator('#event-details').evaluate("""el=>{
-      el.closest('main').dataset.hasProposed='true';el.open=false;
+      el.closest('main').dataset.hasProposed='true';el.open=false;el.querySelector(':scope>summary').style.setProperty('display','flex','important');
     }""")
-    plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;}')
+    plan.locator('.sleep-settings').evaluate("""el=>{
+      el.hidden=false;el.style.setProperty('display','block','important');
+    }""")
     event=plan.locator('#event-details')
     sleep=plan.locator('.sleep-settings')
     assert event.locator('summary').is_visible()
@@ -49,7 +51,9 @@ try:
     c=box.locator('#box-registration').evaluate('(el)=>el.getBoundingClientRect().height')
     assert abs(a-b)<.7 and 0<=a-c<=12,(width,a,b,c)
     plan=tab('plan')
-    plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;}')
+    plan.locator('.sleep-settings').evaluate("""el=>{
+      el.hidden=false;el.style.setProperty('display','block','important');
+    }""")
     # Sleep controls remain visible and operable without expansion.
     assert plan.locator('#auto-sleep').is_visible()
     assert plan.locator('#sleep-open').is_visible()
