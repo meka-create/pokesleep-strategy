@@ -37,9 +37,9 @@ test('E7 v60 collapsed registration contains full delete only inside',()=>{
  assert.doesNotMatch(sec,/\bopen\b/);
  assert.match(box,/icon\.style\.setProperty\('--tone',E7BoxDetail\.tone\(item\)\)/);
  assert.match(box,/E7BoxDetail\.render\(item\)/);
- assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v70-shared-event-header/);
+ assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v71-event-scoped-delete/);
  assert.match(read('e7-sw-v50.js'),/'e7-box-detail-v60\.js','e7-box-detail-v60\.css'/);
- assert.match(read('index.html'),/E7 v70/);
+ assert.match(read('index.html'),/E7 v71/);
 });
 test('E7 v60 actual Chromium: compact import, colored tiles, detail and special form', {timeout:120000},()=>{
  require('node:child_process').execFileSync('python3',[path.join(__dirname,'preview_browser_e7_v60.py')],{cwd:root,timeout:115000,stdio:'pipe'});
