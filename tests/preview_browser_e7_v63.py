@@ -26,8 +26,8 @@ try:
         view.contentDocument?.readyState!=='loading';
     }""",arg=name,timeout=20000)
     return page.frame_locator('#view-'+name)
-  for width in (320,393,430):
-    page.set_viewport_size({'width':width,'height':852})
+  for width,height in ((320,852),(393,852),(430,852),(393,740),(393,680)):
+    page.set_viewport_size({'width':width,'height':height})
     plan=tab('plan')
     # The event form intentionally keeps itself open until a proposal exists.
     # Temporarily simulate the closed UI state without saving app data.
