@@ -55,6 +55,9 @@ try:
    assert arrow_box['border']=='2px' and arrow_box['style']=='solid',(width,arrow_box)
    box.locator('#e7-import-panel > summary').click()
    plan=tab('plan')
+   # Phase-gated settings are intentionally hidden without a selected event;
+   # restore the test-only visibility when comparing card dimensions.
+   plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;}')
    divider=plan.locator('#event-details').evaluate("""el=>{
      const c=el.querySelector('.event-fields').getBoundingClientRect();
      const a=getComputedStyle(el.querySelector('summary'),'::after');
