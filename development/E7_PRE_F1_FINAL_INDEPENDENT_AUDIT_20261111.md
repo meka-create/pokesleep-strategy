@@ -3,6 +3,24 @@
 基準版：main `e2768737231714b66d12d4d8bc3f7121e4508c9e`（E7 v70、PR #150）
 受入：利用者が2026-11-11に「E7全体の最終受入を承認する」と明示。ヘッダーも別途承認済み。
 
+## 最終判定 — PASS（2026-11-11 JST）
+
+**E7 v70最終受入承認済み／F1着手可。** ユーザー受入と独立監査は別ゲートとして評価し、監査是正PR #151がmainへ統合されたことを確認した。
+
+- 是正統合：PR #151、main `a7b84d73665b5449be284120ed0eeeee4a69f114`。
+- [Validate PokeSleep Strategy #43040773422](https://github.com/meka-create/pokesleep-strategy/actions/runs/43040773422)：588/588件PASS、0件FAIL。
+- [Validate STEP 2 #43040773371](https://github.com/meka-create/pokesleep-strategy/actions/runs/43040773371)：588/588件PASS、0件FAIL。
+- [E7公開前検証 #43040773388](https://github.com/meka-create/pokesleep-strategy/actions/runs/43040773388)：4/4件PASS、0件FAIL（単一デプロイ元、必須アセット・SW、3タブ共通ヘッダー、独自確認UI）。
+- [Pages標準デプロイ #43040773337](https://github.com/meka-create/pokesleep-strategy/actions/runs/43040773337)：SUCCESS。E7入口・暫定ヘッダー画像・SW・旧rootが公開成果物に含まれることを確認。
+- 重複公開ワークフローはread-only事前検証へ変更され、2本目のPagesデプロイは起動していない。
+- 監査で発見したフォント依存の旧ブラウザテスト判定は、OSのフォント種類に左右されず省略可能設定と三点メニュー非重複を検証する仕様へ修正した。
+- PR #151の差分はCI／公開ワークフロー・テスト・監査文書のみ。E7のHTML/JS本体・計算・localStorageデータ形式・旧rootには変更なし。
+- 正式PWAアイコンは別工程で差替。F1〜F6の実データ最適化は**未実装**であり、E7の監査PASSを精度保証と混同しない。
+
+**F1開始条件：達成。** F1でE7受入済みUI・保存データとの互換性を維持し、実ゲームデータ接続の独立ゲートを別途設ける。旧正式rootの本番切替は個別の移行・受入工程まで実施しない。
+
+---
+
 ## 監査目的と範囲
 E7の承認はUI・導線・保存機構に対するもの。F1〜F6の実データ接続や本番エナジー最適化の完成・精度保証を意味しない。現在のroot正式旧版と、E7隔離プレビューを区別する。
 
