@@ -110,3 +110,5 @@ URL: https://meka-create.github.io/pokesleep-strategy/e7-preview/
 - E7のUI追加のみ。F1-F6のエナジー最適化は未実装。Android Chrome実機受入まではE7継続。
 
 【v65最終受入前確認】スマホ向けイベントバーは高さ36px。E7プレビューのタイトルはv65。Android実機でのユーザー承認は未実施。
+
+【v65最終CI回帰】旧v64のブラウザタイトル固定テストをv65へ更新。同週の別ID切替検証は保存ポインターだけでなく、子画面のイベントIDと条件復元完了を確認してから判定する。
