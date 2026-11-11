@@ -13,8 +13,8 @@ test('E7 v67 normal toast computes exact 1px gap without double footer offset',(
  assert.match(js,/if\(host\.tagName==='DIALOG'\)node\.style\.removeProperty/);
  assert.doesNotMatch(css,/^#e7-feedback-toast\{[^}]*bottom:max\(86px/m);
  assert.doesNotThrow(()=>new vm.Script(js));
- assert.match(load('index.html'),/<title>ポケスリ作戦室 E7 v67<\/title>/);
- assert.match(load('e7-sw-v50.js'),/pokesleep-strategy-e7-v67-toast-footer-gap-1px-20261111/);
+ assert.match(load('index.html'),/<title>ポケスリ作戦室 E7 v68<\/title>/);
+ assert.match(load('e7-sw-v50.js'),/pokesleep-strategy-e7-v68-event-header-20261111/);
 });
 test('E7 v67 Chromium: footer-edge geometry on mobile and standalone, modal unchanged',
  {timeout:180000},()=>{

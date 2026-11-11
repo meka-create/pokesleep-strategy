@@ -26,6 +26,11 @@
    'header.mast .brand,header.header .brand{font:800 17px/1.4 system-ui,-apple-system,"Noto Sans JP",sans-serif;letter-spacing:0}'+
    'header.mast .sub,header.mast .subbrand,header.header .smallcap{font:700 9px/1.2 system-ui,-apple-system,"Noto Sans JP",sans-serif;letter-spacing:2px;color:#a5c3da}'+
    '#u2-week-label{display:none!important}'+
+  /* Preserve the title and 42px menu; only the centre label may truncate. */
+  'header.mast>div:first-child,header.header>div:first-child{flex:0 0 auto;white-space:nowrap;min-width:0}'+
+  '.e7-header-event-name{display:block;flex:1 1 0;min-width:0;margin-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;color:#f4d58f;font:750 12px/1.5 system-ui,-apple-system,"Noto Sans JP",sans-serif}'+
+  '.e7-header-event-name[hidden]{display:none!important}'+
+  '@media(max-width:360px){.e7-header-event-name{font-size:10px;margin-left:4px}}'+
   '.e7-more-wrap{position:relative;flex:0 0 42px;margin-left:10px}'+
   '.e7-more-btn{display:grid;place-items:center;width:42px;height:42px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#e5edf6;font:900 24px/1 system-ui;cursor:pointer;touch-action:manipulation}'+
   '.e7-more-btn:hover,.e7-more-btn[aria-expanded="true"],.e7-more-btn:active{background:transparent;border-color:transparent;box-shadow:none;color:#fff}'+
@@ -74,6 +79,96 @@
      action:'open-settings',section},location.origin);
    });
    menu.append(item);
+  }
+  // Only Strategy and Preparation show the selected event, between the app
+  // title and the existing dot menu. Box keeps its existing compact header.
+  const isEventTab=/^U[23]_/.test(location.pathname.split('/').pop()||'');
+  const eventNode=isEventTab?document.createElement('span'):null;
+  if(eventNode){
+   eventNode.id='e7-header-event-name';
+   eventNode.className='e7-header-event-name';
+   eventNode.setAttribute('aria-live','polite');
+   eventNode.setAttribute('aria-atomic','true');
+   eventNode.hidden=true;
+   header.append(eventNode);
+  }
+  function selectionIdentity(){
+   try{
+    const x=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');
+    if(!x||typeof x.id!=='string'||x.id.length<1||x.id.length>160||
+      typeof x.weekStart!=='string'||!/^\d{4}-\d\d-\d\d$/.test(x.weekStart))return null;
+    const d=new Date(x.weekStart+'T12:00:00Z');
+    return Number.isFinite(d.valueOf())&&d.toISOString().slice(0,10)===x.weekStart&&
+      d.getUTCDay()===1?x:null;
+   }catch(e){return null;}
+  }
+  function selectedEventHeader(){
+   const selected=selectionIdentity();
+   if(!selected)return '';
+   // U3 already owns the canonical Japanese event-name translations.
+   // Reuse its live validated getter from either sibling frame; do not
+   // maintain a second translation dictionary or create another saved key.
+   try{
+    const plan=window.parent.document.getElementById('view-plan')?.contentWindow;
+    const result=plan?.__e7CurrentEventHeader?.();
+    if(result?.id===selected.id&&result.weekStart===selected.weekStart&&
+      typeof result.name==='string')return result.name;
+   }catch(e){/* The plan iframe may still be loading. */}
+   // The first Preparation paint may precede the lazily prewarmed U3.
+   // Only show a Japanese saved source label; U3 will replace it with
+   // its canonical localized name as soon as that frame becomes ready.
+   try{
+    const raw=localStorage.getItem('pokesleep-strategy-u3-e3-v1:'+
+      selected.weekStart+':'+encodeURIComponent(selected.id)+':conditions');
+    if(!raw||raw.length>32000)return '';
+    const ledger=JSON.parse(raw);
+    if(ledger?.weekStart!==selected.weekStart||ledger.eventId!==selected.id||
+      !ledger.confirmed||ledger.confirmed.weekStart!==selected.weekStart||
+      ledger.confirmed.eventId!==selected.id)return '';
+    const source=ledger.confirmed.fields?.source;
+    if(source?.id===selected.id&&typeof source.name==='string'&&
+      /[^\x00-\x7F]/.test(source.name))return source.name;
+    if(selected.id==='manual:'+selected.weekStart)
+     return '手動設定 · '+selected.weekStart.slice(5).replace('-','/');
+   }catch(e){/* Leave the header empty for invalid data. */}
+   return '';
+  }
+  function refreshEventHeader(){
+   if(!eventNode)return;
+   const name=selectedEventHeader().trim().slice(0,160);
+   if(eventNode.textContent!==name)eventNode.textContent=name;
+   eventNode.hidden=!name;
+   if(name){
+    eventNode.title='現在のイベント：'+name;
+    eventNode.setAttribute('aria-label','現在のイベント：'+name);
+   }else{
+    eventNode.removeAttribute('title');
+    eventNode.removeAttribute('aria-label');
+   }
+  }
+  if(eventNode){
+   window.addEventListener('pageshow',refreshEventHeader);
+   window.addEventListener('storage',e=>{
+    if(e.key===null||e.key==='pokesleep-strategy-u3-e3-v1:selected'||
+      e.key?.startsWith('pokesleep-strategy-u3-e3-v1:'))refreshEventHeader();
+   });
+   window.addEventListener('message',e=>{
+    if(e.source===window.parent&&e.origin===location.origin&&
+      e.data?.protocol==='pokesleep-e7-v51'&&e.data.action==='activate')
+      refreshEventHeader();
+   });
+   // U3 event save is synchronous; the post-click microtask observes the
+   // committed ledger, never the draft before its validation.
+   document.addEventListener('click',e=>{
+    if(e.target.closest?.('#event-save'))queueMicrotask(refreshEventHeader);
+   });
+   if(/^U2_/.test(location.pathname.split('/').pop()||'')){
+    try{
+     const sibling=window.parent.document.getElementById('view-plan');
+     sibling?.addEventListener('load',refreshEventHeader);
+    }catch(e){}
+   }
+   refreshEventHeader();
   }
   wrap.append(more,menu);header.append(wrap);
   document.addEventListener('click',event=>{

@@ -1077,6 +1077,19 @@ function e3Ledger(){
   return y?.weekStart===e3Selected.weekStart&&y?.eventId===e3Selected.id?y:null;
  }catch(e){return null;}
 }
+// E7 v68: make the existing Japanese event-name resolver available to the
+// shared header bridge. A saved, validated selection is the sole source.
+// Unsaved event picks do not replace the current header event.
+window.__e7CurrentEventHeader=()=>{
+ const selection=e3Selected,confirmed=e3Ledger()?.confirmed;
+ if(!selection||!confirmed)return null;
+ const source=confirmed.fields?.source;
+ let name=source&&source.id===selection.id?eventDisplayName(source):'';
+ if(!name&&selection.id==='manual:'+selection.weekStart)
+  name='手動設定 · '+selection.weekStart.slice(5).replace('-','/');
+ name=typeof name==='string'?name.trim().slice(0,160):'';
+ return name?{weekStart:selection.weekStart,id:selection.id,name}:null;
+};
 function e3Conditions(){
  const ledger=e3Ledger();
  if(!ledger?.confirmed)return null;
