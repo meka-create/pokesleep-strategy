@@ -37,7 +37,10 @@ details{margin-top:9px}details summary{cursor:pointer;color:#d9e5ef;font-weight:
 /* CSV controls stay in a compact collapsed card; delete is only inside. */
 #box-registration{padding:9px 13px}
 #e7-import-panel{margin:0}
-#e7-import-panel>summary{font-size:13px;line-height:1.35;font-weight:700;color:#d9e5ef;padding:5px 0;cursor:pointer}
+#e7-import-panel>summary{display:flex;justify-content:space-between;align-items:center;list-style:none;font-size:13px;line-height:1.35;font-weight:700;color:#d9e5ef;padding:5px 0;cursor:pointer}
+#e7-import-panel>summary::-webkit-details-marker{display:none}
+#e7-import-panel>summary::after{content:"";display:block;width:9px;height:9px;flex:0 0 9px;margin-right:5px;border-right:2px solid #cbd9e7;border-bottom:2px solid #cbd9e7;transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+#e7-import-panel[open]>summary::after{transform:rotate(225deg) translate(-2px,-1px)}
 #e7-import-panel .import-content{border-top:1px solid #394e65;margin-top:8px;padding-top:11px}
 #e7-import-panel .import-actions{display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:stretch;gap:8px;margin-top:13px}
 #e7-import-panel .import-actions #box-commit{flex:1 1 auto;min-width:0}
