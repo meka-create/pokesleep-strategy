@@ -17,7 +17,7 @@ test('E7 v63 calendar footer artwork uses the same geometry as PWA icon',()=>{
   const from=source.indexOf(anchor),start=source.indexOf('<svg',from),end=source.indexOf('</svg>',start);
   assert.ok(from>=0&&start>from&&end>start,page);
   const icon=source.slice(start,end);
-  for(const expected of ['viewBox="0 0 512 512"','x="103" y="125" width="306" height="272" rx="34"',
+  for(const expected of ['viewBox="60 60 392 392"','x="103" y="125" width="306" height="272" rx="34"',
    'M170 92v62m172-62v62M107 200h301'])assert.ok(icon.includes(expected),page);
   for(const coord of dots){
    const [cx,cy]=coord.split(',');
