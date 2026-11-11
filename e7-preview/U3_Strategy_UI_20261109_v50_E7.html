@@ -376,39 +376,15 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 <script id="e6-dev-reset-bootstrap">
 (()=>{
 'use strict';
-const p=new URLSearchParams(location.search),step=p.get('e6Reset');
-if(!step)return;
-const week=p.get('eventStart');
-function validWeekStart(value){
- if(!/^\d{4}-\d{2}-\d{2}$/.test(value||''))return false;
- const date=new Date(value+'T12:00:00Z');
- return Number.isFinite(date.valueOf())&&date.toISOString().slice(0,10)===value&&date.getUTCDay()===1;
-}
-if(!validWeekStart(week)){PokeUI.alert('検証週が不明です。データは変更しませんでした。',{title:'操作を中止しました'});return;}
-const matches=k=>{
- if(k==='pokesleep-strategy-u3-e3-v1:selected'){
-  try{return JSON.parse(localStorage.getItem(k)||'null')?.weekStart===week;}
-  catch(e){return false;}
- }
- return k.startsWith('pokesleep-strategy-u3-e3-v1:'+week+':')||
-  k.startsWith('pokesleep-strategy-u2-e2-v1:'+week+':')||
-  k.startsWith('pokesleep-strategy-u2-v3:'+week+':')||
-  k.startsWith('pokesleep-strategy-u2-v2:'+week+':');
-};
-try{
- for(let i=localStorage.length-1;i>=0;i--){
-  const k=localStorage.key(i);if(matches(k))localStorage.removeItem(k);
- }
-}catch(e){PokeUI.alert('検証データの初期化に失敗しました。保存権限を確認してください。',{title:'初期化できませんでした'});return;}
-const next=new URL(step==='u2'?'U3_Strategy_UI_20261109_v50_E7.html':location.href,location.href);
-if(step==='u2'){
- const date=new Date(week+'T12:00:00Z');date.setUTCDate(date.getUTCDate()-1);
- next.searchParams.set('previewNow',date.toISOString().slice(0,10)+'T16:00');
- next.searchParams.set('eventStart',week);
- next.searchParams.set('e6Reset','u3');
-}else if(step==='u3')next.searchParams.delete('e6Reset');
-else return;
-location.replace(next.href);
+// Old week-wide reset links must never delete a second event in the same week.
+const p=new URLSearchParams(location.search);
+if(!p.has('e6Reset'))return;
+const url=new URL(location.href);
+url.searchParams.delete('e6Reset');
+try{history.replaceState(history.state,'',url.href);}catch(e){}
+PokeUI.alert('旧形式の週一括初期化リンクは無効になりました。イベントを選択し、「イベントを削除」を使用してください。',{
+ title:'安全のため中止しました'
+});
 })();
 </script><script>
 (()=>{'use strict';
@@ -2437,12 +2413,22 @@ document.getElementById('e6-history').textContent=adopted?
  '採用済み作戦あり。日時切替では削除しません。初回から試す場合のみ初期化してください。':
  '採用済み作戦なし。条件・在庫を保存して初回提案できます。';
 document.getElementById('e6-reset').addEventListener('click',async()=>{
- if(!(await PokeUI.confirm('E6検証用の'+WEEK+'開始週を初期化しますか？\n他の週のデータは削除しません。',{title:'検証データを初期化',okText:'初期化する',danger:true})))return;
- const url=new URL(U2,location.href);
+ const selection=(()=>{try{return JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');}catch(e){return null;}})();
+ if(!PokeE7EventDeletion.valid(selection)||selection.weekStart!==WEEK){
+  await PokeUI.alert('初期化するイベントを先に選択してください。別イベントのデータは変更しません。',{title:'初期化できませんでした'});return;
+ }
+ let before;
+ try{before=PokeE7EventDeletion.snapshot(localStorage,selection,{requireSelected:true});}
+ catch(e){await PokeUI.alert(e.message,{title:'初期化できませんでした'});return;}
+ if(!(await PokeUI.confirm('選択中のイベント（'+WEEK+'）だけを初期化しますか？\\n同じ週の別イベントは保持します。',{
+  title:'イベントを初期化',okText:'このイベントだけ初期化',danger:true})))return;
+ try{PokeE7EventDeletion.remove(localStorage,before);}
+ catch(e){await PokeUI.alert(e.message,{title:'初期化できませんでした'});return;}
+ window.__pokesleepE7ResetRevoked=true;
+ const url=new URL(location.href,location.href);
+ for(const key of ['eventStart','eventId','pokesleepStock','pokesleepPrep','pokesleepPlanWatch','e6Reset'])url.searchParams.delete(key);
  url.searchParams.set('previewNow',CLOCKS.prep);
- url.searchParams.set('eventStart',WEEK);
- url.searchParams.set('e6Reset','u2');
- location.assign(url.href);
+ location.replace(url.href);
 });
 const save=document.getElementById('save-inventory');
 save?.addEventListener('click',e=>{
