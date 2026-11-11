@@ -58,6 +58,12 @@ try:
    # Phase-gated settings are intentionally hidden without a selected event;
    # restore the test-only visibility when comparing card dimensions.
    plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;}')
+   # Returning to the tab re-applies the genuine unconfigured phase state.
+   # Recreate the proposed accordion state ONLY within this isolated geometry test.
+   plan.locator('#event-details').evaluate("""el=>{
+      el.closest('main').dataset.hasProposed='true';el.open=true;
+   }""")
+   page.wait_for_timeout(180)
    divider=plan.locator('#event-details').evaluate("""el=>{
      const c=el.querySelector('.event-fields').getBoundingClientRect();
      const a=getComputedStyle(el.querySelector('summary'),'::after');
