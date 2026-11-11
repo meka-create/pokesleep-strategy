@@ -24,7 +24,7 @@ test('E7 v62 shared roster template and protected Box UI contracts',()=>{
  assert.match(box,/\.import-actions \.btn\{height:38px;min-height:38px/);
  assert.doesNotMatch(box,/id="box-detail-dismiss"/);
  assert.match(css,/#box-delete\{height:32px;min-height:32px/);
- assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v64-card-picker-calendar/);
+ assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v65-saved-event-calendar/);
  assert.match(read('index.html'),/E7 v64/);
  for(const f of [u3,box]){
   for(const m of f.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))

@@ -113,6 +113,9 @@ try:
           'pokesleep-strategy-u3-e3-v1:2026-11-09:saved-nov-event:plan'))
           .eventInfo.food""")=='curry'
         # Another week returns the complete plan, not the current week's team.
+        # The month follows the newly selected event week after navigation.
+        f.locator('#e7-cal-next').click()
+        assert f.locator('#e7-cal-month').inner_text()=='2026年11月'
         f.locator('.e7-cal-event[data-event-id="saved-nov-event"]').click()
         page.wait_for_function("""()=>document.getElementById('view-plan').contentDocument
           ?.querySelector('#event-start')?.value==='2026-11-09'""",timeout=20000)
