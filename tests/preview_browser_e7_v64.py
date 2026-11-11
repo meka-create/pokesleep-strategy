@@ -73,6 +73,7 @@ try:
    collapsed=plan.locator('#event-details').evaluate("""el=>{
      const b=el.getBoundingClientRect();return {width:b.width,height:b.height,bottom:b.bottom};
    }""")
+   plan.locator('.sleep-settings').evaluate('(el)=>{el.hidden=false;}')
    always=plan.locator('.sleep-settings').evaluate("""el=>{
      const b=el.getBoundingClientRect();return {width:b.width,height:b.height};
    }""")
