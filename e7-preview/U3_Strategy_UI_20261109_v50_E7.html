@@ -245,6 +245,22 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 .pick-select .pick-level{display:block;color:#d6e6f6;font-size:10px;line-height:1.2;font-weight:800;text-align:left;white-space:nowrap}
 .pick-select .pick-name{display:block;width:100%;text-align:left}
 </style>
+<style id="e7-v64-card-picker">
+/* Collapsed event conditions and always-visible sleep controls: same outer geometry. */
+#event-details.card,.sleep-settings.card{width:100%;min-width:0}
+#event-details.card:not([open]){padding:4px 10px;min-height:54px}
+#event-details.card:not([open])>summary{height:44px;min-height:44px;padding:0;line-height:1.35}
+/* More horizontal room for six full-width nickname characters on phones. */
+#pick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:480px){#pick-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+#pick-grid .pick{position:relative}
+#pick-grid .pick-select{flex:1 1 auto;min-width:0;justify-content:flex-start;gap:0;padding:0 1px}
+#pick-grid .pick-meta{width:100%;min-width:0}
+#pick-grid .pick-select .pick-level{padding-right:20px}
+#pick-grid .pick-select .pick-name{font-size:clamp(10px,2.8vw,11px);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pick-grid .pick-select .selected-check{position:absolute;right:3px;top:3px;display:grid;place-items:center;width:18px;height:18px;border:1px solid #d4b375;border-radius:50%;background:#403b33;color:var(--gold);font-size:12px;font-weight:800;line-height:1;pointer-events:none}
+#pick-grid .pick-select .selected-check:empty{display:none}
+</style>
 </head>
 <body><details id="e6-dev">
 <summary>開発用・日時切替</summary>
