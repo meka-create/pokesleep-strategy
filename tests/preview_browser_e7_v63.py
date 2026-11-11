@@ -62,7 +62,7 @@ try:
       const box=el.getBoundingClientRect(),img=el.querySelector('.food-media').getBoundingClientRect();
       return {x:box.left,y:box.top,imgx:img.left,imgy:img.top};
     })""")
-    goalHeading=prep.locator('#goal-panel > .card .card-heading h2').evaluate(
+    goalHeading=prep.locator('#goal-panel > .card > .card-heading h2').evaluate(
       '(el)=>({font:getComputedStyle(el).fontSize,height:el.parentNode.getBoundingClientRect().height})')
     prep.locator('#btn-inventory').click()
     assert prep.locator('#inventory-panel .actual-grid .food').count()==19
