@@ -120,7 +120,8 @@
   eventNode.append(calendar,caption);
   copy.append(eventNode);
   titleWrap.append(copy);
-  const isEventTab=/^U[23]_/.test(location.pathname.split('/').pop()||'');
+  // Strategy, Preparation, and Box all share the same selected event subtitle.
+  const isEventTab=/^U[234]_/.test(location.pathname.split('/').pop()||'');
   function selectionIdentity(){
    try{
     const x=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');
@@ -143,7 +144,7 @@
     if(result?.id===selected.id&&result.weekStart===selected.weekStart&&
       typeof result.name==='string')return result.name;
    }catch(e){/* The plan iframe may still be loading. */}
-   // The first Preparation paint may precede the lazily prewarmed U3.
+   // The first Preparation or Box paint may precede the lazily prewarmed U3.
    // Only show a Japanese saved source label; U3 will replace it with
    // its canonical localized name as soon as that frame becomes ready.
    try{
@@ -191,7 +192,7 @@
    document.addEventListener('click',e=>{
     if(e.target.closest?.('#event-save'))queueMicrotask(refreshEventHeader);
    });
-   if(/^U2_/.test(location.pathname.split('/').pop()||'')){
+   if(/^U[24]_/.test(location.pathname.split('/').pop()||'')){
     try{
      const sibling=window.parent.document.getElementById('view-plan');
      sibling?.addEventListener('load',refreshEventHeader);

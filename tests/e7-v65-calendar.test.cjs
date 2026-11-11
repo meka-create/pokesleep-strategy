@@ -26,11 +26,11 @@ test('E7 v65 calendars index original confirmed ledgers + same-event plans; no s
  assert.doesNotMatch(u3,/pokesleep-strategy-e7-v65:calendar-store/);
 });
 test('E7 v65 JS compiles and versioned offline cache tracks the new HTML',()=>{
- assert.match(fs.readFileSync(path.join(base,'index.html'),'utf8'),/<title>ポケスリ作戦室 E7 v69<\/title>/);
+ assert.match(fs.readFileSync(path.join(base,'index.html'),'utf8'),/<title>ポケスリ作戦室 E7 v70<\/title>/);
  const scripts=[...u3.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g)];
  for(const match of scripts)assert.doesNotThrow(()=>new vm.Script(match[1]));
  const sw=fs.readFileSync(path.join(base,'e7-sw-v50.js'),'utf8');
- assert.match(sw,/pokesleep-strategy-e7-v69-shared-header-temp-icon-20261111/);
+ assert.match(sw,/pokesleep-strategy-e7-v70-shared-event-header-20261111/);
  assert.match(sw,/U3_Strategy_UI_20261109_v50_E7\.html/);
 });
 test('E7 v65 Chromium: month crossing, safe recall, saved plan, dirty cancellation, mobile fit',
