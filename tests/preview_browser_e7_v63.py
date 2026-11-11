@@ -29,8 +29,9 @@ try:
   for width,height in ((320,852),(393,852),(430,852),(393,740),(393,680)):
     page.set_viewport_size({'width':width,'height':height})
     plan=tab('plan')
-    # The event form intentionally keeps itself open until a proposal exists.
-    # Temporarily simulate the closed UI state without saving app data.
+    # Wait for phase initialization to settle before simulating a proposed plan;
+    # otherwise its next render can revoke the test-only closed state.
+    page.wait_for_timeout(180)
     plan.locator('#event-details').evaluate("""el=>{
       el.closest('main').dataset.hasProposed='true';el.open=false;
     }""")
