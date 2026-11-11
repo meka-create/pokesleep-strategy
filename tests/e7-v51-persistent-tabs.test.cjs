@@ -7,8 +7,8 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-const auditedSHA=['e1cd26621d1826d90e85aead3483946284df4a85',
- '9df4ede17effdab1e73697e49fe661b899a66a69',
+const auditedSHA=['17f879877740273b5886e92263c7f158f3c673e2',
+ '858e5cf2ef817f92f49b494222ec0b1a77a79381',
  '719b52b2e81a0711be127972c2c4074bcfe71d46'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
