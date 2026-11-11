@@ -1,4 +1,4 @@
-/* E7 v66 shared feedback UI. Browser alert/confirm/prompt are never used. */
+/* E7 v67 shared feedback UI. Ordinary toasts are 1px above the visible footer. */
 (()=>{
 'use strict';
 if(window.PokeUI)return;
@@ -76,6 +76,20 @@ function ensureToast(){
  document.body.append(toastNode);
  return toastNode;
 }
+// The shell reserves footer height outside each child iframe, so an embedded
+// toast needs only a 1px bottom offset. Standalone U2/U3/U4 pages keep their
+// own footer and must measure its actual top edge (including safe-area inset).
+function toastFooterOffset(){
+ try{
+  if(window.parent!==window&&window.frameElement?.matches('iframe.view'))return 1;
+ }catch(e){/* Cross-origin parent: inspect only the visible local footer. */}
+ const footer=document.getElementById('tabbar')||document.getElementById('e6-footer');
+ if(footer&&footer.getClientRects().length&&
+    getComputedStyle(footer).visibility!=='hidden'){
+  return Math.max(1,window.innerHeight-footer.getBoundingClientRect().top+1);
+ }
+ return 1;
+}
 function toast(message,{error=false,duration=3000}={}){
  const node=ensureToast();
  if(!node){
@@ -87,6 +101,10 @@ function toast(message,{error=false,duration=3000}={}){
  const open=[...document.querySelectorAll('dialog[open]')];
  const host=open.at(-1)||document.body;
  if(node.parentElement!==host)host.append(node);
+ // Preserve modal toast placement. For a normal toast use the nearest
+ // actually visible footer edge, not an extra hard-coded 86px allowance.
+ if(host.tagName==='DIALOG')node.style.removeProperty('--e7-toast-bottom');
+ else node.style.setProperty('--e7-toast-bottom',toastFooterOffset()+'px');
  node.textContent=String(message??'');
  node.dataset.error=String(error===true);
  node.setAttribute('role',error?'alert':'status');

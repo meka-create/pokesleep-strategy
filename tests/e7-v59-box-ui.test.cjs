@@ -23,9 +23,9 @@ test('E7 v59 retains E7 v58 UI invariants and adds safe compact Box',()=>{
  assert.match(box,/getItem\(BOX\)!==encoded/);
  assert.match(bridge,/#u2-week-label\{display:none!important\}/);
  assert.match(bridge,/header.mast \.brand,header.header \.brand/);
- assert.match(sw,/pokesleep-strategy-e7-v66-feedback-modal/);
+ assert.match(sw,/pokesleep-strategy-e7-v67-toast-footer-gap-1px/);
  assert.match(sw,/'e7-species-v59\.js','e7-sprites-v59\.js'/);
- assert.match(read('index.html'),/E7 v66/);
+ assert.match(read('index.html'),/E7 v67/);
  assert.match(sprites,/const COSTUME_BASE=new Map/);
  assert.match(sprites,/VARIANTS.get\(name\)/);
  assert.match(sprites,/COSTUME_BASE.has\(name\)/);
