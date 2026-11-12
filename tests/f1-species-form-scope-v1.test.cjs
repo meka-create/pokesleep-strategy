@@ -30,11 +30,11 @@ function from(names,options={}){
  assert.equal(parsed.ok,true,parsed.errors?.join(' / '));
  return Scope.buildScope(parsed,catalog,{sha256:crypto.createHash('sha256').update(text).digest('hex'),...options});
 }
-test('F1-A: 68 distinct individuals define species/form names, not 68 individual configurations',()=>{
- const names=Array.from({length:68},(_,i)=>i%3===0?'ピカチュウ':i%3===1?'ピカチュウ (ホリデー)':'ロコン (アローラ)');
+test('F1-A: 69 distinct individuals define species/form names, not 69 individual configurations',()=>{
+ const names=Array.from({length:69},(_,i)=>i%3===0?'ピカチュウ':i%3===1?'ピカチュウ (ホリデー)':'ロコン (アローラ)');
  const result=from(names);
  assert.equal(result.state,'DRAFT_UNVERIFIED_GAME_DATA');
- assert.equal(result.source.individualCount,68);
+ assert.equal(result.source.individualCount,69);
  assert.equal(result.targets.length,3);
  assert.equal(result.numericalCoverage,'NONE_VERIFIED');
  assert.deepEqual([...result.targets].map(t=>t.name).sort(),['ピカチュウ','ピカチュウ (ホリデー)','ロコン (アローラ)'].sort());
@@ -45,7 +45,7 @@ test('F1-A: 68 distinct individuals define species/form names, not 68 individual
 test('F1-A: same Pokedex ID never collapses clothing, size, regional and base forms',()=>{
  const names=['ピカチュウ','ピカチュウ (ホリデー)','ピカチュウ (ハロウィン)','ピカチュウ (キャプテン)',
    'バケッチャ (こだましゅ)','バケッチャ (ギガだましゅ)','ロコン','ロコン (アローラ)'];
- const s=from(Array.from({length:68},(_,i)=>names[i%names.length]));
+ const s=from(Array.from({length:69},(_,i)=>names[i%names.length]));
  assert.equal(s.targets.length,names.length);
  const pikachus=s.targets.filter(t=>t.id===25);
  assert.equal(pikachus.length,4);
@@ -54,18 +54,20 @@ test('F1-A: same Pokedex ID never collapses clothing, size, regional and base fo
  assert.equal(s.targets.filter(t=>t.id===710).length,2);
 });
 test('F1-A: unknown or mistyped species/form rejects entire scope, never guesses by Dex ID',()=>{
- const names=Array(68).fill('ピカチュウ');
+ const names=Array(69).fill('ピカチュウ');
  names[18]='ピカチュウ (未知の衣装)';
  assert.throws(()=>from(names),error=>error.code==='UNKNOWN_FORM');
  assert.throws(()=>Scope.buildScope({ok:false,items:names.map(pokemon=>({pokemon})),errors:['bad']},catalog),
    error=>error.code==='SOURCE_INVALID');
 });
-test('F1-A: count must be 68, no implicit truncation or broadening',()=>{
- assert.throws(()=>from(Array(67).fill('ピカチュウ')),e=>e.code==='SCOPE_COUNT');
- assert.throws(()=>from(Array(69).fill('ピカチュウ')),e=>e.code==='SCOPE_COUNT');
- assert.throws(()=>from(Array(67).fill('ピカチュウ'),{expectedIndividuals:67}),e=>e.code==='SCOPE_COUNT');
- assert.throws(()=>from(Array(69).fill('ピカチュウ'),{expectedIndividuals:69}),e=>e.code==='SCOPE_COUNT');
- const s=from(Array(68).fill('ピカチュウ'));
+test('F1-A: count must be 69, no implicit truncation or broadening',()=>{
+ assert.equal(Scope.EXPECTED,69);
+ assert.throws(()=>from(Array(68).fill('ピカチュウ')),e=>e.code==='SCOPE_COUNT');
+ assert.throws(()=>from(Array(70).fill('ピカチュウ')),e=>e.code==='SCOPE_COUNT');
+ assert.throws(()=>from(Array(68).fill('ピカチュウ'),{expectedIndividuals:68}),e=>e.code==='SCOPE_COUNT');
+ assert.throws(()=>from(Array(70).fill('ピカチュウ'),{expectedIndividuals:70}),e=>e.code==='SCOPE_COUNT');
+ const s=from(Array(69).fill('ピカチュウ'));
+ assert.equal(s.source.individualCount,69);
  assert.equal(s.targets.length,1);
 });
 test('F1-A: Japanese width normalization is allowed, ambiguous catalog aliases are rejected',()=>{
@@ -75,11 +77,11 @@ test('F1-A: Japanese width normalization is allowed, ambiguous catalog aliases a
   e=>e.code==='CATALOG_COLLISION');
 });
 test('F1-A: unsupported and unverified items remain calculation-blocked',()=>{
- const s=from(Array(68).fill('ピカチュウ (ホリデー)'));
+ const s=from(Array(69).fill('ピカチュウ (ホリデー)'));
  const accepted=Scope.evaluateIndividual({pokemon:'ピカチュウ (ホリデー)',nature:'いじっぱり',ing1:'whatever'},s,catalog);
  const differentNature=Scope.evaluateIndividual({pokemon:'ピカチュウ (ホリデー)',nature:'おだやか',ing1:'different'},s,catalog);
  assert.equal(accepted.inScope,true);
- assert.equal(differentNature.inScope,true,'Never pin the 68 exact individual configurations');
+ assert.equal(differentNature.inScope,true,'Never pin the 69 exact individual configurations');
  assert.equal(accepted.calculation,'BLOCKED');
  assert.equal(accepted.reason,'GAME_DATA_UNVERIFIED');
  const regular=Scope.evaluateIndividual({pokemon:'ピカチュウ'},s,catalog);
@@ -90,7 +92,7 @@ test('F1-A: unsupported and unverified items remain calculation-blocked',()=>{
  assert.equal(novel.calculation,'BLOCKED');
 });
 test('F1-A: malformed digest and absent proof fail closed, without leaking personal nicknames',()=>{
- const names=Array(68).fill('ピカチュウ');
+ const names=Array(69).fill('ピカチュウ');
  assert.throws(()=>from(names,{sha256:'00ab'}),e=>e.code==='HASH');
  const s=Scope.buildScope(BoxCsv.parseBox(csvFor(names)),catalog);
  assert.equal(s.source.sha256,null);
