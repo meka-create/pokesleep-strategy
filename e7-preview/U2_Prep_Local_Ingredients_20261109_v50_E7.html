@@ -790,7 +790,10 @@ for(const i of inputs){
 }
 q('#save-inventory').addEventListener('click',save);
 window.addEventListener('pageshow',e=>{if(e.persisted)restore();});
-window.addEventListener('storage',e=>{if(week&&(e.key===key(week)||e.key===oldKey(week)))restore();});
+window.addEventListener('storage',e=>{if(week&&(
+  e.key===key(week)||e.key===oldKey(week)||
+  (validEventId&&e.key===PokeE7InventoryScope.scopedKey(week,selectedEventId))
+ ))restore();});
 const badge=q('#u2-week-label');
 if(week){const d=new Date(week+'T12:00:00Z');badge.textContent=(d.getUTCMonth()+1)+'/'+d.getUTCDate()+'週';badge.title='イベント開始日 '+week;}
 else{badge.textContent='未選択';badge.title='イベント未選択';}
