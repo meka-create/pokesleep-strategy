@@ -83,6 +83,7 @@ try:
           el.dispatchEvent(new Event('change',{bubbles:true}));
         }""")
         assert not f.locator('#e7-event-delete').is_visible(), 'Changed week must hide deletion'
+        assert not f.locator('#e7-event-delete-row').is_visible(), 'No empty delete row while editing'
         # Even a scripted/stale click cannot delete the previously selected event.
         f.locator('#e7-event-delete').dispatch_event('click')
         assert exists(page,manual) and exists(page,official) and exists(page,another)
@@ -103,6 +104,15 @@ try:
         for width in [320,393,430]:
             page.set_viewport_size({'width':width,'height':852})
             assert f.locator('#e7-event-delete').is_visible(),width
+            assert f.locator('#e7-event-delete-row').is_visible(),width
+            geometry=f.locator('#e7-event-delete').evaluate("""el=>{
+              const button=el.getBoundingClientRect();
+              const row=el.closest('#e7-event-delete-row').getBoundingClientRect();
+              return {height:button.height,width:button.width,rightGap:row.right-button.right};
+            }""")
+            assert 31<=geometry['height']<=33,(width,geometry)
+            assert geometry['width']<75,(width,geometry)
+            assert abs(geometry['rightGap'])<=1,(width,geometry)
         f.locator('#e7-event-delete').click()
         f.locator('#e7-feedback-dialog').wait_for(state='visible')
         assert f.locator('#e7-feedback-title').inner_text()=='イベントを削除'
