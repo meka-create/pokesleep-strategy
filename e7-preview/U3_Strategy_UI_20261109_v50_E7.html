@@ -294,9 +294,10 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 .e7-cal-event[data-status="missing"]{background:#343d50;border-color:#69758c;color:#d8e2ed}
 .e7-cal-event[aria-pressed="true"]{background:#665027;border-color:#efbf65;color:#fff3d8;box-shadow:inset 0 0 0 1px #e6b35b}
 .e7-cal-event[data-has-plan="true"]::before{content:"●";font-size:8px;color:#a2eed2;margin-right:4px}
-.e7-event-delete-row{display:flex;flex-direction:row;justify-content:flex-end;align-items:center;gap:8px;margin-top:0}
-#e7-event-delete{height:32px;min-height:32px;padding:6px 10px;font-size:12px;line-height:18px;box-sizing:border-box;border:1px solid #a56b6c;border-radius:10px;background:transparent;color:#f2b8b4;font-weight:750}
-#e7-event-delete[hidden]{display:none}
+.e7-event-action-row{display:flex;flex-direction:row;justify-content:flex-end;align-items:center;min-height:44px;gap:8px;margin-top:0}
+.e7-event-action-row #event-save{flex:1 1 auto;min-width:0}
+#e7-event-delete{height:32px;min-height:32px;padding:6px 10px;font-size:12px;line-height:18px;box-sizing:border-box;border:1px solid #a56b6c;border-radius:10px;background:transparent;color:#f2b8b4;font-weight:750;flex:0 0 auto}
+#e7-event-delete[hidden],#event-save[hidden],#e7-event-action-row[hidden]{display:none!important}
 #e7-cal-empty{margin:0;font-size:11px;color:#b9c9d9}
 @media(max-width:360px){#e7-event-calendar{padding:9px 7px}#e7-cal-heading{gap:4px}#e7-cal-tools{gap:2px}#e7-cal-month{min-width:76px}#e7-cal-today{padding:5px 6px}.e7-cal-event{padding:4px 4px;font-size:10px;margin-left:2px;margin-right:2px}}
 </style>
@@ -340,7 +341,7 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 </select></label></div>
 </div>
 
-<div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="true"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div><div class="field wide e7-event-delete-row" id="e7-event-delete-row" hidden><button type="button" class="btn" id="e7-event-delete" aria-label="保存済みイベントを削除" title="保存済みイベントを削除" hidden>削除</button></div></div></details>
+<div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="true"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide e7-event-action-row" id="e7-event-action-row"><button type="button" class="btn secondary full" id="event-save">保存</button><button type="button" class="btn" id="e7-event-delete" aria-label="保存済みイベントを削除" title="保存済みイベントを削除" hidden>削除</button></div></div></details>
 <section class="card" id="e7-event-calendar" aria-label="保存済みイベントカレンダー">
  <div id="e7-cal-heading"><h2>イベントカレンダー</h2><div id="e7-cal-tools">
  <button type="button" class="e7-cal-nav" id="e7-cal-prev" aria-label="前の月">‹</button>
@@ -2039,14 +2040,24 @@ function e7CanDeleteCurrentEvent(){
  return e7SavedEvents().some(e=>e.selection.weekStart===selected.weekStart&&
   e.selection.id===selected.id);
 }
-function e7RefreshDeleteVisibility(){
- const show=e7CanDeleteCurrentEvent();
- $('#e7-event-delete-row').hidden=!show;
- $('#e7-event-delete').hidden=!show;
+// One stable grid row: unsaved draft -> full-width Save; unchanged saved
+// event -> small right-aligned Delete; pristine first-run -> neither.
+function e7HasDraftInput(){
+ const berry=readBerryEntry();
+ return Boolean($('#event-start').value||$('#event-field').value||$('#event-food').value||
+  !switchOn('event-camp')||pendingEventSource||manualSourceRequested||
+  berry?.types?.some(Boolean)||berry?.exEffect);
+}
+function e7RefreshEventActions(){
+ const canDelete=e7CanDeleteCurrentEvent();
+ const canSave=!canDelete&&(!!e3Selected||e7HasDraftInput());
+ $('#e7-event-action-row').hidden=!(canDelete||canSave);
+ $('#event-save').hidden=!canSave;
+ $('#e7-event-delete').hidden=!canDelete;
 }
 // Date text editing may emit input before change (and before normal rerender).
 $('#event-details').addEventListener('input',e=>{
- if(e.target?.matches('input,select'))e7RefreshDeleteVisibility();
+ if(e.target?.matches('input,select'))e7RefreshEventActions();
 });
 function renderE7Calendar(){
  const first=e7Date(e7CalendarMonth+'-01'),year=first.getUTCFullYear(),month=first.getUTCMonth();
@@ -2057,7 +2068,7 @@ function renderE7Calendar(){
  const last=new Date(Date.UTC(year,month+1,0,12));
  const end=e7ISO(new Date(Date.UTC(year,month+1,0+((7-((last.getUTCDay()+6)%7)-1)%7),12)));
  const events=e7SavedEvents(),today=nowInJapan().slice(0,10);
- e7RefreshDeleteVisibility();
+ e7RefreshEventActions();
  let found=false;
  for(let week=start;week<=end;week=e7ShiftDays(week,7)){
   const weekEntries=events.filter(e=>e.selection.weekStart===week);
@@ -2145,7 +2156,7 @@ $('#e7-event-delete').addEventListener('click',async()=>{
  // Defensive recheck: a queued click or externally changed form must not
  // delete the previous saved event just because its ID remains selected.
  if(!e7CanDeleteCurrentEvent()){
-  e7RefreshDeleteVisibility();
+  e7RefreshEventActions();
   showToast('未保存の変更があります。保存済みイベントを開き直してから削除してください。',true);
   return;
  }
@@ -2161,7 +2172,7 @@ $('#e7-event-delete').addEventListener('click',async()=>{
  // A second confirmation gate covers external edits while the modal was open.
  if(!e7CanDeleteCurrentEvent()||e3Selected?.weekStart!==selected.weekStart||
     e3Selected?.id!==selected.id){
-  e7RefreshDeleteVisibility();
+  e7RefreshEventActions();
   showToast('表示中のイベントが変更されました。削除を中止しました。',true);
   return;
  }
@@ -2374,7 +2385,7 @@ render=function(){
  const sleepControls=document.querySelector('.sleep-settings');
  sleepControls.hidden=!selected||state.phase==='ENDED';
  $('#event-save').disabled=state.phase==='ENDED';
- e7RefreshDeleteVisibility();
+ e7RefreshEventActions();
  if((!hasProposed||['SELECT_EVENT','SET_EVENT'].includes(action))&&state.phase!=='ENDED')$('#event-details').open=true;
  if(!selected){
   $('#phase-intro').hidden=true;$('#week-content').hidden=true;
