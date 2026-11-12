@@ -2041,6 +2041,10 @@ function e7CanDeleteCurrentEvent(){
 function e7RefreshDeleteVisibility(){
  $('#e7-event-delete').hidden=!e7CanDeleteCurrentEvent();
 }
+// Date text editing may emit input before change (and before normal rerender).
+$('#event-details').addEventListener('input',e=>{
+ if(e.target?.matches('input,select'))e7RefreshDeleteVisibility();
+});
 function renderE7Calendar(){
  const first=e7Date(e7CalendarMonth+'-01'),year=first.getUTCFullYear(),month=first.getUTCMonth();
  if(!Number.isFinite(first.valueOf())||year<2020||year>2100)return;
