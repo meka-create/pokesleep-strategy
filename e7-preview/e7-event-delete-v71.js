@@ -40,7 +40,7 @@ function snapshot(storage,selection,{requireSelected=false}={}){
  const ownStockRaw=storage.getItem(ownStockKey);
  if(ownStockRaw!==null){
   const owner=readJSON(ownStockRaw);
-  if(!owner||owner.version!==1||owner.weekStart!==week||owner.eventId!==id)
+  if(!owner||owner.version!==2||owner.weekStart!==week||owner.eventId!==id)
    throw Error('食材在庫の所有イベントが一致しません。削除を中止しました。');
   keys.push(ownStockKey);values[ownStockKey]=ownStockRaw;
  }
