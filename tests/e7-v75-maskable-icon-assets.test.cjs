@@ -17,13 +17,13 @@ const names={
  'icon-maskable-192.png':'2e1a06c05ea08f94bfbb75b3036f5a9eb02d64cd',
  'icon-maskable-512.png':'cb94b4215220b7697666dc312dca3a5039f3b359'
 };
-test('E7 v76 exact uploaded icon blob hashes (seven unchanged, two replaced)',()=>{
+test('E7 v77 exact uploaded icon blob hashes (seven unchanged, two replaced)',()=>{
  for(const [name,expected] of Object.entries(names)){
   const bytes=fs.readFileSync(path.join(root,'icons',name));
   assert.equal(hash(bytes),expected,name+' must match the attached ZIP exactly');
  }
 });
-test('E7 v76 Pixel maskable PNG dimensions and signatures',()=>{
+test('E7 v77 Pixel maskable PNG dimensions and signatures',()=>{
  for(const size of [192,512]){
   const bytes=fs.readFileSync(path.join(root,'icons','icon-maskable-'+size+'.png'));
   assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
@@ -31,8 +31,13 @@ test('E7 v76 Pixel maskable PNG dimensions and signatures',()=>{
   assert.equal(bytes.readUInt32BE(20),size);
  }
 });
-test('E7 v76 manifest, shell and service worker choose new Pixel assets',()=>{
+test('E7 v77 manifest, shell and service worker choose new Pixel assets',()=>{
  const manifest=JSON.parse(fs.readFileSync(path.join(root,'e7-manifest-v50.webmanifest'),'utf8'));
+ assert.equal(manifest.name,'作戦室');
+ assert.equal(manifest.short_name,'作戦室');
+ assert.equal(manifest.id,'./U5_Integrated_20261109_v50_E7.html');
+ assert.equal(manifest.start_url,'./');
+ assert.equal(manifest.scope,'./');
  const masks=manifest.icons.filter(x=>x.purpose==='maskable');
  assert.equal(masks.length,2);
  for(const size of [192,512]){
@@ -43,8 +48,8 @@ test('E7 v76 manifest, shell and service worker choose new Pixel assets',()=>{
  }
  const sw=fs.readFileSync(path.join(root,'e7-sw-v50.js'),'utf8');
  const shell=fs.readFileSync(path.join(root,'index.html'),'utf8');
- assert.match(sw,/pokesleep-strategy-e7-v76-maskable-safe-margin-20261112/);
+ assert.match(sw,/pokesleep-strategy-e7-v77-install-label-20261112/);
  for(const size of [192,512])assert.ok(sw.includes("'icons/icon-maskable-"+size+".png'"));
- assert.match(shell,/<title>ポケスリ作戦室 E7 v76<\/title>/);
- assert.match(shell,/href="e7-manifest-v50\.webmanifest\?v=20261112-pixel4-safemargin"/);
+ assert.match(shell,/<title>ポケスリ作戦室 E7 v77<\/title>/);
+ assert.match(shell,/href="e7-manifest-v50\.webmanifest\?v=20261112-v77-app-label"/);
 });
