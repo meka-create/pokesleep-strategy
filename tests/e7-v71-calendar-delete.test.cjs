@@ -123,6 +123,7 @@ test('E7 v72: UI, shell, service worker and legacy paths use scoped deletion',()
  assert.match(u3,/if\(eventBlockers\(\)\.includes\('イベント条件の保存'\)\)return false/);
  assert.match(u3,/if\(!e3Conditions\(\)\)return false/);
  assert.match(u3,/function e7RefreshDeleteVisibility\(\)/);
+ assert.match(u3,/#event-details'\)\.addEventListener\('input'/);
  assert.match(u3,/e7RefreshDeleteVisibility\(\);/);
  assert.match(u3,/if\(!e7CanDeleteCurrentEvent\(\)\)/);
  assert.match(u3,/if\(!e7CanDeleteCurrentEvent\(\)\|\|e3Selected\?\.weekStart/);
