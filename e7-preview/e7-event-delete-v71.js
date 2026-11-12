@@ -36,10 +36,18 @@ function snapshot(storage,selection,{requireSelected=false}={}){
  const prep=values[keys[2]]===null?null:readJSON(values[keys[2]]);
  if(prep&&(prep.weekStart!==week||prep.eventId!==id))
   throw Error('備蓄設定の所有イベントが一致しません。');
+ const ownStockKey=TIMELINE+week+':'+encoded+':timeline';
+ const ownStockRaw=storage.getItem(ownStockKey);
+ if(ownStockRaw!==null){
+  const owner=readJSON(ownStockRaw);
+  if(!owner||owner.version!==1||owner.weekStart!==week||owner.eventId!==id)
+   throw Error('食材在庫の所有イベントが一致しません。削除を中止しました。');
+  keys.push(ownStockKey);values[ownStockKey]=ownStockRaw;
+ }
  const stockKey=TIMELINE+week+':timeline',stockRaw=storage.getItem(stockKey);
  if(stockRaw!==null){
-  // The inventory key is week-wide. Delete it only if the stored owner
-  // exactly matches this event; never remove another event's inventory.
+  // Existing week-only inventory may coexist with new scoped records;
+  // remove it only if its owner exactly matches the event being deleted.
   const stock=readJSON(stockRaw);
   if(stock?.eventId===id&&stock.weekStart===week){
    keys.push(stockKey);values[stockKey]=stockRaw;
