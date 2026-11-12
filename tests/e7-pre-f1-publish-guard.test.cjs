@@ -36,6 +36,7 @@ test('E7 offline installation precaches every local script, stylesheet and image
  assert.match(sw,/caches\.open\(CACHE\)\.then\(cache=>cache\.addAll/);
  assert.match(sw,/\.then\(\(\)=>self\.clients\.claim\(\)\)/);
  assert.match(sw,/icons\/icon-header-96\.png/);
+ assert.ok(sw.includes("'e7-inventory-scope-v78.js'"));
  for(const f of html){
   assert(exists('e7-preview/'+f),f);
   assert(sw.includes("'"+f+"'"),'not precached: '+f);

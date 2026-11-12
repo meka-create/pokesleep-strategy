@@ -301,7 +301,7 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 #e7-cal-empty{margin:0;font-size:11px;color:#b9c9d9}
 @media(max-width:360px){#e7-event-calendar{padding:9px 7px}#e7-cal-heading{gap:4px}#e7-cal-tools{gap:2px}#e7-cal-month{min-width:76px}#e7-cal-today{padding:5px 6px}.e7-cal-event{padding:4px 4px;font-size:10px;margin-left:2px;margin-right:2px}}
 </style>
-<link rel="stylesheet" href="e7-feedback-v66.css"><script src="e7-feedback-v66.js"></script><script src="e7-event-delete-v71.js"></script>
+<link rel="stylesheet" href="e7-feedback-v66.css"><script src="e7-feedback-v66.js"></script><script src="e7-event-delete-v71.js"></script><script src="e7-inventory-scope-v78.js"></script>
 
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
@@ -1157,9 +1157,8 @@ function normalizeInventory(item){
 function refreshInventory(){
  let inStorage=null,inLink=null;e3InventoryCorrupt=false;
  try{
-  const rawText=localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+eventInfo.start+':timeline');
-  const raw=rawText===null?null:JSON.parse(rawText);
-  if(rawText!==null&&(!raw||raw.eventId!==e3Selected?.id))throw Error('Inventory owner missing or invalid');
+  const raw=e3Selected?PokeE7InventoryScope.read(localStorage,eventInfo.start,e3Selected.id):null;
+  if(raw&&raw.eventId!==e3Selected?.id)throw Error('Inventory owner missing or invalid');
   const timeline=raw?E1.validateInventoryTimeline(raw,eventInfo.start):null;
   const v=timeline?.currentInventory;
   if(v)inStorage=normalizeInventory({version:3,weekStart:eventInfo.start,eventId:raw?.eventId||null,source:'inventory',savedAt:v.savedAt,values:v.values});
@@ -2221,7 +2220,11 @@ window.addEventListener('pageshow',event=>{
  if(event.persisted)selectDayOnOpen();
  refreshInventory();render();
 });
-window.addEventListener('storage',e=>{if(e.key===inventoryKey(eventInfo.start)){refreshInventory();render();}});
+window.addEventListener('storage',e=>{if(
+ e.key===inventoryKey(eventInfo.start)||
+ (e3Selected&&(e.key===PokeE7InventoryScope.scopedKey(eventInfo.start,e3Selected.id)||
+   e.key===PokeE7InventoryScope.legacyKey(eventInfo.start)))
+ ){refreshInventory();render();}});
 
 /* E3: render one next action from the shared E1 state. This U3 v31 remains a
    preview; F1-F4 must replace illustrative team/recipe calculations. */
@@ -2323,7 +2326,7 @@ function e3View(){
  const nowISO=sample&&/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(sample)?sample+':00+09:00':new Date().toISOString();
  let timeline=null;
  try{
-  const x=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+eventInfo.start+':timeline')||'null');
+  const x=PokeE7InventoryScope.read(localStorage,eventInfo.start,e3Selected.id);
   timeline=x?.eventId===e3Selected.id?E1.validateInventoryTimeline(x,eventInfo.start):null;
  }catch(e){}
  if(!timeline&&hasInventory&&importedStock&&importedAt){
@@ -2494,8 +2497,9 @@ const save=document.getElementById('save-inventory');
 save?.addEventListener('click',e=>{
  if(current!=='prep')return;
  try{
-  const key='pokesleep-strategy-u2-e2-v1:'+WEEK+':timeline';
-  const timeline=JSON.parse(localStorage.getItem(key)||'null');
+  const selected=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');
+  const timeline=PokeE7InventoryScope.read(localStorage,WEEK,
+   selected?.weekStart===WEEK?selected.id:null);
   const when=Date.parse(timeline?.currentInventory?.savedAt||'');
   const start=Date.parse(WEEK+'T04:00:00+09:00');
   if(Number.isFinite(when)&&when>=start){
@@ -2542,7 +2546,7 @@ function watchPacket(){
 function readNewestInventory(w){
  const items=[];
  try{
-  const record=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+w.weekStart+':timeline')||'null');
+  const record=PokeE7InventoryScope.read(localStorage,w.weekStart,w.eventId);
   if(record?.eventId===w.eventId&&record.currentInventory)
    items.push({values:record.currentInventory.values,savedAt:record.currentInventory.savedAt});
  }catch(e){}

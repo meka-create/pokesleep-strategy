@@ -77,9 +77,13 @@ try:
         assert cells.count()==19
         cells.first.fill('13')
         prep.locator('#save-inventory').click()
-        data=page.evaluate("""()=>JSON.parse(
-            localStorage.getItem('pokesleep-strategy-u2-e2-v1:2026-11-09:timeline'))""")
+        data=page.evaluate("""()=>{
+            const id='manual:2026-11-09';
+            return JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:2026-11-09:'+
+              encodeURIComponent(id)+':timeline'));
+        }""")
         assert data['eventId']=='manual:2026-11-09'
+        assert page.evaluate("""()=>localStorage.getItem('pokesleep-strategy-u2-e2-v1:2026-11-09:timeline')""") is None, 'New event inventory must not use the week-only key'
         assert 13 in data['currentInventory']['values'].values()
 
         plan=tab('plan')

@@ -283,7 +283,7 @@
      plan.appliedEventStart===week&&
      (plan.appliedEventInfo?.source?.id||'manual:'+week)===id&&
      futureSlotExists(week,now)){
-    const data=parse('pokesleep-strategy-u2-e2-v1:'+week+':timeline');
+    const data=(()=>{try{return PokeE7InventoryScope.read(localStorage,week,id);}catch(e){return null;}})();
     const inventory=data?.eventId===id?data.currentInventory:null;
     const stockChanged=!!inventory&&!!plan.stockConfirmed&&
       JSON.stringify(inventory.values)!==JSON.stringify(plan.stockConfirmed);
