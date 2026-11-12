@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'../e7-preview');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('E7 v72: one selected-event subtitle resolver for all three tabs',()=>{
+test('E7 v73: one selected-event subtitle resolver for all three tabs',()=>{
  const bridge=read('e7-unified-bridge-v51.js');
  assert.match(bridge,/const isEventTab=\/\^U\[234\]_\//);
  assert.match(bridge,/const name=isEventTab\?selectedEventHeader\(\)\.trim\(\)\.slice\(0,160\):''/);
@@ -19,9 +19,9 @@ test('E7 v72: one selected-event subtitle resolver for all three tabs',()=>{
  assert.doesNotMatch(bridge,/localStorage\.setItem\([^)]*header/);
  assert.doesNotThrow(()=>new vm.Script(bridge));
 });
-test('E7 v72: versioned offline assets and unchanged provisional header icon',()=>{
- assert.match(read('index.html'),/<title>ポケスリ作戦室 E7 v72<\/title>/);
- assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v72-dirty-delete-guard-20261112/);
+test('E7 v73: versioned offline assets and unchanged provisional header icon',()=>{
+ assert.match(read('index.html'),/<title>ポケスリ作戦室 E7 v73<\/title>/);
+ assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v73-unified-action-row-20261112/);
  assert.match(read('e7-sw-v50.js'),/'e7-header-temp-v69\.png'/);
  assert.match(read('e7-unified-bridge-v51.js'),/icon\.src='e7-header-temp-v69\.png'/);
  const manifest=JSON.parse(read('e7-manifest-v50.webmanifest'));
