@@ -45,7 +45,17 @@ try:
         assert page.evaluate("""args=>JSON.parse(localStorage.getItem(args[0])).currentInventory.values
             !==JSON.parse(localStorage.getItem(args[1])).currentInventory.values""",[key(A),key(B)])
         field=open_event(page,A)
-        assert field.input_value()=='21','A stock lost after saving B'
+        diagnostic=page.evaluate("""({a,b,legacy})=>{
+          const own=localStorage.getItem(a),other=localStorage.getItem(b);
+          return {url:location.href,own:own?JSON.parse(own):null,
+            other:other?JSON.parse(other):null,legacy:localStorage.getItem(legacy),
+            fields:[...document.querySelectorAll('#inventory-panel [data-key]')].slice(0,3).map(el=>({
+              name:el.closest('.food')?.querySelector('.name')?.textContent,value:el.value
+            })),error:document.querySelector('#error')?.textContent,
+            errorHidden:document.querySelector('#error')?.hidden,
+            result:document.querySelector('#preview-result')?.textContent};
+        }""",{'a':key(A),'b':key(B),'legacy':'pokesleep-strategy-u2-e2-v1:'+WEEK+':timeline'})
+        assert field.input_value()=='21','A stock lost after saving B: '+str(diagnostic)
         field=open_event(page,B)
         assert field.input_value()=='47','B stock lost after returning from A'
         # Existing week-only stock of A remains readable for A, not B.
