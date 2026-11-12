@@ -119,6 +119,12 @@ test('E7 v72: UI, shell, service worker and legacy paths use scoped deletion',()
  const u2=read('U2_Prep_Local_Ingredients_20261109_v50_E7.html');
  const parent=read('index.html'),sw=read('e7-sw-v50.js');
  assert.match(u3,/id="e7-event-delete"/);
+ // Same small, subtle button idiom as the Box individual details, not a full-width destructive action.
+ assert.match(u3,/id="e7-event-delete-row" hidden><button[^>]+id="e7-event-delete"[^>]*>削除<\/button>/);
+ assert.match(u3,/\.e7-event-delete-row\{display:flex;flex-direction:row;justify-content:flex-end;/);
+ assert.match(u3,/#e7-event-delete\{height:32px;min-height:32px;/);
+ assert.match(u3,/#e7-event-delete-row'\)\.hidden=!show/);
+ assert.match(u3,/#e7-event-delete'\)\.hidden=!show/);
  assert.match(u3,/function e7CanDeleteCurrentEvent\(\)/);
  assert.match(u3,/if\(eventBlockers\(\)\.includes\('イベント条件の保存'\)\)return false/);
  assert.match(u3,/if\(!e3Conditions\(\)\)return false/);
