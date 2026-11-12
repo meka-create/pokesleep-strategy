@@ -32,7 +32,7 @@ function record(eventId,week=WEEK){
    JSON.stringify({version:1,weekStart:week,eventId,prep:{count:3,categories:['curry','salad','dessert']}})};
 }
 function values(store){return Object.fromEntries(store.m);}
-test('E7 v75: snapshots are read-only, only selected manual event is removed',()=>{
+test('E7 v76: snapshots are read-only, only selected manual event is removed',()=>{
  const e=engine(),manual={id:'manual:'+WEEK,weekStart:WEEK},official='saved-event';
  const future='2026-11-16';
  const initial={...record(manual.id),...record(official),...record('later',future),
@@ -50,7 +50,7 @@ test('E7 v75: snapshots are read-only, only selected manual event is removed',()
  for(const key of Object.keys(initial).filter(k=>!result.deletedKeys.includes(k)))
   assert.equal(s.getItem(key),initial[key],key);
 });
-test('E7 v75: only the target-owned week inventory may be removed',()=>{
+test('E7 v76: only the target-owned week inventory may be removed',()=>{
  const e=engine(),id='official:2026/11',selection={id,weekStart:WEEK};
  const stockKey='pokesleep-strategy-u2-e2-v1:'+WEEK+':timeline';
  const s=storage({...record(id),...record('manual:'+WEEK),
@@ -60,7 +60,7 @@ test('E7 v75: only the target-owned week inventory may be removed',()=>{
  assert(result.deletedKeys.includes(stockKey));
  assert(s.getItem(PREFIX+WEEK+':'+encodeURIComponent('manual:'+WEEK)+':conditions'));
 });
-test('E7 v75: stale snapshot or changed selection fails closed without deletion',()=>{
+test('E7 v76: stale snapshot or changed selection fails closed without deletion',()=>{
  const e=engine(),selection={id:'manual:'+WEEK,weekStart:WEEK};
  const s=storage({...record(selection.id),[SELECTED]:JSON.stringify(selection)});
  const previous=e.snapshot(s,selection,{requireSelected:true});
@@ -75,7 +75,7 @@ test('E7 v75: stale snapshot or changed selection fails closed without deletion'
  assert.throws(()=>e.remove(s,next),/選択中のイベントが変更/);
  assert.deepEqual(values(s),foreign);
 });
-test('E7 v75: mixed or corrupt owner keys never cause a cross-event deletion',()=>{
+test('E7 v76: mixed or corrupt owner keys never cause a cross-event deletion',()=>{
  const e=engine(),selection={id:'manual:'+WEEK,weekStart:WEEK},
   prepKey='pokesleep-strategy-u2-e6-prep-v1:'+WEEK+':'+encodeURIComponent(selection.id);
  const s=storage({...record(selection.id),[SELECTED]:JSON.stringify(selection)});
@@ -86,7 +86,7 @@ test('E7 v75: mixed or corrupt owner keys never cause a cross-event deletion',()
  assert.throws(()=>e.snapshot(s,selection,{requireSelected:true}),/壊れています/);
  assert.equal(s.m.size,4);
 });
-test('E7 v75: a failed storage write rolls back all removed records',()=>{
+test('E7 v76: a failed storage write rolls back all removed records',()=>{
  const e=engine(),selection={id:'manual:'+WEEK,weekStart:WEEK};
  const s=storage({...record(selection.id),[SELECTED]:JSON.stringify(selection)});
  const start=values(s),before=e.snapshot(s,selection,{requireSelected:true});
@@ -99,7 +99,7 @@ test('E7 v75: a failed storage write rolls back all removed records',()=>{
  assert.throws(()=>e.remove(s,before),/元の保存内容を復元/);
  assert.deepEqual(values(s),start);
 });
-test('E7 v75: rollback does not materialize an originally absent prep key',()=>{
+test('E7 v76: rollback does not materialize an originally absent prep key',()=>{
  const e=engine(),selection={id:'manual:'+WEEK,weekStart:WEEK};
  const initial={...record(selection.id),[SELECTED]:JSON.stringify(selection)};
  const prep='pokesleep-strategy-u2-e6-prep-v1:'+WEEK+':'+encodeURIComponent(selection.id);
@@ -114,7 +114,7 @@ test('E7 v75: rollback does not materialize an originally absent prep key',()=>{
  assert.deepEqual(values(s),initial);
  assert.equal(s.getItem(prep),null);
 });
-test('E7 v75: UI, shell, service worker and legacy paths use scoped deletion',()=>{
+test('E7 v76: UI, shell, service worker and legacy paths use scoped deletion',()=>{
  const u3=read('U3_Strategy_UI_20261109_v50_E7.html');
  const u2=read('U2_Prep_Local_Ingredients_20261109_v50_E7.html');
  const parent=read('index.html'),sw=read('e7-sw-v50.js');
@@ -147,15 +147,15 @@ test('E7 v75: UI, shell, service worker and legacy paths use scoped deletion',()
  assert.match(u2,/旧形式の週一括初期化リンクは無効/);
  for(const f of [u2,u3,parent])assert.match(f,/e7-event-delete-v71\.js/);
  assert.match(sw,/'e7-event-delete-v71\.js'/);
- assert.match(sw,/pokesleep-strategy-e7-v75-maskable-no-corner-blur-20261112/);
- assert.match(parent,/<title>ポケスリ作戦室 E7 v75<\/title>/);
+ assert.match(sw,/pokesleep-strategy-e7-v76-maskable-safe-margin-20261112/);
+ assert.match(parent,/<title>ポケスリ作戦室 E7 v76<\/title>/);
  for(const file of [u2,u3,parent]){
   for(const match of file.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
    assert.doesNotThrow(()=>new vm.Script(match[1]),'inline syntax error');
  }
 });
 
-test('E7 v75 Chromium: delete event without deleting another event in the same week',
+test('E7 v76 Chromium: delete event without deleting another event in the same week',
  {timeout:180000},()=>{
  require('node:child_process').execFileSync('python3',
  [path.resolve(__dirname,'preview_browser_e7_v71.py')],
