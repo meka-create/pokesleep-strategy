@@ -63,6 +63,8 @@ test('F1-A: unknown or mistyped species/form rejects entire scope, never guesses
 test('F1-A: count must be 68, no implicit truncation or broadening',()=>{
  assert.throws(()=>from(Array(67).fill('ピカチュウ')),e=>e.code==='SCOPE_COUNT');
  assert.throws(()=>from(Array(69).fill('ピカチュウ')),e=>e.code==='SCOPE_COUNT');
+ assert.throws(()=>from(Array(67).fill('ピカチュウ'),{expectedIndividuals:67}),e=>e.code==='SCOPE_COUNT');
+ assert.throws(()=>from(Array(69).fill('ピカチュウ'),{expectedIndividuals:69}),e=>e.code==='SCOPE_COUNT');
  const s=from(Array(68).fill('ピカチュウ'));
  assert.equal(s.targets.length,1);
 });
