@@ -84,10 +84,13 @@ test('E7 v51 manifest uses a persistent app ID with start URL at fast shell',()=
  assert.equal(m.scope,'./');
  assert.equal(m.display,'standalone');
  assert.equal(m.id,'./U5_Integrated_20261109_v50_E7.html');
+ assert.equal(m.name,'作戦室','Android installed app display name');
+ assert.equal(m.short_name,'作戦室','Android home-screen label');
+ assert.equal(m.icons.filter(x=>x.purpose==='maskable').length,2);
 });
 test('E7 v51 preview cache updates online and supports offline, independent of production root',()=>{
  const sw=read('e7-sw-v50.js');
- assert.match(sw,/pokesleep-strategy-e7-v76-maskable-safe-margin/);
+ assert.match(sw,/pokesleep-strategy-e7-v77-install-label/);
  assert.match(sw,/'index\.html'/);
  assert.match(sw,/'e7-unified-bridge-v51\.js'/);
  assert.match(sw,/fetch\(event\.request,\{cache:'no-store'\}\)/);
