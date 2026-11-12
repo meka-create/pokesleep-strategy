@@ -1,0 +1,2332 @@
+{
+  "schema": "pokesleep-strategy.f1-b-target-source-v1",
+  "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+  "createdOn": "2026-11-13",
+  "initialInput": {
+    "rowCount": 69,
+    "distinctSpeciesForms": 66,
+    "format": "pokesleep-tool-header-18",
+    "sourceFileSHA256": "39a2d6d756dcdd63c2d4ab8120114252a889767a1c0d2ea5f0b978005248a53f"
+  },
+  "upstream": {
+    "repository": "nitoyon/pokesleep-tool",
+    "commit": "663bf018f69633d2d7d108b5f833d97874b74c41",
+    "pokemonJson": {
+      "path": "src/data/pokemon.json",
+      "gitBlob": "f45d24b214c03cdf592783207a883d9f573676d2"
+    },
+    "japaneseNames": {
+      "path": "src/i18n/ja/pokemons.json",
+      "gitBlob": "fd983be0838a5bfa3d5923464515fcf818c26fe0"
+    },
+    "japaneseSkills": {
+      "path": "src/i18n/ja/skills.json",
+      "gitBlob": "f736dd278c51612f04c9d576e7856d3214c9fc3f"
+    },
+    "japaneseData": {
+      "path": "src/i18n/ja/data.json",
+      "gitBlob": "b37155e08ea861ad82c34a27e3b88b2c39049511"
+    }
+  },
+  "constraints": {
+    "individualConfigurations": "ALL_LEGAL_BUILDS_OF_SELECTED_SPECIES_FORMS",
+    "unsupportedSpecies": "BLOCKED",
+    "unverifiedSpecies": "BLOCKED",
+    "userPrivateRows": "NOT_COMMITTED",
+    "energyCalculation": "NOT_IMPLEMENTED",
+    "profileLegality": "AWAITING_INDEPENDENT_VALIDATION"
+  },
+  "targets": [
+    {
+      "name": "ウツボット",
+      "pokedexId": 71,
+      "upstreamName": "Victreebel",
+      "type": "grass",
+      "specialty": "Ingredients",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 23.3,
+        "skillRate": 3.9,
+        "carryLimit": 17,
+        "mainSkill": "Charge Energy S",
+        "mainSkillJa": "げんきチャージS",
+        "ing1": {
+          "name": "tomato",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "potato",
+          "c2": 4,
+          "c3": 6
+        },
+        "ing3": {
+          "name": "leek",
+          "c3": 4
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "エーフィ",
+      "pokedexId": 196,
+      "upstreamName": "Espeon",
+      "type": "psychic",
+      "specialty": "Skills",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2400,
+        "ingredientRate": 16.4,
+        "skillRate": 4.4,
+        "carryLimit": 16,
+        "mainSkill": "Charge Strength M",
+        "mainSkillJa": "エナジーチャージM",
+        "ing1": {
+          "name": "milk",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "cacao",
+          "c2": 1,
+          "c3": 2
+        },
+        "ing3": {
+          "name": "sausage",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "エンテイ",
+      "pokedexId": 244,
+      "upstreamName": "Entei",
+      "type": "fire",
+      "specialty": "Skills",
+      "arrival": "2024-05-20",
+      "sourceProfile": {
+        "frequency": 2400,
+        "ingredientRate": 18.7,
+        "skillRate": 2.3,
+        "carryLimit": 19,
+        "mainSkill": "Helper Boost",
+        "mainSkillJa": "おてつだいブースト",
+        "ing1": {
+          "name": "oil",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "tomato",
+          "c2": 2,
+          "c3": 4
+        },
+        "ing3": {
+          "name": "mushroom",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "オーダイル",
+      "pokedexId": 160,
+      "upstreamName": "Feraligatr",
+      "type": "water",
+      "specialty": "Berries",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 25.7,
+        "skillRate": 5.5,
+        "carryLimit": 19,
+        "mainSkill": "Charge Strength S (Random)",
+        "mainSkillJa": "エナジーチャージS (ランダム)",
+        "ing1": {
+          "name": "sausage",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "oil",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": null
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "オコリザル",
+      "pokedexId": 57,
+      "upstreamName": "Primeape",
+      "type": "fighting",
+      "specialty": "Berries",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 20,
+        "skillRate": 2.4,
+        "carryLimit": 17,
+        "mainSkill": "Charge Strength S (Random)",
+        "mainSkillJa": "エナジーチャージS (ランダム)",
+        "ing1": {
+          "name": "sausage",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "mushroom",
+          "c2": 1,
+          "c3": 2
+        },
+        "ing3": {
+          "name": "honey",
+          "c3": 4
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "オンバーン",
+      "pokedexId": 715,
+      "upstreamName": "Noivern",
+      "type": "dragon",
+      "specialty": "Skills",
+      "arrival": "2026-03-23",
+      "sourceProfile": {
+        "frequency": 2700,
+        "ingredientRate": 19.5,
+        "skillRate": 4.8,
+        "carryLimit": 18,
+        "mainSkill": "Charge Strength M",
+        "mainSkillJa": "エナジーチャージM",
+        "ing1": {
+          "name": "apple",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "leek",
+          "c2": 1,
+          "c3": 2
+        },
+        "ing3": {
+          "name": "sausage",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "カイリュー",
+      "pokedexId": 149,
+      "upstreamName": "Dragonite",
+      "type": "dragon",
+      "specialty": "Ingredients",
+      "arrival": "2024-01-24",
+      "sourceProfile": {
+        "frequency": 2600,
+        "ingredientRate": 26.4,
+        "skillRate": 2.6,
+        "carryLimit": 20,
+        "mainSkill": "Charge Energy S",
+        "mainSkillJa": "げんきチャージS",
+        "ing1": {
+          "name": "herb",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "corn",
+          "c2": 4,
+          "c3": 7
+        },
+        "ing3": {
+          "name": "oil",
+          "c3": 8
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "カメックス",
+      "pokedexId": 9,
+      "upstreamName": "Blastoise",
+      "type": "water",
+      "specialty": "Ingredients",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 27.5,
+        "skillRate": 2.1,
+        "carryLimit": 17,
+        "mainSkill": "Ingredient Magnet S",
+        "mainSkillJa": "食材ゲットS",
+        "ing1": {
+          "name": "milk",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "cacao",
+          "c2": 3,
+          "c3": 5
+        },
+        "ing3": {
+          "name": "sausage",
+          "c3": 7
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ガルーラ",
+      "pokedexId": 115,
+      "upstreamName": "Kangaskhan",
+      "type": "normal",
+      "specialty": "Ingredients",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2650,
+        "ingredientRate": 22.2,
+        "skillRate": 3.2,
+        "carryLimit": 21,
+        "mainSkill": "Ingredient Magnet S",
+        "mainSkillJa": "食材ゲットS",
+        "ing1": {
+          "name": "ginger",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "potato",
+          "c2": 4,
+          "c3": 6
+        },
+        "ing3": {
+          "name": "soy",
+          "c3": 8
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "キテルグマ",
+      "pokedexId": 760,
+      "upstreamName": "Bewear",
+      "type": "fighting",
+      "specialty": "Ingredients",
+      "arrival": "2024-01-24",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 22.9,
+        "skillRate": 1.3,
+        "carryLimit": 20,
+        "mainSkill": "Charge Strength S (Random)",
+        "mainSkillJa": "エナジーチャージS (ランダム)",
+        "ing1": {
+          "name": "corn",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "sausage",
+          "c2": 6,
+          "c3": 10
+        },
+        "ing3": {
+          "name": "egg",
+          "c3": 9
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "キュウコン",
+      "pokedexId": 38,
+      "upstreamName": "Ninetales",
+      "type": "fire",
+      "specialty": "Berries",
+      "arrival": "2024-05-06",
+      "sourceProfile": {
+        "frequency": 2600,
+        "ingredientRate": 16.4,
+        "skillRate": 2.9,
+        "carryLimit": 23,
+        "mainSkill": "Energizing Cheer S",
+        "mainSkillJa": "げんきエールS",
+        "ing1": {
+          "name": "soy",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "corn",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": {
+          "name": "potato",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "キュワワー",
+      "pokedexId": 764,
+      "upstreamName": "Comfey",
+      "type": "fairy",
+      "specialty": "Ingredients",
+      "arrival": "2024-04-22",
+      "sourceProfile": {
+        "frequency": 2500,
+        "ingredientRate": 16.7,
+        "skillRate": 3.5,
+        "carryLimit": 20,
+        "mainSkill": "Energizing Cheer S",
+        "mainSkillJa": "げんきエールS",
+        "ing1": {
+          "name": "corn",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "ginger",
+          "c2": 6,
+          "c3": 9
+        },
+        "ing3": {
+          "name": "cacao",
+          "c3": 7
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "グレイシア",
+      "pokedexId": 471,
+      "upstreamName": "Glaceon",
+      "type": "ice",
+      "specialty": "Skills",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 3200,
+        "ingredientRate": 21.9,
+        "skillRate": 6.3,
+        "carryLimit": 12,
+        "mainSkill": "Cooking Power-Up S",
+        "mainSkillJa": "料理パワーアップS",
+        "ing1": {
+          "name": "milk",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "cacao",
+          "c2": 1,
+          "c3": 2
+        },
+        "ing3": {
+          "name": "sausage",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "クワガノン",
+      "pokedexId": 738,
+      "upstreamName": "Vikavolt",
+      "type": "bug",
+      "specialty": "Ingredients",
+      "arrival": "2024-10-02",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 19.4,
+        "skillRate": 5.1,
+        "carryLimit": 19,
+        "mainSkill": "Charge Strength S",
+        "mainSkillJa": "エナジーチャージS",
+        "ing1": {
+          "name": "coffee",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "mushroom",
+          "c2": 4,
+          "c3": 7
+        },
+        "ing3": {
+          "name": "honey",
+          "c3": 11
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ゲンガー",
+      "pokedexId": 94,
+      "upstreamName": "Gengar",
+      "type": "ghost",
+      "specialty": "Ingredients",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2200,
+        "ingredientRate": 16.6,
+        "skillRate": 2.4,
+        "carryLimit": 18,
+        "mainSkill": "Charge Strength S (Random)",
+        "mainSkillJa": "エナジーチャージS (ランダム)",
+        "ing1": {
+          "name": "herb",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "mushroom",
+          "c2": 4,
+          "c3": 6
+        },
+        "ing3": {
+          "name": "oil",
+          "c3": 8
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ゴローニャ",
+      "pokedexId": 76,
+      "upstreamName": "Golem",
+      "type": "rock",
+      "specialty": "Ingredients",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 3100,
+        "ingredientRate": 28,
+        "skillRate": 5.2,
+        "carryLimit": 16,
+        "mainSkill": "Charge Strength S (Random)",
+        "mainSkillJa": "エナジーチャージS (ランダム)",
+        "ing1": {
+          "name": "soy",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "potato",
+          "c2": 4,
+          "c3": 6
+        },
+        "ing3": {
+          "name": "mushroom",
+          "c3": 4
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "サーナイト",
+      "pokedexId": 282,
+      "upstreamName": "Gardevoir",
+      "type": "psychic",
+      "specialty": "Skills",
+      "arrival": "2024-01-24",
+      "sourceProfile": {
+        "frequency": 2400,
+        "ingredientRate": 14.4,
+        "skillRate": 4.2,
+        "carryLimit": 18,
+        "mainSkill": "Energy for Everyone S",
+        "mainSkillJa": "げんきオールS",
+        "ing1": {
+          "name": "apple",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "corn",
+          "c2": 1,
+          "c3": 2
+        },
+        "ing3": {
+          "name": "leek",
+          "c3": 2
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "サンドパン",
+      "pokedexId": 28,
+      "upstreamName": "Sandslash",
+      "type": "ground",
+      "specialty": "Skills",
+      "arrival": "2026-04-27",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 10.8,
+        "skillRate": 4.3,
+        "carryLimit": 17,
+        "mainSkill": "Ingredient Draw S",
+        "mainSkillJa": "食材セレクトS",
+        "ing1": {
+          "name": "pumpkin",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "corn",
+          "c2": 4,
+          "c3": 6
+        },
+        "ing3": {
+          "name": "potato",
+          "c3": 7
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ジバコイル",
+      "pokedexId": 462,
+      "upstreamName": "Magnezone",
+      "type": "steel",
+      "specialty": "Skills",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 3100,
+        "ingredientRate": 17.9,
+        "skillRate": 6.2,
+        "carryLimit": 13,
+        "mainSkill": "Cooking Power-Up S",
+        "mainSkillJa": "料理パワーアップS",
+        "ing1": {
+          "name": "oil",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "herb",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": null
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ジュカイン",
+      "pokedexId": 254,
+      "upstreamName": "Sceptile",
+      "type": "grass",
+      "specialty": "Skills",
+      "arrival": "2025-07-14",
+      "sourceProfile": {
+        "frequency": 2300,
+        "ingredientRate": 10.7,
+        "skillRate": 3,
+        "carryLimit": 17,
+        "mainSkill": "Berry Burst",
+        "mainSkillJa": "きのみバースト",
+        "ing1": {
+          "name": "egg",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "coffee",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": {
+          "name": "leek",
+          "c3": 2
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ジュペッタ",
+      "pokedexId": 354,
+      "upstreamName": "Banette",
+      "type": "ghost",
+      "specialty": "Berries",
+      "arrival": "2023-10-30",
+      "sourceProfile": {
+        "frequency": 2600,
+        "ingredientRate": 17.9,
+        "skillRate": 3.3,
+        "carryLimit": 19,
+        "mainSkill": "Charge Strength S (Random)",
+        "mainSkillJa": "エナジーチャージS (ランダム)",
+        "ing1": {
+          "name": "oil",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "ginger",
+          "c2": 2,
+          "c3": 4
+        },
+        "ing3": {
+          "name": "mushroom",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "スイクン",
+      "pokedexId": 245,
+      "upstreamName": "Suicune",
+      "type": "water",
+      "specialty": "Skills",
+      "arrival": "2024-09-02",
+      "sourceProfile": {
+        "frequency": 2700,
+        "ingredientRate": 27.7,
+        "skillRate": 2.6,
+        "carryLimit": 17,
+        "mainSkill": "Helper Boost",
+        "mainSkillJa": "おてつだいブースト",
+        "ing1": {
+          "name": "apple",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "oil",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": {
+          "name": "corn",
+          "c3": 2
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ダークライ",
+      "pokedexId": 491,
+      "upstreamName": "Darkrai",
+      "type": "dark",
+      "specialty": "All",
+      "arrival": "2025-04-07",
+      "sourceProfile": {
+        "frequency": 2900,
+        "ingredientRate": 19.2,
+        "skillRate": 2.3,
+        "carryLimit": 28,
+        "mainSkill": "Charge Strength M (Bad Dreams)",
+        "mainSkillJa": "ナイトメア (エナジーチャージM)",
+        "ing1": {
+          "name": "sausage",
+          "c1": 2,
+          "c2": 0,
+          "c3": 0
+        },
+        "ing2": {
+          "name": "unknown",
+          "c2": 0,
+          "c3": 0
+        },
+        "ing3": {
+          "name": "unknown",
+          "c3": 0
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": [
+        "ing2",
+        "ing3"
+      ]
+    },
+    {
+      "name": "ダグトリオ",
+      "pokedexId": 51,
+      "upstreamName": "Dugtrio",
+      "type": "ground",
+      "specialty": "Ingredients",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2650,
+        "ingredientRate": 19,
+        "skillRate": 2,
+        "carryLimit": 16,
+        "mainSkill": "Charge Strength S",
+        "mainSkillJa": "エナジーチャージS",
+        "ing1": {
+          "name": "tomato",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "leek",
+          "c2": 3,
+          "c3": 4
+        },
+        "ing3": {
+          "name": "soy",
+          "c3": 8
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "タツベイ",
+      "pokedexId": 371,
+      "upstreamName": "Bagon",
+      "type": "dragon",
+      "specialty": "Berries",
+      "arrival": "2025-11-06",
+      "sourceProfile": {
+        "frequency": 5300,
+        "ingredientRate": 20.9,
+        "skillRate": 2.7,
+        "carryLimit": 9,
+        "mainSkill": "Cooking Power-Up S",
+        "mainSkillJa": "料理パワーアップS",
+        "ing1": {
+          "name": "potato",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "ginger",
+          "c2": 3,
+          "c3": 4
+        },
+        "ing3": {
+          "name": "sausage",
+          "c3": 4
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "タマザラシ (ホリデー)",
+      "pokedexId": 363,
+      "upstreamName": "Spheal (Holiday)",
+      "type": "ice",
+      "specialty": "Skills",
+      "arrival": "2025-12-22",
+      "sourceProfile": {
+        "frequency": 3300,
+        "ingredientRate": 21.4,
+        "skillRate": 5,
+        "carryLimit": 20,
+        "mainSkill": "Tasty Chance S",
+        "mainSkillJa": "料理チャンスS",
+        "ing1": {
+          "name": "oil",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "sausage",
+          "c2": 3,
+          "c3": 4
+        },
+        "ing3": {
+          "name": "ginger",
+          "c3": 4
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "チルタリス",
+      "pokedexId": 334,
+      "upstreamName": "Altaria",
+      "type": "dragon",
+      "specialty": "Berries",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 3500,
+        "ingredientRate": 25.8,
+        "skillRate": 6.1,
+        "carryLimit": 14,
+        "mainSkill": "Charge Energy S",
+        "mainSkillJa": "げんきチャージS",
+        "ing1": {
+          "name": "egg",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "soy",
+          "c2": 3,
+          "c3": 4
+        },
+        "ing3": {
+          "name": "apple",
+          "c3": 5
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ツボツボ",
+      "pokedexId": 213,
+      "upstreamName": "Shuckle",
+      "type": "bug",
+      "specialty": "Skills",
+      "arrival": "2026-01-19",
+      "sourceProfile": {
+        "frequency": 3600,
+        "ingredientRate": 20.5,
+        "skillRate": 5.9,
+        "carryLimit": 16,
+        "mainSkill": "Energy for Everyone S (Berry Juice)",
+        "mainSkillJa": "きのみジュース (げんきオールS)",
+        "ing1": {
+          "name": "oil",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "coffee",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": {
+          "name": "honey",
+          "c3": 4
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "デデンネ",
+      "pokedexId": 702,
+      "upstreamName": "Dedenne",
+      "type": "electric",
+      "specialty": "Skills",
+      "arrival": "2024-03-11",
+      "sourceProfile": {
+        "frequency": 2500,
+        "ingredientRate": 17.7,
+        "skillRate": 4.5,
+        "carryLimit": 19,
+        "mainSkill": "Tasty Chance S",
+        "mainSkillJa": "料理チャンスS",
+        "ing1": {
+          "name": "apple",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "cacao",
+          "c2": 1,
+          "c3": 2
+        },
+        "ing3": {
+          "name": "corn",
+          "c3": 2
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "デリバード",
+      "pokedexId": 225,
+      "upstreamName": "Delibird",
+      "type": "flying",
+      "specialty": "Ingredients",
+      "arrival": "2023-12-18",
+      "sourceProfile": {
+        "frequency": 2500,
+        "ingredientRate": 18.8,
+        "skillRate": 3,
+        "carryLimit": 20,
+        "mainSkill": "Ingredient Magnet S (Present)",
+        "mainSkillJa": "プレゼント (食材ゲットS)",
+        "ing1": {
+          "name": "egg",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "apple",
+          "c2": 6,
+          "c3": 9
+        },
+        "ing3": {
+          "name": "cacao",
+          "c3": 5
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "デンリュウ",
+      "pokedexId": 181,
+      "upstreamName": "Ampharos",
+      "type": "electric",
+      "specialty": "Skills",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2500,
+        "ingredientRate": 13,
+        "skillRate": 4.7,
+        "carryLimit": 15,
+        "mainSkill": "Charge Strength M",
+        "mainSkillJa": "エナジーチャージM",
+        "ing1": {
+          "name": "herb",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "egg",
+          "c2": 3,
+          "c3": 4
+        },
+        "ing3": null
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ドオー",
+      "pokedexId": 980,
+      "upstreamName": "Clodsire",
+      "type": "poison",
+      "specialty": "Ingredients",
+      "arrival": "2025-02-10",
+      "sourceProfile": {
+        "frequency": 3500,
+        "ingredientRate": 20.8,
+        "skillRate": 5.5,
+        "carryLimit": 20,
+        "mainSkill": "Charge Energy S",
+        "mainSkillJa": "げんきチャージS",
+        "ing1": {
+          "name": "cacao",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "coffee",
+          "c2": 4,
+          "c3": 7
+        },
+        "ing3": {
+          "name": "potato",
+          "c3": 9
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ドクロッグ",
+      "pokedexId": 454,
+      "upstreamName": "Toxicroak",
+      "type": "poison",
+      "specialty": "Ingredients",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 3400,
+        "ingredientRate": 22.9,
+        "skillRate": 4.3,
+        "carryLimit": 14,
+        "mainSkill": "Charge Strength S",
+        "mainSkillJa": "エナジーチャージS",
+        "ing1": {
+          "name": "oil",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "sausage",
+          "c2": 5,
+          "c3": 8
+        },
+        "ing3": null
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "トゲキッス",
+      "pokedexId": 468,
+      "upstreamName": "Togekiss",
+      "type": "fairy",
+      "specialty": "Skills",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2600,
+        "ingredientRate": 15.8,
+        "skillRate": 5.3,
+        "carryLimit": 16,
+        "mainSkill": "Metronome",
+        "mainSkillJa": "ゆびをふる",
+        "ing1": {
+          "name": "egg",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "ginger",
+          "c2": 2,
+          "c3": 4
+        },
+        "ing3": {
+          "name": "cacao",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "トドゼルガ",
+      "pokedexId": 365,
+      "upstreamName": "Walrein",
+      "type": "ice",
+      "specialty": "Berries",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 3000,
+        "ingredientRate": 22.3,
+        "skillRate": 2.2,
+        "carryLimit": 18,
+        "mainSkill": "Ingredient Magnet S",
+        "mainSkillJa": "食材ゲットS",
+        "ing1": {
+          "name": "oil",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "sausage",
+          "c2": 3,
+          "c3": 4
+        },
+        "ing3": {
+          "name": "ginger",
+          "c3": 4
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ニンフィア",
+      "pokedexId": 700,
+      "upstreamName": "Sylveon",
+      "type": "fairy",
+      "specialty": "Skills",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2600,
+        "ingredientRate": 17.8,
+        "skillRate": 4,
+        "carryLimit": 15,
+        "mainSkill": "Energy for Everyone S",
+        "mainSkillJa": "げんきオールS",
+        "ing1": {
+          "name": "milk",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "cacao",
+          "c2": 1,
+          "c3": 2
+        },
+        "ing3": {
+          "name": "sausage",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "パーモット",
+      "pokedexId": 923,
+      "upstreamName": "Pawmot",
+      "type": "electric",
+      "specialty": "Skills",
+      "arrival": "2024-12-23",
+      "sourceProfile": {
+        "frequency": 2400,
+        "ingredientRate": 14.1,
+        "skillRate": 3.9,
+        "carryLimit": 18,
+        "mainSkill": "Energy for Everyone S",
+        "mainSkillJa": "げんきオールS",
+        "ing1": {
+          "name": "cacao",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "milk",
+          "c2": 3,
+          "c3": 6
+        },
+        "ing3": {
+          "name": "egg",
+          "c3": 5
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "バクフーン",
+      "pokedexId": 157,
+      "upstreamName": "Typhlosion",
+      "type": "fire",
+      "specialty": "Berries",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2400,
+        "ingredientRate": 20.8,
+        "skillRate": 3.9,
+        "carryLimit": 23,
+        "mainSkill": "Charge Strength S (Random)",
+        "mainSkillJa": "エナジーチャージS (ランダム)",
+        "ing1": {
+          "name": "ginger",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "herb",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": {
+          "name": "oil",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "バシャーモ",
+      "pokedexId": 257,
+      "upstreamName": "Blaziken",
+      "type": "fighting",
+      "specialty": "Berries",
+      "arrival": "2025-07-14",
+      "sourceProfile": {
+        "frequency": 2600,
+        "ingredientRate": 15.3,
+        "skillRate": 4.9,
+        "carryLimit": 22,
+        "mainSkill": "Charge Energy S",
+        "mainSkillJa": "げんきチャージS",
+        "ing1": {
+          "name": "mushroom",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "soy",
+          "c2": 4,
+          "c3": 6
+        },
+        "ing3": {
+          "name": "oil",
+          "c3": 5
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "バタフリー",
+      "pokedexId": 12,
+      "upstreamName": "Butterfree",
+      "type": "bug",
+      "specialty": "Berries",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2500,
+        "ingredientRate": 19.7,
+        "skillRate": 1.4,
+        "carryLimit": 21,
+        "mainSkill": "Ingredient Magnet S",
+        "mainSkillJa": "食材ゲットS",
+        "ing1": {
+          "name": "honey",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "tomato",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": {
+          "name": "soy",
+          "c3": 4
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "バンギラス",
+      "pokedexId": 248,
+      "upstreamName": "Tyranitar",
+      "type": "dark",
+      "specialty": "Ingredients",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2700,
+        "ingredientRate": 26.6,
+        "skillRate": 5.2,
+        "carryLimit": 19,
+        "mainSkill": "Charge Energy S",
+        "mainSkillJa": "げんきチャージS",
+        "ing1": {
+          "name": "ginger",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "soy",
+          "c2": 5,
+          "c3": 8
+        },
+        "ing3": {
+          "name": "sausage",
+          "c3": 8
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "パンプジン (ギガだましゅ)",
+      "pokedexId": 711,
+      "upstreamName": "Gourgeist (Jumbo)",
+      "type": "ghost",
+      "specialty": "Ingredients",
+      "arrival": "2025-10-22",
+      "sourceProfile": {
+        "frequency": 3400,
+        "ingredientRate": 13,
+        "skillRate": 4.9,
+        "carryLimit": 25,
+        "mainSkill": "Charge Strength S",
+        "mainSkillJa": "エナジーチャージS",
+        "ing1": {
+          "name": "pumpkin",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "soy",
+          "c2": 11,
+          "c3": 18
+        },
+        "ing3": {
+          "name": "potato",
+          "c3": 15
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ヒノアラシ",
+      "pokedexId": 155,
+      "upstreamName": "Cyndaquil",
+      "type": "fire",
+      "specialty": "Berries",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 3500,
+        "ingredientRate": 18.6,
+        "skillRate": 2.1,
+        "carryLimit": 14,
+        "mainSkill": "Charge Strength S (Random)",
+        "mainSkillJa": "エナジーチャージS (ランダム)",
+        "ing1": {
+          "name": "ginger",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "herb",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": {
+          "name": "oil",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "フシギバナ",
+      "pokedexId": 3,
+      "upstreamName": "Venusaur",
+      "type": "grass",
+      "specialty": "Ingredients",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 26.6,
+        "skillRate": 2.1,
+        "carryLimit": 17,
+        "mainSkill": "Ingredient Magnet S",
+        "mainSkillJa": "食材ゲットS",
+        "ing1": {
+          "name": "honey",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "tomato",
+          "c2": 4,
+          "c3": 7
+        },
+        "ing3": {
+          "name": "potato",
+          "c3": 6
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "フライゴン",
+      "pokedexId": 330,
+      "upstreamName": "Flygon",
+      "type": "ground",
+      "specialty": "Ingredients",
+      "arrival": "2025-11-06",
+      "sourceProfile": {
+        "frequency": 2700,
+        "ingredientRate": 17.2,
+        "skillRate": 3.9,
+        "carryLimit": 17,
+        "mainSkill": "Charge Strength S",
+        "mainSkillJa": "エナジーチャージS",
+        "ing1": {
+          "name": "avocado",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "herb",
+          "c2": 6,
+          "c3": 9
+        },
+        "ing3": {
+          "name": "soy",
+          "c3": 12
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "フワライド",
+      "pokedexId": 426,
+      "upstreamName": "Drifblim",
+      "type": "ghost",
+      "specialty": "Skills",
+      "arrival": "2024-10-11",
+      "sourceProfile": {
+        "frequency": 2500,
+        "ingredientRate": 12.8,
+        "skillRate": 6.3,
+        "carryLimit": 17,
+        "mainSkill": "Charge Strength S (Stockpile)",
+        "mainSkillJa": "たくわえる (エナジーチャージS)",
+        "ing1": {
+          "name": "corn",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "oil",
+          "c2": 3,
+          "c3": 4
+        },
+        "ing3": {
+          "name": "potato",
+          "c3": 4
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ヘルガー",
+      "pokedexId": 229,
+      "upstreamName": "Houndoom",
+      "type": "dark",
+      "specialty": "Berries",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 3300,
+        "ingredientRate": 20.3,
+        "skillRate": 4,
+        "carryLimit": 16,
+        "mainSkill": "Charge Strength M",
+        "mainSkillJa": "エナジーチャージM",
+        "ing1": {
+          "name": "herb",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "ginger",
+          "c2": 3,
+          "c3": 4
+        },
+        "ing3": {
+          "name": "leek",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ボーマンダ",
+      "pokedexId": 373,
+      "upstreamName": "Salamence",
+      "type": "dragon",
+      "specialty": "Berries",
+      "arrival": "2025-11-06",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 21.7,
+        "skillRate": 3.4,
+        "carryLimit": 22,
+        "mainSkill": "Cooking Power-Up S",
+        "mainSkillJa": "料理パワーアップS",
+        "ing1": {
+          "name": "potato",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "ginger",
+          "c2": 3,
+          "c3": 4
+        },
+        "ing3": {
+          "name": "sausage",
+          "c3": 4
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ボスゴドラ",
+      "pokedexId": 306,
+      "upstreamName": "Aggron",
+      "type": "steel",
+      "specialty": "Ingredients",
+      "arrival": "2024-10-02",
+      "sourceProfile": {
+        "frequency": 3000,
+        "ingredientRate": 28.5,
+        "skillRate": 5.2,
+        "carryLimit": 18,
+        "mainSkill": "Charge Energy S",
+        "mainSkillJa": "げんきチャージS",
+        "ing1": {
+          "name": "sausage",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "coffee",
+          "c2": 3,
+          "c3": 5
+        },
+        "ing3": {
+          "name": "soy",
+          "c3": 7
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "マスカーニャ",
+      "pokedexId": 908,
+      "upstreamName": "Meowscarada",
+      "type": "dark",
+      "specialty": "Ingredients",
+      "arrival": "2024-07-15",
+      "sourceProfile": {
+        "frequency": 2600,
+        "ingredientRate": 19,
+        "skillRate": 2.2,
+        "carryLimit": 18,
+        "mainSkill": "Cooking Power-Up S",
+        "mainSkillJa": "料理パワーアップS",
+        "ing1": {
+          "name": "potato",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "milk",
+          "c2": 6,
+          "c3": 9
+        },
+        "ing3": {
+          "name": "ginger",
+          "c3": 8
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "マルノーム",
+      "pokedexId": 317,
+      "upstreamName": "Swalot",
+      "type": "poison",
+      "specialty": "Skills",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 3500,
+        "ingredientRate": 21,
+        "skillRate": 7,
+        "carryLimit": 19,
+        "mainSkill": "Dream Shard Magnet S (Random)",
+        "mainSkillJa": "ゆめのかけらゲットS (ランダム)",
+        "ing1": {
+          "name": "soy",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "mushroom",
+          "c2": 1,
+          "c3": 2
+        },
+        "ing3": {
+          "name": "honey",
+          "c3": 4
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ミカルゲ",
+      "pokedexId": 442,
+      "upstreamName": "Spiritomb",
+      "type": "dark",
+      "specialty": "Ingredients",
+      "arrival": "2025-12-01",
+      "sourceProfile": {
+        "frequency": 3500,
+        "ingredientRate": 19.8,
+        "skillRate": 3.6,
+        "carryLimit": 27,
+        "mainSkill": "Extra Helpful S",
+        "mainSkillJa": "おてつだいサポートS",
+        "ing1": {
+          "name": "mushroom",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "pumpkin",
+          "c2": 3,
+          "c3": 5
+        },
+        "ing3": {
+          "name": "leek",
+          "c3": 6
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ミズゴロウ",
+      "pokedexId": 258,
+      "upstreamName": "Mudkip",
+      "type": "water",
+      "specialty": "Berries",
+      "arrival": "2025-07-14",
+      "sourceProfile": {
+        "frequency": 4700,
+        "ingredientRate": 19.2,
+        "skillRate": 2.4,
+        "carryLimit": 11,
+        "mainSkill": "Tasty Chance S",
+        "mainSkillJa": "料理チャンスS",
+        "ing1": {
+          "name": "corn",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "milk",
+          "c2": 3,
+          "c3": 5
+        },
+        "ing3": {
+          "name": "mushroom",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ミュウ",
+      "pokedexId": 151,
+      "upstreamName": "Mew",
+      "type": "psychic",
+      "specialty": "All",
+      "arrival": "2026-03-05",
+      "sourceProfile": {
+        "frequency": 2900,
+        "ingredientRate": 20,
+        "skillRate": 4,
+        "carryLimit": 26,
+        "mainSkill": "Versatile",
+        "mainSkillJa": "オールマイティー",
+        "ing1": {
+          "name": "egg",
+          "c1": 2,
+          "c2": 0,
+          "c3": 0
+        },
+        "ing2": {
+          "name": "herb",
+          "c2": 4,
+          "c3": 0
+        },
+        "ing3": {
+          "name": "unknown",
+          "c3": 0
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": [
+        "ing3"
+      ]
+    },
+    {
+      "name": "メガニウム",
+      "pokedexId": 154,
+      "upstreamName": "Meganium",
+      "type": "grass",
+      "specialty": "Berries",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 17.5,
+        "skillRate": 4.6,
+        "carryLimit": 20,
+        "mainSkill": "Charge Strength S (Random)",
+        "mainSkillJa": "エナジーチャージS (ランダム)",
+        "ing1": {
+          "name": "cacao",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "honey",
+          "c2": 3,
+          "c3": 5
+        },
+        "ing3": {
+          "name": "leek",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "メタモン",
+      "pokedexId": 132,
+      "upstreamName": "Ditto",
+      "type": "normal",
+      "specialty": "Ingredients",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 3500,
+        "ingredientRate": 20.1,
+        "skillRate": 3.6,
+        "carryLimit": 17,
+        "mainSkill": "Skill Copy (Transform)",
+        "mainSkillJa": "へんしん (スキルコピー)",
+        "ing1": {
+          "name": "oil",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "leek",
+          "c2": 3,
+          "c3": 5
+        },
+        "ing3": {
+          "name": "tail",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ユキノオー",
+      "pokedexId": 460,
+      "upstreamName": "Abomasnow",
+      "type": "ice",
+      "specialty": "Ingredients",
+      "arrival": "2023-12-18",
+      "sourceProfile": {
+        "frequency": 3000,
+        "ingredientRate": 25,
+        "skillRate": 4.4,
+        "carryLimit": 21,
+        "mainSkill": "Charge Strength S (Random)",
+        "mainSkillJa": "エナジーチャージS (ランダム)",
+        "ing1": {
+          "name": "tomato",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "egg",
+          "c2": 4,
+          "c3": 7
+        },
+        "ing3": {
+          "name": "mushroom",
+          "c3": 5
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ライコウ",
+      "pokedexId": 243,
+      "upstreamName": "Raikou",
+      "type": "electric",
+      "specialty": "Skills",
+      "arrival": "2024-03-24",
+      "sourceProfile": {
+        "frequency": 2100,
+        "ingredientRate": 19.2,
+        "skillRate": 1.9,
+        "carryLimit": 22,
+        "mainSkill": "Helper Boost",
+        "mainSkillJa": "おてつだいブースト",
+        "ing1": {
+          "name": "sausage",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "herb",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": {
+          "name": "leek",
+          "c3": 2
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ライチュウ",
+      "pokedexId": 26,
+      "upstreamName": "Raichu",
+      "type": "electric",
+      "specialty": "Berries",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2200,
+        "ingredientRate": 22.4,
+        "skillRate": 3.2,
+        "carryLimit": 21,
+        "mainSkill": "Charge Strength S",
+        "mainSkillJa": "エナジーチャージS",
+        "ing1": {
+          "name": "apple",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "ginger",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": {
+          "name": "egg",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ラグラージ",
+      "pokedexId": 260,
+      "upstreamName": "Swampert",
+      "type": "ground",
+      "specialty": "Berries",
+      "arrival": "2025-07-14",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 14.6,
+        "skillRate": 3.4,
+        "carryLimit": 20,
+        "mainSkill": "Tasty Chance S",
+        "mainSkillJa": "料理チャンスS",
+        "ing1": {
+          "name": "corn",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "milk",
+          "c2": 3,
+          "c3": 5
+        },
+        "ing3": {
+          "name": "mushroom",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ラッタ",
+      "pokedexId": 20,
+      "upstreamName": "Raticate",
+      "type": "normal",
+      "specialty": "Berries",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2950,
+        "ingredientRate": 23.7,
+        "skillRate": 3,
+        "carryLimit": 16,
+        "mainSkill": "Charge Energy S",
+        "mainSkillJa": "げんきチャージS",
+        "ing1": {
+          "name": "apple",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "soy",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": {
+          "name": "sausage",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ラティアス",
+      "pokedexId": 380,
+      "upstreamName": "Latias",
+      "type": "dragon",
+      "specialty": "Skills",
+      "arrival": "2026-04-06",
+      "sourceProfile": {
+        "frequency": 2800,
+        "ingredientRate": 11.4,
+        "skillRate": 4.9,
+        "carryLimit": 19,
+        "mainSkill": "Energizing Cheer S (Heal Pulse)",
+        "mainSkillJa": "いやしのはどう (げんきエールS)",
+        "ing1": {
+          "name": "tomato",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "pumpkin",
+          "c2": 1,
+          "c3": 2
+        },
+        "ing3": {
+          "name": "mushroom",
+          "c3": 2
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "リーフィア",
+      "pokedexId": 470,
+      "upstreamName": "Leafeon",
+      "type": "grass",
+      "specialty": "Skills",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 3000,
+        "ingredientRate": 20.5,
+        "skillRate": 6.9,
+        "carryLimit": 13,
+        "mainSkill": "Energizing Cheer S",
+        "mainSkillJa": "げんきエールS",
+        "ing1": {
+          "name": "milk",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "cacao",
+          "c2": 1,
+          "c3": 2
+        },
+        "ing3": {
+          "name": "sausage",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "リザードン",
+      "pokedexId": 6,
+      "upstreamName": "Charizard",
+      "type": "fire",
+      "specialty": "Ingredients",
+      "arrival": "2023-07-17",
+      "sourceProfile": {
+        "frequency": 2400,
+        "ingredientRate": 22.4,
+        "skillRate": 1.6,
+        "carryLimit": 19,
+        "mainSkill": "Ingredient Magnet S",
+        "mainSkillJa": "食材ゲットS",
+        "ing1": {
+          "name": "sausage",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "ginger",
+          "c2": 4,
+          "c3": 7
+        },
+        "ing3": {
+          "name": "herb",
+          "c3": 6
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "レントラー",
+      "pokedexId": 405,
+      "upstreamName": "Luxray",
+      "type": "electric",
+      "specialty": "Ingredients",
+      "arrival": "2024-10-02",
+      "sourceProfile": {
+        "frequency": 2400,
+        "ingredientRate": 20,
+        "skillRate": 2.3,
+        "carryLimit": 21,
+        "mainSkill": "Cooking Power-Up S",
+        "mainSkillJa": "料理パワーアップS",
+        "ing1": {
+          "name": "tomato",
+          "c1": 2,
+          "c2": 5,
+          "c3": 7
+        },
+        "ing2": {
+          "name": "oil",
+          "c2": 4,
+          "c3": 7
+        },
+        "ing3": {
+          "name": "coffee",
+          "c3": 5
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    },
+    {
+      "name": "ロコン",
+      "pokedexId": 37,
+      "upstreamName": "Vulpix",
+      "type": "fire",
+      "specialty": "Berries",
+      "arrival": "2024-05-06",
+      "sourceProfile": {
+        "frequency": 4700,
+        "ingredientRate": 16.8,
+        "skillRate": 3.2,
+        "carryLimit": 13,
+        "mainSkill": "Energizing Cheer S",
+        "mainSkillJa": "げんきエールS",
+        "ing1": {
+          "name": "soy",
+          "c1": 1,
+          "c2": 2,
+          "c3": 4
+        },
+        "ing2": {
+          "name": "corn",
+          "c2": 2,
+          "c3": 3
+        },
+        "ing3": {
+          "name": "potato",
+          "c3": 3
+        }
+      },
+      "status": "SOURCE_MAPPED_CALCULATION_BLOCKED",
+      "unknownIngredientSlots": []
+    }
+  ],
+  "dictionaries": {
+    "ingredients": {
+      "leek": "ふといながねぎ",
+      "mushroom": "あじわいキノコ",
+      "egg": "とくせんエッグ",
+      "potato": "ほっこりポテト",
+      "apple": "とくせんリンゴ",
+      "herb": "げきからハーブ",
+      "sausage": "マメミート",
+      "milk": "モーモーミルク",
+      "honey": "あまいミツ",
+      "oil": "ピュアなオイル",
+      "ginger": "あったかジンジャー",
+      "tomato": "あんみんトマト",
+      "cacao": "リラックスカカオ",
+      "tail": "おいしいシッポ",
+      "soy": "ワカクサ大豆",
+      "corn": "ワカクサコーン",
+      "coffee": "めざましコーヒー",
+      "pumpkin": "ずっしりカボチャ",
+      "avocado": "つやつやアボカド",
+      "nuts": "ひとくちナッツ"
+    },
+    "natures": {
+      "Bashful": "てれや",
+      "Hardy": "がんばりや",
+      "Docile": "すなお",
+      "Quirky": "きまぐれ",
+      "Serious": "まじめ",
+      "Bold": "ずぶとい",
+      "Impish": "わんぱく",
+      "Lax": "のうてんき",
+      "Relaxed": "のんき",
+      "Timid": "おくびょう",
+      "Hasty": "せっかち",
+      "Jolly": "ようき",
+      "Naive": "むじゃき",
+      "Lonely": "さみしがり",
+      "Adamant": "いじっぱり",
+      "Naughty": "やんちゃ",
+      "Brave": "ゆうかん",
+      "Calm": "おだやか",
+      "Gentle": "おとなしい",
+      "Careful": "しんちょう",
+      "Sassy": "なまいき",
+      "Modest": "ひかえめ",
+      "Mild": "おっとり",
+      "Rash": "うっかりや",
+      "Quiet": "れいせい"
+    },
+    "subskills": {
+      "Gold colored": "金色サブスキル",
+      "Berry Finding S": "きのみの数S",
+      "Dream Shard Bonus": "ゆめのかけらボーナス",
+      "Energy Recovery Bonus": "げんき回復ボーナス",
+      "Helping Bonus": "おてつだいボーナス",
+      "Research EXP Bonus": "リサーチEXPボーナス",
+      "Sleep EXP Bonus": "睡眠EXPボーナス",
+      "Skill Level Up": "スキルレベルアップ",
+      "Skill Level Up M": "スキルレベルアップM",
+      "Skill Level Up S": "スキルレベルアップS",
+      "Skill Trigger": "スキル確率アップ",
+      "Skill Trigger M": "スキル確率アップM",
+      "Skill Trigger S": "スキル確率アップS",
+      "Helping Speed": "おてつだいスピード",
+      "Helping Speed M": "おてつだいスピードM",
+      "Helping Speed S": "おてつだいスピードS",
+      "Ingredient Finder": "食材確率アップ",
+      "Ingredient Finder M": "食材確率アップM",
+      "Ingredient Finder S": "食材確率アップS",
+      "Inventory Up": "最大所持数アップ",
+      "Inventory Up L": "最大所持数アップL",
+      "Inventory Up M": "最大所持数アップM",
+      "Inventory Up S": "最大所持数アップS"
+    },
+    "mainSkills": {
+      "Ingredient Magnet S": "食材ゲットS",
+      "Ingredient Magnet S (Plus)": "プラス (食材ゲットS)",
+      "Ingredient Magnet S (Present)": "プレゼント (食材ゲットS)",
+      "Charge Energy S": "げんきチャージS",
+      "Charge Energy S (Moonlight)": "つきのひかり (げんきチャージS)",
+      "Charge Strength S": "エナジーチャージS",
+      "Charge Strength S (Random)": "エナジーチャージS (ランダム)",
+      "Charge Strength S (Stockpile)": "たくわえる (エナジーチャージS)",
+      "Charge Strength M": "エナジーチャージM",
+      "Charge Strength M (Bad Dreams)": "ナイトメア (エナジーチャージM)",
+      "Dream Shard Magnet S": "ゆめのかけらゲットS",
+      "Dream Shard Magnet S (Random)": "ゆめのかけらゲットS (ランダム)",
+      "Dream Shard Magnet S (Aura Sphere)": "はどうだん (ゆめのかけらゲットS)",
+      "Energizing Cheer S": "げんきエールS",
+      "Energizing Cheer S (Nuzzle)": "ほっぺすりすり (げんきエールS)",
+      "Energizing Cheer S (Heal Pulse)": "いやしのはどう (げんきエールS)",
+      "Metronome": "ゆびをふる",
+      "Energy for Everyone S": "げんきオールS",
+      "Energy for Everyone S (Lunar Blessing)": "みかづきのいのり (げんきオールS)",
+      "Energy for Everyone S (Berry Juice)": "きのみジュース (げんきオールS)",
+      "Extra Helpful S": "おてつだいサポートS",
+      "Cooking Power-Up S": "料理パワーアップS",
+      "Cooking Power-Up S (Minus)": "マイナス (料理パワーアップS)",
+      "Tasty Chance S": "料理チャンスS",
+      "Helper Boost": "おてつだいブースト",
+      "Berry Burst": "きのみバースト",
+      "Berry Burst (Disguise)": "ばけのかわ (きのみバースト)",
+      "Skill Copy": "スキルコピー",
+      "Skill Copy (Transform)": "へんしん (スキルコピー)",
+      "Skill Copy (Mimic)": "ものまね (スキルコピー)",
+      "Ingredient Draw S": "食材セレクトS",
+      "Ingredient Draw S (Super Luck)": "きょううん (食材セレクトS)",
+      "Ingredient Draw S (Hyper Cutter)": "かいりきバサミ (食材セレクトS)",
+      "Cooking Assist S": "料理アシストS",
+      "Cooking Assist S (Bulk Up)": "ビルドアップ (料理アシストS)",
+      "Versatile": "オールマイティー",
+      "Berry Burst (Draco Meteor)": "りゅうせいぐん (きのみバースト)",
+      "Berry Zone": "きのみゾーン",
+      "Berry Zone (Psystrike)": "サイコブレイク (きのみゾーン)",
+      "Cooking Advance S": "料理アドバンスS",
+      "Cooking Advance S (Mystical Fire)": "マジカルフレイム (料理アドバンスS)",
+      "unknown": "(不明)"
+    }
+  }
+}
