@@ -76,6 +76,26 @@ try:
         assert f.locator('.e7-cal-event').count()==3
         f.locator('#event-details').evaluate('(el)=>el.open=true')
         f.locator('#e7-event-delete').wait_for(state='visible')
+        # A new event is often made by editing an existing saved event.
+        # The delete button must hide as soon as that saved event is dirty.
+        f.locator('#event-start').evaluate("""el=>{
+          el.value='2026-11-16';
+          el.dispatchEvent(new Event('change',{bubbles:true}));
+        }""")
+        assert not f.locator('#e7-event-delete').is_visible(), 'Changed week must hide deletion'
+        # Even a scripted/stale click cannot delete the previously selected event.
+        f.locator('#e7-event-delete').dispatch_event('click')
+        assert exists(page,manual) and exists(page,official) and exists(page,another)
+        f.locator('#event-start').evaluate("""el=>{
+          el.value='2026-11-09';
+          el.dispatchEvent(new Event('change',{bubbles:true}));
+        }""")
+        f.locator('#e7-event-delete').wait_for(state='visible')
+        f.locator('#event-field').select_option('トープ洞窟')
+        assert not f.locator('#e7-event-delete').is_visible(), 'Edited field must hide deletion'
+        assert exists(page,manual)
+        f.locator('#event-field').select_option('シアンの砂浜')
+        f.locator('#e7-event-delete').wait_for(state='visible')
         for width in [320,393,430]:
             page.set_viewport_size({'width':width,'height':852})
             assert f.locator('#e7-event-delete').is_visible(),width
@@ -101,6 +121,13 @@ try:
         page.wait_for_function("""()=>JSON.parse(localStorage.getItem(
           'pokesleep-strategy-u3-e3-v1:selected')||'null')?.id==='official-nov-event'""",timeout=20000)
         f=plan(page)
+        f.locator('#event-details').evaluate('(el)=>el.open=true')
+        f.locator('#e7-event-delete').wait_for(state='visible')
+        f.locator('#event-source-select').select_option('')
+        assert not f.locator('#e7-event-delete').is_visible(), 'Unsaved manual switch must hide deletion'
+        assert exists(page,official)
+        f.locator('#event-source-select').select_option(official)
+        f.locator('#e7-event-delete').wait_for(state='visible')
         f.locator('#e6-dev').evaluate('(el)=>el.open=true')
         f.locator('#e6-reset').click()
         page.locator('#e7-feedback-dialog').wait_for(state='visible')
@@ -117,4 +144,4 @@ try:
         browser.close()
 finally:
     server.shutdown()
-print('E7 v71 calendar: cancel, exact-ID delete, same-week isolation, dev reset and 320/393/430 PASS')
+print('E7 v72 calendar: dirty-form guard, stale click, cancel, exact-ID delete, same-week isolation, dev reset and 320/393/430 PASS')
