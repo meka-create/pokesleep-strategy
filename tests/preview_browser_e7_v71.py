@@ -59,6 +59,10 @@ try:
         errors=[]
         page.on('pageerror',lambda error: errors.append(str(error)))
         page.goto(BASE+'?tab=plan',wait_until='domcontentloaded')
+        f=plan(page)
+        assert not f.locator('#e7-event-action-row').is_visible(), 'Empty first-run action row must vanish'
+        assert not f.locator('#event-save').is_visible(), 'No Save until meaningful input'
+        assert not f.locator('#e7-event-delete').is_visible(), 'No Delete without saved event'
         manual='manual:'+WEEK
         official='official-nov-event'
         another='official-same-week'
@@ -76,6 +80,8 @@ try:
         assert f.locator('.e7-cal-event').count()==3
         f.locator('#event-details').evaluate('(el)=>el.open=true')
         f.locator('#e7-event-delete').wait_for(state='visible')
+        assert f.locator('#e7-event-action-row').is_visible()
+        assert not f.locator('#event-save').is_visible(), 'Unmodified saved event: Delete only'
         # A new event is often made by editing an existing saved event.
         # The delete button must hide as soon as that saved event is dirty.
         f.locator('#event-start').evaluate("""el=>{
@@ -83,7 +89,16 @@ try:
           el.dispatchEvent(new Event('change',{bubbles:true}));
         }""")
         assert not f.locator('#e7-event-delete').is_visible(), 'Changed week must hide deletion'
-        assert not f.locator('#e7-event-delete-row').is_visible(), 'No empty delete row while editing'
+        assert f.locator('#e7-event-action-row').is_visible(), 'Same row for Save and Delete'
+        assert f.locator('#event-save').is_visible(), 'Changed week: Save is visible'
+        assert not f.locator('#e7-event-delete').is_visible(), 'Edited event: Delete hidden'
+        actions=f.locator('#e7-event-action-row').evaluate("""el=>{
+          const a=el.getBoundingClientRect(),save=el.querySelector('#event-save').getBoundingClientRect();
+          return {width:a.width,saveWidth:save.width,rowLeft:a.left,saveLeft:save.left,saveHeight:save.height};
+        }""")
+        assert abs(actions['width']-actions['saveWidth'])<=1,actions
+        assert abs(actions['rowLeft']-actions['saveLeft'])<=1,actions
+        assert actions['saveHeight']>=43,actions
         # Even a scripted/stale click cannot delete the previously selected event.
         f.locator('#e7-event-delete').dispatch_event('click')
         assert exists(page,manual) and exists(page,official) and exists(page,another)
@@ -92,22 +107,26 @@ try:
           el.dispatchEvent(new Event('change',{bubbles:true}));
         }""")
         f.locator('#e7-event-delete').wait_for(state='visible')
+        assert not f.locator('#event-save').is_visible(), 'Reverted week: Save disappears'
         f.locator('#event-field').evaluate("""(el,value)=>{
           el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));
         }""",'トープ洞窟')
         assert not f.locator('#e7-event-delete').is_visible(), 'Edited field must hide deletion'
+        assert f.locator('#event-save').is_visible(), 'Edited field must show Save'
         assert exists(page,manual)
         f.locator('#event-field').evaluate("""(el,value)=>{
           el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));
         }""",'シアンの砂浜')
         f.locator('#e7-event-delete').wait_for(state='visible')
+        assert not f.locator('#event-save').is_visible(), 'Restored saved field: Save hidden'
         for width in [320,393,430]:
             page.set_viewport_size({'width':width,'height':852})
             assert f.locator('#e7-event-delete').is_visible(),width
-            assert f.locator('#e7-event-delete-row').is_visible(),width
+            assert f.locator('#e7-event-action-row').is_visible(),width
+            assert not f.locator('#event-save').is_visible(),width
             geometry=f.locator('#e7-event-delete').evaluate("""el=>{
               const button=el.getBoundingClientRect();
-              const row=el.closest('#e7-event-delete-row').getBoundingClientRect();
+              const row=el.closest('#e7-event-action-row').getBoundingClientRect();
               return {height:button.height,width:button.width,rightGap:row.right-button.right};
             }""")
             assert 31<=geometry['height']<=33,(width,geometry)
@@ -131,6 +150,7 @@ try:
         assert page.evaluate('(k)=>localStorage.getItem(k)!==null',timeline)
         f=plan(page)
         assert not f.locator('#e7-event-delete').is_visible()
+        assert not f.locator('#e7-event-action-row').is_visible(), 'After deleting last selected event, no empty actions'
         f.locator('.e7-cal-event[data-event-id="official-nov-event"]').click()
         page.wait_for_function("""()=>{
           const el=document.getElementById('view-plan');
@@ -150,11 +170,13 @@ try:
           el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));
         }""",'')
         assert not f.locator('#e7-event-delete').is_visible(), 'Unsaved manual switch must hide deletion'
+        assert f.locator('#event-save').is_visible(), 'Manual source change: Save only'
         assert exists(page,official)
         f.locator('#event-source-select').evaluate("""(el,value)=>{
           el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));
         }""",official)
         f.locator('#e7-event-delete').wait_for(state='visible')
+        assert not f.locator('#event-save').is_visible()
         f.locator('#e6-dev').evaluate('(el)=>el.open=true')
         f.locator('#e6-reset').click()
         page.locator('#e7-feedback-dialog').wait_for(state='visible')
@@ -171,4 +193,4 @@ try:
         browser.close()
 finally:
     server.shutdown()
-print('E7 v72 calendar: dirty-form guard, stale click, cancel, exact-ID delete, same-week isolation, dev reset and 320/393/430 PASS')
+print('E7 v73 calendar: one stable action row, Save/Delete exclusive, dirty-form guard, scoped delete and 320/393/430 PASS')
