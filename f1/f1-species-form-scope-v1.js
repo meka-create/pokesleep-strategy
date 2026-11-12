@@ -36,9 +36,12 @@
   if(parsed?.ok!==true||!Array.isArray(parsed.items)||
      (Array.isArray(parsed.errors)&&parsed.errors.length>0))
    throw fail('SOURCE_INVALID','CSV・TSVの読み取りが確定していません。部分データを採用しません。');
-  const expected=options.expectedIndividuals??EXPECTED;
-  if(!Number.isSafeInteger(expected)||expected<1||expected>10000)
-   throw fail('SCOPE_COUNT','対象個体数の設定が不正です。');
+  // Initial F1 scope is exactly the user-selected 68 individuals. A caller
+  // must not bypass that contract with a lower/higher expected row count.
+  if(Object.prototype.hasOwnProperty.call(options,'expectedIndividuals')&&
+     options.expectedIndividuals!==EXPECTED)
+   throw fail('SCOPE_COUNT','F1初期対象は68個体固定です。');
+  const expected=EXPECTED;
   if(parsed.items.length!==expected)
    throw fail('SCOPE_COUNT',`対象は${expected}個体です。入力された${parsed.items.length}個体から暗黙に選別しません。`);
   const byName=indexCatalog(catalog);
