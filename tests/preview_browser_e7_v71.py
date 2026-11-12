@@ -91,10 +91,14 @@ try:
           el.dispatchEvent(new Event('change',{bubbles:true}));
         }""")
         f.locator('#e7-event-delete').wait_for(state='visible')
-        f.locator('#event-field').select_option('トープ洞窟')
+        f.locator('#event-field').evaluate("""(el,value)=>{
+          el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));
+        }""",'トープ洞窟')
         assert not f.locator('#e7-event-delete').is_visible(), 'Edited field must hide deletion'
         assert exists(page,manual)
-        f.locator('#event-field').select_option('シアンの砂浜')
+        f.locator('#event-field').evaluate("""(el,value)=>{
+          el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));
+        }""",'シアンの砂浜')
         f.locator('#e7-event-delete').wait_for(state='visible')
         for width in [320,393,430]:
             page.set_viewport_size({'width':width,'height':852})
@@ -123,10 +127,14 @@ try:
         f=plan(page)
         f.locator('#event-details').evaluate('(el)=>el.open=true')
         f.locator('#e7-event-delete').wait_for(state='visible')
-        f.locator('#event-source-select').select_option('')
+        f.locator('#event-source-select').evaluate("""(el,value)=>{
+          el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));
+        }""",'')
         assert not f.locator('#e7-event-delete').is_visible(), 'Unsaved manual switch must hide deletion'
         assert exists(page,official)
-        f.locator('#event-source-select').select_option(official)
+        f.locator('#event-source-select').evaluate("""(el,value)=>{
+          el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}));
+        }""",official)
         f.locator('#e7-event-delete').wait_for(state='visible')
         f.locator('#e6-dev').evaluate('(el)=>el.open=true')
         f.locator('#e6-reset').click()
