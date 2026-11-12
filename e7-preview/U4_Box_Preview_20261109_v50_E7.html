@@ -67,7 +67,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 #e6-footer a:focus-visible{outline:2px solid #ffdf93}
 #e6-footer .e6-ico{height:24px;width:24px;display:block;margin-bottom:1px;flex:0 0 24px}
 #e6-footer-plan[data-reproposal="true"]::after{content:"";position:absolute;top:7px;left:calc(50% + 7px);width:8px;height:8px;background:#f5bc53;border:2px solid #142234;border-radius:50%;box-sizing:content-box;pointer-events:none}
-</style><link rel="stylesheet" href="e7-feedback-v66.css"><script src="e7-feedback-v66.js"></script>
+</style><link rel="stylesheet" href="e7-feedback-v66.css"><script src="e7-feedback-v66.js"></script><script src="e7-inventory-scope-v78.js"></script>
 
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
@@ -382,7 +382,7 @@ function watchPacket(){
 function readNewestInventory(w){
  const items=[];
  try{
-  const record=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+w.weekStart+':timeline')||'null');
+  const record=PokeE7InventoryScope.read(localStorage,w.weekStart,w.eventId);
   if(record?.eventId===w.eventId&&record.currentInventory)
    items.push({values:record.currentInventory.values,savedAt:record.currentInventory.savedAt});
  }catch(e){}
