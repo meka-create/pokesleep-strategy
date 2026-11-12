@@ -5,13 +5,13 @@ const root=path.resolve(__dirname,'../e7-preview');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const blobSha=bytes=>crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex');
 
-test('E7 v69 uses precisely the temporary comparison icon in the common three-tab header',()=>{
- const bridge=read('e7-unified-bridge-v51.js'),icon=fs.readFileSync(path.join(root,'e7-header-temp-v69.png'));
+test('E7 v69 uses precisely the supplied icon in the common three-tab header',()=>{
+ const bridge=read('e7-unified-bridge-v51.js'),icon=fs.readFileSync(path.join(root,'icons/icon-header-96.png'));
  assert.equal(icon.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
- assert.equal(icon.readUInt32BE(16),64);
- assert.equal(icon.readUInt32BE(20),64);
- assert.equal(blobSha(icon),'4be927051a0290eeb5f36b09c23efcdaa6f728ff');
- assert.match(bridge,/icon\.src='e7-header-temp-v69\.png'/);
+ assert.equal(icon.readUInt32BE(16),96);
+ assert.equal(icon.readUInt32BE(20),96);
+ assert.equal(blobSha(icon),'d58c3ae9bae759ef20959437f7161f1b0bd5bfe1');
+ assert.match(bridge,/icon\.src='icons\/icon-header-96\.png'/);
  assert.match(bridge,/icon\.className='e7-header-icon'/);
  assert.match(bridge,/titleNode\.textContent='ポケスリ作戦室'/);
  assert.match(bridge,/titleWrap\.querySelector\('\.sub,\.subbrand,\.smallcap'\)\?\.remove\(\)/);
@@ -26,12 +26,11 @@ test('E7 v69 uses precisely the temporary comparison icon in the common three-ta
  assert.match(bridge,/flex:0 0 42px/);
  assert.doesNotThrow(()=>new vm.Script(bridge));
 });
-test('E7 v69 updates offline cache but leaves PWA manifest icon unchanged',()=>{
+test('E7 v69 updates offline cache and installs the supplied PWA icons',()=>{
  const sw=read('e7-sw-v50.js'),html=read('index.html'),manifest=read('e7-manifest-v50.webmanifest');
- assert.match(sw,/pokesleep-strategy-e7-v73-unified-action-row-20261112/);
- assert.match(sw,/'e7-header-temp-v69\.png'/);
- assert.match(html,/<title>ポケスリ作戦室 E7 v73<\/title>/);
- assert.equal(blobSha(Buffer.from(manifest,'utf8')),'c3ea3def021a5b96fdee4a5a17b7f73d8845a028');
+ assert.match(sw,/pokesleep-strategy-e7-v74-supplied-icons-20261112/);
+ assert.match(sw,/'icons\/icon-header-96\.png'/);
+ assert.match(html,/<title>ポケスリ作戦室 E7 v74<\/title>/);
  assert.equal(blobSha(Buffer.from(read('e7-icon-v50.svg'),'utf8')),'14e99856886eaf0141ecf95d61b44c2493bc8c7b');
- assert.equal(JSON.parse(manifest).icons[0].src,'e7-icon-v50.svg');
+ assert.equal(JSON.parse(manifest).icons[0].src,'icons/icon-192.png');
 });

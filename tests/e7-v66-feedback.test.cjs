@@ -49,9 +49,9 @@ test('E7 v66: temporary results use toast; user-editable and persistent issues s
  assert.match(U4,/id="e7-blocked" hidden role="alert"/);
  assert.match(read('e7-settings-v56.js'),/node\.textContent=error\?message:''/);
  const sw=read('e7-sw-v50.js');
- assert.match(sw,/pokesleep-strategy-e7-v73-unified-action-row-20261112/);
+ assert.match(sw,/pokesleep-strategy-e7-v74-supplied-icons-20261112/);
  assert.match(sw,/'e7-feedback-v66\.js','e7-feedback-v66\.css'/);
- assert.match(read('index.html'),/<title>ポケスリ作戦室 E7 v73<\/title>/);
+ assert.match(read('index.html'),/<title>ポケスリ作戦室 E7 v74<\/title>/);
 });
 test('E7 v66 Chromium: custom modal/toast and cancellation regression',{timeout:170000},()=>{
  require('node:child_process').execFileSync('python3',
