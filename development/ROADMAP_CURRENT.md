@@ -1,3 +1,10 @@
+## E7 v76 — Pixel円形アイコンの安全余白調整（2026-11-12／CI検証中）
+- ユーザー提供 `pokesleep_strategy_pwa_icons_pixel_safe_margin_full.zip` を原本とする。Pixel円形表示でキャラクターが大き過ぎたため、中心デザインを縮小し余白を調節。
+- `e7-preview/icons/icon-maskable-192.png` はGit blob SHA `2e1a06c05ea08f94bfbb75b3036f5a9eb02d64cd`、`icon-maskable-512.png` は `cb94b4215220b7697666dc312dca3a5039f3b359`。添付ファイルを無加工で取り込む。
+- 通常・ヘッダー・favicon等7画像はGit blob SHA一致のため無変更。PWA manifestのmaskable参照を `?v=20261112-pixel4-safemargin` に更新。HTMLのmanifest URLおよびE7専用SWキャッシュ識別子を変更。
+- manifestのアプリID・scope・start_url、保存内容、イベント計算、従来のroot、およびF1工程は変更しない。
+- 受入ゲート：PNG SHA/寸法、変更なし7画像の一致、E7既存2系統CI、Pagesデプロイ、Android Pixelでの実機円形表示。ユーザー実機受入まで最終承認は保留。
+
 ## E7 v75 — Pixel用maskableアイコンの四隅ぼかし除去（2026-11-12／CI検証前）
 - ユーザー提供 `pokesleep_strategy_pwa_icons_pixel_no_corner_blur_full(1).zip` を正本とする。既存のPWAアイコン7ファイルはZIPとGit blob SHA一致で無変更。
 - `e7-preview/icons/icon-maskable-192.png`（blob `92f3b446a482f6b164573408cdcb139e9c852a56`）と `icon-maskable-512.png`（blob `cfe7eb37484e8887f1a896d99f83a4e38119101b`）をZIPの原本バイトそのままで置換。
