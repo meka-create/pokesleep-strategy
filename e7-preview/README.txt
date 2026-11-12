@@ -169,3 +169,6 @@ URL: https://meka-create.github.io/pokesleep-strategy/e7-preview/
 - 新規入力のない初期状態では両方と行を非表示。保存/削除の位置は別行に移さない。
 - 編集開始、元に戻す、保存完了、カレンダー切替後の表示を同じ1行で更新。削除確認・同週別イベント保護などv72安全仕様は維持。
 - 旧root・最適化・PWAアイコンは無変更。E7プレビューのUI単独工程。
+
+【E7 v74 — 添付アイコンセット（2026-11-12）】
+assets(3).zipの9画像をicons/へ無加工で配置。共通ヘッダー96px、通常192/512px、maskable192/512px、Apple touch180px、favicon16/32/ICO。manifestの識別子とscopeは維持。オフラインキャッシュ更新。Android実機の表示は未確認。

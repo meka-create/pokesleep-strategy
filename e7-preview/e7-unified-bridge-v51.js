@@ -86,8 +86,7 @@
    menu.append(item);
   }
   // The header identity is shared across Strategy, Preparation and Box.
-  // This temporary icon is sourced from the approved comparison mockup;
-  // the PWA manifest icon is deliberately unchanged.
+  // Use the user-supplied header asset from the approved PWA icon set.
   const titleNode=header.querySelector('.brand');
   const titleWrap=titleNode?.parentElement;
   if(!titleNode||!titleWrap)throw new Error('E7 header brand is missing');
@@ -96,7 +95,7 @@
   titleWrap.classList.add('e7-header-identity');
   const icon=document.createElement('img');
   icon.className='e7-header-icon';
-  icon.src='e7-header-temp-v69.png';
+  icon.src='icons/icon-header-96.png';
   icon.alt='';
   icon.width=44;icon.height=44;
   icon.setAttribute('aria-hidden','true');

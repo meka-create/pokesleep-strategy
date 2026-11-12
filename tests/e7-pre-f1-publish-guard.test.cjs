@@ -30,12 +30,12 @@ test('E7 publishing has a single deployment owner; preflight is read-only',()=>{
 });
 test('E7 offline installation precaches every local script, stylesheet and image',()=>{
  const sw=read('e7-preview/e7-sw-v50.js');
- const icon='e7-header-temp-v69.png';
+ const icon='icons/icon-header-96.png';
  assert.match(sw,/new URL\(x,self\.registration\.scope\)/);
  assert.match(sw,/\.then\(\(\)=>self\.skipWaiting\(\)\)/);
  assert.match(sw,/caches\.open\(CACHE\)\.then\(cache=>cache\.addAll/);
  assert.match(sw,/\.then\(\(\)=>self\.clients\.claim\(\)\)/);
- assert.match(sw,/e7-header-temp-v69\.png/);
+ assert.match(sw,/icons\/icon-header-96\.png/);
  for(const f of html){
   assert(exists('e7-preview/'+f),f);
   assert(sw.includes("'"+f+"'"),'not precached: '+f);
@@ -66,9 +66,9 @@ test('E7 shows one selected event across three tabs, not a Box-only subtitle',()
  assert.match(bridge,/caption\.textContent=name\|\|'for Pokémon Sleep'/);
  assert.match(bridge,/calendar\.toggleAttribute\('hidden',!name\)/);
  assert.match(plan,/window\.__e7CurrentEventHeader=\(\)=>/);
- assert.match(bridge,/icon\.src='e7-header-temp-v69\.png'/);
+ assert.match(bridge,/icon\.src='icons\/icon-header-96\.png'/);
  const manifest=JSON.parse(read('e7-preview/e7-manifest-v50.webmanifest'));
- assert.equal(manifest.icons[0].src,'e7-icon-v50.svg'); // Formal icon still pending.
+ assert.equal(manifest.icons[0].src,'icons/icon-192.png');
 });
 test('E7 confirms destructive actions with custom UI, not native browser dialogs',()=>{
  for(const file of html.concat('e7-settings-v56.js')){
