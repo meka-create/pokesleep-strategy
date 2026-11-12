@@ -2,8 +2,15 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
-const Scope=require('../f1/f1-species-form-scope-v1.js');
-const BoxCsv=require('../e7-preview/e7-box-csv-v50.js');
+// The PWA adapters are classic browser scripts in a type=module package.
+// Load them through an isolated CommonJS-compatible VM (existing E7 test pattern).
+function loadAdapter(relative){
+ const sandbox={module:{exports:{}},globalThis:{}};
+ vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'..',relative),'utf8'),sandbox);
+ return sandbox.module.exports;
+}
+const Scope=loadAdapter('f1/f1-species-form-scope-v1.js');
+const BoxCsv=loadAdapter('e7-preview/e7-box-csv-v50.js');
 const root=path.resolve(__dirname,'../e7-preview');
 const window={};
 vm.runInNewContext(fs.readFileSync(path.join(root,'e7-species-v59.js'),'utf8'),{window});
