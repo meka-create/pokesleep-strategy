@@ -1,5 +1,7 @@
 # E7 v78 — F1着手前・最終独立監査
 
+> **最終受入結果：PASS（2026-11-13 JST）** — E7 v78の同週別イベント在庫分離についてPixel実機PASSを確認し、ユーザーがE7最終受入を明示承認。監査対象の `main 64117bab366eb4e073e7e00d6771eaef470e0cd4` は、統合後2系統CI各607/607 PASS、公開入力チェック・PagesデプロイSUCCESS。以下の未確認表記は監査途中の履歴であり、現時点の判定は本段が優先する。F1～F6の実ゲーム計算は未実装・未承認。
+
 - 監査日：2026-11-12 JST
 - 監査基準：E7 v77、`main c092789c7ac3f4d7c69d1f157b4470999ddf5869`
 - 利用者受入：E7 v77 UI・Pixel円形マスクアイコン・Androidインストール名「作戦室」を実機承認済み
@@ -59,3 +61,11 @@
 ユーザーは実機の`⋮ → バックアップ・復元`でバックアップを取る。**同じ週の保存済みイベントAとB**を選び、準備の在庫にそれぞれ異なる数量を保存。A→B→Aと切り替えても数量が保持されること、Aの保存済みイベントを削除してもBの条件・作戦・在庫が残ることを確認する。インストール名「作戦室」・Pixel円形アイコンが変わっていないことも確認する。
 
 **PR側CI PASS**と**GitHub Pages公開成功**は独立した自動ゲート。**Android実機の新規変更点の確認**が済むまでE7 v78について最終ユーザー受入PASSとは記録しない。
+
+## 最終受入確定（2026-11-13 JST）
+
+- **ユーザー報告：在庫分離のAndroid実機確認はPASS。E7の最終受入を明示承認。** 同週別イベントの在庫分離が最後の実機ゲートであり、これによりE7受入工程を終了。
+- **統合版**：PR #161 squash-merge `64117bab366eb4e073e7e00d6771eaef470e0cd4`。統合後CI：[Validate PokeSleep Strategy #43230331111](https://github.com/meka-create/pokesleep-strategy/actions/runs/43230331111) と [Validate STEP 2 #43230331152](https://github.com/meka-create/pokesleep-strategy/actions/runs/43230331152) は各 **607/607 PASS・FAIL 0**。
+- **公開確認**：[Pages #43230330466](https://github.com/meka-create/pokesleep-strategy/actions/runs/43230330466) **SUCCESS**、[公開入力チェック #43230331172](https://github.com/meka-create/pokesleep-strategy/actions/runs/43230331172) **SUCCESS**。
+- **実機承認済みの範囲**：E7 UI・Pixel用PWA円形アイコン・Androidインストール名「作戦室」・同週複数イベントの食材在庫分離。既存root/全アイコン/アプリIDおよびF1実計算は変更なし。
+- **確定判定**：E7 v78 最終受入PASS、E7工程完了。F1着手条件を満たすが、F1実装開始は別作業とする。68個体から抽出した対象種族・フォームの**全合法個体構成への対応**をF1の不変条件として引き継ぐ。
