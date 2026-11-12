@@ -175,3 +175,10 @@ assets(3).zipの9画像をicons/へ無加工で配置。共通ヘッダー96px�
 
 【E7 v74 Pixel円形アイコン修正版（2026-11-12）】
 添付修正版のmaskable192/512pxを無加工で反映。ヘッダーほか7画像は現行と一致。manifest参照とオフラインキャッシュを更新。Pixel実機表示は未確認。
+
+【E7 v75／Pixel maskableアイコン再差替・2026-11-12】
+- ZIP「pokesleep_strategy_pwa_icons_pixel_no_corner_blur_full(1).zip」からPixel円形表示用maskable（192/512）だけを厳密バイナリ置換。
+- 新しい2つのPNGは添付原本と同一Git blob SHAで確認。その他7つの通常アイコン・ヘッダー・faviconは原本と同じため変更なし。
+- manifestのmaskable用キャッシュクエリ、HTMLのmanifest URL、E7専用Service Workerのキャッシュ名を更新。
+- 対象はe7-preview配下のみ。正式rootのPWA構造・ボックス/イベント/保存データ・F工程は変更しない。
+- GitHub Actionsの独立CIとPages公開、Pixel Chromeでの円形表示（四隅のぼかしが見えない）確認を経て最終受入を判定。
