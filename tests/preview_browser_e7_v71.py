@@ -132,8 +132,17 @@ try:
         f=plan(page)
         assert not f.locator('#e7-event-delete').is_visible()
         f.locator('.e7-cal-event[data-event-id="official-nov-event"]').click()
-        page.wait_for_function("""()=>JSON.parse(localStorage.getItem(
-          'pokesleep-strategy-u3-e3-v1:selected')||'null')?.id==='official-nov-event'""",timeout=20000)
+        page.wait_for_function("""()=>{
+          const el=document.getElementById('view-plan');
+          if(!el||el.hidden||!el.contentDocument)return false;
+          const selected=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');
+          const href=el.contentWindow?.location.href;
+          if(!href||selected?.id!=='official-nov-event')return false;
+          const u=new URL(href);
+          return u.searchParams.get('eventId')==='official-nov-event'&&
+            el.contentDocument.readyState==='complete'&&
+            el.contentDocument.querySelector('#event-source-select')?.value==='official-nov-event';
+        }""",timeout=20000)
         f=plan(page)
         f.locator('#event-details').evaluate('(el)=>el.open=true')
         f.locator('#e7-event-delete').wait_for(state='visible')
