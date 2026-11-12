@@ -22,8 +22,8 @@ test('E7 v68 header uses the saved validated event and U3 Japanese translation o
   assert.doesNotThrow(()=>new vm.Script(m[1]));
 });
 test('E7 v68 renders two-page header and preserves old three-dot menu, full root app remains frozen',()=>{
- assert.match(read('index.html'),/<title>ポケスリ作戦室 E7 v77<\/title>/);
- assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v77-install-label-20261112/);
+ assert.match(read('index.html'),/<title>ポケスリ作戦室 E7 v78<\/title>/);
+ assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v78-event-inventory-20261112/);
  assert.match(read('e7-sw-v50.js'),/'e7-unified-bridge-v51\.js'/);
  const bridge=read('e7-unified-bridge-v51.js');
  assert.match(bridge,/eventNode\.title='現在のイベント：'\+name/);
