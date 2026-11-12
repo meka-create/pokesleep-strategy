@@ -294,7 +294,8 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 .e7-cal-event[data-status="missing"]{background:#343d50;border-color:#69758c;color:#d8e2ed}
 .e7-cal-event[aria-pressed="true"]{background:#665027;border-color:#efbf65;color:#fff3d8;box-shadow:inset 0 0 0 1px #e6b35b}
 .e7-cal-event[data-has-plan="true"]::before{content:"●";font-size:8px;color:#a2eed2;margin-right:4px}
-#e7-event-delete{margin-top:2px;color:#f3b7b7;border-color:#75515d;background:transparent;font-size:12px}
+.e7-event-delete-row{display:flex;flex-direction:row;justify-content:flex-end;align-items:center;gap:8px;margin-top:0}
+#e7-event-delete{height:32px;min-height:32px;padding:6px 10px;font-size:12px;line-height:18px;box-sizing:border-box;border:1px solid #a56b6c;border-radius:10px;background:transparent;color:#f2b8b4;font-weight:750}
 #e7-event-delete[hidden]{display:none}
 #e7-cal-empty{margin:0;font-size:11px;color:#b9c9d9}
 @media(max-width:360px){#e7-event-calendar{padding:9px 7px}#e7-cal-heading{gap:4px}#e7-cal-tools{gap:2px}#e7-cal-month{min-width:76px}#e7-cal-today{padding:5px 6px}.e7-cal-event{padding:4px 4px;font-size:10px;margin-left:2px;margin-right:2px}}
@@ -339,7 +340,7 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 </select></label></div>
 </div>
 
-<div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="true"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div><div class="field wide"><button type="button" class="btn small ghost" id="e7-event-delete" hidden>保存済みイベントを削除</button></div></div></details>
+<div class="field wide"><button type="button" class="control-toggle camp-toggle" id="event-camp" role="switch" aria-checked="true"><span>いいキャンプチケット</span><span class="switch-track" aria-hidden="true"></span></button></div><div class="field wide"><button type="button" class="btn secondary full" id="event-save">保存</button></div><div class="field wide e7-event-delete-row" id="e7-event-delete-row" hidden><button type="button" class="btn" id="e7-event-delete" aria-label="保存済みイベントを削除" title="保存済みイベントを削除" hidden>削除</button></div></div></details>
 <section class="card" id="e7-event-calendar" aria-label="保存済みイベントカレンダー">
  <div id="e7-cal-heading"><h2>イベントカレンダー</h2><div id="e7-cal-tools">
  <button type="button" class="e7-cal-nav" id="e7-cal-prev" aria-label="前の月">‹</button>
@@ -2025,6 +2026,28 @@ function e7SavedEvents(){
  return entries.sort((a,b)=>a.selection.weekStart.localeCompare(b.selection.weekStart)||
   a.selection.id.localeCompare(b.selection.id));
 }
+// The delete action belongs to the saved event currently shown in the editor,
+ // never to an earlier selected event while the form describes a new draft.
+function e7CanDeleteCurrentEvent(){
+ const selected=e3Selected;
+ if(!selected||selected.weekStart!==eventInfo.start||
+    selected.id!==(eventInfo.source?.id||'manual:'+eventInfo.start))return false;
+ if(manualSourceRequested||pendingEventSource)return false;
+ if($('#event-source-select').value!==(eventInfo.source?.id||''))return false;
+ if(eventBlockers().includes('イベント条件の保存'))return false;
+ if(!e3Conditions())return false;
+ return e7SavedEvents().some(e=>e.selection.weekStart===selected.weekStart&&
+  e.selection.id===selected.id);
+}
+function e7RefreshDeleteVisibility(){
+ const show=e7CanDeleteCurrentEvent();
+ $('#e7-event-delete-row').hidden=!show;
+ $('#e7-event-delete').hidden=!show;
+}
+// Date text editing may emit input before change (and before normal rerender).
+$('#event-details').addEventListener('input',e=>{
+ if(e.target?.matches('input,select'))e7RefreshDeleteVisibility();
+});
 function renderE7Calendar(){
  const first=e7Date(e7CalendarMonth+'-01'),year=first.getUTCFullYear(),month=first.getUTCMonth();
  if(!Number.isFinite(first.valueOf())||year<2020||year>2100)return;
@@ -2034,8 +2057,7 @@ function renderE7Calendar(){
  const last=new Date(Date.UTC(year,month+1,0,12));
  const end=e7ISO(new Date(Date.UTC(year,month+1,0+((7-((last.getUTCDay()+6)%7)-1)%7),12)));
  const events=e7SavedEvents(),today=nowInJapan().slice(0,10);
- const del=$('#e7-event-delete');
- del.hidden=!e3Selected||!events.some(e=>e.selection.weekStart===e3Selected.weekStart&&e.selection.id===e3Selected.id);
+ e7RefreshDeleteVisibility();
  let found=false;
  for(let week=start;week<=end;week=e7ShiftDays(week,7)){
   const weekEntries=events.filter(e=>e.selection.weekStart===week);
@@ -2120,6 +2142,13 @@ async function e7OpenSavedEvent(selection){
  }
 }
 $('#e7-event-delete').addEventListener('click',async()=>{
+ // Defensive recheck: a queued click or externally changed form must not
+ // delete the previous saved event just because its ID remains selected.
+ if(!e7CanDeleteCurrentEvent()){
+  e7RefreshDeleteVisibility();
+  showToast('未保存の変更があります。保存済みイベントを開き直してから削除してください。',true);
+  return;
+ }
  const selected=e3Selected?{weekStart:e3Selected.weekStart,id:e3Selected.id}:null;
  let before;
  try{before=PokeE7EventDeletion.snapshot(localStorage,selected,{requireSelected:true});}
@@ -2129,6 +2158,13 @@ $('#e7-event-delete').addEventListener('click',async()=>{
   title:'イベントを削除',okText:'このイベントを削除',danger:true
  });
  if(!ok)return;
+ // A second confirmation gate covers external edits while the modal was open.
+ if(!e7CanDeleteCurrentEvent()||e3Selected?.weekStart!==selected.weekStart||
+    e3Selected?.id!==selected.id){
+  e7RefreshDeleteVisibility();
+  showToast('表示中のイベントが変更されました。削除を中止しました。',true);
+  return;
+ }
  try{PokeE7EventDeletion.remove(localStorage,before);}
  catch(e){showToast(e.message||'削除に失敗しました。',true);renderE7Calendar();return;}
  // The old iframe must not restore a just-deleted plan on beforeunload.
@@ -2338,6 +2374,7 @@ render=function(){
  const sleepControls=document.querySelector('.sleep-settings');
  sleepControls.hidden=!selected||state.phase==='ENDED';
  $('#event-save').disabled=state.phase==='ENDED';
+ e7RefreshDeleteVisibility();
  if((!hasProposed||['SELECT_EVENT','SET_EVENT'].includes(action))&&state.phase!=='ENDED')$('#event-details').open=true;
  if(!selected){
   $('#phase-intro').hidden=true;$('#week-content').hidden=true;

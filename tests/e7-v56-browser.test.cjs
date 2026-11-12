@@ -37,7 +37,7 @@ test('E7 v57 menu exposes only two settings dialogs and preserves backup safety'
  assert.match(settings,/__pokesleepE7ResetRevoked=true/);
  assert.match(settings,/await PokeUI\.confirm\(msg/);
  assert.match(sw,/'e7-settings-v56\.js','e7-settings-v56\.css'/);
- assert.match(sw,/pokesleep-strategy-e7-v71-event-scoped-delete/);
+ assert.match(sw,/pokesleep-strategy-e7-v72-dirty-delete-guard/);
  const vm=require('node:vm');
  new vm.Script(settings);new vm.Script(bridge);new vm.Script(sw);
 });
