@@ -1,3 +1,10 @@
+## E7 v75 — Pixel用maskableアイコンの四隅ぼかし除去（2026-11-12／CI検証前）
+- ユーザー提供 `pokesleep_strategy_pwa_icons_pixel_no_corner_blur_full(1).zip` を正本とする。既存のPWAアイコン7ファイルはZIPとGit blob SHA一致で無変更。
+- `e7-preview/icons/icon-maskable-192.png`（blob `92f3b446a482f6b164573408cdcb139e9c852a56`）と `icon-maskable-512.png`（blob `cfe7eb37484e8887f1a896d99f83a4e38119101b`）をZIPの原本バイトそのままで置換。
+- manifestのmaskable URLを `?v=20261112-pixel3-nocorner` に更新し、HTMLのmanifest参照・E7専用Service Workerキャッシュ識別子を更新する。通常any・ヘッダー・faviconは現状維持。
+- 新規Node検証では9アイコンのGit blob SHA、PNG寸法、maskable purposeとURL、SW識別子を照合する。E7既存2系統CI、Pagesデプロイ、Android Pixelでの実機円形表示を別々に受入判定する。
+- 正式root・保存データ・カレンダー削除/編集・F1〜F6実計算は変更しない。実機確認までは受入完了を宣言しない。
+
 ## E7 v74 アイコン修正版 — Pixel円形表示（2026-11-12）
 - 添付 pokesleep_strategy_pwa_icons_pixel_fixed_full(1).zip のmaskable 192/512pxを無加工で反映。他の7画像は現行とバイト一致。
 - manifestのmaskable参照に改訂番号を追加し、オフラインキャッシュも更新。アプリ識別子・start_url・scopeは維持。
