@@ -40,9 +40,11 @@ function oneIngredient(profile,slot,wanted,dictionary){
  let unknown=false;
  for(const ref of refs){
   if(!ref)continue;
+  // For special species an upstream 'unknown' candidate has a count of 0,
+  // which denotes unavailable source data, NOT proof that the slot is illegal.
+  if(ref.name==='unknown'){unknown=true;continue;}
   const n=ref['c'+slot];
   if(typeof n!=='number'||n<=0)continue;
-  if(ref.name==='unknown'){unknown=true;continue;}
   const jp=dictionary[ref.name];
   if(!jp)return 'UNVERIFIED_SOURCE';
   present.push(jp);
