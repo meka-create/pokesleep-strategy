@@ -2220,7 +2220,11 @@ window.addEventListener('pageshow',event=>{
  if(event.persisted)selectDayOnOpen();
  refreshInventory();render();
 });
-window.addEventListener('storage',e=>{if(e.key===inventoryKey(eventInfo.start)){refreshInventory();render();}});
+window.addEventListener('storage',e=>{if(
+ e.key===inventoryKey(eventInfo.start)||
+ (e3Selected&&(e.key===PokeE7InventoryScope.scopedKey(eventInfo.start,e3Selected.id)||
+   e.key===PokeE7InventoryScope.legacyKey(eventInfo.start)))
+ ){refreshInventory();render();}});
 
 /* E3: render one next action from the shared E1 state. This U3 v31 remains a
    preview; F1-F4 must replace illustrative team/recipe calculations. */
