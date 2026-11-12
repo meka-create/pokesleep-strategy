@@ -182,3 +182,9 @@ assets(3).zipの9画像をicons/へ無加工で配置。共通ヘッダー96px�
 - manifestのmaskable用キャッシュクエリ、HTMLのmanifest URL、E7専用Service Workerのキャッシュ名を更新。
 - 対象はe7-preview配下のみ。正式rootのPWA構造・ボックス/イベント/保存データ・F工程は変更しない。
 - GitHub Actionsの独立CIとPages公開、Pixel Chromeでの円形表示（四隅のぼかしが見えない）確認を経て最終受入を判定。
+
+【E7 v76 — Pixel円形アイコンの安全余白再調整（2026-11-12）】
+- `pokesleep_strategy_pwa_icons_pixel_safe_margin_full.zip` のmaskable 192/512だけを原本バイトで交換。円形表示用キャラクターのサイズを縮小。
+- 他の通常アイコン7点・ヘッダーは変更なし。manifest maskable URLとE7 SWキャッシュを更新（v76）。
+- インストール済みPWAのアイコン更新にはAndroidのキャッシュ等が関係する可能性あり。再インストールする際は保存データのバックアップが必要。
+- GitHub Pages・2系統CI・Pixel実機の確認結果は個別に判定する。
