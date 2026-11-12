@@ -60,11 +60,15 @@ test('F1-B: synthetic 69-entry E7 CSV audits to 67 mapped and 2 special HOLD, ze
 test('F1-B: Mew alternative skill and unknown ingredient never become false illegal',()=>{
  const entries=audit.validateSnapshot(snapshot);
  const mew=synthetic(entries.get('ミュウ'));
- mew.mainSkill='検証待ちの可変スキル';
+ mew.mainSkill='げんきオールS'; // Known game skill different from Mew's base skill
  const report=audit.auditIndividual(mew,snapshot,entries);
  assert.equal(report.checks.mainSkill,'SPECIAL_MECHANIC_UNVERIFIED');
  assert.equal(report.checks.ingredients[2],'UNKNOWN_SOURCE_SLOT');
  assert.equal(report.sourceStatus,'NEEDS_SPECIAL_RULE_REVIEW');
+ const impossible={...mew,mainSkill:'未定義の仮スキル'};
+ const rejected=audit.auditIndividual(impossible,snapshot,entries);
+ assert.equal(rejected.checks.mainSkill,'MISMATCH');
+ assert.equal(rejected.sourceStatus,'MISMATCH');
  assert.equal(report.calculation,'BLOCKED');
 });
 test('F1-B: Darkrai special food slots are source-unknown, not automatically rejected',()=>{
