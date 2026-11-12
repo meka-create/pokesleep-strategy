@@ -30,7 +30,7 @@ function validateSnapshot(snapshot){
   names.add(norm(t.name));sourceNames.add(t.upstreamName);
  }
  if(!snapshot.dictionaries?.ingredients||!snapshot.dictionaries?.natures||
-    !snapshot.dictionaries?.subskills)
+    !snapshot.dictionaries?.subskills||!snapshot.dictionaries?.mainSkills)
   throw fail('DICTIONARIES','食材・性格・サブスキルの照合辞書がありません。');
  return new Map(snapshot.targets.map(t=>[norm(t.name),t]));
 }
@@ -72,8 +72,10 @@ function auditIndividual(row,snapshot,entries){
   if(row[key]===null||row[key]==='')return 'UNSET_SLOT';
   return knownSubs.has(norm(row[key]))?'MATCHED':'MISMATCH';
  });
+ const knownSkills=new Set(Object.values(dict.mainSkills));
  const skill=norm(row.mainSkill)===t.sourceProfile.mainSkillJa?'MATCHED':
-  t.sourceProfile.mainSkill==='Versatile'?'SPECIAL_MECHANIC_UNVERIFIED':'MISMATCH';
+  (t.sourceProfile.mainSkill==='Versatile'&&knownSkills.has(norm(row.mainSkill)))
+   ?'SPECIAL_MECHANIC_UNVERIFIED':'MISMATCH';
  const review=foods.includes('UNKNOWN_SOURCE_SLOT')||foods.includes('UNVERIFIED_SOURCE')||
    skill==='SPECIAL_MECHANIC_UNVERIFIED';
  const bad=[...foods,nature,skill,...subs].includes('MISMATCH')||
