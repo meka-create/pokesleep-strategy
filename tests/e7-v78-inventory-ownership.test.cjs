@@ -14,7 +14,7 @@ function store(initial={}){
   removeItem:k=>m.delete(k),get length(){return m.size;},key:i=>[...m.keys()][i]??null,
   snapshot:()=>Object.fromEntries(m)};
 }
-function stock(id,count){return {version:1,weekStart:WEEK,eventId:id,
+function stock(id,count){return {version:2,weekStart:WEEK,eventId:id,
  preparationLatest:null,startInventory:null,currentInventory:{
  weekStart:WEEK,savedAt:'2026-11-10T00:00:00Z',revision:'stock-'+count,values:{'とくせんリンゴ':count}}};}
 function records(id){
