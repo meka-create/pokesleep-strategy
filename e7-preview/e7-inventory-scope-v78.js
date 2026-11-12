@@ -21,7 +21,7 @@ function scopedKey(week,id){
 }
 function parse(raw,week,id){
  let obj;try{obj=JSON.parse(raw);}catch(e){throw Error('保存された食材在庫が破損しています。');}
- if(!obj||obj.version!==1||obj.weekStart!==week||
+ if(!obj||obj.version!==2||obj.weekStart!==week||
    (id!==null&&obj.eventId!==id))
   throw Error('食材在庫の所有イベントを検証できません。');
  return obj;
