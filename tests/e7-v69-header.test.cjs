@@ -28,9 +28,9 @@ test('E7 v69 uses precisely the supplied icon in the common three-tab header',()
 });
 test('E7 v69 updates offline cache and installs the supplied PWA icons',()=>{
  const sw=read('e7-sw-v50.js'),html=read('index.html'),manifest=read('e7-manifest-v50.webmanifest');
- assert.match(sw,/pokesleep-strategy-e7-v77-install-label-20261112/);
+ assert.match(sw,/pokesleep-strategy-e7-v78-event-inventory-20261112/);
  assert.match(sw,/'icons\/icon-header-96\.png'/);
- assert.match(html,/<title>ポケスリ作戦室 E7 v77<\/title>/);
+ assert.match(html,/<title>ポケスリ作戦室 E7 v78<\/title>/);
  assert.equal(blobSha(Buffer.from(read('e7-icon-v50.svg'),'utf8')),'14e99856886eaf0141ecf95d61b44c2493bc8c7b');
  assert.equal(JSON.parse(manifest).icons[0].src,'icons/icon-192.png');
 });
