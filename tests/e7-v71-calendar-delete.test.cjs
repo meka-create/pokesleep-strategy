@@ -119,18 +119,22 @@ test('E7 v72: UI, shell, service worker and legacy paths use scoped deletion',()
  const u2=read('U2_Prep_Local_Ingredients_20261109_v50_E7.html');
  const parent=read('index.html'),sw=read('e7-sw-v50.js');
  assert.match(u3,/id="e7-event-delete"/);
- // Same small, subtle button idiom as the Box individual details, not a full-width destructive action.
- assert.match(u3,/id="e7-event-delete-row" hidden><button[^>]+id="e7-event-delete"[^>]*>削除<\/button>/);
- assert.match(u3,/\.e7-event-delete-row\{display:flex;flex-direction:row;justify-content:flex-end;/);
+ // Save and Delete must share exactly one row, never separate rows or simultaneous display.
+ assert.equal((u3.match(/id="event-save"/g)||[]).length,1);
+ assert.equal((u3.match(/id="e7-event-delete"/g)||[]).length,1);
+ assert.match(u3,/id="e7-event-action-row" hidden><button[^>]+id="event-save" hidden>保存<\/button><button[^>]+id="e7-event-delete"[^>]*>削除<\/button><\/div>/);
+ assert.match(u3,/\.e7-event-action-row\{display:flex;flex-direction:row;justify-content:flex-end;align-items:center;min-height:44px;/);
  assert.match(u3,/#e7-event-delete\{height:32px;min-height:32px;/);
- assert.match(u3,/#e7-event-delete-row'\)\.hidden=!show/);
- assert.match(u3,/#e7-event-delete'\)\.hidden=!show/);
+ assert.match(u3,/#e7-event-action-row'\)\.hidden=!\(canDelete\|\|canSave\)/);
+ assert.match(u3,/#event-save'\)\.hidden=!canSave/);
+ assert.match(u3,/#e7-event-delete'\)\.hidden=!canDelete/);
+ assert.match(u3,/const canSave=!canDelete&&\(\!\!e3Selected\|\|e7HasDraftInput\(\)\)/);
  assert.match(u3,/function e7CanDeleteCurrentEvent\(\)/);
  assert.match(u3,/if\(eventBlockers\(\)\.includes\('イベント条件の保存'\)\)return false/);
  assert.match(u3,/if\(!e3Conditions\(\)\)return false/);
- assert.match(u3,/function e7RefreshDeleteVisibility\(\)/);
+ assert.match(u3,/function e7RefreshEventActions\(\)/);
  assert.match(u3,/#event-details'\)\.addEventListener\('input'/);
- assert.match(u3,/e7RefreshDeleteVisibility\(\);/);
+ assert.match(u3,/e7RefreshEventActions\(\);/);
  assert.match(u3,/if\(!e7CanDeleteCurrentEvent\(\)\)/);
  assert.match(u3,/if\(!e7CanDeleteCurrentEvent\(\)\|\|e3Selected\?\.weekStart/);
  assert.match(u3,/PokeE7EventDeletion\.snapshot\(localStorage,selected,\{requireSelected:true\}\)/);
