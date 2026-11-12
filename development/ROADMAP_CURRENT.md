@@ -1,3 +1,8 @@
+## E7 v74 アイコン修正版 — Pixel円形表示（2026-11-12）
+- 添付 pokesleep_strategy_pwa_icons_pixel_fixed_full(1).zip のmaskable 192/512pxを無加工で反映。他の7画像は現行とバイト一致。
+- manifestのmaskable参照に改訂番号を追加し、オフラインキャッシュも更新。アプリ識別子・start_url・scopeは維持。
+- Pixel実機の表示は未確認。F1未着手を維持。
+
 ## E7 v74 — 添付PWAアイコンセットの反映（2026-11-12）
 - assets(3).zipの画像を加工せず使用。3画面共通ヘッダーに96px画像、manifestに通常192/512pxとmaskable 192/512pxを別purposeで登録。Apple touch・faviconも添付版へ統一。
 - manifestのid/start_url/scopeは維持し、既存アプリの識別を保つ。相対パスでPagesサブディレクトリとオフラインに対応。キャッシュをv74へ更新。

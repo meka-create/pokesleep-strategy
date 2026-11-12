@@ -172,3 +172,6 @@ URL: https://meka-create.github.io/pokesleep-strategy/e7-preview/
 
 【E7 v74 — 添付アイコンセット（2026-11-12）】
 assets(3).zipの9画像をicons/へ無加工で配置。共通ヘッダー96px、通常192/512px、maskable192/512px、Apple touch180px、favicon16/32/ICO。manifestの識別子とscopeは維持。オフラインキャッシュ更新。Android実機の表示は未確認。
+
+【E7 v74 Pixel円形アイコン修正版（2026-11-12）】
+添付修正版のmaskable192/512pxを無加工で反映。ヘッダーほか7画像は現行と一致。manifest参照とオフラインキャッシュを更新。Pixel実機表示は未確認。
