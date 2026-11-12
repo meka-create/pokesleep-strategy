@@ -1,4 +1,4 @@
-/* F1-A (2026-11-13): pure, fail-closed 68-individual species/form scope.
+/* F1-A (2026-11-13): pure, fail-closed 69-individual species/form scope.
  * Does NOT provide numerical game stats or enable real energy calculations.
  * Input is the already-validated E7BoxCsv.parseBox() result and the E7
  * species/form identity catalog (249 entries as of the E7 frozen snapshot).
@@ -11,7 +11,7 @@
  if(root)root.PokeF1SpeciesScope=api;
 })(typeof globalThis!=='undefined'?globalThis:null,function(){
  'use strict';
- const VERSION=1,EXPECTED=68;
+ const VERSION=1,EXPECTED=69;
  const fail=(code,description)=>Object.assign(new Error(description),{code});
  // Normalize spacing and width only. Never collapse to dex ID or strip forms.
  function identity(name){
@@ -36,11 +36,11 @@
   if(parsed?.ok!==true||!Array.isArray(parsed.items)||
      (Array.isArray(parsed.errors)&&parsed.errors.length>0))
    throw fail('SOURCE_INVALID','CSV・TSVの読み取りが確定していません。部分データを採用しません。');
-  // Initial F1 scope is exactly the user-selected 68 individuals. A caller
+  // Initial F1 scope is exactly the user-selected 69 individuals. A caller
   // must not bypass that contract with a lower/higher expected row count.
   if(Object.prototype.hasOwnProperty.call(options,'expectedIndividuals')&&
      options.expectedIndividuals!==EXPECTED)
-   throw fail('SCOPE_COUNT','F1初期対象は68個体固定です。');
+   throw fail('SCOPE_COUNT','F1初期対象は69個体固定です。');
   const expected=EXPECTED;
   if(parsed.items.length!==expected)
    throw fail('SCOPE_COUNT',`対象は${expected}個体です。入力された${parsed.items.length}個体から暗黙に選別しません。`);
