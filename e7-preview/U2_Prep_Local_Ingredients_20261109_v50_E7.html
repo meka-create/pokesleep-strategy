@@ -173,7 +173,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 .e6-prep-message{font-size:11px;line-height:1.45;color:#d7dfe8;margin:7px 0 0;min-height:0}
 .e6-prep-message:empty{display:none}
 </style>
-<link rel="stylesheet" href="e7-feedback-v66.css"><script src="e7-feedback-v66.js"></script><script src="e7-event-delete-v71.js"></script>
+<link rel="stylesheet" href="e7-feedback-v66.css"><script src="e7-feedback-v66.js"></script><script src="e7-event-delete-v71.js"></script><script src="e7-inventory-scope-v78.js"></script>
 
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
@@ -691,10 +691,8 @@ function readOld(){
  return adapt(records[0]);
 }
 function load(){
- const value=localStorage.getItem(key(week));
- if(value===null)return readOld();
- const raw=JSON.parse(value);
- if(validEventId&&raw?.eventId&&raw.eventId!==selectedEventId)throw Error('Inventory belongs to another event');
+ const raw=PokeE7InventoryScope.read(localStorage,week,validEventId?selectedEventId:null);
+ if(raw===null)return readOld();
  const clean=E1.validateInventoryTimeline(raw,week);
  if(raw.eventId)clean.eventId=raw.eventId;
  return clean;
@@ -751,12 +749,14 @@ function save(){
   // Timestamp is the actual successful save; deterministic preview uses mock JST.
   const prev=load(),t=Math.max(Date.parse(now()),prev.currentInventory?Date.parse(prev.currentInventory.savedAt)+1:0);
   const stamp=new Date(t).toISOString();
-  const stored=JSON.parse(localStorage.getItem(key(week))||'null');
-   if(validEventId&&stored?.eventId&&stored.eventId!==selectedEventId)throw Error('Event ID mismatch');
-   const updated=E1.applyInventorySave(prev,{savedAt:stamp,revision:'e2:'+stamp,values:x.values});
-   if(validEventId)updated.eventId=selectedEventId;
-  // One new key, one atomic write. Never overwrite old v2/v3 source.
-  localStorage.setItem(key(week),JSON.stringify(updated));
+  const destination=PokeE7InventoryScope.writeKey(week,validEventId?selectedEventId:null);
+  const stored=JSON.parse(localStorage.getItem(destination)||'null');
+  if(stored&&validEventId&&(stored.weekStart!==week||stored.eventId!==selectedEventId))
+   throw Error('Event ID mismatch');
+  const updated=E1.applyInventorySave(prev,{savedAt:stamp,revision:'e2:'+stamp,values:x.values});
+  if(validEventId)updated.eventId=selectedEventId;
+  // One event-owned atomic write, preserving historical week-only inventory.
+  localStorage.setItem(destination,JSON.stringify(updated));
   timeline=updated;packet=v29Packet(updated);q('#error').hidden=true;message('');
   showLink();toast('食材在庫を保存しました');
  }catch(e){toast('保存できませんでした。元のデータは保持されています。',true);}
@@ -871,8 +871,9 @@ const save=document.getElementById('save-inventory');
 save?.addEventListener('click',e=>{
  if(current!=='prep')return;
  try{
-  const key='pokesleep-strategy-u2-e2-v1:'+WEEK+':timeline';
-  const timeline=JSON.parse(localStorage.getItem(key)||'null');
+  const selected=JSON.parse(localStorage.getItem('pokesleep-strategy-u3-e3-v1:selected')||'null');
+  const timeline=PokeE7InventoryScope.read(localStorage,WEEK,
+   selected?.weekStart===WEEK?selected.id:null);
   const when=Date.parse(timeline?.currentInventory?.savedAt||'');
   const start=Date.parse(WEEK+'T04:00:00+09:00');
   if(Number.isFinite(when)&&when>=start){
@@ -988,7 +989,7 @@ function watchPacket(){
 function readNewestInventory(w){
  const items=[];
  try{
-  const record=JSON.parse(localStorage.getItem('pokesleep-strategy-u2-e2-v1:'+w.weekStart+':timeline')||'null');
+  const record=PokeE7InventoryScope.read(localStorage,w.weekStart,w.eventId);
   if(record?.eventId===w.eventId&&record.currentInventory)
    items.push({values:record.currentInventory.values,savedAt:record.currentInventory.savedAt});
  }catch(e){}
