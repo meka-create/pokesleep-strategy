@@ -1,3 +1,10 @@
+## E7 v77 — Androidインストール名を「作戦室」に変更（2026-11-12／検証中）
+- ユーザーのPixel円形アイコン実機受入はPASS。今回の変更は表示名だけ。
+- `e7-preview/e7-manifest-v50.webmanifest` の `name` / `short_name` を両方「作戦室」に変更。Androidのインストール確認・ホーム画面・アプリ一覧で表記の違いが出にくいよう統一する。
+- 画面ヘッダーとブラウザタイトル「ポケスリ作戦室」、既存PWAの `id` / `start_url` / `scope`、全PNG、イベント/保存データ、F1工程は無変更。
+- HTMLのmanifest参照にv77クエリ、専用Service Workerのキャッシュキーを更新。アプリの表示名変更は既存インストールに遅延反映される場合があるため、Android実機で別途確認する。
+- 自動試験で `name` / `short_name` と固定アプリID、Pixel用アイコンの一致を確認する。2系統CI・Pages公開・実機受入は別ゲート。
+
 ## E7 v76 — Pixel円形アイコンの安全余白調整（2026-11-12／CI検証中）
 - ユーザー提供 `pokesleep_strategy_pwa_icons_pixel_safe_margin_full.zip` を原本とする。Pixel円形表示でキャラクターが大き過ぎたため、中心デザインを縮小し余白を調節。
 - `e7-preview/icons/icon-maskable-192.png` はGit blob SHA `2e1a06c05ea08f94bfbb75b3036f5a9eb02d64cd`、`icon-maskable-512.png` は `cb94b4215220b7697666dc312dca3a5039f3b359`。添付ファイルを無加工で取り込む。
