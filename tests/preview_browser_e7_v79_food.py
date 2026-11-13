@@ -42,8 +42,25 @@ try:
             page.goto(base,wait_until='domcontentloaded')
             assert page.locator('#goal-panel .food').count()==19
             grid_positions=[]
+            total_positions=[]
             for selector in ('#goal-panel .food','#inventory-panel .food'):
                 page.locator('#btn-goal' if selector.startswith('#goal') else '#btn-inventory').click()
+                panel='#goal-panel' if selector.startswith('#goal') else '#inventory-panel'
+                total=page.locator(panel+' .row.total')
+                grid=page.locator(panel+' .grid')
+                divider=total.bounding_box()
+                grid_rect=grid.bounding_box()
+                label_rect=total.locator('span').bounding_box()
+                computed=total.evaluate("""(el)=>({
+                  marginTop:getComputedStyle(el).marginTop,
+                  paddingTop:getComputedStyle(el).paddingTop,
+                  borderTop:getComputedStyle(el).borderTopWidth
+                })""")
+                assert divider and grid_rect and label_rect
+                assert computed=={'marginTop':'10px','paddingTop':'12px','borderTop':'1px'},\
+                    ('unequal divider CSS',width,panel,computed)
+                total_positions.append((divider['y'], label_rect['y'],\
+                    divider['y']-(grid_rect['y']+grid_rect['height'])))
                 el=page.locator(selector).nth(4)
                 style=el.locator('.name').evaluate(
                    '(e)=>({clip:getComputedStyle(e).clipPath,width:e.getBoundingClientRect().width})')
@@ -111,6 +128,10 @@ try:
                     centers.append((area['x']+area['width']/2,area['y']+area['height']/2))
                 grid_positions.append(centers)
             assert len(grid_positions[0])==len(grid_positions[1])==19
+            assert len(total_positions)==2
+            for a,b in zip(*total_positions):
+                assert abs(a-b)<=0.6,\
+                    ('prep divider or total shifted when changing tab',width,total_positions)
             for i,(g,a) in enumerate(zip(*grid_positions)):
                 assert abs(g[0]-a[0])<=0.6 and abs(g[1]-a[1])<=0.6,\
                     ('food icon shifted from center on tab change',width,i,g,a)
