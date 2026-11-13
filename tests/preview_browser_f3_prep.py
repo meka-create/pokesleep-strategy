@@ -19,10 +19,33 @@ INV='pokesleep-strategy-u2-e2-v1:'
 PREF='pokesleep-strategy-u3-e3-v1:'
 PREP='pokesleep-strategy-u2-e6-prep-v1:'
 PLAYER='pokesleep-strategy-e7-player-v1'
+BOX='pokesleep-strategy-e7-box-v1'
+PINNED=json.loads((ROOT/'f1/f1-b-target-source-v1.json').read_text())
 FOODS=['ふといながねぎ','あじわいキノコ','とくせんエッグ','ほっこりポテト','とくせんリンゴ',
  'げきからハーブ','マメミート','モーモーミルク','あまいミツ','ピュアなオイル',
  'あったかジンジャー','あんみんトマト','リラックスカカオ','おいしいシッポ',
  'ワカクサ大豆','ワカクサコーン','めざましコーヒー','ずっしりカボチャ','つやつやアボカド']
+def synthetic_roster():
+    # Public pinned species profiles only, never the user's 69-row CSV.
+    lookup={t['name']:t for t in PINNED['targets']}
+    output=[]
+    for name in ['リザードン','ゲンガー','エーフィ','サーナイト','カメックス','フシギバナ']:
+        t=lookup[name]
+        def food(slot):
+            for candidate in [t['sourceProfile']['ing1'],t['sourceProfile']['ing2'],
+                              t['sourceProfile']['ing3']][:slot]:
+                if candidate['name']!='unknown' and candidate['c'+str(slot)]>0:
+                    return PINNED['dictionaries']['ingredients'][candidate['name']]
+            raise AssertionError('no food slot '+name+' '+str(slot))
+        output.append({'pokemon':name,'nickname':'SENTINEL_PRIVATE_NICKNAME',
+          'level':60,'skillLevel':3,'ing1':food(1),'ing2':food(2),'ing3':food(3),
+          'nature':'てれや','mainSkill':t['sourceProfile']['mainSkillJa'],
+          'mint':None,'ribbon':None,'shiny':False,
+          'lv10':'きのみの数S','lv25':'おてつだいボーナス',
+          'lv50':'おてつだいスピードS','lv70':'リサーチEXPボーナス',
+          'lv80':'げんき回復ボーナス'})
+    return {'version':1,'source':'pokesleep-tool-header-mapped','items':output}
+
 def records(event_id,categories,unknown_food=False):
     fields={'field':'シアンの砂浜','food':'' if unknown_food else 'all','camp':True,'source':None}
     chosen={'version':1,'weekStart':WEEK,'eventId':event_id,'candidate':None,'editing':None,
@@ -62,7 +85,8 @@ try:
         data={**records(ID1,['curry','salad','dessert']),
               **records(ID2,['dessert']),
               **records(ID3,['curry','salad','dessert'],True),
-              PLAYER:{'version':1,'pot':57,'bag':120,'bonuses':{}}}
+              PLAYER:{'version':1,'pot':57,'bag':120,'bonuses':{}},
+              BOX:synthetic_roster()}
         page.evaluate("""entries=>{
           for(const [key,value] of Object.entries(entries))localStorage.setItem(key,JSON.stringify(value));
         }""",data)
@@ -73,6 +97,11 @@ try:
         page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
         a=check_goals(page)
         assert a<=120,(a,120)
+        page.wait_for_function("""()=>document.querySelector('#f3-b-production-content')?.textContent.includes('仮の5匹')""",timeout=25000)
+        scenario_text=page.locator('#f3-b-production-content').text_content()
+        assert '168時間' in scenario_text and '準備目標から自動控除しません' in scenario_text
+        assert 'SENTINEL_PRIVATE_NICKNAME' not in scenario_text
+        assert page.locator('#f3-b-production').count()==1
         after=page.evaluate("""()=>Object.fromEntries(
           Object.keys(localStorage).filter(k=>k.startsWith('pokesleep-strategy-'))
             .map(k=>[k,localStorage.getItem(k)]))""")
