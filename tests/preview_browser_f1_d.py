@@ -96,7 +96,20 @@ try:
         assert '5/5' in plan.locator('#f1d-picker-title').inner_text()
         before=page.evaluate('(keys)=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]))',list(seed))
         plan.locator('#f1d-run').click()
-        plan.locator('#f1d-result .f1d-big').wait_for(timeout=80000)
+        try:
+            plan.locator('#f1d-result .f1d-big').wait_for(timeout=24000)
+        except Exception as exc:
+            diag={
+              'status':plan.locator('#f1d-status').inner_text(),
+              'event':plan.locator('#f1d-event').inner_text(),
+              'choices':plan.locator('#f1d-form select[data-f1d-index]').evaluate_all(
+                '(els)=>els.map(el=>el.value)'),
+              'save':plan.locator('#event-save').evaluate(
+                '(el)=>({hidden:el.hidden,disabled:el.disabled})'),
+              'inner':plan.locator('#f1d-card').inner_text()[:1000],
+              'errors':errors[-5:]
+            }
+            raise AssertionError('F1-D result never rendered: '+repr(diag)) from exc
         assert 'エナジー' in plan.locator('#f1d-result .f1d-big').inner_text()
         assert plan.locator('#f1d-result .f1d-part').count()==3
         after=page.evaluate('(keys)=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]))',list(seed))
