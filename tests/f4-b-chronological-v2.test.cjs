@@ -51,7 +51,7 @@ test('F4-B exact clock calculates 29 windows, 21 meals, previous Sunday tail, fi
  assert(x.mealsCooked<=21);assert(x.mealsCooked>0);
  for(let day=0;day<7;day++){
   const subset=x.slots.slice(1+day*4,1+day*4+4);
-  assert.deepEqual(subset.map(r=>r.slot),['morning','noon','evening','sleep']);
+  assert.deepEqual(Array.from(subset,r=>r.slot),['morning','noon','evening','sleep']);
   assert.deepEqual([...subset[3].team],nights[day]);
   assert(subset.every(r=>r.team.length===5&&new Set(r.team).size===5));
  }
