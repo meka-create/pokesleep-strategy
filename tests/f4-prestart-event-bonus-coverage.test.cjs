@@ -111,4 +111,5 @@ test('F4 lazy reference must skip private box scan and pinned JSON until explici
  assert.match(s,/if\(lastRequestedToken===token\)return/);
  assert.doesNotMatch(s,/^\s*void refreshProduction\(ctx,result,token\);/m);
  assert.doesNotMatch(s,/localStorage\.setItem|localStorage\.removeItem/);
+ assert.match(read('e7-preview/e7-sw-v50.js'),/v90-f4-audit-20261113/);
 });
