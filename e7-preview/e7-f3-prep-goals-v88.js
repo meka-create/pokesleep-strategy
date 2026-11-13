@@ -219,7 +219,8 @@ window.addEventListener('storage',e=>{
  if(e.key===null||e.key?.startsWith('pokesleep-strategy-u2-e6-prep-v1:')||
   e.key?.startsWith('pokesleep-strategy-u2-e2-v1:')||
   e.key?.startsWith('pokesleep-strategy-u3-e3-v1:')||
-  e.key==='pokesleep-strategy-e7-player-v1')render();
+  e.key==='pokesleep-strategy-e7-player-v1'||
+  e.key==='pokesleep-strategy-e7-box-v1')render();
 });
 window.addEventListener('pageshow',e=>{if(e.persisted)render();});
 render();
