@@ -28,13 +28,15 @@ productionSummary.textContent='実個体の食材生産（参考）';
 const productionBody=document.createElement('div');
 productionBody.id='f3-b-production-content';
 productionDetails.append(productionSummary,productionBody);detail.append(productionDetails);
-let sourcePromise=null,renderToken=0,currentScenario=null;
+let sourcePromise=null,renderToken=0,lastRequestedToken=0,currentScenario=null;
 // F4 preflight audit: the optional F3-B reference is deliberately lazy.
 // Loading an unexpanded secondary section must not parse a private box or
 // fetch the pinned source catalog on every preparation-tab navigation.
 function requestOpenScenario(){
  if(!detail.open||!productionDetails.open||!currentScenario)return;
  const {ctx,base,token}=currentScenario;
+ if(lastRequestedToken===token)return;
+ lastRequestedToken=token;
  void refreshProduction(ctx,base,token);
 }
 detail.addEventListener('toggle',requestOpenScenario);
