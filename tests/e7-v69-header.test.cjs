@@ -28,7 +28,7 @@ test('E7 v69 uses precisely the supplied icon in the common three-tab header',()
 });
 test('E7 v69 updates offline cache and installs the supplied PWA icons',()=>{
  const sw=read('e7-sw-v50.js'),html=read('index.html'),manifest=read('e7-manifest-v50.webmanifest');
- assert.match(sw,/pokesleep-strategy-e7-v81-shared-pokemon-detail-20261113/);
+ assert.match(sw,/pokesleep-strategy-e7-v84-shared-e1-footer-20261113/);
  assert.match(sw,/'icons\/icon-header-96\.png'/);
  assert.match(html,/<title>ポケスリ作戦室 E7 v78<\/title>/);
  assert.equal(blobSha(Buffer.from(read('e7-icon-v50.svg'),'utf8')),'14e99856886eaf0141ecf95d61b44c2493bc8c7b');
