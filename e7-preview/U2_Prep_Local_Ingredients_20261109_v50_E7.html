@@ -49,7 +49,8 @@ main{padding-top:10px}
 .actual-grid .food input::placeholder{font-size:12px}
 .actual-grid .food.not-needed{background:#263b4e;border-color:#516980}
 .actual-grid .food.needed{background:#304458}
-.actual-grid + .row.total{margin-top:8px;padding-top:8px}
+/* v97: the two prep views must place the divider and totals identically. */
+.goal-grid + .row.total,.actual-grid + .row.total{margin-top:10px;padding-top:12px}
 .actual-grid ~ .btn{min-height:38px;margin-top:7px!important;padding:6px 9px}
 .actual-grid .food .pic,.actual-grid .food .name{pointer-events:none}
 #actual-panel .card,#current-panel .card{padding-bottom:9px}
