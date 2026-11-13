@@ -58,6 +58,9 @@ dialog::backdrop{background:#000b}
 <script src="../f4/f4-b-game-week-v1.js"></script>
 <script src="../f4/f4-b-chronological-v2.js"></script>
 <script src="../f4/f4-b-e7-readonly-v1.js"></script>
+<script src="../f4/f4-event-model-gate-v1.js"></script>
+<script src="../f4/f4-c-official-rules-v1.js"></script>
+<script src="../f4/f4-c-state-kernel-v1.js"></script>
 </head>
 <body>
 <header><div class="sub">POKÉMON SLEEP / DEVELOPMENT</div><h1>F4-B 時間順参考計算</h1>
@@ -84,8 +87,8 @@ dialog::backdrop{background:#000b}
 <div id="calc-result"></div>
 </section>
 <section class="card" aria-labelledby="caveats-title">
-<h2 id="caveats-title">計算に含まれない要素</h2>
-<p>公式イベントの数値補正、EX補正、げんき・メインスキル・回収と所持枠の時系列、料理レベル・大成功は未対応です。該当する正式イベント週の計算は停止します。</p>
+<h2 id="caveats-title">F4-Cでまだ未接続の要素</h2>
+<p>F4-Cの独立計算部品として、11/16公式ボーナス7条件と、げんき速度段階・所持数オーバーの判定を追加しました。ただし21食・29枠の作戦エンジンへは未接続であり、20食材・81料理の確定マスター、EX、げんき回復・メインスキル発動・回収履歴・料理レベル・大成功・実ゲーム境界の精度は未検証です。正式イベント週の週間エナジー試算は引き続き停止します。</p>
 <p>前週の日曜睡眠は04:00以降の食材期待量だけ参考接続し、きのみエナジーは当週の合計から除外します。これは実ゲーム内での持越し効果を保証しません。</p>
 </section>
 <dialog id="team-dialog" aria-labelledby="dialog-title">
