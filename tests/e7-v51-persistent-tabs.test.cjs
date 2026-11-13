@@ -8,7 +8,7 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 // v95 U2 target-badge layout-only change reviewed; U3 and U4 remain byte-for-byte pinned.
-const auditedSHA=['426d9d4a86214319fb00f01eb1d9471a9950b7e1', '8e7837d19b161b57c550cbbfbeaf7c8765a772a5', '0d33b8c39df975ff44d9b2c120a862f4fa077ecc'];
+const auditedSHA=['e289aa22174ea8a0f42e715db66c2070d58edb0d', '8e7837d19b161b57c550cbbfbeaf7c8765a772a5', '0d33b8c39df975ff44d9b2c120a862f4fa077ecc'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
