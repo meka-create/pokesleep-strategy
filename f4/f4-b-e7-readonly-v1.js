@@ -70,6 +70,8 @@
    const timeline=deps.e1.validateInventoryTimeline(original,sel.weekStart);
    const stock=timeline.currentInventory;
    if(!stock)return fail('EVENT_INVENTORY_MISSING','確定済み食材在庫がありません。');
+   if(Date.parse(stock.savedAt)>Date.parse(clock.asOf))
+    return fail('INVENTORY_FROM_FUTURE','指定時刻より未来の在庫を使用できません。');
    const player=readJson(storage,K.player);
    if(player!==null&&(player.version!==1||!plain(player.bonuses)))
     return fail('PLAYER_INVALID','プレイヤー情報が不正です。');
@@ -91,7 +93,8 @@
    return {
     status:'CONTEXT_READY',weekStart:sel.weekStart,eventId:sel.id,
     fields:{...fields},clock,inventoryValues:{...stock.values},
-    inventoryRevision:stock.revision,conditionRevision:cond.revision,
+    inventoryRevision:stock.revision,inventorySavedAt:stock.savedAt,
+    conditionRevision:cond.revision,
     player,privateBoxRows:box.items,
     // Current U3 manualSleep is NEVER mapped or passed to F4-A.
     illustrativeSleepOnly:true,autoSleep:savedPlan?.autoSleep===true,
@@ -127,6 +130,9 @@
    return fail('EX_MODIFIERS_NOT_MODELED','EX固有の補正は未実装です。');
   if(!ctx.hasSavedSleepSetting)
    return fail('SLEEP_SETTING_NOT_SAVED','睡眠編成の設定が未保存です。');
+  if(Date.parse(ctx.inventorySavedAt)>=Date.parse(ctx.clock.startsAt))
+   return fail('MIDWEEK_STOCK_NOT_WEEK_START',
+    'イベント開始後の現在庫から過去の21食・編成を再構成しません。');
   const player=ctx.player;
   const pot=player?.pot,bag=player?.bag,bonus=player?.bonuses?.[ctx.fields.field];
   if(!Number.isSafeInteger(pot)||pot<7||pot>5000||
