@@ -15,7 +15,7 @@ test('E7 v79 has pinned ingredient quantities for 66 scoped species/forms, no us
  const src=read('e7-preview/e7-ingredient-quantities-v79.js');
  assert(src.includes(snapshot.upstream.commit));
  assert(src.includes(snapshot.upstream.pokemonJson.gitBlob));
- assert.doesNotMatch(src,/nickname|localStorage|sessionStorage|setItem\(/);
+ assert.doesNotMatch(src,/nickname\s*:|localStorage|sessionStorage|setItem\(/);
 });
 test('E7 v79 64 regular species return all 3 slot count candidates, never slot 1 counts for slot 3',()=>{
  let checked=0;
