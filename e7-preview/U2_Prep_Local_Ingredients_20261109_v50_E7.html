@@ -292,9 +292,9 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 }
 </style>
 <style id="e7-v95-inventory-target-badge">
-/* Food icon stays centered at the accepted v80/v94 pixel dimensions.
-   Target count moves outside the icon area, alongside the stock input in
-   the bottom row. The 5:4 tile and 19 ingredient ordering remain unchanged. */
+/* Preserve v94 5:4 cards, centered icons and full-width stock inputs.
+   The target-count chip sits in the card's upper-right corner. On narrow
+   screens it can touch a small part of the image, never the stock field. */
 .actual-grid .food.needed .food-media{
   grid-column:1;
   grid-row:1;
@@ -304,32 +304,31 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 .actual-grid .food.needed .input-wrap{
   grid-column:1;
   grid-row:2;
-  justify-self:start;
-  width:calc(100% - 27px);
+  width:100%;
 }
 .actual-grid .food.needed .target-chip{
   position:absolute;
-  top:auto;
-  right:3px;
-  bottom:6px;
-  max-width:24px;
+  top:2px;
+  right:2px;
+  bottom:auto;
+  max-width:28px;
   min-width:19px;
   min-height:16px;
   padding:1px 2px 0;
   border-radius:6px;
+  box-shadow:0 1px 3px #0009;
 }
 .actual-grid .food.needed .target-chip b{
-  font-size:9px;
-  letter-spacing:-.05em;
+  font-size:10px;
+  letter-spacing:-.04em;
 }
 @media(max-width:370px){
-  .actual-grid .food.needed .input-wrap{
-    width:calc(100% - 25px);
-  }
   .actual-grid .food.needed .target-chip{
-    right:2px;
-    bottom:4px;
+    top:1px;
+    right:1px;
+    max-width:25px;
   }
+  .actual-grid .food.needed .target-chip b{font-size:9px}
 }
 </style>
 <style id="f3-v88-style">
