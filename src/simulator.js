@@ -927,6 +927,28 @@ function baseCarryCapacity(sp){
  return (sp.carryLimit||10)+5*stages+pikachuBonus;
 }
 function signature(p,sp,team,camp,warnings){
+ // F1-C opt-in only. Legacy STEP2 inputs never contain these verified
+ // per-individual snapshots, so their historical behavior stays unchanged.
+ // The bridge precomputes all 0..4 teammate-bonus scenarios from the pinned
+ // F1-B source; do NOT recompute with STEP2's older species percentages.
+ if(p.__f1VerifiedRates){
+  const others=team.filter(q=>q.id!==p.id&&activeSkills(q).includes('おてつだいボーナス')).length;
+  const rate=p.__f1VerifiedRates[others];
+  if(!rate||rate.status!=='BASE_RATES_AVAILABLE'&&rate.status!=='SPECIAL_REVIEW_REQUIRED'||
+     !Number.isFinite(rate.referenceHelpSeconds)||rate.referenceHelpSeconds<=0||
+     !Number.isFinite(rate.ingredientProbabilityPerHelp)||
+     !Number.isFinite(rate.mainSkillProbabilityPerEligibleHelp)||
+     !Array.isArray(p.__f1IngredientSlots)||!p.__f1IngredientSlots.length)
+   throw Error('F1-Cの個体別計算値が未確定です。');
+  const pity=(sp.specialty==='Skills'||sp.specialty==='All')&&sp.frequency>0?
+   Math.ceil(142000/sp.frequency):78;
+  return {p,sp,interval:Math.max(150,rate.referenceHelpSeconds),
+   ingRate:rate.ingredientProbabilityPerHelp,
+   skillRate:rate.mainSkillProbabilityPerEligibleHelp,
+   berryPerHelp:rate.berryCountPerBerryHelp,carry:rate.carryLimit,
+   ingSlots:p.__f1IngredientSlots,skill:sp.skill,pity,
+   stockMax:(sp.specialty==='Skills'||sp.specialty==='All')?2:1};
+ }
  const sub=activeSkills(p),count=s=>sub.includes(s)?1:0;
  const speedNature=(function(){const f=natureFactor(p.nature,['Lonely','Adamant','Naughty','Brave'],['Bold','Timid','Calm','Modest']);return f===1.2?.9:f===.8?1.075:1;})();
  let helpingBonus=team.reduce((n,q)=>n+Number(activeSkills(q).includes('おてつだいボーナス')),0);
