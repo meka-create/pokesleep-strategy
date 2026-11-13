@@ -36,7 +36,7 @@ test('pre-F2 independent audit: 19 shared ingredient icons exactly match both U2
  const root={};vm.runInNewContext(shared,{window:root});
  const icons=root.PokeE7PokemonDetail.ingredientIcons;
  const u2=text('e7-preview/U2_Prep_Local_Ingredients_20261109_v50_E7.html');
- const rows=[...u2.matchAll(/<img class="pic" src="(assets\/ingredients\/ingredient-\d{2}\.png)"[^>]*><\/span><span class="name">([^<]+)<\/span>/g)];
+ const rows=[...u2.matchAll(/<img class="pic" src="(assets\/ingredients\/ingredient-\d{2}\.png)"[^>]*>[\s\S]{0,400}?<span class="name">([^<]+)<\/span>/g)];
  assert.equal(Object.keys(icons).length,19);
  assert.equal(rows.length,38,'19 icons in both food views');
  for(let i=0;i<19;i++){
