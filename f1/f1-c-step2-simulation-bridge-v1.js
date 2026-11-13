@@ -14,6 +14,46 @@ const fail=(code)=>Object.freeze({status:'BLOCKED',calculation:'BLOCKED',
  reason:code,weeklyEnergy:null,source:'F1_C_PINNED_66_FORMS',userRowsRetained:false});
 const equal=(a,b)=>a===b||Number.isNaN(a)&&Number.isNaN(b);
 const NAMES=['type','specialty','frequency','ingRate','skillRate','carryLimit','skill','english','evolutionCount','evolutionLeft'];
+// Provisional 2026-11-13 Wiki estimates. The 4.0% static Mew profile is
+// only appropriate to medium-tier selected skills, NOT all 12 effects.
+// These values may change; all weekly results remain PROVISIONAL.
+const MEW_BASE_SKILL_RATE=Object.freeze({
+ 'Berry Burst':.0284,'Energy for Everyone S':.0337,
+ 'Energizing Cheer S':.0439,
+ 'Charge Strength S (Random)':.064,'Charge Energy S':.064,
+ 'Metronome':.04,'Charge Strength M':.04,
+ 'Dream Shard Magnet S (Random)':.04,'Ingredient Magnet S':.04,
+ 'Extra Helpful S':.04,'Cooking Power-Up S':.04,'Tasty Chance S':.04
+});
+const trunc4=n=>Math.floor(Number((n*1e4).toFixed(6)))/1e4;
+function mewProvisional(row,snapshot,rates){
+ const dictionary=snapshot?.dictionaries?.mainSkills;
+ if(!dictionary)return null;
+ let selected=Object.keys(MEW_BASE_SKILL_RATE).find(key=>dictionary[key]===row.mainSkill);
+ const notes=[];
+ if(!selected&&row.mainSkill===dictionary.Versatile){
+  selected='Metronome';notes.push('DEFAULT_METRONOME_ASSUMED');
+ }else if(!selected&&row.mainSkill===dictionary['Charge Strength S']){
+  selected='Charge Strength S (Random)';notes.push('AMBIGUOUS_RANDOM_CHARGE_ASSUMED');
+ }
+ if(!selected)return null;
+ const n=Object.entries(snapshot.dictionaries.natures)
+  .find(([,jp])=>jp===row.nature)?.[0];
+ if(!n||row.mint!==true&&row.mint!==false)return null;
+ const active=['lv10','lv25','lv50','lv70','lv80']
+  .filter((_,i)=>row.level>=[10,25,50,70,80][i])
+  .map(slot=>row[slot]);
+ const dict=snapshot.dictionaries.subskills;
+ const up=active.filter(x=>x===dict['Skill Trigger S']).length+
+  2*active.filter(x=>x===dict['Skill Trigger M']).length;
+ const probability=trunc4(MEW_BASE_SKILL_RATE[selected]*
+  rates.natureFactor(n,row.mint,'skill')*(1+.18*up));
+ if(!Number.isFinite(probability)||probability<0||probability>1)return null;
+ if(['Metronome','Dream Shard Magnet S (Random)'].includes(selected))
+  notes.push('SKILL_EFFECT_EXCLUDED_IN_LEGACY_STEP2');
+ if(row.skillLevel>7)notes.push('SELECTED_SKILL_LEVEL_ABOVE_STEP2_EFFECT_CAP');
+ return Object.freeze({selected,probability,notes:Object.freeze(notes)});
+}
 function verifyMaster(snapshot,traits,master,rates){
  rates.validateTraits(snapshot,traits);
  if(!master||!Array.isArray(master.species)||!master.natures||!master.ingredients)
@@ -95,16 +135,14 @@ function simulateWeekly(input,deps){
  const goodCamp=input.options?.camp===true;
  if(input.options?.camp!==undefined&&typeof input.options.camp!=='boolean')
   return fail('INVALID_CAMP_SETTING');
- const rows=[],reviewSpecies=new Set();
+ const rows=[],reviewSpecies=new Set(),mewAssumptions=[];
  for(const id of chosen){
   const inputRow=originalById.get(id);
   if(!inputRow)return fail('UNKNOWN_INDIVIDUAL_ID');
   const pokemon=inputRow.pokemon;
   if(!catalog.has(pokemon)||!snapshot.targets.some(t=>t.name===pokemon))
    return fail('OUTSIDE_F1_SCOPE');
-  // Mew's chosen effect has an unknown per-effect trigger rate. Never
-  // imply a correct week outcome by substituting the generic species rate.
-  if(pokemon==='ミュウ')return fail('MEW_SKILL_RATE_UNVERIFIED');
+  // Mew is included with an explicitly provisional chosen-effect rate.
   const clean={...inputRow,
    ribbon:inputRow.ribbon??inputRow.sleepHours};
   const sourceReport=legal.auditBuild(clean,snapshot);
@@ -113,14 +151,22 @@ function simulateWeekly(input,deps){
   const target=snapshot.targets.find(t=>t.name===pokemon);
   const slots=foodSlots(clean,target,snapshot,legal);
   if(!slots)return fail('UNVERIFIED_ACTIVE_FOOD');
+  const mew=pokemon==='ミュウ'?mewProvisional(clean,snapshot,rates):null;
+  if(pokemon==='ミュウ'&&!mew)return fail('MEW_EFFECT_NOT_IDENTIFIED');
   const rateTable={};
   for(let teammates=0;teammates<=4;teammates++){
    const rate=rates.evaluate(clean,snapshot,traits,{
     teammateHelpingBonusCount:teammates,goodCamp});
-   if(rate.status==='BLOCKED'||rate.mainSkillProbabilityPerEligibleHelp===null)
+   if(rate.status==='BLOCKED')return fail('UNVERIFIED_INDIVIDUAL_RATE');
+   const effective=mew?{
+    ...rate,mainSkillProbabilityPerEligibleHelp:mew.probability,
+    skillRateStatus:'PROVISIONAL_MEW_SELECTED_SKILL'
+   }:rate;
+   if(effective.mainSkillProbabilityPerEligibleHelp===null)
     return fail('UNVERIFIED_INDIVIDUAL_RATE');
-   rateTable[teammates]=rate;
+   rateTable[teammates]=Object.freeze(effective);
   }
+  if(mew)mewAssumptions.push(mew);
   if(sourceReport.status==='REVIEW_REQUIRED')reviewSpecies.add(pokemon);
   const subs=['lv10','lv25','lv50','lv70','lv80'].map(x=>clean[x]||'');
   // Mint neutralizes EVERY nature modifier (not just help speed).
@@ -131,7 +177,8 @@ function simulateWeekly(input,deps){
    ingredients:[clean.ing1,clean.ing2,clean.ing3],
    subskills:subs,sleepHours:clean.ribbon,shiny:clean.shiny===true,
    __f1VerifiedRates:Object.freeze(rateTable),
-   __f1IngredientSlots:slots
+   __f1IngredientSlots:slots,
+   ...(mew?{__f1SelectedSkill:mew.selected}:{})
   });
  }
  // Only the chosen individuals enter the simulator: a larger imported box
@@ -145,6 +192,18 @@ function simulateWeekly(input,deps){
   return fail('INVALID_WEEKLY_NUMERIC_RESULT');
  const warnings=simulation.warnings||[];
  warnings.push('F1-C暫定週間期待値：F1-Bで照合済みの個体別おてつだい速度・食材率・スキル率を使用しています。げんき、所持枠、スキルの発動時刻、料理の成立確率などは既存STEP2の近似で、最適編成の保証はありません。');
+ if(mewAssumptions.length){
+  const effects=[...new Set(mewAssumptions.map(m=>m.selected))];
+  warnings.push('ミュウのメインスキル発動率は選択効果ごとの暫定推定値（基礎2.84%・3.37%・4.00%・4.39%・6.40%）です。確定値として扱わず、個体比較に誤差が残る可能性があります。');
+  if(mewAssumptions.some(m=>m.notes.includes('SKILL_EFFECT_EXCLUDED_IN_LEGACY_STEP2')))
+   warnings.push('ミュウのゆびをふる／ゆめのかけらゲットの効果はSTEP2でエナジー寄与を計算していません。');
+  if(mewAssumptions.some(m=>m.notes.includes('DEFAULT_METRONOME_ASSUMED')))
+   warnings.push('ミュウの選択スキルがオールマイティー表記のため、初期状態のゆびをふると仮定しました。');
+  if(mewAssumptions.some(m=>m.notes.includes('AMBIGUOUS_RANDOM_CHARGE_ASSUMED')))
+   warnings.push('ミュウのエナジーチャージSはランダム効果として仮定しました。');
+  if(mewAssumptions.some(m=>m.notes.includes('SELECTED_SKILL_LEVEL_ABOVE_STEP2_EFFECT_CAP')))
+   warnings.push('ミュウのメインスキルLv8効果は既存STEP2で表示できる効果Lv上限へ丸めています。');
+ }
  if(reviewSpecies.size)
   warnings.push('一部の個体構成に未解放枠等の確認待ちがあります：'+[...reviewSpecies].join('・'));
  return Object.freeze({
@@ -157,5 +216,5 @@ function simulateWeekly(input,deps){
   userRowsRetained:false
  });
 }
-return Object.freeze({verifyMaster,foodSlots,simulateWeekly});
+return Object.freeze({verifyMaster,foodSlots,mewProvisional,simulateWeekly});
 });
