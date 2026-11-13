@@ -22,60 +22,7 @@
 
 /* 自作プルダウン。リスト本体はスクロールできるがスクロールバーは見せない */
 .custom-select{position:relative;min-width:0;width:100%}.custom-trigger{display:flex;align-items:center;justify-content:space-between;gap:9px;background:#112237;color:var(--text);border:1px solid #64778a;border-radius:9px;width:100%;min-height:44px;padding:9px 11px;text-align:left}.custom-trigger[aria-expanded=true]{border-color:#e8c27e;background:#243d51}.custom-trigger::after{content:"";width:8px;height:8px;flex:0 0 8px;border-right:2px solid #d9e1e8;border-bottom:2px solid #d9e1e8;transform:rotate(45deg) translateY(-2px)}.custom-menu{position:absolute;z-index:200;left:0;right:0;top:calc(100% + 4px);max-height:242px;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;background:#1a3045;border:1px solid #70849b;border-radius:11px;box-shadow:0 12px 32px #0009;padding:5px}.custom-menu::-webkit-scrollbar{display:none}.custom-menu.up{top:auto;bottom:calc(100% + 4px)}.custom-opt{display:block;width:100%;min-height:41px;padding:9px 12px;color:var(--text);background:transparent;border:0;border-radius:7px;text-align:left;font-size:13px}.custom-opt[aria-selected=true]{background:#574b38;color:#ffdda1;font-weight:750}.custom-opt.active{background:#394f64}.custom-opt.active[aria-selected=true]{background:#685738}
-.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.stat-modal{max-height:90dvh;padding-top:9px}
-.stat-modal .iv-close-row{display:flex;justify-content:flex-end;align-items:center;min-height:32px;margin:0 0 5px}
-.stat-modal .iv-close-row .iv-close{min-height:32px}
-.stat-modal .iv-hero{align-items:flex-start;gap:12px;margin:0 0 8px;padding:0 0 6px}
-.stat-modal .iv-hero-name{padding-top:5px;flex:1}
-.stat-modal #pokemon-level{font-size:15px;line-height:1.35;display:block}
-
-/* U3 v9: pokesleep-tool-inspired alignment using the native navy theme.
-   Labels are plain text instead of the game-green capsules. */
-.stat-modal .iv-base{grid-template-columns:minmax(108px,34%) minmax(0,1fr);align-items:center;column-gap:12px;row-gap:0;margin:7px 2px 11px}
-.stat-modal .iv-base>.iv-key{display:flex;align-items:center;min-height:44px;padding:10px 0;color:#c4d3e3;font-size:12px;font-weight:700;line-height:1.35;white-space:nowrap}
-.stat-modal .iv-base>.iv-value{display:flex;align-items:center;min-width:0;min-height:44px;padding:8px 0;color:var(--text);font-size:14px;font-weight:730;line-height:1.4}
-.stat-modal .iv-ingredients{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:3px}
-.stat-modal .iv-ingredient{display:flex;flex-direction:column;align-items:center;min-width:0;gap:3px;text-align:center}
-.stat-modal .iv-ingredient-image{position:relative;display:block;flex:none;width:clamp(28px,9vw,40px);height:clamp(28px,9vw,40px)}
-.stat-modal .iv-ingredient .iv-ingredient-image img{display:block;width:100%;height:100%;object-fit:contain}
-.stat-modal .iv-ingredient-quantity{position:absolute;right:-7px;bottom:0;display:flex;align-items:center;justify-content:center;min-width:23px;min-height:17px;padding:1px 4px;border:1px solid #c7a367;border-radius:999px;background:#16283b;color:#fff5df;font-size:10px;font-weight:850;line-height:1.1;white-space:nowrap;box-shadow:0 1px 3px #0008;box-sizing:border-box}
-.stat-modal .iv-ingredient .ingredient-name{font-size:9px;line-height:1.25;overflow-wrap:anywhere}
-/* Nature display: pokesleep-tool-style outlined oval + adjacent modifiers, in navy theme. */
-.stat-modal .iv-nature-row{display:grid;grid-template-columns:minmax(108px,38%) minmax(0,1fr);align-items:center;gap:10px;margin:10px 2px 9px}
-.stat-modal .iv-nature-pill{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:2px solid #709dc0;border-radius:999px;background:#23394e;color:var(--text);font-size:14px;font-weight:750;line-height:1.35;text-align:center;box-sizing:border-box}
-.stat-modal .iv-nature-modifiers{display:flex;flex-direction:column;justify-content:center;gap:7px;min-width:0}
-.stat-modal .iv-nature-effect{display:flex;align-items:baseline;justify-content:flex-start;gap:3px;font-size:13px;line-height:1.4;white-space:normal;font-weight:650}
-.stat-modal .iv-nature-effect span{flex:0 1 auto;min-width:0;overflow-wrap:anywhere}
-.stat-modal .iv-nature-effect b{flex:0 0 auto;white-space:nowrap;font-size:13px;font-weight:900}
-.stat-modal .iv-nature-effect.up b{color:#eda377}
-.stat-modal .iv-nature-effect.down b{color:#82bde8}
-@media(max-width:360px){.stat-modal .iv-base{grid-template-columns:minmax(105px,36%) minmax(0,1fr);column-gap:8px}.stat-modal .iv-base>.iv-key{font-size:11px}}
-
-.stat-modal .iv-nature-none{font-size:12px;color:var(--muted)}
-.stat-modal .iv-skill.gold{border-color:#a18a59;background:#4c4334;color:var(--text)}
-.stat-modal .iv-skill.blue{border-color:#5b8eb6;background:#263f60;color:var(--text)}
-.stat-modal .iv-skill.white{border-color:#8192a4;background:#29394a;color:var(--text)}
-.stat-modal .iv-skill.gold small,.stat-modal .iv-skill.blue small,.stat-modal .iv-skill.white small{color:#d7deea}
-.iv-skill.unknown{border-style:dashed;border-color:#d4a960}
-.iv-skill.locked{opacity:.64}
-.iv-hero{display:flex;align-items:center;gap:14px;margin:0 0 12px;padding:2px 4px 9px}
-.status-portrait{position:relative;width:82px;height:82px;flex:0 0 82px;border-radius:14px;background:#25394e;display:flex;align-items:center;justify-content:center;font-size:17px}
-.status-portrait .sprite-img{width:100%;height:100%}
-.iv-hero-name{display:flex;flex-direction:column;gap:3px;min-width:0}
-.iv-hero-name strong{font-size:20px}.iv-hero-name span{color:var(--gold);font-weight:800}
-.iv-base{display:grid;grid-template-columns:minmax(95px,36%) 1fr;align-items:start;gap:8px 11px;margin:8px 2px 12px;font-size:12px}
-.iv-key{color:#bbcada;font-weight:650}.iv-value{font-size:13px;font-weight:720;line-height:1.4;min-width:0;overflow-wrap:anywhere}
-.iv-food-label,.iv-food-value{grid-column:1/-1}.iv-food-value{padding-bottom:5px}.iv-ingredients{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-items:start}
-.iv-ingredient{display:flex;flex-direction:column;align-items:center;gap:3px;padding:1px;min-width:0;font-size:10px;text-align:center;line-height:1.3}
-.iv-ingredient b{display:block;color:var(--gold);font-size:10px}.iv-ingredient img{width:40px;height:40px;object-fit:contain}.iv-ingredient .ingredient-name{font-size:9px;color:var(--text);overflow-wrap:anywhere}
-.iv-section-title{margin:14px -2px 9px;padding:4px 8px;background:#557799;color:#fff;font-size:12px;border-radius:5px;font-weight:750}
-.iv-main{display:flex;align-items:baseline;justify-content:flex-start;flex-wrap:wrap;gap:14px;margin:1px 2px 10px;padding:5px 2px 9px;border-bottom:1px solid #547087;background:transparent;font-size:15px;font-weight:780;line-height:1.4}
-.iv-main span{min-width:0;overflow-wrap:anywhere}
-.iv-main em{font-style:normal;color:var(--gold);white-space:nowrap}
-.iv-subskills{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0}
-.iv-skill{min-height:42px;border:1px solid #6b8091;border-radius:8px;padding:5px 7px;background:#253b50;font-size:13px;font-weight:750;line-height:1.35;display:flex;align-items:center;justify-content:center;text-align:center;box-sizing:border-box}
-.iv-skill>span{display:block;width:100%;overflow-wrap:anywhere}
-.iv-skill.gold{border-color:#a18a59;background:#4c4334}.iv-skill.blue{border-color:#5b8eb6;background:#263f60}.iv-skill small{color:#d7deea;font-size:10px;font-weight:750}
+/* E7 v83: all Pokémon status-modal styles are in e7-pokemon-detail-shared-v81.css. */
 @media(max-width:385px){.shell{padding:0 9px 26px}.card{padding:11px 9px}.daynav{gap:4px}.daybtn{min-height:50px}.mini-roster{gap:3px}.avatar{width:42px;height:42px}.pick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mon-name{font-size:8.6px}.slot{padding:9px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 
@@ -308,33 +255,6 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 <link rel="icon" href="icons/favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 
-<style id="e7-v79-status-ingredients">
-/* Three balanced icons with numeric badges; ingredient names remain available
-   as accessible aria labels, never as an extra visual row. */
-#pokemon-dialog .iv-ingredients{
- display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
- gap:9px;width:100%;align-items:center;justify-items:center;padding:5px 4px;
-}
-#pokemon-dialog .iv-ingredient{
- display:grid;place-items:center;margin:0;padding:3px 1px;min-width:0;
-}
-#pokemon-dialog .iv-ingredient-image{
- position:relative;display:grid;place-items:center;
- width:clamp(35px,10vw,46px);height:clamp(35px,10vw,46px);
-}
-#pokemon-dialog .iv-ingredient-image img{
- display:block;width:100%;height:100%;object-fit:contain;
-}
-#pokemon-dialog .iv-ingredient-quantity{right:-7px;bottom:-2px}
-</style>
-<style id="e7-v80-status-compact-rows">
-/* Keep the ingredient icons unchanged, reduce only surplus row height. */
-#pokemon-dialog #pokemon-base-rows{row-gap:0;margin:4px 2px 7px;align-items:center}
-#pokemon-dialog #pokemon-base-rows>.iv-key,
-#pokemon-dialog #pokemon-base-rows>.iv-value{
- min-height:36px;padding:3px 0;
-}
-</style>
 <link rel="stylesheet" href="e7-pokemon-detail-shared-v81.css">
 <script src="e7-species-v59.js"></script>
 <script src="e7-pokemon-detail-shared-v81.js"></script>
@@ -399,18 +319,8 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 
 <dialog class="modal review-modal" id="review-dialog" aria-labelledby="review-title"><div class="modal-head"><h2 id="review-title">作戦の提案</h2><button type="button" class="btn small ghost" id="review-close">閉じる</button></div><p class="review-note">この画面の編成は表示用の仮提案です。実ゲームの最適化計算は未接続です。採用するまで現在の作戦は変わりません。</p><div class="daynav" id="review-day-nav" role="tablist" aria-label="提案を確認する曜日"></div><div id="review-slots"></div><div class="modal-footer"><button type="button" class="btn ghost" id="review-cancel">キャンセル</button><button type="button" class="btn" id="review-adopt">この作戦を採用</button></div></dialog>
 <dialog class="modal" id="edit-dialog" aria-labelledby="edit-title"><div class="modal-head"><h2 id="edit-title">睡眠編成</h2><button type="button" class="btn small ghost" id="edit-close" aria-label="編集を閉じる">閉じる</button></div><div class="section-head"><h3>パーティ</h3><span class="select-count" id="select-count">5 / 5</span></div><div class="pick-grid" id="pick-grid"></div><p id="edit-error" class="modal-error" role="alert"></p><div class="modal-footer"><button type="button" class="btn ghost" id="edit-cancel">キャンセル</button><button type="button" class="btn" id="edit-save">この夜を保存</button></div></dialog>
-<dialog class="modal stat-modal" id="pokemon-dialog" aria-labelledby="pokemon-status-title">
-  <h2 id="pokemon-status-title" class="visually-hidden">ポケモンの詳細</h2>
-  <div class="iv-close-row"><button type="button" class="btn small ghost iv-close" id="pokemon-close" aria-label="ステータスを閉じる">閉じる</button></div>
-  <div class="iv-hero"><span id="pokemon-sprite" class="status-portrait sprite-stage"></span><div class="iv-hero-name"><strong id="pokemon-nickname"></strong><span id="pokemon-level"></span></div></div>
-  <div class="iv-base" id="pokemon-base-rows"></div>
-  <h3 class="iv-section-title">メインスキル・サブスキル</h3>
-  <div class="iv-main" id="pokemon-main-skill"></div>
-  <div class="iv-subskills" id="pokemon-subskills"></div>
-  <h3 class="iv-section-title">詳細ステータス</h3>
-  <div class="iv-nature-wrap" id="pokemon-nature" role="group" aria-label="せいかく"></div>
-  <div class="iv-base" id="pokemon-extra"></div>
-</dialog>
+<dialog class="pokemon-detail-modal modal stat-modal" id="pokemon-dialog" aria-labelledby="pokemon-status-title"></dialog>
+<script>PokeE7PokemonDetail.mount('plan');</script>
 <script id="e6-dev-reset-bootstrap">
 (()=>{
 'use strict';
