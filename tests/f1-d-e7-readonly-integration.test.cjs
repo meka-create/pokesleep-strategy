@@ -24,8 +24,11 @@ const sMap=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,
  dump:()=>Object.fromEntries(m)};};
 const species=new Map(snapshot.targets.map(s=>[s.name,s]));
 const food=(t,slot)=>{
+ const special=legal.SPECIAL_FOODS[t];
+ if(special)return snapshot.dictionaries.ingredients[Object.keys(special[slot-1])[0]];
  const a=species.get(t),c=[a.sourceProfile.ing1,a.sourceProfile.ing2,a.sourceProfile.ing3]
   .slice(0,slot).find(x=>x&&x.name!=='unknown'&&x['c'+slot]>0);
+ if(!c)throw Error('Missing test food '+t+'/'+slot);
  return snapshot.dictionaries.ingredients[c.name];
 };
 const item=(pokemon,nick='同じニックネーム')=>{
