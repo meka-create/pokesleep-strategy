@@ -48,7 +48,7 @@ test('E7 v78 manifest, shell and service worker choose new Pixel assets',()=>{
  }
  const sw=fs.readFileSync(path.join(root,'e7-sw-v50.js'),'utf8');
  const shell=fs.readFileSync(path.join(root,'index.html'),'utf8');
- assert.match(sw,/pokesleep-strategy-e7-v79-food-layout-20261113/);
+ assert.match(sw,/pokesleep-strategy-e7-v80-square-prep-detail-20261113/);
  for(const size of [192,512])assert.ok(sw.includes("'icons/icon-maskable-"+size+".png'"));
  assert.match(shell,/<title>ポケスリ作戦室 E7 v78<\/title>/);
  assert.match(shell,/href="e7-manifest-v50\.webmanifest\?v=20261112-v77-app-label"/);

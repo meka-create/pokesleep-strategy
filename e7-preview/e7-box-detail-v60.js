@@ -26,10 +26,20 @@ function tone(item){
 }
 function value(key,content){
  const label=document.createElement('div');label.className='iv-key';
- label.textContent=key+(['食材','おてつだい時間','最大所持数','せいかく'].includes(key)?'：':'');
+ label.textContent=key+(['食材','おてつだい時間','最大所持数','せいかく','一緒に眠った時間'].includes(key)?'：':'');
  const cell=document.createElement('div');cell.className='iv-value';
  if(typeof content==='string')cell.textContent=content;else cell.append(content);
  return [label,cell];
+}
+// pokesleep-tool exports the lower hour thresholds (0/200/500/1000/2000),
+ // while its Japanese control displays ranges, not an exact elapsed time.
+function formatSharedSleepHours(hours){
+ if(!Number.isSafeInteger(hours)||hours<0)return '—';
+ if(hours>=2000)return '2000時間以上';
+ if(hours>=1000)return '1000～2000時間';
+ if(hours>=500)return '500～1000時間';
+ if(hours>=200)return '200～500時間';
+ return '200時間未満';
 }
 function render(item){
  const name=item.nickname||item.pokemon;
@@ -92,10 +102,10 @@ function render(item){
  }
  row.append(changes);nature.append(row);
  const extra=$('box-detail-extra');extra.replaceChildren();
- extra.append(...value('一緒に眠った時間',item.ribbon===null?'—':String(item.ribbon)));
+ extra.append(...value('一緒に眠った時間',formatSharedSleepHours(item.ribbon)));
  if(item.shiny===true)extra.append(...value('色違い','はい'));
  if(item.favorite)extra.append(...value('お気に入り',String(item.favorite)));
  root.PokeSprite.enhance($('box-detail-dialog'));
 }
-root.E7BoxDetail=Object.freeze({tone,render});
+root.E7BoxDetail=Object.freeze({tone,render,formatSharedSleepHours});
 })(window);
