@@ -142,10 +142,37 @@ async function refresh({fetchImpl,storage,timeoutMs=6500,nowISO}={}){
   ]);
   const catalog=prepare(data,lang,{revision:meta.sha,
    checkedAt:typeof nowISO==='string'?nowISO:new Date().toISOString()});
-  // A partial upstream file must not wipe healthy records from prior refreshes.
+  // Keep the previous complete catalog if a source update corrupts a
+  // previously verified *upcoming* event or its Japanese name. The source can
+  // legitimately remove a record, so only entries still present but invalid
+  // trigger this guard; old historical anomalies remain individually isolated.
   const last=storage?readLastKnownGood(storage):null;
-  if(last&&catalog.bonus.length<Math.max(1,Math.ceil(last.bonus.length*.65)))
-   throw Error('Suspicious upstream shrink');
+  if(last){
+   if(catalog.bonus.length<Math.max(1,Math.ceil(last.bonus.length*.65)))
+    throw Error('Suspicious upstream shrink');
+   const clock=typeof nowISO==='string'?Date.parse(nowISO):NaN;
+   const current=Number.isFinite(clock)?clock:Date.now();
+   const idOf=x=>typeof x?.name==='string'&&typeof x?.start==='string'?
+    'pokesleep-tool:'+x.name+':'+x.start.slice(0,10):null;
+   const validIds=new Set(catalog.bonus.map(idOf));
+   const knownIds=new Map(last.bonus.map(x=>[idOf(x),x]));
+   for(const entry of data.bonus){
+    const id=idOf(entry),known=knownIds.get(id);
+    if(known&&!validIds.has(id)&&
+     Date.parse(known.end+'+09:00')>current)
+     throw Error('Previously validated upcoming event became malformed: '+id);
+   }
+   const dailyId=x=>typeof x?.name==='string'&&typeof x?.day==='string'?
+    x.day+'|'+x.name:null;
+   const currentDaily=new Set(catalog.drowsy.map(dailyId));
+   const priorDaily=new Map(last.drowsy.map(x=>[dailyId(x),x]));
+   for(const entry of data.drowsy){
+    const id=dailyId(entry),known=priorDaily.get(id);
+    if(known&&!currentDaily.has(id)&&
+     Date.parse(known.day+'T04:00:00+09:00')>=current)
+     throw Error('Previously validated upcoming daily bonus became malformed: '+id);
+   }
+  }
   if(storage){
    // This namespace contains only public upstream records; never touch E7 saves.
    try{storage.setItem(KEY,JSON.stringify(catalog));}catch(e){}

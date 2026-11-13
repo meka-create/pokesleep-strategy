@@ -1,3 +1,11 @@
+## F3直前・最終独立監査 — F2 v87（2026-11-13）
+
+- F2 v86 main `2c31c2f4286cfd11c9a1af598afff1ce41e49794` と上流の実ファイルを照合。v86の4 ActionsはすべてSUCCESS。監査全文は `development/F2_V87_PRE_F3_FINAL_INDEPENDENT_AUDIT_20261113.md`。
+- **是正**：同梱11/16イベントの `ingredient:+1` 欠落修正。検証済みの将来イベントや日別補正が上流で部分破損したときは65%残存条件のみでLKGを上書きせず、不採用。効果が変わらず日本語イベント名だけ変更されたケースも「更新された補正を選択」→「保存」で明示更新。
+- 独立のChromium試験 `tests/preview_browser_f2_pre_f3.py`／`tests/f2-pre-f3-browser.test.cjs` を追加。上流同一commitのペア取得、選択・明示保存、名称更新、更新途中の保存データ保護、オフラインLKGを実ブラウザで確認。純関数の未来候補/日別局所破損、旧データ保護も追加回帰。
+- 境界：F2の確認済み `verifiedEffects` はF3/F4の入力原典であって、F1-Dの暫定週間エナジーへ自動加算しない。原典から開催フィールドや未確定きのみを推測しない。旧root/F1/Box/在庫/CSV/manifest/Pixelアイコンを保護。
+- **F3着手ゲート**：修正PR最終形の2系統CIとChromium、main統合後2系統CI、Pages公開の全PASS。Android実機でv79〜v87のUI変更に対する一括受入は別件・未確認。次は**F3準備週の備蓄エナジー最適化**、続いてF4 21昼枠＋21食＋7晩、F5途中再提案、F6正式root切替。
+
 ## F2 着手 — v86上流イベント同期・明示反映（2026-11-13）
 
 - **実装ブランチ** `feat/f2-safe-upstream-event-sync-20261113`。E7 v85 main `8d5bc9402acc34f937b2c2756e7df71caf7f6f43` から非破壊派生。F2の第一実装として、イベント取得・検証・選択・メタデータ保持をE7プレビューへ追加する。正式rootはF6まで変更しない。
