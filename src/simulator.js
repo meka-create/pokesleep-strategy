@@ -946,7 +946,7 @@ function signature(p,sp,team,camp,warnings){
    ingRate:rate.ingredientProbabilityPerHelp,
    skillRate:rate.mainSkillProbabilityPerEligibleHelp,
    berryPerHelp:rate.berryCountPerBerryHelp,carry:rate.carryLimit,
-   ingSlots:p.__f1IngredientSlots,skill:sp.skill,pity,
+   ingSlots:p.__f1IngredientSlots,skill:p.__f1SelectedSkill||sp.skill,pity,
    stockMax:(sp.specialty==='Skills'||sp.specialty==='All')?2:1};
  }
  const sub=activeSkills(p),count=s=>sub.includes(s)?1:0;
