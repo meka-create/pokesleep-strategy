@@ -77,3 +77,13 @@
  font-size:10px;font-weight:850;line-height:1.1;white-space:nowrap;
  box-shadow:0 1px 3px #0008;box-sizing:border-box;
 }
+
+/* E7 v80: same compact rhythm as U3, with a shorter final sleep-hours row. */
+.box-detail-dialog #box-detail-fields{row-gap:0;margin:4px 2px 7px;align-items:center}
+.box-detail-dialog #box-detail-fields>.iv-key,
+.box-detail-dialog #box-detail-fields>.iv-value,
+.box-detail-dialog #box-detail-extra>.iv-key,
+.box-detail-dialog #box-detail-extra>.iv-value{
+ min-height:36px;padding:3px 0;
+}
+.box-detail-dialog #box-detail-extra{row-gap:0;margin:6px 2px 7px;align-items:center}
