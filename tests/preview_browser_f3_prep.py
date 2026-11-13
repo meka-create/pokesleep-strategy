@@ -79,7 +79,10 @@ try:
         ctx=browser.new_context(viewport={'width':393,'height':852},timezone_id='Asia/Tokyo')
         page=ctx.new_page()
         failures=[]
+        model_requests=[]
         page.on('pageerror',lambda e:failures.append(str(e)))
+        page.on('request',lambda req:model_requests.append(req.url)
+           if '/f1/f1-b-target-source-v1.json' in req.url else None)
         page.goto(url(ID1),wait_until='domcontentloaded')
         assert '備蓄する料理カテゴリ' in page.locator('#f3-prep-status').inner_text()
         data={**records(ID1,['curry','salad','dessert']),
@@ -90,6 +93,7 @@ try:
         page.evaluate("""entries=>{
           for(const [key,value] of Object.entries(entries))localStorage.setItem(key,JSON.stringify(value));
         }""",data)
+        before_model_requests=len(model_requests)
         before=page.evaluate("""()=>Object.fromEntries(
           Object.keys(localStorage).filter(k=>k.startsWith('pokesleep-strategy-'))
             .map(k=>[k,localStorage.getItem(k)]))""")
@@ -97,7 +101,13 @@ try:
         page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
         a=check_goals(page)
         assert a<=120,(a,120)
+        # No expensive real-box scan / F1 JSON request just by opening U2.
+        assert len(model_requests)==before_model_requests,'Collapsed reference fetched source unnecessarily'
+        assert page.locator('#f3-b-production-content').text_content()==''
+        page.locator('#f3-prep-breakdown').evaluate('(el)=>el.open=true')
+        page.locator('#f3-b-production').evaluate('(el)=>el.open=true')
         page.wait_for_function("""()=>document.querySelector('#f3-b-production-content')?.textContent.includes('仮の5匹')""",timeout=25000)
+        assert len(model_requests)>before_model_requests,'Reference did not load after explicit expansion'
         scenario_text=page.locator('#f3-b-production-content').text_content()
         assert '168時間' in scenario_text and '準備目標から自動控除しません' in scenario_text
         assert 'SENTINEL_PRIVATE_NICKNAME' not in scenario_text

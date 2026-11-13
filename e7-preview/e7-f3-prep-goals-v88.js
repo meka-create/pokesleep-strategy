@@ -28,7 +28,19 @@ productionSummary.textContent='実個体の食材生産（参考）';
 const productionBody=document.createElement('div');
 productionBody.id='f3-b-production-content';
 productionDetails.append(productionSummary,productionBody);detail.append(productionDetails);
-let sourcePromise=null,renderToken=0;
+let sourcePromise=null,renderToken=0,lastRequestedToken=0,currentScenario=null;
+// F4 preflight audit: the optional F3-B reference is deliberately lazy.
+// Loading an unexpanded secondary section must not parse a private box or
+// fetch the pinned source catalog on every preparation-tab navigation.
+function requestOpenScenario(){
+ if(!detail.open||!productionDetails.open||!currentScenario)return;
+ const {ctx,base,token}=currentScenario;
+ if(lastRequestedToken===token)return;
+ lastRequestedToken=token;
+ void refreshProduction(ctx,base,token);
+}
+detail.addEventListener('toggle',requestOpenScenario);
+productionDetails.addEventListener('toggle',requestOpenScenario);
 function sourceModels(){
  if(!sourcePromise)sourcePromise=Promise.all(
   ['../f1/f1-b-target-source-v1.json','../f1/f1-b-help-traits-v1.json']
@@ -203,12 +215,16 @@ function render(){
    (ctx.foodUnconfirmed?' 料理未確定のため、選択カテゴリを均等優先する準備用シナリオです。':'')+
    (ctx.week>='2026-11-16'?' 11/16追加予定の新食材「ひとくちナッツ」と新料理3種は未反映。':'');
   content.append(caveat);
-  void refreshProduction(ctx,result,token);
+  currentScenario={ctx,base:result,token};
+  productionDetails.hidden=false;
+  if(detail.open&&productionDetails.open)requestOpenScenario();
+  else productionBody.replaceChildren();
  }catch(error){
   drawGoals({});
   status.textContent=error.message||'備蓄目標を算出できません。';
   status.dataset.state='blocked';
   detail.hidden=true;content.replaceChildren();
+  currentScenario=null;
   productionDetails.hidden=true;productionBody.replaceChildren();
  }
 }
