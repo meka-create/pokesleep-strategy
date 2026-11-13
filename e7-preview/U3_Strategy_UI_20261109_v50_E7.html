@@ -769,8 +769,13 @@ function normalizeEventCandidates(data){
   const start=event.start.slice(0,10),end=event.end.slice(0,10);
   if(!validWeek(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end))continue;
   const dayCount=(Date.parse(end+'T00:00:00Z')-Date.parse(start+'T00:00:00Z'))/86400000;
-  // E6 supports a single seven-day event only. Never silently flatten a two-week event.
-  if(dayCount!==7||!event.start.includes('T04:00')||!event.end.includes('T04:00'))continue;
+  // Upstream timestamps are zone-less JST game boundaries, NOT UTC/offset
+  // timestamps. Refuse suffixes, malformed clocks and non-seven-day events.
+  // This pre-F2 guard prevents silently shifting a trusted event's game week.
+  const jstBoundary=/^\d{4}-\d{2}-\d{2}T04:00:00$/;
+  if(dayCount!==7||!jstBoundary.test(event.start)||!jstBoundary.test(event.end)||
+   !event.effects||typeof event.effects!=='object'||Array.isArray(event.effects)||
+   !event.target||typeof event.target!=='object'||Array.isArray(event.target))continue;
   const id=eventCandidateId(event);
   if(id.length>160||seen.has(id))continue;seen.add(id);
   const effects=event.effects&&typeof event.effects==='object'&&!Array.isArray(event.effects)?
