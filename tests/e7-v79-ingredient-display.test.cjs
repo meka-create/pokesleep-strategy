@@ -68,28 +68,29 @@ test('E7 v79 U2 keeps original name-keyed inventory persistence and hides only v
  assert.match(src,/\.goal-grid \.food-media,\.actual-grid \.food-media/);
  assert.match(src,/\.actual-grid \.food input\{/);
 });
-test('E7 v79 U3 / Box display icons plus badges, without visible ingredient captions',()=>{
+test('E7 v81 both views use the one ingredient icon + quantity renderer',()=>{
  const u3=read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html');
  const box=read('e7-preview/e7-box-detail-v60.js');
  const u4=read('e7-preview/U4_Box_Preview_20261109_v50_E7.html');
- assert.match(u3,/<style id="e7-v79-status-ingredients">/);
- assert.match(u3,/imageFrame\.append\(countBadge\)/);
- assert.match(u3,/ingredient\.append\(imageFrame\);ingredientGroup\.append\(ingredient\)/);
- assert.doesNotMatch(u3,/ingredient\.append\(imageFrame,caption\)/);
- assert.match(box,/root\.PokeE7IngredientQuantities\?\.get\(item\.pokemon,ing,index\+1\)/);
- assert.match(box,/quantity\.textContent=count===null\?'—':'×'\+count/);
- assert.match(box,/el\.append\(icon\);ingredientGroup\.append\(el\)/);
- assert.doesNotMatch(box,/el\.append\(icon,label\)/);
- assert.match(u4,/<script src="e7-ingredient-quantities-v79\.js"><\/script>/);
- assert.match(read('e7-preview/e7-sw-v50.js'),/'e7-ingredient-quantities-v79\.js'/);
- const source=read('e7-preview/e7-box-detail-v60.css');
- assert.match(source,/\.box-detail-dialog \.iv-ingredient-quantity/);
+ const shared=read('e7-preview/e7-pokemon-detail-shared-v81.js');
+ assert.match(u3,/PokeE7PokemonDetail\.render\('plan'/);
+ assert.match(box,/detail\.render\('box'/);
+ assert.match(shared,/frame\.append\(badge\)/);
+ assert.match(shared,/ingredient\.append\(frame\);group\.append\(ingredient\)/);
+ assert.doesNotMatch(shared,/ingredient-name|name-caption/);
+ assert.match(box,/root\.PokeE7IngredientQuantities\?\.get\(item\.pokemon,name,i\+1\)/);
+ assert.match(shared,/badge\.textContent=count===null\?'—':'×'\+count/);
+ assert.match(u4,/<script src="e7-pokemon-detail-shared-v81\.js"><\/script>/);
+ assert.match(read('e7-preview/e7-sw-v50.js'),/'e7-pokemon-detail-shared-v81\.js'/);
+ assert.match(read('e7-preview/e7-pokemon-detail-shared-v81.css'),/#pokemon-dialog \.iv-ingredient-quantity,#box-detail-dialog \.iv-ingredient-quantity/);
 });
 
-test('E7 v80 displays pokesleep-tool ribbon categories, without modifying imported numeric hours',()=>{
+test('E7 v81 pokesleep-tool ribbon display is shared and never rewrites stored hours',()=>{
  const sandbox={window:{}};
+ vm.runInNewContext(read('e7-preview/e7-pokemon-detail-shared-v81.js'),sandbox);
  vm.runInNewContext(read('e7-preview/e7-box-detail-v60.js'),sandbox);
  const format=sandbox.window.E7BoxDetail.formatSharedSleepHours;
+ assert.equal(format,sandbox.window.PokeE7PokemonDetail.formatSharedSleepHours);
  for(const [input,expected] of [
   [null,'—'],[-1,'—'],[0,'200時間未満'],[199,'200時間未満'],
   [200,'200～500時間'],[499,'200～500時間'],
@@ -97,10 +98,12 @@ test('E7 v80 displays pokesleep-tool ribbon categories, without modifying import
   [1000,'1000～2000時間'],[1999,'1000～2000時間'],
   [2000,'2000時間以上'],[2500,'2000時間以上']
  ])assert.equal(format(input),expected,String(input));
- assert.match(read('e7-preview/e7-box-detail-v60.js'),/value\('一緒に眠った時間',formatSharedSleepHours\(item\.ribbon\)\)/);
- assert.match(read('e7-preview/e7-box-detail-v60.js'),/'一緒に眠った時間'\]/);
- assert.match(read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html'),/一緒に眠った時間：/);
+ const shared=read('e7-preview/e7-pokemon-detail-shared-v81.js');
+ assert.match(shared,/field\(doc,'一緒に眠った時間',formatSharedSleepHours\(data\.ribbon\)\)/);
+ assert.match(shared,/label\.textContent=key\+'：'/);
+ assert.match(read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html'),/id="pokemon-extra"/);
 });
+
 test('E7 v80 preserves both prep grids and tightens detail rows without changing inventory fields',()=>{
  const prep=read('e7-preview/U2_Prep_Local_Ingredients_20261109_v50_E7.html');
  const plan=read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html');
