@@ -49,9 +49,22 @@ stock={'version':2,'weekStart':week,'eventId':event,
        'revision':'test-stock','values':stocks}}
 player={'version':1,'pot':57,'bag':600,'bonuses':{'シアンの砂浜':50}}
 prefix='pokesleep-strategy-u3-e3-v1:'
+# The approved E7 UI restores a separate event-owned plan record in addition
+# to the confirmed condition ledger. Seed both, as the real Save action does.
+sleep_team=['dragonite','dedenne','blastoise','sylveon','gardevoir']
+saved_plan={
+ 'version':1,'weekStart':week,
+ 'eventInfo':{'start':week,'field':'シアンの砂浜','food':'curry','camp':True,'source':None},
+ 'hasApplied':False,'hasProposed':False,'applied':None,
+ 'appliedEventStart':None,'appliedEventInfo':None,'draft':None,
+ 'manualSleep':[sleep_team for _ in range(7)],'autoSleep':False,
+ 'stockConfirmed':None,'stockPending':None,'appliedInventoryAt':None,
+ 'selectedDay':0,'reviewDay':0
+}
 seed={
  'pokesleep-strategy-u3-e3-v1:selected':json.dumps({'weekStart':week,'id':event}),
  prefix+week+':'+quote(event,safe="~!*'()-._")+':conditions':json.dumps(conditions),
+ prefix+week+':'+quote(event,safe="~!*'()-._")+':plan':json.dumps(saved_plan),
  'pokesleep-strategy-u2-e2-v1:'+week+':'+quote(event,safe="~!*'()-._")+':timeline':json.dumps(stock),
  'pokesleep-strategy-e7-box-v1':json.dumps(box),
  'pokesleep-strategy-e7-player-v1':json.dumps(player),
