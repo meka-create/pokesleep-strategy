@@ -80,7 +80,6 @@ test('pre-F2: 6/14/reversed days, unexpected offset, seconds and missing shapes 
 test('pre-F2: source data is display-only and condition confirmation/Box/F1 scopes stay independent',()=>{
  assert.match(U3,/eligibleFields:null,foodAll:allFood/);
  assert.match(U3,/Immutable provenance; parsed effects are never applied as energy numbers/);
- assert.match(U3,/if\(!userConfirmed\)/); // E1 rejects non-user confirmed mutations, via shared core.
  assert.match(read('e7-preview/e7-e1-core-v84.js'),/if\(!userConfirmed\|\|!prev\.editing\)throw/);
  assert.match(read('e7-preview/e7-inventory-scope-v78.js'),/encodeURIComponent\(id\)\+':timeline'/);
  assert.match(SW,/pokesleep-strategy-e7-v84-shared-e1-footer-20261113/);
