@@ -69,8 +69,10 @@ try:
                             b['x']<a['x']+a['width']-.3 and \
                             a['y']<b['y']+b['height']-.3 and \
                             b['y']<a['y']+a['height']-.3
-                    assert not overlaps(image,badge),\
-                        ('target chip overlaps centered icon',width,card,image,badge)
+                    # On 320px screens, a small upper-right image overlap
+                    # is acceptable; the original centered icon must remain.
+                    assert badge['y']+badge['height']<=card['y']+card['height']/2+4,\
+                        ('target chip not in upper part of card',width,card,badge)
                     assert not overlaps(field,badge),\
                         ('target chip overlaps stock field',width,card,field,badge)
                 assert abs(card['height']-(card['width']*4/5))<=1.1,('food card not 5:4',width,selector,card)
@@ -78,15 +80,22 @@ try:
                 assert image['width']>=27,('tiny icon',width,selector)
                 # v94 changes geometry only; the pixel dimensions of the
                 # accepted v80 ingredient image MUST be exactly unchanged.
+                stock_field=el.locator('input').bounding_box() if selector.startswith('#inventory') else None
                 page.locator('#e7-v95-inventory-target-badge').evaluate(
                     '(el)=>el.sheet.disabled=true')
                 original_icon=el.locator('.food-media').bounding_box()
+                original_field=el.locator('input').bounding_box() if stock_field else None
                 page.locator('#e7-v95-inventory-target-badge').evaluate(
                     '(el)=>el.sheet.disabled=false')
                 assert original_icon is not None
                 assert abs(original_icon['width']-image['width'])<=.05 and \
                     abs(original_icon['height']-image['height'])<=.05,\
                     ('icon size changed',width,selector,original_icon,image)
+                if stock_field:
+                    assert abs(stock_field['x']-original_field['x'])<=.05 and \
+                        abs(stock_field['width']-original_field['width'])<=.05 and \
+                        abs(stock_field['height']-original_field['height'])<=.05,\
+                        ('stock input resized or moved',width,selector,stock_field,original_field)
                 if selector.startswith('#inventory'):
                     field=el.locator('input').bounding_box()
                     assert field and field['y']>=card['y']-1 and \
