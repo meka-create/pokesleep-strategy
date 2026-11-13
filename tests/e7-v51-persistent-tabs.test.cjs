@@ -7,7 +7,7 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-const auditedSHA=['60a6d74fa1cf37cb256dd432d2e17fed914163f5', '68b63d3f0d19ff3262c33b816f633a74c2fc2089', 'f85a784243fcbe72eadba6a65e91f82dea5196bf'];
+const auditedSHA=['53b9d38b551667cf424946aac450f8e6095dc4cf', '2eef74cabe044bc2548f5f02aa68f6e9caab8152', '0d33b8c39df975ff44d9b2c120a862f4fa077ecc'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
@@ -90,7 +90,7 @@ test('E7 v51 manifest uses a persistent app ID with start URL at fast shell',()=
 });
 test('E7 v51 preview cache updates online and supports offline, independent of production root',()=>{
  const sw=read('e7-sw-v50.js');
- assert.match(sw,/pokesleep-strategy-e7-v81-shared-pokemon-detail/);
+ assert.match(sw,/pokesleep-strategy-e7-v84-shared-e1-footer/);
  assert.match(sw,/'index\.html'/);
  assert.match(sw,/'e7-unified-bridge-v51\.js'/);
  assert.match(sw,/fetch\(event\.request,\{cache:'no-store'\}\)/);
@@ -146,7 +146,8 @@ test('E7 v54 first paint: child DOM-ready handshake is generation-guarded and lo
  assert.match(bridge,/addEventListener\('DOMContentLoaded',announceInteractive/);
  assert.match(bridge,/action:'interactive-ready'/);
  assert.match(sw,/\.\.\.IMAGE_FILES/);
- assert.match(sw,/if\(imageUrls\.has\(canonical\.href\)\)/);
+ assert.match(sw,/if\(imageUrls\.has\(canonical\.href\)\|\|sharedRuntimeUrls\.has\(canonical\.href\)\)/);
+ assert.match(sw,/const sharedRuntimeUrls=new Set/);
  assert.match(sw,/canonical\.href===self\.registration\.scope/);
  assert.match(sw,/canonical\.href=new URL\('index\.html',self\.registration\.scope\)\.href/);
  assert.match(sw,/cache\.match\(canonical\.href\)/);
