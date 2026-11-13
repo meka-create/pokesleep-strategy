@@ -1,4 +1,4 @@
-"""E7 v81 Android-width browser regression: icon-only ingredient grids and Box quantities."""
+"""E7 v83 Android-width regression: stock, Box quantities and one canonical modal shell."""
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -90,6 +90,18 @@ try:
             assert dialog.locator('#box-detail-extra .iv-key').all_inner_texts()==['一緒に眠った時間：']
             assert box['items'][0]['shiny'] is True  # Raw identity was not changed
             assert dialog.locator('#box-delete').is_visible()
+            box_shape=dialog.evaluate("""(el)=>{
+              const c=getComputedStyle(el),backdrop=getComputedStyle(el,'::backdrop');
+              return {position:c.position,bottom:c.bottom,left:c.left,right:c.right,
+                width:c.width,maxHeight:c.maxHeight,padding:c.padding,margin:c.margin,
+                border:c.border,borderRadius:c.borderRadius,background:c.backgroundColor,
+                color:c.color,boxShadow:c.boxShadow,overflowY:c.overflowY,
+                backdrop:backdrop.backgroundColor,
+                children:[...el.children].filter(e=>!e.classList.contains('box-detail-actions'))
+                  .map(e=>[e.tagName,e.className])};
+            }""")
+            assert dialog.locator('.box-detail-actions #box-delete').count()==1
+            assert dialog.locator('.iv-close-row button').get_attribute('id')=='box-detail-close'
             box_tone=dialog.locator('#box-detail-avatar').evaluate(
                 '(el)=>el.style.getPropertyValue("--tone")')
             assert box_tone==page.evaluate('()=>window.PokeE7PokemonDetail.tone("エーフィ")')
@@ -131,9 +143,24 @@ try:
             assert plan_dialog.locator('#pokemon-base-rows>.iv-key').all_inner_texts()==[
                 '食材：','おてつだい時間：','最大所持数：'
             ]
+            plan_shape=plan_dialog.evaluate("""(el)=>{
+              const c=getComputedStyle(el),backdrop=getComputedStyle(el,'::backdrop');
+              return {position:c.position,bottom:c.bottom,left:c.left,right:c.right,
+                width:c.width,maxHeight:c.maxHeight,padding:c.padding,margin:c.margin,
+                border:c.border,borderRadius:c.borderRadius,background:c.backgroundColor,
+                color:c.color,boxShadow:c.boxShadow,overflowY:c.overflowY,
+                backdrop:backdrop.backgroundColor,
+                children:[...el.children].filter(e=>!e.classList.contains('box-detail-actions'))
+                  .map(e=>[e.tagName,e.className])};
+            }""")
+            assert plan_shape==box_shape,('detail modal shell not identical',width,plan_shape,box_shape)
+            assert plan_dialog.locator('.iv-close-row button').get_attribute('id')=='pokemon-close'
+            assert plan_dialog.locator('.box-detail-actions').count()==0
+            page.locator('#pokemon-close').click()
+            assert not plan_dialog.is_visible()
             assert not errors,'Strategy errors: '+str(errors[:3])
             context.close()
-        print('E7 v81 Chromium 320/393/430px: square aligned icon grids, saved stock, exact individual quantities PASS')
+        print('E7 v83 Chromium 320/393/430px: one identical modal shell, Box-only delete, preserved stock PASS')
         browser.close()
 finally:
     server.shutdown()

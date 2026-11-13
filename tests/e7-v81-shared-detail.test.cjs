@@ -35,7 +35,9 @@ test('E7 v81 shared status styles and scripts are loaded by both tabs, with Box-
  }
  assert.match(strategy,/PokeE7PokemonDetail\.render\('plan'/);
  assert.match(read('e7-box-detail-v60.js'),/detail\.render\('box'/);
- assert.match(strategy,/id="pokemon-extra"/);
+ assert.match(shared,/extra:'pokemon-extra'/);
+ assert.match(strategy,/PokeE7PokemonDetail\.mount\('plan'\)/);
+ assert.match(box,/PokeE7PokemonDetail\.mount\('box'\)/);
  assert.doesNotMatch(strategy,/id="box-delete"/);
  assert.match(box,/id="box-delete"/);
  assert.match(style,/#pokemon-dialog \.status-portrait,#box-detail-dialog \.status-portrait/);

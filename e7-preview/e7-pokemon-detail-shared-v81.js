@@ -40,16 +40,58 @@ const NATURE_EFFECTS=new Map(NATURE_GRID.flatMap((row,i)=>row.map((name,j)=>[
 const NORMALIZE=name=>String(name||'').normalize('NFKC').replace(/\s*\(/g,' (').trim();
 const FIELD_IDS={
  plan:{
-  dialog:'pokemon-dialog',avatar:'pokemon-sprite',nickname:'pokemon-nickname',
+  dialog:'pokemon-dialog',title:'pokemon-status-title',close:'pokemon-close',
+  avatar:'pokemon-sprite',nickname:'pokemon-nickname',
   level:'pokemon-level',base:'pokemon-base-rows',main:'pokemon-main-skill',
   skills:'pokemon-subskills',nature:'pokemon-nature',extra:'pokemon-extra'
  },
  box:{
-  dialog:'box-detail-dialog',avatar:'box-detail-avatar',nickname:'box-detail-name',
+  dialog:'box-detail-dialog',title:'box-detail-title',close:'box-detail-close',
+  avatar:'box-detail-avatar',nickname:'box-detail-name',
   level:'box-detail-level',base:'box-detail-fields',main:'box-detail-main-skill',
   skills:'box-detail-subskills',nature:'box-detail-nature',extra:'box-detail-extra'
  }
 };
+/* Canonical modal structure for both tabs. Only the Box page owns its action
+   node and deletion callback, which are preserved verbatim when mounted. */
+function mount(mode){
+ const ids=FIELD_IDS[mode];if(!ids)throw new Error('Unknown Pokémon detail view');
+ const doc=root.document,dialog=doc?.getElementById(ids.dialog);
+ if(!dialog)throw new Error('Missing Pokémon detail dialog');
+ if(dialog.dataset.e7StatusMounted==='true')return dialog;
+ const actions=mode==='box'?dialog.querySelector('.box-detail-actions'):null;
+ if(mode==='box'&&!actions)throw new Error('Missing Box-owned actions');
+ const create=(tag,className,id,text)=>{
+  const el=doc.createElement(tag);
+  if(className)el.className=className;
+  if(id)el.id=id;
+  if(text)el.textContent=text;
+  return el;
+ };
+ const title=create('h2','visually-hidden',ids.title,'ポケモンの詳細');
+ const closeRow=create('div','iv-close-row');
+ const close=create('button','btn small ghost iv-close',ids.close,'閉じる');
+ close.type='button';close.setAttribute('aria-label','ステータスを閉じる');
+ closeRow.append(close);
+ const hero=create('div','iv-hero');
+ const portrait=create('span','status-portrait',ids.avatar);
+ const name=create('div','iv-hero-name');
+ name.append(create('strong','',ids.nickname),create('span','',ids.level));
+ hero.append(portrait,name);
+ const base=create('div','iv-base',ids.base);
+ const heading1=create('h3','iv-section-title',null,'メインスキル・サブスキル');
+ const main=create('div','iv-main',ids.main);
+ const skills=create('div','iv-subskills',ids.skills);
+ const heading2=create('h3','iv-section-title',null,'詳細ステータス');
+ const nature=create('div','iv-nature-wrap',ids.nature);
+ nature.setAttribute('role','group');nature.setAttribute('aria-label','せいかく');
+ const extra=create('div','iv-base',ids.extra);
+ const children=[title,closeRow,hero,base,heading1,main,skills,heading2,nature,extra];
+ if(actions)children.push(actions);
+ dialog.replaceChildren(...children);
+ dialog.dataset.e7StatusMounted='true';
+ return dialog;
+}
 function grade(name){for(const [key,names] of Object.entries(GRADES))if(names.has(name))return key;return 'unknown';}
 function tone(pokemon){
  const name=NORMALIZE(typeof pokemon==='string'?pokemon:pokemon?.pokemon);
@@ -132,6 +174,7 @@ function natureRow(doc,name,mint){
    data, portrait driver and optional local actions; deletion remains Box-owned. */
 function render(mode,data,paintPortrait){
  const ids=FIELD_IDS[mode];if(!ids)throw new Error('Unknown Pokémon detail view');
+ mount(mode);
  const doc=root.document;
  const nodes=Object.fromEntries(Object.entries(ids).map(([key,id])=>[key,doc.getElementById(id)]));
  if(Object.values(nodes).some(node=>!node))throw new Error('Missing Pokémon detail mount');
@@ -158,6 +201,6 @@ function render(mode,data,paintPortrait){
  return nodes.dialog;
 }
 root.PokeE7PokemonDetail=Object.freeze({
- ingredientIcons,grade,tone,formatSharedSleepHours,render
+ ingredientIcons,grade,tone,formatSharedSleepHours,mount,render
 });
 })(window);

@@ -101,7 +101,7 @@ test('E7 v81 pokesleep-tool ribbon display is shared and never rewrites stored h
  const shared=read('e7-preview/e7-pokemon-detail-shared-v81.js');
  assert.match(shared,/field\(doc,'一緒に眠った時間',formatSharedSleepHours\(data\.ribbon\)\)/);
  assert.match(shared,/label\.textContent=key\+'：'/);
- assert.match(read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html'),/id="pokemon-extra"/);
+ assert.match(read('e7-preview/e7-pokemon-detail-shared-v81.js'),/extra:'pokemon-extra'/);
 });
 
 test('E7 v80 preserves both prep grids and tightens detail rows without changing inventory fields',()=>{
@@ -112,8 +112,9 @@ test('E7 v80 preserves both prep grids and tightens detail rows without changing
  assert.match(prep,/aspect-ratio:1\/1/);
  assert.match(prep,/\.goal-grid,\.actual-grid\{max-width:370px/);
  assert.equal((prep.match(/<img class="pic" src="assets\/ingredients\/ingredient-\d{2}\.png"/g)||[]).length,38);
- assert.match(plan,/<style id="e7-v80-status-compact-rows">/);
- assert.match(plan,/#pokemon-dialog #pokemon-base-rows>\.iv-value/);
+ assert.doesNotMatch(plan,/<style id="e7-v80-status-compact-rows">/);
+ assert.doesNotMatch(plan,/<style id="e7-v79-status-ingredients">/);
+ assert.match(css,/#pokemon-dialog #pokemon-base-rows>\.iv-value/);
  assert.match(css,/#box-detail-fields>\.iv-value/);
  assert.match(css,/#box-detail-extra>\.iv-value/);
 });

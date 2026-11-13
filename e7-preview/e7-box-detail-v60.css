@@ -1,22 +1,5 @@
-/* E7 v82 pre-F2 audit: Box-specific geometry and destructive action only.
- * All common Pokémon modal styles (portrait, status rows, foods, subskills,
- * nature, headings) are owned by e7-pokemon-detail-shared-v81.css.
- * Keep this stylesheet before the common CSS so shared changes stay canonical.
- */
-.box-detail-dialog .visually-hidden{
- position:absolute!important;width:1px;height:1px; padding:0;margin:-1px;
- overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0
-}
-.box-detail-dialog{
- position:fixed;inset:auto 0 0;
- max-height:min(90dvh,890px);width:min(540px,100%);
- margin:auto auto 0;border:1px solid #748aa0;border-radius:20px 20px 0 0;
- background:#17283c;color:#edf3f8;padding:9px 15px 23px;
- box-shadow:0 -18px 80px #0008;overflow:auto;
- font:14px/1.48 system-ui,-apple-system,"Noto Sans JP",sans-serif;
-}
-.box-detail-dialog::backdrop{background:#020810b8}
-/* Never merge Box deletion into the shared Pokémon detail renderer. */
+/* E7 v83: Box-exclusive destructive action only. All window geometry,
+   backdrop, headings and detail layout are owned by the shared modal CSS. */
 .box-detail-dialog .box-detail-actions{
  display:flex;justify-content:flex-end;gap:12px;margin-top:17px
 }
