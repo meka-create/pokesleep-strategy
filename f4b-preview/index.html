@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e1929">
+<title>F4-B 連携確認 · ポケスリ作戦室</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,"Noto Sans JP",sans-serif}
+*{box-sizing:border-box}
+body{max-width:680px;margin:0 auto;padding:18px 14px 40px;background:#0e1929;color:#edf3f8;line-height:1.65}
+h1{font-size:20px;margin:8px 0 4px}
+h2{font-size:15px;margin:0 0 12px}
+p{font-size:13px;margin:8px 0}
+.sub{color:#aebfd0;font-size:12px}
+.card{padding:16px;background:#1b2c40;border:1px solid #344e63;border-radius:14px;margin-top:16px}
+dt{font-size:12px;color:#b8c9d8}dd{font-size:14px;margin:2px 0 12px;font-weight:650}
+a{color:#f5ca78}
+button{border:0;border-radius:10px;background:#f5ca78;color:#122036;font:700 14px system-ui;
+ padding:11px 15px;cursor:pointer;min-height:44px}
+.state{font-weight:800;color:#f5ca78}
+details{padding:7px 10px;border:1px solid #405970;border-radius:10px;margin-top:10px;font-size:12px}
+summary{cursor:pointer}
+</style>
+<script src="../e7-preview/e7-inventory-scope-v78.js"></script>
+<script src="../e7-preview/e7-e1-core-v84.js"></script>
+<script src="../f4/f4-b-game-week-v1.js"></script>
+<script src="../f4/f4-b-e7-readonly-v1.js"></script>
+</head>
+<body>
+<header><div class="sub">POKÉMON SLEEP / DEVELOPMENT</div><h1>F4-B 実データ連携確認</h1>
+<p class="sub">保存済みの作戦と食材在庫を読み取り、04:00のゲーム週と照合します。作戦・在庫は変更しません。</p></header>
+<section class="card">
+<h2>現在の検証状況</h2>
+<p id="status" class="state" role="status" aria-live="polite">未確認</p>
+<dl id="details"></dl>
+<p id="message" class="sub">実イベント週の週間エナジーはまだ確定できません。</p>
+<button id="refresh" type="button">保存状態を再確認</button>
+</section>
+<section class="card">
+<h2>F4-Bの計算上の境界</h2>
+<p>月曜04:00〜07:30は前週の日曜睡眠の一部です。最終日曜の睡眠は翌月曜04:00で区切ります。</p>
+<p>現行E7の睡眠編成には表示確認用の仮IDが含まれるため、実個体の睡眠編成として流用しません。公式イベント補正、げんき・スキル・バッグ回収も未接続です。</p>
+<details><summary>この画面で実施しないこと</summary>
+<p>実イベント週間エナジーの算出、保存済み編成の自動変更、仮編成の採用、在庫の書換えは実施しません。</p></details>
+</section>
+<p><a href="../e7-preview/">ポケスリ作戦室の作戦画面へ</a></p>
+<script>
+(()=>{
+ 'use strict';
+ const get=id=>document.getElementById(id);
+ function row(label,value){
+  const dt=document.createElement('dt'),dd=document.createElement('dd');
+  dt.textContent=label;dd.textContent=String(value);
+  get('details').append(dt,dd);
+ }
+ function render(){
+  get('details').replaceChildren();
+  const deps={scope:window.PokeE7InventoryScope,e1:window.PokeE7E1,
+   weekClock:window.PokeF4BGameWeek};
+  const ctx=window.PokeF4BE7ReadOnly.readContext(localStorage,deps,new Date().toISOString());
+  if(ctx.status!=='CONTEXT_READY'){
+   get('status').textContent='確認が必要です';
+   get('message').textContent=ctx.message||'作戦タブでイベントと在庫を保存してください。';
+   return;
+  }
+  const info=window.PokeF4BE7ReadOnly.publicStatus(ctx);
+  get('status').textContent='保存情報の所有関係を確認しました';
+  row('ゲーム週',info.weekStart+'（月曜04:00開始）');
+  row('現在の段階',{BEFORE:'準備週',DURING:'イベント週',ENDED:'終了'}[info.gameWeekPhase]);
+  row('登録個体数',info.registeredIndividuals+'匹');
+  row('イベント種別',info.eventIsOfficial?'公式原典付き':'手動イベント');
+  row('境界の扱い','前週睡眠3.5時間＋最終睡眠4時間');
+  row('睡眠編成','表示用IDと実ボックスをまだ照合していません');
+  get('message').textContent=info.eventIsOfficial?
+   '公式イベントの数値補正を適用するF4-Cまで、エナジー計算を保留します。':
+   '手動イベントでも、実個体7晩と計算条件が確定するまでは週間エナジーを提示しません。';
+ }
+ get('refresh').addEventListener('click',render);
+ window.addEventListener('storage',render);
+ render();
+})();
+</script>
+</body>
+</html>
