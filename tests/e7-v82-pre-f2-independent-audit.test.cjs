@@ -7,7 +7,6 @@ const ROOT=path.resolve(__dirname,'..'),E7=path.join(ROOT,'e7-preview');
 const text=p=>fs.readFileSync(path.join(ROOT,p),'utf8');
 const blob=p=>{const data=fs.readFileSync(path.join(ROOT,p));return crypto.createHash('sha1')
  .update(Buffer.from('blob '+data.length+'\0','utf8')).update(data).digest('hex');};
-const names=p=>Array.from(fs.readdirSync(path.join(ROOT,p)));
 const catalog=JSON.parse(text('e7-preview/e7-species-v59.js').match(/root\.PokeMaster=\{species:(\[[\s\S]*?\])\};/)[1]);
 const targets=JSON.parse(text('f1/f1-b-target-source-v1.json')).targets;
 const shared=text('e7-preview/e7-pokemon-detail-shared-v81.js');
@@ -52,7 +51,7 @@ test('pre-F2 independent audit: 19 shared ingredient icons exactly match both U2
   assert(sw.includes("'"+file+"'"),file);
  const fileList=sw.match(/const FILES=\[([\s\S]+?)\];/)[1];
  for(const match of fileList.matchAll(/'([^']+)'/g)){
-  const file=match[1];if(file.includes('ingredient-'+String())||file==='')continue;
+  const file=match[1];
   assert(fs.existsSync(path.join(E7,file)),'missing precache file '+file);
  }
 });
@@ -80,7 +79,7 @@ test('pre-F2 independent audit: immutable production/STEP2, Box ownership and E7
  assert.doesNotMatch(plan,/id="box-delete"/);
  assert.match(box,/E7BoxDetail\.render\(item\)/);
  assert.match(plan,/PokeE7PokemonDetail\.render\('plan'/);
- assert.match(text('e7-preview/e7-inventory-scope-v78.js'),/return PREFIX\+week\+':'+encodeURIComponent\(id\)\+':timeline'/);
+ assert(text('e7-preview/e7-inventory-scope-v78.js').includes("return PREFIX+week+':'+encodeURIComponent(id)+':timeline';"));
  const m=JSON.parse(text('e7-preview/e7-manifest-v50.webmanifest'));
  assert.equal(m.name,'作戦室');
  assert.equal(m.id,'./U5_Integrated_20261109_v50_E7.html');
