@@ -292,28 +292,30 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 }
 </style>
 <style id="e7-v95-inventory-target-badge">
-/* Keep the v94 card ratio, v80 ingredient image size and input geometry.
-   For targeted stock only, reserve room alongside (not on) the image. */
-.actual-grid .food.needed{
-  grid-template-columns:minmax(0,1fr) 29px;
-}
+/* Food icon stays centered at the accepted v80/v94 pixel dimensions.
+   Target count moves outside the icon area, alongside the stock input in
+   the bottom row. The 5:4 tile and 19 ingredient ordering remain unchanged. */
 .actual-grid .food.needed .food-media{
   grid-column:1;
   grid-row:1;
-  justify-self:start;
+  justify-self:center;
   position:static;
 }
 .actual-grid .food.needed .input-wrap{
-  grid-column:1/-1;
+  grid-column:1;
+  grid-row:2;
+  justify-self:start;
+  width:calc(100% - 27px);
 }
 .actual-grid .food.needed .target-chip{
   position:absolute;
-  top:6px;
-  right:2px;
-  bottom:auto;
-  max-width:29px;
-  min-width:18px;
-  padding:1px 1px 0;
+  top:auto;
+  right:3px;
+  bottom:6px;
+  max-width:24px;
+  min-width:19px;
+  min-height:16px;
+  padding:1px 2px 0;
   border-radius:6px;
 }
 .actual-grid .food.needed .target-chip b{
@@ -321,12 +323,12 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
   letter-spacing:-.05em;
 }
 @media(max-width:370px){
-  .actual-grid .food.needed{
-    grid-template-columns:minmax(0,1fr) 28px;
+  .actual-grid .food.needed .input-wrap{
+    width:calc(100% - 25px);
   }
   .actual-grid .food.needed .target-chip{
-    top:4px;
-    right:1px;
+    right:2px;
+    bottom:4px;
   }
 }
 </style>
