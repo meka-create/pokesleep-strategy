@@ -1,0 +1,408 @@
+{
+  "schema": "pokesleep-strategy.f1-b-help-traits-v1",
+  "status": "BASE_RATE_ONLY_NOT_WEEKLY_ENERGY",
+  "source": {
+    "repo": "nitoyon/pokesleep-tool",
+    "commit": "663bf018f69633d2d7d108b5f833d97874b74c41",
+    "pokemonJsonBlob": "f45d24b214c03cdf592783207a883d9f573676d2"
+  },
+  "count": 66,
+  "traits": [
+    {
+      "name": "ウツボット",
+      "upstreamName": "Victreebel",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "エーフィ",
+      "upstreamName": "Espeon",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "エンテイ",
+      "upstreamName": "Entei",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "オーダイル",
+      "upstreamName": "Feraligatr",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "オコリザル",
+      "upstreamName": "Primeape",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "オンバーン",
+      "upstreamName": "Noivern",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "カイリュー",
+      "upstreamName": "Dragonite",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "カメックス",
+      "upstreamName": "Blastoise",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ガルーラ",
+      "upstreamName": "Kangaskhan",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "キテルグマ",
+      "upstreamName": "Bewear",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "キュウコン",
+      "upstreamName": "Ninetales",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "キュワワー",
+      "upstreamName": "Comfey",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "グレイシア",
+      "upstreamName": "Glaceon",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "クワガノン",
+      "upstreamName": "Vikavolt",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ゲンガー",
+      "upstreamName": "Gengar",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ゴローニャ",
+      "upstreamName": "Golem",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "サーナイト",
+      "upstreamName": "Gardevoir",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "サンドパン",
+      "upstreamName": "Sandslash",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ジバコイル",
+      "upstreamName": "Magnezone",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ジュカイン",
+      "upstreamName": "Sceptile",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ジュペッタ",
+      "upstreamName": "Banette",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "スイクン",
+      "upstreamName": "Suicune",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ダークライ",
+      "upstreamName": "Darkrai",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ダグトリオ",
+      "upstreamName": "Dugtrio",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "タツベイ",
+      "upstreamName": "Bagon",
+      "evolutionCount": 0,
+      "evolutionLeft": 2
+    },
+    {
+      "name": "タマザラシ (ホリデー)",
+      "upstreamName": "Spheal (Holiday)",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "チルタリス",
+      "upstreamName": "Altaria",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ツボツボ",
+      "upstreamName": "Shuckle",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "デデンネ",
+      "upstreamName": "Dedenne",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "デリバード",
+      "upstreamName": "Delibird",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "デンリュウ",
+      "upstreamName": "Ampharos",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ドオー",
+      "upstreamName": "Clodsire",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ドクロッグ",
+      "upstreamName": "Toxicroak",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "トゲキッス",
+      "upstreamName": "Togekiss",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "トドゼルガ",
+      "upstreamName": "Walrein",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ニンフィア",
+      "upstreamName": "Sylveon",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "パーモット",
+      "upstreamName": "Pawmot",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "バクフーン",
+      "upstreamName": "Typhlosion",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "バシャーモ",
+      "upstreamName": "Blaziken",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "バタフリー",
+      "upstreamName": "Butterfree",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "バンギラス",
+      "upstreamName": "Tyranitar",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "パンプジン (ギガだましゅ)",
+      "upstreamName": "Gourgeist (Jumbo)",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ヒノアラシ",
+      "upstreamName": "Cyndaquil",
+      "evolutionCount": 0,
+      "evolutionLeft": 2
+    },
+    {
+      "name": "フシギバナ",
+      "upstreamName": "Venusaur",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "フライゴン",
+      "upstreamName": "Flygon",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "フワライド",
+      "upstreamName": "Drifblim",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ヘルガー",
+      "upstreamName": "Houndoom",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ボーマンダ",
+      "upstreamName": "Salamence",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ボスゴドラ",
+      "upstreamName": "Aggron",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "マスカーニャ",
+      "upstreamName": "Meowscarada",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "マルノーム",
+      "upstreamName": "Swalot",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ミカルゲ",
+      "upstreamName": "Spiritomb",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ミズゴロウ",
+      "upstreamName": "Mudkip",
+      "evolutionCount": 0,
+      "evolutionLeft": 2
+    },
+    {
+      "name": "ミュウ",
+      "upstreamName": "Mew",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "メガニウム",
+      "upstreamName": "Meganium",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "メタモン",
+      "upstreamName": "Ditto",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ユキノオー",
+      "upstreamName": "Abomasnow",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ライコウ",
+      "upstreamName": "Raikou",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ライチュウ",
+      "upstreamName": "Raichu",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ラグラージ",
+      "upstreamName": "Swampert",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ラッタ",
+      "upstreamName": "Raticate",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ラティアス",
+      "upstreamName": "Latias",
+      "evolutionCount": -1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "リーフィア",
+      "upstreamName": "Leafeon",
+      "evolutionCount": 1,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "リザードン",
+      "upstreamName": "Charizard",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "レントラー",
+      "upstreamName": "Luxray",
+      "evolutionCount": 2,
+      "evolutionLeft": 0
+    },
+    {
+      "name": "ロコン",
+      "upstreamName": "Vulpix",
+      "evolutionCount": 0,
+      "evolutionLeft": 1
+    }
+  ]
+}
