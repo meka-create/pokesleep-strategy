@@ -40,16 +40,22 @@ function render(item){
  const base=$('box-detail-fields');base.replaceChildren();
  if(name!==item.pokemon)base.append(...value('ポケモン',item.pokemon));
  const ingredientGroup=document.createElement('div');ingredientGroup.className='iv-ingredients';
- for(const raw of [item.ing1,item.ing2,item.ing3]){
+ for(const [index,raw] of [item.ing1,item.ing2,item.ing3].entries()){
   const el=document.createElement('span');el.className='iv-ingredient';
   const icon=document.createElement('span');icon.className='iv-ingredient-image';
-  const label=document.createElement('span');label.className='ingredient-name';
   const ing=typeof raw==='string'&&raw.trim()?raw.trim():'—';
   const image=INGREDIENTS.get(ing);
   if(image){const img=document.createElement('img');img.src=image;img.alt='';img.loading='lazy';img.decoding='async';icon.append(img);}
   else icon.textContent='—';
-  label.textContent=ing;
-  el.append(icon,label);ingredientGroup.append(el);
+  // Species-specific count depends on both ingredient and ingredient slot.
+  // Unknown/out-of-scope forms retain an explicit dash, never a guessed count.
+  const count=root.PokeE7IngredientQuantities?.get(item.pokemon,ing,index+1)??null;
+  const quantity=document.createElement('span');quantity.className='iv-ingredient-quantity';
+  quantity.textContent=count===null?'—':'×'+count;
+  icon.append(quantity);
+  el.setAttribute('role','img');
+  el.setAttribute('aria-label',ing+(count===null?'・個数未確認':' '+count+'個'));
+  el.append(icon);ingredientGroup.append(el);
  }
  base.append(...value('食材',ingredientGroup));
  base.append(...value('おてつだい時間','—'));

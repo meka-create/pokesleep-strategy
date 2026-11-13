@@ -7,7 +7,7 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-const auditedSHA=['11c583f4ea4ebbd162773ec4c2c9a615dc627be5', 'bea07f6e93b4e10da210210a76af844edb2474d9', 'a406841573b867c84f358837902e6991a8e511e0'];
+const auditedSHA=['c49517f2694591a2a32f6a050e009aa535a9849c', 'e27ae4c1175ccebc29068e39d0271192411effcd', 'b42d22b67c82fe8e96b60a394abe76c145119104'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
@@ -47,7 +47,7 @@ test('E7 v51 architecture: one persistent frame per tab, one common footer',()=>
  assert.doesNotMatch(html,/frame\.src=buildUrl\(tab\)/);
  for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);
 });
-test('E7 v59 pins U2/U3 audited bytes and reviewed compact Box with unchanged persistence contract',()=>{
+test('E7 v79 pins reviewed U2/U3 food-only layout and Box quantity script while retaining persistence contract',()=>{
  for(let i=0;i<names.length;i++){
   const s=read(names[i]);
   assert.ok(s.includes('<script src="e7-unified-bridge-v51.js"></script>'));
@@ -90,7 +90,7 @@ test('E7 v51 manifest uses a persistent app ID with start URL at fast shell',()=
 });
 test('E7 v51 preview cache updates online and supports offline, independent of production root',()=>{
  const sw=read('e7-sw-v50.js');
- assert.match(sw,/pokesleep-strategy-e7-v78-event-inventory/);
+ assert.match(sw,/pokesleep-strategy-e7-v79-food-layout/);
  assert.match(sw,/'index\.html'/);
  assert.match(sw,/'e7-unified-bridge-v51\.js'/);
  assert.match(sw,/fetch\(event\.request,\{cache:'no-store'\}\)/);

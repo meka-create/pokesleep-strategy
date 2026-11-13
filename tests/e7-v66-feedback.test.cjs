@@ -49,7 +49,7 @@ test('E7 v66: temporary results use toast; user-editable and persistent issues s
  assert.match(U4,/id="e7-blocked" hidden role="alert"/);
  assert.match(read('e7-settings-v56.js'),/node\.textContent=error\?message:''/);
  const sw=read('e7-sw-v50.js');
- assert.match(sw,/pokesleep-strategy-e7-v78-event-inventory-20261112/);
+ assert.match(sw,/pokesleep-strategy-e7-v79-food-layout-20261113/);
  assert.match(sw,/'e7-feedback-v66\.js','e7-feedback-v66\.css'/);
  assert.match(read('index.html'),/<title>ポケスリ作戦室 E7 v78<\/title>/);
 });
