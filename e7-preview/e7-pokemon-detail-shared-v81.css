@@ -1,0 +1,167 @@
+/* E7 v81 canonical status-modal presentation. Both U3 Strategy and U4 Box
+   use exactly this style sheet after their historical base styles. */
+#pokemon-dialog,#box-detail-dialog{
+ max-height:min(90dvh,890px);
+ padding:9px 15px 23px;
+ background:#17283c;color:#edf3f8;
+ font:14px/1.48 system-ui,-apple-system,"Noto Sans JP",sans-serif;
+}
+#pokemon-dialog .iv-close-row,#box-detail-dialog .iv-close-row{
+ display:flex;align-items:center;justify-content:flex-end;
+ min-height:32px;margin:0 0 5px;
+}
+#pokemon-dialog .iv-close-row button,#box-detail-dialog .iv-close-row button{
+ height:32px;min-height:32px;padding:6px 10px;font-size:12px;font-weight:750;
+ border:1px solid #60778c;background:transparent;color:#eef5fb;
+ border-radius:10px;line-height:18px;box-sizing:border-box;
+}
+#pokemon-dialog .iv-hero,#box-detail-dialog .iv-hero{
+ display:flex;align-items:flex-start;gap:12px;margin:0 0 8px;padding:0 0 6px;
+}
+#pokemon-dialog .iv-hero-name,#box-detail-dialog .iv-hero-name{
+ display:flex;flex:1;flex-direction:column;gap:3px;min-width:0;padding-top:5px;
+}
+#pokemon-dialog .iv-hero-name strong,#box-detail-dialog .iv-hero-name strong{
+ font-size:20px;overflow-wrap:anywhere;
+}
+#pokemon-dialog .iv-hero-name span,#box-detail-dialog .iv-hero-name span{
+ color:#f5ca78;font-size:15px;font-weight:800;line-height:1.35;
+}
+/* Type is resolved in shared JS from one verified species/form catalog. */
+#pokemon-dialog .status-portrait,#box-detail-dialog .status-portrait{
+ position:relative;width:82px;height:82px;flex:0 0 82px;
+ display:grid;place-items:center;border-radius:14px;
+ background:color-mix(in srgb,var(--tone,#8ca2b5),#111f30 74%);
+ border:1px solid color-mix(in srgb,var(--tone,#8ca2b5),#4d657a 60%);
+ font-size:17px;
+}
+#pokemon-dialog .status-portrait::after,#box-detail-dialog .status-portrait::after{
+ content:"";position:absolute;bottom:0;left:9px;right:9px;
+ border-bottom:2px solid var(--tone,#8ca2b5);opacity:.7;
+}
+#box-detail-dialog .status-portrait .poke-art{
+ position:relative;display:grid;place-items:center;width:100%;height:100%;
+}
+#box-detail-dialog .status-portrait .poke-art img{
+ position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;
+}
+#box-detail-dialog .status-portrait .poke-art.is-loaded img{opacity:1}
+#box-detail-dialog .status-portrait .poke-art.is-loaded .poke-art-fallback{display:none}
+#pokemon-dialog .iv-base,#box-detail-dialog .iv-base{
+ display:grid;grid-template-columns:minmax(108px,34%) minmax(0,1fr);
+ align-items:center;column-gap:12px;row-gap:0;margin:7px 2px 11px;
+}
+#pokemon-dialog .iv-key,#box-detail-dialog .iv-key{
+ display:flex;align-items:center;min-height:44px;padding:10px 0;
+ color:#c4d3e3;font-size:12px;font-weight:700;line-height:1.35;
+ white-space:nowrap;
+}
+#pokemon-dialog .iv-value,#box-detail-dialog .iv-value{
+ display:flex;align-items:center;min-width:0;min-height:44px;
+ padding:8px 0;color:#edf3f8;font-size:14px;font-weight:730;
+ line-height:1.4;overflow-wrap:anywhere;
+}
+#pokemon-dialog #pokemon-base-rows,#box-detail-dialog #box-detail-fields{
+ row-gap:0;margin:4px 2px 7px;align-items:center;
+}
+#pokemon-dialog #pokemon-base-rows>.iv-key,
+#pokemon-dialog #pokemon-base-rows>.iv-value,
+#box-detail-dialog #box-detail-fields>.iv-key,
+#box-detail-dialog #box-detail-fields>.iv-value,
+#pokemon-dialog #pokemon-extra>.iv-key,
+#pokemon-dialog #pokemon-extra>.iv-value,
+#box-detail-dialog #box-detail-extra>.iv-key,
+#box-detail-dialog #box-detail-extra>.iv-value{min-height:36px;padding:3px 0}
+#pokemon-dialog #pokemon-extra,#box-detail-dialog #box-detail-extra{
+ row-gap:0;margin:6px 2px 7px;align-items:center;
+}
+#pokemon-dialog .iv-ingredients,#box-detail-dialog .iv-ingredients{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ width:100%;gap:9px;align-items:center;justify-items:center;padding:5px 4px;
+}
+#pokemon-dialog .iv-ingredient,#box-detail-dialog .iv-ingredient{
+ display:grid;place-items:center;min-width:0;margin:0;padding:3px 1px;
+ text-align:center;
+}
+#pokemon-dialog .iv-ingredient-image,#box-detail-dialog .iv-ingredient-image{
+ position:relative;display:grid;place-items:center;
+ width:clamp(35px,10vw,46px);height:clamp(35px,10vw,46px);flex:none;
+}
+#pokemon-dialog .iv-ingredient-image img,#box-detail-dialog .iv-ingredient-image img{
+ display:block;width:100%;height:100%;object-fit:contain;
+}
+#pokemon-dialog .iv-ingredient-quantity,#box-detail-dialog .iv-ingredient-quantity{
+ position:absolute;right:-7px;bottom:-2px;display:flex;align-items:center;
+ justify-content:center;min-width:23px;min-height:17px;padding:1px 4px;
+ border:1px solid #c7a367;border-radius:999px;background:#16283b;
+ color:#fff5df;font-size:10px;font-weight:850;line-height:1.1;
+ white-space:nowrap;box-shadow:0 1px 3px #0008;box-sizing:border-box;
+}
+#pokemon-dialog .iv-section-title,#box-detail-dialog .iv-section-title{
+ margin:14px -2px 9px;padding:4px 8px;background:#557799;color:#fff;
+ font-size:12px;border-radius:5px;font-weight:750;
+}
+#pokemon-dialog .iv-main,#box-detail-dialog .iv-main{
+ display:flex;align-items:baseline;justify-content:flex-start;flex-wrap:wrap;
+ gap:14px;margin:1px 2px 10px;padding:5px 2px 9px;
+ border-bottom:1px solid #547087;background:transparent;
+ font-size:15px;font-weight:780;line-height:1.4;
+}
+#pokemon-dialog .iv-main span,#box-detail-dialog .iv-main span{min-width:0;overflow-wrap:anywhere}
+#pokemon-dialog .iv-main em,#box-detail-dialog .iv-main em{
+ font-style:normal;color:#f5ca78;white-space:nowrap;
+}
+#pokemon-dialog .iv-subskills,#box-detail-dialog .iv-subskills{
+ display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0;
+}
+#pokemon-dialog .iv-skill,#box-detail-dialog .iv-skill{
+ min-height:42px;border:1px solid #6b8091;border-radius:8px;
+ padding:5px 7px;background:#253b50;color:#edf3f8;
+ font-size:13px;font-weight:750;line-height:1.35;
+ display:flex;align-items:center;justify-content:center;text-align:center;box-sizing:border-box;
+}
+#pokemon-dialog .iv-skill>span,#box-detail-dialog .iv-skill>span{
+ display:block;width:100%;overflow-wrap:anywhere;
+}
+#pokemon-dialog .iv-skill.gold,#box-detail-dialog .iv-skill.gold{border-color:#a18a59;background:#4c4334}
+#pokemon-dialog .iv-skill.blue,#box-detail-dialog .iv-skill.blue{border-color:#5b8eb6;background:#263f60}
+#pokemon-dialog .iv-skill.white,#box-detail-dialog .iv-skill.white{border-color:#8192a4;background:#29394a}
+#pokemon-dialog .iv-skill.unknown,#box-detail-dialog .iv-skill.unknown{
+ border-style:dashed;border-color:#d4a960;
+}
+#pokemon-dialog .iv-skill.locked,#box-detail-dialog .iv-skill.locked{opacity:.64}
+#pokemon-dialog .iv-nature-row,#box-detail-dialog .iv-nature-row{
+ display:grid;grid-template-columns:minmax(108px,38%) minmax(0,1fr);
+ align-items:center;gap:10px;margin:10px 2px 9px;
+}
+#pokemon-dialog .iv-nature-pill,#box-detail-dialog .iv-nature-pill{
+ display:flex;align-items:center;justify-content:center;
+ min-height:44px;padding:8px 12px;border:2px solid #709dc0;border-radius:999px;
+ background:#23394e;color:#edf3f8;font-size:14px;font-weight:750;
+ line-height:1.35;text-align:center;box-sizing:border-box;
+}
+#pokemon-dialog .iv-nature-modifiers,#box-detail-dialog .iv-nature-modifiers{
+ display:flex;flex-direction:column;justify-content:center;gap:7px;min-width:0;
+}
+#pokemon-dialog .iv-nature-effect,#box-detail-dialog .iv-nature-effect{
+ display:flex;align-items:baseline;justify-content:flex-start;gap:3px;
+ font-size:13px;line-height:1.4;white-space:normal;font-weight:650;
+}
+#pokemon-dialog .iv-nature-effect span,#box-detail-dialog .iv-nature-effect span{
+ flex:0 1 auto;min-width:0;overflow-wrap:anywhere;
+}
+#pokemon-dialog .iv-nature-effect b,#box-detail-dialog .iv-nature-effect b{
+ flex:0 0 auto;white-space:nowrap;font-size:13px;font-weight:900;
+}
+#pokemon-dialog .iv-nature-effect.up b,#box-detail-dialog .iv-nature-effect.up b{color:#eda377}
+#pokemon-dialog .iv-nature-effect.down b,#box-detail-dialog .iv-nature-effect.down b{color:#82bde8}
+#pokemon-dialog .iv-nature-none,#box-detail-dialog .iv-nature-none{
+ font-size:12px;color:#afc0d0;
+}
+@media(max-width:360px){
+ #pokemon-dialog .iv-base,#box-detail-dialog .iv-base{
+  grid-template-columns:minmax(105px,36%) minmax(0,1fr);column-gap:8px
+ }
+ #pokemon-dialog .iv-key,#box-detail-dialog .iv-key{font-size:11px}
+}
+/* Only Box owns its destructive action; never add this to the shared renderer. */
