@@ -14,6 +14,7 @@ BASE=f'http://127.0.0.1:{server.server_port}/e7-preview/'
 WEEK='2026-11-16'
 ID1='manual:'+WEEK
 ID2='manual:'+WEEK+'-2'
+ID3='manual:'+WEEK+'-3'
 INV='pokesleep-strategy-u2-e2-v1:'
 PREF='pokesleep-strategy-u3-e3-v1:'
 PREP='pokesleep-strategy-u2-e6-prep-v1:'
@@ -22,11 +23,13 @@ FOODS=['ふといながねぎ','あじわいキノコ','とくせんエッグ','
  'げきからハーブ','マメミート','モーモーミルク','あまいミツ','ピュアなオイル',
  'あったかジンジャー','あんみんトマト','リラックスカカオ','おいしいシッポ',
  'ワカクサ大豆','ワカクサコーン','めざましコーヒー','ずっしりカボチャ','つやつやアボカド']
-def records(event_id,categories):
-    fields={'field':'シアンの砂浜','food':'all','camp':True,'source':None}
+def records(event_id,categories,unknown_food=False):
+    fields={'field':'シアンの砂浜','food':'' if unknown_food else 'all','camp':True,'source':None}
     chosen={'version':1,'weekStart':WEEK,'eventId':event_id,'candidate':None,'editing':None,
-      'confirmed':{'weekStart':WEEK,'eventId':event_id,'status':'CONFIRMED','fields':fields,
-       'revision':'f3-v88-'+event_id,'savedAt':'2026-11-13T10:00:00Z','missingFields':[]}}
+      'confirmed':{'weekStart':WEEK,'eventId':event_id,
+       'status':'MISSING' if unknown_food else 'CONFIRMED','fields':fields,
+       'revision':'f3-v88-'+event_id,'savedAt':'2026-11-13T10:00:00Z',
+       'missingFields':['料理カテゴリ'] if unknown_food else []}}
     prep={'version':1,'weekStart':WEEK,'eventId':event_id,
       'prep':{'count':len(categories),'categories':categories},
       'savedAt':'2026-11-13T10:00:00Z'}
@@ -58,6 +61,7 @@ try:
         assert '備蓄する料理カテゴリ' in page.locator('#f3-prep-status').inner_text()
         data={**records(ID1,['curry','salad','dessert']),
               **records(ID2,['dessert']),
+              **records(ID3,['curry','salad','dessert'],True),
               PLAYER:{'version':1,'pot':57,'bag':120,'bonuses':{}}}
         page.evaluate("""entries=>{
           for(const [key,value] of Object.entries(entries))localStorage.setItem(key,JSON.stringify(value));
@@ -111,6 +115,15 @@ try:
         check_goals(page)
         page.locator('#btn-inventory').click()
         assert page.locator('input[data-key="apple"]').input_value()=='0'
+
+        # Preparation may proceed on a saved MISSING recipe week; only
+        # adoption/reproposal (not F3 preparation) requires full confirmation.
+        page.goto(url(ID3),wait_until='domcontentloaded')
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        assert '料理未確定' in page.locator('#f3-prep-status').inner_text()
+        check_goals(page)
+        assert page.evaluate("""key=>JSON.parse(localStorage.getItem(key)).confirmed.status""",
+          PREF+WEEK+':'+quote(ID3,safe="~!*'()-._")+':conditions')=='MISSING'
 
         # Missing bag size is a block, not made-up 600 capacity.
         page.evaluate("""key=>{
