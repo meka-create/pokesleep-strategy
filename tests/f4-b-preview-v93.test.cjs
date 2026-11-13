@@ -9,7 +9,9 @@ test('F4-B v93 isolated UI loads all verified local sources and preserves E7 sto
   '../f1/f1-b-legal-build-v2.js','../f1/f1-b-base-rates-v1.js',
   '../src/master.js','../src/recipes.js','../f4/f4-chronological-core-v1.js',
   '../f4/f4-f1b-roster-adapter-v1.js','../f4/f4-b-game-week-v1.js',
-  '../f4/f4-b-chronological-v2.js','../f4/f4-b-e7-readonly-v1.js','f4-b-ui-v93.js'];
+  '../f4/f4-b-chronological-v2.js','../f4/f4-b-e7-readonly-v1.js',
+  '../f4/f4-event-model-gate-v1.js','../f4/f4-c-official-rules-v1.js',
+  '../f4/f4-c-state-kernel-v1.js','f4-b-ui-v93.js'];
  assert.deepEqual(assets,expected);
  for(const asset of assets)
   assert(fs.existsSync(path.resolve(root,'f4b-preview',asset)),asset);
@@ -21,6 +23,8 @@ test('F4-B v93 isolated UI loads all verified local sources and preserves E7 sto
  assert(html.includes('id="team-dialog"'));
  assert(html.includes('id="favorites"'));
  assert(html.includes('id="run"'));
+ assert(html.includes('F4-Cでまだ未接続の要素'));
+ assert.match(js,/PokeF4COfficialRules\?\.match\(c\.fields\.source\)/);
  assert(!html.includes('iframe'),'E7 existing shell must not be altered');
 });
 test('F4-B v93 Chromium: 8 real teams, neutral 29 windows, no writes and official block',

@@ -120,8 +120,12 @@
    infoRow('実ボックス',box.length+'匹');
   }else{
    q('status').textContent='イベントと実ボックスを照合しました';
+   const officialRules=c.fields.source!=null?
+    window.PokeF4COfficialRules?.match(c.fields.source):null;
    q('context-message').textContent=c.fields.source!=null?
-    '公式イベントの数値補正が未実装のため、このイベントのエナジー参考計算は停止します。':
+    (officialRules?.status==='RULES_MATCHED_ONLY'?
+     'F4-C：11/16公式ボーナスの条件付き計算式は準備済み。新食材・新料理の原典とげんき・スキル・回収などの週間接続が未完了のため、正式なイベント週の試算は停止します。':
+     'この公式イベントの効果は未検証のため、週間エナジー試算は停止します。'):
     '手動イベントの中立参考モデルです。表示数値は実ゲームの確定値ではありません。';
    infoRow('ゲーム週',c.weekStart+' 04:00〜翌月曜04:00');
    infoRow('段階',names[c.clock.phase]||'—');
@@ -216,7 +220,7 @@
   }
   if(c.status!=='CONTEXT_READY'){q('calc-status').textContent=c.message||'イベントを確認してください。';return;}
   if(c.fields.source!=null){
-   q('calc-status').textContent='公式イベントの効果は未計算のため、数値試算を停止しました。';return;
+   q('calc-status').textContent='F4-Cの個別ルールは用意済みですが、公式イベントの週間計算は未完成のため停止しました。';return;
   }
   if(c.fields.field.endsWith('EX')){
    q('calc-status').textContent='EX固有効果は未計算のため停止しました。';return;
