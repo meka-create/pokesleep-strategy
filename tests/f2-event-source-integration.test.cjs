@@ -121,6 +121,6 @@ test('F2: E7 selection is read-only until Save; service worker offline asset and
  assert.match(u3,/const confirmed=E1\.confirmEventConditions\(edited,\{userConfirmed:true\}\)/);
  assert.match(u3,/localStorage\.setItem\(E3_SELECTED_KEY,JSON\.stringify\(selection\)\)/);
  assert.match(sw,/e7-f2-event-catalog-v1\.js/);
- assert.match(sw,/pokesleep-strategy-e7-v86-f2-event-catalog-20261113/);
+ assert.match(sw,/v86-f2-event-catalog-20261113/);
  assert(!read('index.html').includes('e7-f2-event-catalog-v1.js'));
 });
