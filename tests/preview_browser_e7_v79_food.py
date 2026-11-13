@@ -112,7 +112,9 @@ try:
             # data adapters and Box-only destructive action.
             page.goto(BASE+'U3_Strategy_UI_20261109_v50_E7.html',wait_until='domcontentloaded')
             assert page.evaluate('()=>Boolean(window.PokeE7PokemonDetail)')
-            page.locator('#sleep-open').click()
+            # Date/phase gate may hide settings before an event is selected.
+            # Trigger the existing handler without altering saved conditions.
+            page.locator('#sleep-open').evaluate('(el)=>el.click()')
             first=page.locator('#sleep-team-preview .avatar-tap').first
             species=first.get_attribute('aria-label').replace('のステータス','')
             first.click()
