@@ -227,6 +227,42 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
  .actual-grid .food input{height:28px;min-height:28px;font-size:12px}
 }
 </style>
+<style id="e7-v80-square-food-grid">
+/* E7 v80: same 19 slots, same coordinates in both views; the hidden
+   ingredient names remain in DOM for accessible input and stock key lookup. */
+.goal-grid,.actual-grid{max-width:370px;margin:8px auto 7px}
+.goal-grid .food,.actual-grid .food{
+ aspect-ratio:1/1;width:100%;min-height:0;
+ display:grid;grid-template-columns:minmax(0,1fr);
+ grid-template-rows:minmax(0,1fr) 25px;
+ align-content:stretch;align-items:center;justify-items:center;
+ row-gap:2px;padding:4px;
+}
+.goal-grid .food-media,.actual-grid .food-media{
+ grid-column:1;grid-row:1;
+ display:grid;place-items:center;
+ width:clamp(29px,8.5vw,41px);height:clamp(29px,8.5vw,41px);
+}
+.goal-grid .food .goal-value{
+ grid-column:1;grid-row:2;min-height:0;width:100%;
+ margin:0;align-items:center;justify-content:center;
+}
+.goal-grid .food .goal-value b{font-size:clamp(13px,3.8vw,17px)}
+.actual-grid .food .input-wrap{
+ grid-column:1;grid-row:2;align-self:center;width:100%;margin:0;
+}
+.actual-grid .food input{height:25px;min-height:25px;font-size:12px}
+@media(max-width:370px){
+ .goal-grid .food,.actual-grid .food{
+  grid-template-rows:minmax(0,1fr) 23px;
+  row-gap:1px;padding:3px;
+ }
+ .goal-grid .food-media,.actual-grid .food-media{
+  width:clamp(28px,9vw,32px);height:clamp(28px,9vw,32px);
+ }
+ .actual-grid .food input{height:23px;min-height:23px;font-size:12px}
+}
+</style>
 </head><body><details id="e6-dev">
 <summary>開発用・日時切替</summary>
 <div class="e6-body">
