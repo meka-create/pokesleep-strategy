@@ -171,9 +171,8 @@
    const byId=new Map(recipes.map(r=>[r.id,r]));
    const perCategory=cats.map((cat,i)=>{
     const selections={};
-    for(let n=i;n<bestState.recipes.length;n++){
-     // Actual chronological slot choices are in the selected list only;
-     // use recipe category rather than a slot-position assumption.
+    for(let n=0;n<bestState.recipes.length;n++){
+     // Skipped meal slots are absent; classify recipes by their own type.
      const id=bestState.recipes[n];
      if(byId.get(id)?.type!==cat)continue;
      selections[id]=(selections[id]||0)+1;
