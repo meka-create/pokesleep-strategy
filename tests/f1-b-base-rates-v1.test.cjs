@@ -73,7 +73,7 @@ test('F1-B batch: nature boosts, mint neutralization, ingredient/skill substacks
  b.nature='ひかえめ'; // Modest: ingredient up / helping speed down
  b.lv10='食材確率アップM';b.lv25='食材確率アップS';
  b.lv50='スキル確率アップM';
- b.lv70='スキル確率アップS';
+ b.lv70='スキル確率アップS';b.lv80='睡眠EXPボーナス';
  const r=get(b);
  close(r.ingredientProbabilityPerHelp,
   Math.floor(Number((.164*1.2*(1+.18*3)*1e4).toFixed(6)))/1e4,'ingredient stacking');
