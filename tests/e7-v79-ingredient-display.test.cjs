@@ -107,7 +107,7 @@ test('E7 v81 pokesleep-tool ribbon display is shared and never rewrites stored h
 test('E7 v80 preserves both prep grids and tightens detail rows without changing inventory fields',()=>{
  const prep=read('e7-preview/U2_Prep_Local_Ingredients_20261109_v50_E7.html');
  const plan=read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html');
- const css=read('e7-preview/e7-box-detail-v60.css');
+ const css=read('e7-preview/e7-pokemon-detail-shared-v81.css');
  assert.match(prep,/<style id="e7-v80-square-food-grid">/);
  assert.match(prep,/aspect-ratio:1\/1/);
  assert.match(prep,/\.goal-grid,\.actual-grid\{max-width:370px/);
