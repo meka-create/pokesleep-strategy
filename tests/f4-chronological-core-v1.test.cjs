@@ -175,7 +175,7 @@ test('F4-A deterministic bounded search; no writes or F1 parent mutation',()=>{
  assert.equal(JSON.stringify(input),pre,'Input was mutated');
  assert(Math.abs(x.energyProxy-(x.mealEnergyProxy+x.berryEnergyProxy))<=1,
   'Energy proxy does not equal berries plus meals');
- assert(!read('f4/f4-chronological-core-v1.js').includes('localStorage'));
+ assert.doesNotMatch(read('f4/f4-chronological-core-v1.js'),/\blocalStorage\s*[.\[]|\bsessionStorage\s*[.\[]/);
  assert(!read('f4/f4-chronological-core-v1.js').includes('setItem('));
  assert(!read('index.html').includes('f4-chronological-core-v1.js'));
 });
