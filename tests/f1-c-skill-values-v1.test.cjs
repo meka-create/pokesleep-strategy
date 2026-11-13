@@ -1,6 +1,9 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
-const skill=require('../f1/f1-c-skill-values-v1.js');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const context={module:{exports:{}},globalThis:{}};
+vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'../f1/f1-c-skill-values-v1.js'),'utf8'),context);
+const skill=context.module.exports;
 const snapshot=require('../f1/f1-b-target-source-v1.json');
 test('F1-C skill baseline: all source-target 22 skill types are represented',()=>{
  const distinct=new Set(snapshot.targets.map(t=>t.sourceProfile.mainSkill));
