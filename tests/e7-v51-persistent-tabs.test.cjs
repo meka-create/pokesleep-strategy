@@ -146,7 +146,8 @@ test('E7 v54 first paint: child DOM-ready handshake is generation-guarded and lo
  assert.match(bridge,/addEventListener\('DOMContentLoaded',announceInteractive/);
  assert.match(bridge,/action:'interactive-ready'/);
  assert.match(sw,/\.\.\.IMAGE_FILES/);
- assert.match(sw,/if\(imageUrls\.has\(canonical\.href\)\)/);
+ assert.match(sw,/if\(imageUrls\.has\(canonical\.href\)\|\|sharedRuntimeUrls\.has\(canonical\.href\)\)/);
+ assert.match(sw,/const sharedRuntimeUrls=new Set/);
  assert.match(sw,/canonical\.href===self\.registration\.scope/);
  assert.match(sw,/canonical\.href=new URL\('index\.html',self\.registration\.scope\)\.href/);
  assert.match(sw,/cache\.match\(canonical\.href\)/);
