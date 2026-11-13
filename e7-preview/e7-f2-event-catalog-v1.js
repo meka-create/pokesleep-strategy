@@ -16,7 +16,7 @@ const TYPES=new Set(['normal','fire','water','electric','grass','ice','fighting'
 const MULTIPLIERS=new Set(['dish','potSize','skillTrigger','dreamShard','skillIngredient','ingredientMagnet','ingredientDraw','berryBurst','carryLimitMul']);
 const ADDITIONS=new Set(['skillLevel','ingredient','berry','energyFromDish','carryLimitAdd','globalCarryLimitAdd']);
 const SUPPORTED=new Set([...MULTIPLIERS,...ADDITIONS,'fixedBerries','fixedAreas','extraIng','bigBerry']);
-function plain(x){return x!==null&&typeof x==='object'&&!Array.isArray(x)&&Object.getPrototypeOf(x)===Object.prototype;}
+function plain(x){if(x===null||typeof x!=='object'||Array.isArray(x))return false;const p=Object.getPrototypeOf(x);return p===null||Object.getPrototypeOf(p)===null;}
 function dateMs(x){
  if(typeof x!=='string'||!DAY.test(x))return NaN;
  const n=Date.parse(x+'T12:00:00Z');
@@ -40,7 +40,7 @@ function validWeekly(x){
   if(MULTIPLIERS.has(key)&&(!Number.isFinite(val)||val<=0||val>20))return false;
   if(ADDITIONS.has(key)&&(!Number.isSafeInteger(val)||val<0||val>1000))return false;
   if(key==='fixedBerries'&&(!Array.isArray(val)||val.length!==3||
-   val.some(t=>t!==null&&!TYPES.has(t))))return false;
+   val.some(t=>t!==null&&!TYPES.has(t))||new Set(val.filter(Boolean)).size!==val.filter(Boolean).length))return false;
   if(key==='fixedAreas'&&(!Array.isArray(val)||!val.length||val.length>20||
    val.some(n=>!Number.isInteger(n)||n<0||n>30)))return false;
   if((key==='extraIng'||key==='bigBerry')&&(typeof val!=='string'||!val||val.length>80))return false;
@@ -168,7 +168,7 @@ function candidate(event,catalog){
   }else if(ADD_LABELS[key]){
    if(value!==0)notes.push(ADD_LABELS[key]+' +'+value);
   }else if(key==='fixedBerries'){
-   notes.push('確定きのみ：'+value.map(v=>v||'未確定').join('／'));
+   notes.push('確定きのみ：'+value.map(v=>v||'未確定').join('、'));
   }else if(key==='fixedAreas'){
    // These are SOURCE INDEXES, not validated area identities.
    unknown.push(key);
