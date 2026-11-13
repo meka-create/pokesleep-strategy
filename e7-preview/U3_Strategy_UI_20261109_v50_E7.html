@@ -245,10 +245,11 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 .e7-event-action-row #event-save{flex:1 1 auto;min-width:0}
 #e7-event-delete{height:32px;min-height:32px;padding:6px 10px;font-size:12px;line-height:18px;box-sizing:border-box;border:1px solid #a56b6c;border-radius:10px;background:transparent;color:#f2b8b4;font-weight:750;flex:0 0 auto}
 #e7-event-delete[hidden],#event-save[hidden],#e7-event-action-row[hidden]{display:none!important}
+#f2-update-source[hidden]{display:none!important}#f2-update-source{justify-self:start;font-size:11px;padding:6px 9px;margin-top:3px}
 #e7-cal-empty{margin:0;font-size:11px;color:#b9c9d9}
 @media(max-width:360px){#e7-event-calendar{padding:9px 7px}#e7-cal-heading{gap:4px}#e7-cal-tools{gap:2px}#e7-cal-month{min-width:76px}#e7-cal-today{padding:5px 6px}.e7-cal-event{padding:4px 4px;font-size:10px;margin-left:2px;margin-right:2px}}
 </style>
-<link rel="stylesheet" href="e7-feedback-v66.css"><script src="e7-feedback-v66.js"></script><script src="e7-event-delete-v71.js"></script><script src="e7-inventory-scope-v78.js"></script><script src="e7-e1-core-v84.js"></script>
+<link rel="stylesheet" href="e7-feedback-v66.css"><script src="e7-feedback-v66.js"></script><script src="e7-event-delete-v71.js"></script><script src="e7-inventory-scope-v78.js"></script><script src="e7-e1-core-v84.js"></script><script src="e7-f2-event-catalog-v1.js"></script>
 
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
@@ -281,7 +282,7 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 </section>
 <details class="event-details card" id="event-details"><summary><span>イベント条件</span></summary><div class="e6-conditions-label" aria-hidden="true">イベント条件</div><div class="event-fields">
 <div class="field wide e6-event-selector"><span>イベント</span>
-<select id="event-source-select" aria-label="イベント"><option value="">手動設定</option></select>
+<select id="event-source-select" aria-label="イベント"><option value="">手動設定</option></select><button type="button" id="f2-update-source" class="btn small secondary" hidden>更新された補正を選択</button>
 </div>
 <div class="field wide e6-bonus-panel" id="e6-bonus-panel" role="group" aria-label="イベントの補正" hidden>
 <ul id="e6-bonus-list"></ul>
@@ -802,6 +803,17 @@ function normalizeEventCandidates(data){
 function currentEventChoice(){
  return manualSourceRequested?null:(pendingEventSource||eventInfo.source||null);
 }
+function updateF2SourceOffer(){
+ const button=$('#f2-update-source'),old=eventInfo.source;
+ const latest=old&&eventCandidates.find(x=>x.id===old.id&&x.start===eventInfo.start);
+ const changed=!!latest&&latest.upstreamRevision&&
+  (latest.upstreamRevision!==old.upstreamRevision)&&
+  JSON.stringify({effects:latest.verifiedEffects,target:latest.verifiedTarget,
+   bonus:latest.bonus,daily:latest.dailyDrowsy})!==
+  JSON.stringify({effects:old.verifiedEffects,target:old.verifiedTarget,
+   bonus:old.bonus,daily:old.dailyDrowsy});
+ button.hidden=!changed||!!pendingEventSource||manualSourceRequested;
+}
 function populateEventOptions(){
  const menu=$('#event-source-select'),current=currentEventChoice();
  const now=Date.parse(nowInJapan()+':00+09:00');
@@ -820,6 +832,7 @@ function populateEventOptions(){
  }
  menu.value=visible.some(e=>e.id===current?.id)?current.id:'';
  refreshSelect('event-source-select');
+ updateF2SourceOffer();
 }
 // Explicit per-event preference: never silently choose a stockpile target.
 const STOCK_TYPES=['curry','salad','dessert'];
@@ -945,7 +958,13 @@ function updateEventConditionSummary(){
  if(source.unknownEffects&&!items.includes('その他の補正あり')&&!items.includes('補正内容は要確認')){
   const li=document.createElement('li');li.textContent='その他の補正あり';list.append(li);
  }
+ if(Array.isArray(source.dailyDrowsy)&&source.dailyDrowsy.length){
+   const li=document.createElement('li');
+   li.textContent='日別ねむけパワー補正：'+source.dailyDrowsy.map(x=>x.day.slice(5).replace('-','/')+' ×'+x.bonus).join('、')+'（週間エナジーには未加算）';
+   list.append(li);
+ }
  panel.hidden=list.children.length===0;
+ updateF2SourceOffer();
 }
 $('#event-source-select').addEventListener('change',()=>{
  const id=$('#event-source-select').value;
@@ -960,8 +979,9 @@ $('#event-source-select').addEventListener('change',()=>{
    (pendingEventSource?.id===id?pendingEventSource:null);
   if(!source)return;
   const before=$('#event-start').value;
-  pendingEventSource=source.id===eventInfo.source?.id&&source.start===eventInfo.start?
-   null:structuredClone(source);
+  const sameSaved=source.id===eventInfo.source?.id&&source.start===eventInfo.start;
+   pendingEventSource=sameSaved&&source.upstreamRevision===eventInfo.source?.upstreamRevision?
+    null:structuredClone(source);
   manualSourceRequested=false;
   $('#event-start').value=source.start;
   if(source.foodAll)$('#event-food').value='all';
@@ -986,20 +1006,44 @@ function activateEventCatalog(data){
  eventCandidates=checked;
  populateEventOptions();
 }
-async function autoLoadEventCandidates(){
- activateEventCatalog({bonus:EVENT_EMBEDDED_SNAPSHOT});
- if(typeof fetch!=='function')return;
- const controller=new AbortController();
- const timeout=setTimeout(()=>controller.abort(),5000);
- try{
-  const response=await fetch(EVENT_UPSTREAM_URL,{signal:controller.signal,cache:'no-store'});
-  if(!response.ok)throw Error('HTTP '+response.status);
-  const data=await response.json();
-  activateEventCatalog(data);
- }catch(e){
-  // No silent clearing. Existing candidates remain usable, with provenance shown.
- }finally{clearTimeout(timeout);}
+function activateF2Catalog(catalog){
+ const F2=window.PokeE7F2Catalog;
+ // The v85 JST/7-day gate remains an additional conservative safety check.
+ const checked=normalizeEventCandidates({bonus:catalog.bonus});
+ const original=new Map(catalog.bonus.map(x=>[eventCandidateId(x),x]));
+ const enriched=checked.map(base=>{
+  const source=original.get(base.id);
+  try{return {...base,...F2.candidate(source,catalog)};}catch(e){return null;}
+ }).filter(Boolean);
+ if(!enriched.length)throw Error('No validated F2 event candidates');
+ eventCandidates=enriched;
+ // Catalog refresh never mutates e3Selected, eventInfo, ledger, adopted plan or stock.
+ populateEventOptions();
 }
+async function autoLoadEventCandidates(){
+ const F2=window.PokeE7F2Catalog;
+ if(!F2){activateEventCatalog({bonus:EVENT_EMBEDDED_SNAPSHOT});return;}
+ try{
+  const cached=F2.readLastKnownGood(localStorage);
+  activateF2Catalog(cached||F2.embedded(EVENT_EMBEDDED_SNAPSHOT,EVENT_NAMES_JA));
+ }catch(e){activateEventCatalog({bonus:EVENT_EMBEDDED_SNAPSHOT});}
+ if(typeof fetch!=='function')return;
+ try{
+  const live=await F2.refresh({fetchImpl:fetch,storage:localStorage,timeoutMs:6500});
+  activateF2Catalog(live);
+ }catch(e){
+  // Network failure cannot clear the last validated catalog.
+ }
+}
+$('#f2-update-source').addEventListener('click',()=>{
+ const old=eventInfo.source;
+ const latest=old&&eventCandidates.find(x=>x.id===old.id&&x.start===eventInfo.start);
+ if(!latest||!latest.upstreamRevision)return;
+ pendingEventSource=structuredClone(latest);
+ manualSourceRequested=false;
+ updateEventConditionSummary();
+ render(); // The existing Save button explicitly confirms updated metadata.
+});
 importPrepFromU2();syncEventControls();if(!e3Selected)$('#event-start').value='';updateU2Link();
 refreshInventory();
 function getPlan(){return applied;}
