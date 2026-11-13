@@ -1,4 +1,4 @@
-/* F4-B v92: read-only actual E7 context and guarded F4-A invocation.
+/* F4-B v93: read-only E7 context and exact-window F4-B reference.
  * E7's stored U3 manualSleep entries are illustrative POOL IDs, NOT box IDs.
  * Never coerce mock IDs into real individuals, guess fixed-field berries,
  * overwrite a record, or convert a verified event into a neutral event.
@@ -171,6 +171,19 @@
     rates:deps.rates,master});
   if(roster?.status!=='READY')return fail(roster?.reason||'ROSTER_BLOCKED',
    '実ボックスの合法個体と基礎速度を検証できません。');
+  // Even with sleep automation ON, the preceding Sunday's already-used
+  // sleeping team cannot be inferred from this event's mock roster.
+  const previous=options.previousWeekSleepIndices;
+  if(!Array.isArray(previous)||previous.length!==5||
+   new Set(previous).size!==5||previous.some(i=>
+    !Number.isSafeInteger(i)||i<0||i>=ctx.privateBoxRows.length))
+   return fail('PREVIOUS_WEEK_SLEEP_REQUIRED',
+    '前週日曜の睡眠に使った実個体5匹を明示してください。');
+  const eligible=new Set(roster.profiles.map(p=>p.id));
+  const previousWeekSleepTeam=previous.map(i=>'p'+i);
+  if(previousWeekSleepTeam.some(id=>!eligible.has(id)))
+   return fail('UNVERIFIED_PREVIOUS_WEEK_MEMBER',
+    '前週睡眠に未検証・未対応個体が含まれています。');
   let nights=null;
   if(!ctx.autoSleep){
    // The explicit indices are ephemeral user choices. Saved E7 POOL IDs
@@ -181,7 +194,6 @@
      new Set(row).size!==5||row.some(i=>
       !Number.isSafeInteger(i)||i<0||i>=ctx.privateBoxRows.length)))
     return fail('REAL_NIGHTS_REQUIRED','7晩それぞれ実個体5匹の明示指定が必要です。');
-   const eligible=new Set(roster.profiles.map(p=>p.id));
    nights=rows.map(row=>row.map(i=>'p'+i));
    if(nights.some(row=>row.some(id=>!eligible.has(id))))
     return fail('UNVERIFIED_NIGHT_MEMBER','睡眠編成に未対応・未検証個体が含まれています。');
@@ -190,14 +202,14 @@
    return fail('RECIPE_SOURCE_MISSING');
   return {
    status:'READY',
-   input:{weekStart:ctx.weekStart,eventSource:null,
+   input:{weekStart:ctx.weekStart,asOf:ctx.clock.asOf,eventSource:null,
     eventMode:'NEUTRAL_REFERENCE_ONLY',foodMode:ctx.fields.food,
     camp:ctx.fields.camp,fieldBonus:bonus,potCapacity:pot,
     bagCapacity:bag,initialInventory:stocks,
     profiles:roster.profiles,recipes:deps.recipes,
-    autoSleep:ctx.autoSleep,nightTeams:nights},
+    autoSleep:ctx.autoSleep,nightTeams:nights,previousWeekSleepTeam},
    sourceCommit:roster.sourceCommit,
-   warning:'実ゲーム週04:00境界・前週睡眠引継ぎ・げんき・スキル・回収は未計算です。',
+   warning:'04:00ゲーム週の29時間窓のみ計算接続済み。げんき・スキル・所持・回収・週切替動作は未検証です。',
    weeklyEnergyCertified:false,writesSavedData:false
   };
  }
@@ -206,14 +218,23 @@
   if(ctx.status!=='CONTEXT_READY')return ctx;
   const prepared=buildNeutralInput(ctx,options,deps);
   if(prepared.status!=='READY')return prepared;
-  if(typeof deps.core?.plan!=='function')return fail('CORE_MISSING');
-  const result=deps.core.plan(prepared.input);
+  if(typeof deps.exactCore?.plan!=='function'||
+   !deps.baseCore?.normalizeProfiles||!deps.weekClock?.build)
+   return fail('EXACT_CORE_MISSING');
+  const result=deps.exactCore.plan(prepared.input,
+   {base:deps.baseCore,gameWeek:deps.weekClock});
   if(result.status!=='PROVISIONAL')return fail(result.reason||'CORE_BLOCKED');
-  return {status:'PROVISIONAL',stage:'F4_B_READONLY_NEUTRAL',
+  if(result.slotCount!==29||result.totalHours!==168||
+   result.startsAt!==ctx.clock.startsAt||result.endsAt!==ctx.clock.endsAt||
+   result.slots?.[0]?.source!=='PREVIOUS_WEEK_SLEEP'||
+   result.slots?.[28]?.source!=='FINAL_NIGHT_TRUNCATED'||
+   result.weeklyEnergyCertified!==false||result.writesSavedData!==false)
+   return fail('EXACT_CORE_CONTRACT');
+  return {status:'PROVISIONAL',stage:'F4_B_EXACT_READONLY_REFERENCE',
    result,sourceCommit:prepared.sourceCommit,readOnly:true,
    gameWeek:{startsAt:ctx.clock.startsAt,endsAt:ctx.clock.endsAt,
     boundaryCarryHours:3.5,lastSleepHours:4,
-    fullyModeled:false},
+    windowTimelineModeled:true,fullyModeled:false},
    weeklyEnergyCertified:false,writesSavedData:false,
    privateIndividualDataInResult:false};
  }

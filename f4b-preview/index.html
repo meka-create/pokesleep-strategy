@@ -4,82 +4,99 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e1929">
-<title>F4-B 連携確認 · ポケスリ作戦室</title>
+<title>F4-B 時間順参考計算 · ポケスリ作戦室</title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,"Noto Sans JP",sans-serif}
 *{box-sizing:border-box}
-body{max-width:680px;margin:0 auto;padding:18px 14px 40px;background:#0e1929;color:#edf3f8;line-height:1.65}
-h1{font-size:20px;margin:8px 0 4px}
-h2{font-size:15px;margin:0 0 12px}
-p{font-size:13px;margin:8px 0}
-.sub{color:#aebfd0;font-size:12px}
-.card{padding:16px;background:#1b2c40;border:1px solid #344e63;border-radius:14px;margin-top:16px}
-dt{font-size:12px;color:#b8c9d8}dd{font-size:14px;margin:2px 0 12px;font-weight:650}
+body{max-width:680px;margin:0 auto;padding:18px 14px 44px;background:#0e1929;color:#edf3f8;line-height:1.55}
+h1{font-size:20px;margin:8px 0 4px}h2{font-size:16px;margin:0 0 9px}
+p{font-size:13px;margin:8px 0}.sub,.hint{color:#aebfd0;font-size:12px}
+.card{padding:16px;background:#1b2c40;border:1px solid #344e63;border-radius:14px;margin-top:14px}
+dt{font-size:12px;color:#b8c9d8}dd{font-size:14px;margin:2px 0 10px;font-weight:650}
 a{color:#f5ca78}
-button{border:0;border-radius:10px;background:#f5ca78;color:#122036;font:700 14px system-ui;
- padding:11px 15px;cursor:pointer;min-height:44px}
-.state{font-weight:800;color:#f5ca78}
+button,select{font:inherit}button{border:0;border-radius:10px;background:#f5ca78;color:#122036;
+ font-weight:700;font-size:13px;padding:9px 12px;cursor:pointer;min-height:40px}
+button:disabled{opacity:.55;cursor:default}
+button.secondary{border:1px solid #597086;background:#263c50;color:#f3f6fb}
+button:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #f5ca78;outline-offset:2px}
+select{width:100%;min-width:0;min-height:40px;padding:6px 8px;border:1px solid #5c7389;
+ border-radius:9px;background:#13283a;color:#f2f5f8}
+.state{font-weight:800;color:#f5ca78}.error{color:#ffb9a9}
 details{padding:7px 10px;border:1px solid #405970;border-radius:10px;margin-top:10px;font-size:12px}
 summary{cursor:pointer}
+#team-list{display:grid;gap:8px;margin-top:10px}
+.team-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;align-items:center;
+ border-bottom:1px solid #3c5366;padding:7px 1px}
+.team-row small{display:block;color:#aebfd0;font-size:11px;overflow-wrap:anywhere}
+.team-row strong{font-size:13px}
+.team-actions{display:flex;gap:5px;align-items:center}
+.team-actions button{font-size:11px;padding:5px 10px;min-height:36px}
+.favorites{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:12px 0}
+.favorites label{font-size:11px;color:#c1d2de}
+.favorites select{margin-top:4px;font-size:12px}
+#run{width:100%;min-height:44px;margin-top:10px}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:12px 0}
+.metrics span{padding:8px 4px;text-align:center;background:#16273a;border:1px solid #3c556d;border-radius:10px;font-size:11px}
+.metrics b{display:block;color:#f6ce83;font-size:17px}
+.result-line{padding:7px 0;border-bottom:1px solid #3d566a;font-size:12px}
+dialog{width:min(96vw,460px);max-height:90dvh;border:1px solid #6a8298;border-radius:15px;
+ padding:17px;background:#1a2b40;color:#ecf2f8;box-shadow:0 16px 55px #050c15;overscroll-behavior:contain}
+dialog::backdrop{background:#000b}
+#team-form{display:grid;gap:9px}#team-form label{font-size:12px}
+#team-form select{margin-top:4px}
+.dialog-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:15px}
+@media(max-width:360px){.card{padding:12px}.team-actions button{padding:4px 6px}.favorites{gap:4px}}
 </style>
 <script src="../e7-preview/e7-inventory-scope-v78.js"></script>
 <script src="../e7-preview/e7-e1-core-v84.js"></script>
+<script src="../f1/f1-b-legal-build-v2.js"></script>
+<script src="../f1/f1-b-base-rates-v1.js"></script>
+<script src="../src/master.js"></script>
+<script src="../src/recipes.js"></script>
+<script src="../f4/f4-chronological-core-v1.js"></script>
+<script src="../f4/f4-f1b-roster-adapter-v1.js"></script>
 <script src="../f4/f4-b-game-week-v1.js"></script>
+<script src="../f4/f4-b-chronological-v2.js"></script>
 <script src="../f4/f4-b-e7-readonly-v1.js"></script>
 </head>
 <body>
-<header><div class="sub">POKÉMON SLEEP / DEVELOPMENT</div><h1>F4-B 実データ連携確認</h1>
-<p class="sub">保存済みの作戦と食材在庫を読み取り、04:00のゲーム週と照合します。作戦・在庫は変更しません。</p></header>
-<section class="card">
-<h2>現在の検証状況</h2>
-<p id="status" class="state" role="status" aria-live="polite">未確認</p>
-<dl id="details"></dl>
-<p id="message" class="sub">実イベント週の週間エナジーはまだ確定できません。</p>
-<button id="refresh" type="button">保存状態を再確認</button>
+<header><div class="sub">POKÉMON SLEEP / DEVELOPMENT</div><h1>F4-B 時間順参考計算</h1>
+<p class="hint">実個体から7晩を指定し、04:00境界の29時間帯を参考計算します。正式なイベント作戦には反映しません。</p></header>
+<section class="card" aria-labelledby="context-title">
+<h2 id="context-title">イベントとボックス</h2>
+<p id="status" class="state" role="status" aria-live="polite">読込中</p>
+<dl id="context-info"></dl>
+<p id="context-message" class="hint"></p>
+<button id="refresh" class="secondary" type="button">保存状態を再確認</button>
 </section>
-<section class="card">
-<h2>F4-Bの計算上の境界</h2>
-<p>月曜04:00〜07:30は前週の日曜睡眠の一部です。最終日曜の睡眠は翌月曜04:00で区切ります。</p>
-<p>現行E7の睡眠編成には表示確認用の仮IDが含まれるため、実個体の睡眠編成として流用しません。公式イベント補正、げんき・スキル・バッグ回収も未接続です。</p>
-<details><summary>この画面で実施しないこと</summary>
-<p>実イベント週間エナジーの算出、保存済み編成の自動変更、仮編成の採用、在庫の書換えは実施しません。</p></details>
+<section class="card" aria-labelledby="night-title">
+<h2 id="night-title">実個体の睡眠編成</h2>
+<p class="hint">前週の日曜睡眠（持越し）は必須。自動OFFなら月〜日の7晩も手動指定します。設定はこの画面内のみで、端末の作戦保存は変更しません。</p>
+<div id="team-list"></div>
+<p id="night-message" class="hint" role="status"></p>
 </section>
-<p><a href="../e7-preview/">ポケスリ作戦室の作戦画面へ</a></p>
-<script>
-(()=>{
- 'use strict';
- const get=id=>document.getElementById(id);
- function row(label,value){
-  const dt=document.createElement('dt'),dd=document.createElement('dd');
-  dt.textContent=label;dd.textContent=String(value);
-  get('details').append(dt,dd);
- }
- function render(){
-  get('details').replaceChildren();
-  const deps={scope:window.PokeE7InventoryScope,e1:window.PokeE7E1,
-   weekClock:window.PokeF4BGameWeek};
-  const ctx=window.PokeF4BE7ReadOnly.readContext(localStorage,deps,new Date().toISOString());
-  if(ctx.status!=='CONTEXT_READY'){
-   get('status').textContent='確認が必要です';
-   get('message').textContent=ctx.message||'作戦タブでイベントと在庫を保存してください。';
-   return;
-  }
-  const info=window.PokeF4BE7ReadOnly.publicStatus(ctx);
-  get('status').textContent='保存情報の所有関係を確認しました';
-  row('ゲーム週',info.weekStart+'（月曜04:00開始）');
-  row('現在の段階',{BEFORE:'準備週',DURING:'イベント週',ENDED:'終了'}[info.gameWeekPhase]);
-  row('登録個体数',info.registeredIndividuals+'匹');
-  row('イベント種別',info.eventIsOfficial?'公式原典付き':'手動イベント');
-  row('境界の扱い','前週睡眠3.5時間＋最終睡眠4時間');
-  row('睡眠編成','表示用IDと実ボックスをまだ照合していません');
-  get('message').textContent=info.eventIsOfficial?
-   '公式イベントの数値補正を適用するF4-Cまで、エナジー計算を保留します。':
-   '手動イベントでも、実個体7晩と計算条件が確定するまでは週間エナジーを提示しません。';
- }
- get('refresh').addEventListener('click',render);
- window.addEventListener('storage',render);
- render();
-})();
-</script>
+<section class="card" aria-labelledby="calc-title">
+<h2 id="calc-title">中立条件の参考試算</h2>
+<p class="hint">好みのきのみは3種類を明示してください。固定フィールドでも推測は行いません。</p>
+<div id="favorites" class="favorites"></div>
+<button id="run" type="button">29時間帯を参考計算</button>
+<p id="calc-status" class="hint" role="status" aria-live="polite"></p>
+<div id="calc-result"></div>
+</section>
+<section class="card" aria-labelledby="caveats-title">
+<h2 id="caveats-title">計算に含まれない要素</h2>
+<p>公式イベントの数値補正、EX補正、げんき・メインスキル・回収と所持枠の時系列、料理レベル・大成功は未対応です。該当する正式イベント週の計算は停止します。</p>
+<p>前週の日曜睡眠は04:00以降の食材期待量だけ参考接続し、きのみエナジーは当週の合計から除外します。これは実ゲーム内での持越し効果を保証しません。</p>
+</section>
+<dialog id="team-dialog" aria-labelledby="dialog-title">
+<h2 id="dialog-title">睡眠編成</h2>
+<p class="hint">同じ個体の重複選択はできません。</p>
+<div id="team-form"></div>
+<p id="dialog-message" class="error" role="status"></p>
+<div class="dialog-actions"><button type="button" class="secondary" id="dialog-cancel">キャンセル</button>
+<button type="button" id="dialog-apply">この5匹を設定</button></div>
+</dialog>
+<p><a href="../e7-preview/">作戦画面へ戻る</a></p>
+<script src="f4-b-ui-v93.js"></script>
 </body>
 </html>

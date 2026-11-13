@@ -150,13 +150,15 @@ test('mock U3 sleep team is not interpreted as a real box selection',()=>{
  const ctx=f4b.readContext(store,deps,instant);
  const fakeRoster={adapt:()=>({status:'READY',sourceCommit:'a'.repeat(40),
   profiles:Array.from({length:6},(_,i)=>({id:'p'+i}))})};
- const options={neutralReferenceOnly:true,favoriteTypes:['water','fire','grass']};
+ const options={neutralReferenceOnly:true,favoriteTypes:['water','fire','grass'],
+  previousWeekSleepIndices:[0,1,2,3,4]};
  const params={roster:fakeRoster,master,recipes:[{id:'test'}]};
  assert.equal(f4b.buildNeutralInput(ctx,options,params).reason,'REAL_NIGHTS_REQUIRED');
  const rows=Array.from({length:7},()=>[0,1,2,3,4]);
  const ok=f4b.buildNeutralInput(ctx,{...options,realNightTeamIndices:rows},params);
  assert.equal(ok.status,'READY',ok.message);
  assert.equal(ok.input.nightTeams.length,7);
+ assert.deepEqual([...ok.input.previousWeekSleepTeam],['p0','p1','p2','p3','p4']);
  assert.deepEqual([...ok.input.nightTeams[0]],['p0','p1','p2','p3','p4']);
  assert.equal(ok.input.initialInventory.apple,20);
  assert.equal(ok.input.eventSource,null);assert.equal(ok.weeklyEnergyCertified,false);
@@ -168,10 +170,13 @@ test('saved auto ON can use real roster without manual nights; previous sleep re
  const fakeRoster={adapt:()=>({status:'READY',sourceCommit:'a'.repeat(40),
   profiles:Array.from({length:6},(_,i)=>({id:'p'+i}))})};
  const result=f4b.reference(store,{instant,neutralReferenceOnly:true,
-  favoriteTypes:['water','fire','grass']},{
+  favoriteTypes:['water','fire','grass'],previousWeekSleepIndices:[0,1,2,3,4]},{
   ...deps,roster:fakeRoster,master,recipes:[{id:'test'}],
-  core:{plan:i=>({status:'PROVISIONAL',mode:i.eventMode,
-   autoSleep:i.autoSleep,weeklyEnergyCertified:false,slots:[]})}});
+  baseCore:{normalizeProfiles:()=>[]},
+  exactCore:{plan:(i,params)=>{const c=params.gameWeek.build(i.weekStart,i.asOf);
+   return {status:'PROVISIONAL',autoSleep:i.autoSleep,slotCount:29,
+    totalHours:168,startsAt:c.startsAt,endsAt:c.endsAt,slots:c.windows,
+    weeklyEnergyCertified:false,writesSavedData:false};}}});
  assert.equal(result.status,'PROVISIONAL',result.message);
  assert.equal(result.result.autoSleep,true);
  assert.equal(result.gameWeek.fullyModeled,false);
@@ -227,4 +232,31 @@ test('F4-B isolated read-only browser diagnostics reference only approved assets
  assert(!page.includes('localStorage.setItem'));
  assert(!page.includes('localStorage.removeItem'));
  assert(!page.includes('privateBoxRows'));
+});
+
+
+test('v93 refuses accidental 28-slot old F4-A engine use',()=>{
+ const store=fixture({auto:true});
+ const fakeRoster={adapt:()=>({status:'READY',sourceCommit:'a'.repeat(40),
+  profiles:Array.from({length:6},(_,i)=>({id:'p'+i}))})};
+ const opts={instant,neutralReferenceOnly:true,
+  favoriteTypes:['water','fire','grass'],previousWeekSleepIndices:[0,1,2,3,4]};
+ const dep={...deps,roster:fakeRoster,master,recipes:[{id:'test'}],
+  baseCore:{normalizeProfiles:()=>[]}};
+ assert.equal(f4b.reference(store,opts,dep).reason,'EXACT_CORE_MISSING');
+ dep.exactCore={plan:()=>({status:'PROVISIONAL',slotCount:28,totalHours:168,
+  weeklyEnergyCertified:false,writesSavedData:false,slots:[]})};
+ assert.equal(f4b.reference(store,opts,dep).reason,'EXACT_CORE_CONTRACT');
+});
+test('v93 requires prior Sunday individual team even when automatic sleep is on',()=>{
+ const store=fixture({auto:true}),ctx=f4b.readContext(store,deps,instant);
+ const fakeRoster={adapt:()=>({status:'READY',sourceCommit:'a'.repeat(40),
+  profiles:Array.from({length:6},(_,i)=>({id:'p'+i}))})};
+ const data={master,roster:fakeRoster,recipes:[{id:'test'}]};
+ const options={neutralReferenceOnly:true,favoriteTypes:['water','fire','grass']};
+ assert.equal(f4b.buildNeutralInput(ctx,options,data).reason,'PREVIOUS_WEEK_SLEEP_REQUIRED');
+ assert.equal(f4b.buildNeutralInput(ctx,{...options,previousWeekSleepIndices:[0,0,1,2,3]},
+  data).reason,'PREVIOUS_WEEK_SLEEP_REQUIRED');
+ assert.equal(f4b.buildNeutralInput(ctx,{...options,previousWeekSleepIndices:[0,1,2,3,99]},
+  data).reason,'PREVIOUS_WEEK_SLEEP_REQUIRED');
 });
