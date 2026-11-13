@@ -156,9 +156,14 @@
     }
     beam=selected;
    }
-   beam.sort((a,b)=>score(b,slots,best)-score(a,slots,best)||b.energy-a.energy||
+   // Equal-priority category preparation must not starve a category when
+   // any capacity-feasible searched plan can cover every selected category.
+   // Count is otherwise NOT the objective: maximize strength with fairness.
+   const covered=beam.filter(state=>state.catMeals.every(n=>n>0));
+   const ranked=covered.length?covered:beam;
+   ranked.sort((a,b)=>score(b,slots,best)-score(a,slots,best)||b.energy-a.energy||
     a.used-b.used);
-   const bestState=beam[0];
+   const bestState=ranked[0];
    if(!bestState||!bestState.recipes.length)
     return failure('NO_FEASIBLE_PLAN','現在のバッグ容量・鍋容量・食材条件では備蓄対象の料理を組めません。');
    const goals={},topups={},production={},ingredients={};
