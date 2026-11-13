@@ -123,7 +123,8 @@ test('foreign event stock is never borrowed and corrupted owner prevents calcula
  const same=JSON.parse(store.getItem(scope.scopedKey(W,owner)));
  put(store,scope.scopedKey(W,owner),{...same,eventId:'manual:foreign'});
  store.writes.length=0;
- assert.equal(f4b.readContext(store,deps,instant).reason,'EVENT_INVENTORY_MISSING');
+ assert.equal(f4b.readContext(store,deps,instant).reason,'INVALID_SAVED_DATA');
+ // Scope.read already rejects mismatched owner before exposing any stock.
  assert.equal(store.writes.length,0);
  // A week-only historical entry belonging to a different event is also ignored.
  const other=fixture();
