@@ -1,5 +1,5 @@
 /* E7 v50 preview-only offline cache / persistent v52 tabs; this is NOT the production root service worker. */
-const CACHE='pokesleep-strategy-e7-v84-shared-e1-footer-20261113-v86-f2-event-catalog-20261113-v88-f3-prep-20261113-v89-f3-b-20261113';
+const CACHE='pokesleep-strategy-e7-v84-shared-e1-footer-20261113-v86-f2-event-catalog-20261113-v88-f3-prep-20261113-v89-f3-b-20261113-v90-f4-audit-20261113';
 const IMAGE_FILES=Array.from({length:19},(_,i)=>
  'assets/ingredients/ingredient-'+String(i+1).padStart(2,'0')+'.png');
 const imageUrls=new Set(IMAGE_FILES.map(x=>new URL(x,self.registration.scope).href));
