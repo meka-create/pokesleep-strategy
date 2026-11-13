@@ -7,7 +7,7 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-const auditedSHA=['60a6d74fa1cf37cb256dd432d2e17fed914163f5', '5b18c5a5609c153a4fb9b7fee89ccc20b56822cc', 'b42d22b67c82fe8e96b60a394abe76c145119104'];
+const auditedSHA=['60a6d74fa1cf37cb256dd432d2e17fed914163f5', '59379d224263aa106d2e94729fb9279dd98db19f', 'c1f739a16c9dc4b6e97554f52da127ad1e52cd8b'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
@@ -47,7 +47,7 @@ test('E7 v51 architecture: one persistent frame per tab, one common footer',()=>
  assert.doesNotMatch(html,/frame\.src=buildUrl\(tab\)/);
  for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);
 });
-test('E7 v80 pins reviewed U2/U3 food-only layout and Box quantity script while retaining persistence contract',()=>{
+test('E7 v81 pins reviewed U2/U3 food-only layout and Box quantity script while retaining persistence contract',()=>{
  for(let i=0;i<names.length;i++){
   const s=read(names[i]);
   assert.ok(s.includes('<script src="e7-unified-bridge-v51.js"></script>'));
