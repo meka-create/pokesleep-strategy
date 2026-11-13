@@ -1276,7 +1276,7 @@ function simulate(input){
  // invert under an artificial skill-rate sensitivity test. Never present
  // the numeric weekly estimate as an independently verified optimal ranking.
  const simultaneousAllHealers=weekly.days.some(day=>['morning','noon','evening'].some(period=>
-  day[period].filter(id=>isAllHealerSkill(members.get(id)?.sp?.skill)).length>=2));
+  day[period].filter(id=>isAllHealerSkill(members.get(id)?.p?.__f1SelectedSkill||members.get(id)?.sp?.skill)).length>=2));
  if(simultaneousAllHealers)
   warnings.add('げんきオールSを2匹以上同時編成した場合、回復スキルの発動時刻・複数個体のげんき相関は未検証です。試算エナジーだけでヒーラー1匹と2匹の優劣を確定しないでください。');
  // Input files may reach the simulator without going through the browser UI.
@@ -1383,7 +1383,7 @@ function simulate(input){
    initialFree>=0&&teamIds.every(id=>{
     const pair=members.get(id),bag=pocket.get(id),extra=extraPocket.get(id);
     if(!pair||!bag?.queueFoodJoint||!extra)return false;
-    const skill=pair.sp.skill;
+    const skill=pair.p.__f1SelectedSkill||pair.sp.skill;
     if(INGREDIENT_MAGNET[skill]||['Ingredient Draw S',
       'Ingredient Draw S (Super Luck)','Ingredient Draw S (Hyper Cutter)'].includes(skill))
      return false;
@@ -1473,7 +1473,7 @@ function simulate(input){
       teamIds.map(i=>members.get(i)).filter(Boolean).map(x=>x.p),!!opts.camp,warnings).carry);
    if(ownSkillQueue.approximate)
     warnings.add('所持枠が満杯のまま一部回収されると、最大4回の追加スキル抽選キューと食材の相関を再構成できません。以後の満杯状態は保守的に抽選済みとして扱います。');
-   const actual=pair.sp.skill;
+   const actual=pair.p.__f1SelectedSkill||pair.sp.skill;
    const excluded=EXCLUDED_MAIN_SKILLS.has(actual);
    const blockedByFoodBag=blockedIngredientSkill(actual,bagCapacity,bagUsed());
    const triggerState=skillProcStates.get(id);
@@ -1732,7 +1732,7 @@ function simulate(input){
     for(const [key,value] of Object.entries(outcome.ingredients))
      bag.ingredients[key]=(bag.ingredients[key]||0)+value;
     queueSneakyEnergy(bag,outcome.sneaky*berryUnit(pair.sp.type,pair.p.level,favorite,bonus));
-    if(!EXCLUDED_MAIN_SKILLS.has(pair.sp.skill)){
+    if(!EXCLUDED_MAIN_SKILLS.has(pair.p.__f1SelectedSkill||pair.sp.skill)){
      status.skillEligibleHelps+=queued.eligible;
      if(queued.eligible>0){
       const previous=skillProcStates.get(id)||emptySkillProcState(x.pity,x.stockMax);
