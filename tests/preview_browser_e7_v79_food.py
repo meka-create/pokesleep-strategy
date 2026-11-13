@@ -53,9 +53,25 @@ try:
                 assert card and image
                 assert abs((image['x']+image['width']/2)-(card['x']+card['width']/2))<=2,\
                     ('icon not centered',width,selector,card,image)
-                assert abs(card['height']-card['width'])<=1.1,('food card not square',width,selector,card)
-                assert card['height']>=60,('food card too small',width,selector,card)
+                assert abs(card['height']-(card['width']*4/5))<=1.1,('food card not 5:4',width,selector,card)
+                assert card['height']>=48,('food card too small',width,selector,card)
                 assert image['width']>=27,('tiny icon',width,selector)
+                # v94 changes geometry only; the pixel dimensions of the
+                # accepted v80 ingredient image MUST be exactly unchanged.
+                page.locator('#e7-v94-landscape-food-grid').evaluate(
+                    '(el)=>el.sheet.disabled=true')
+                original_icon=el.locator('.food-media').bounding_box()
+                page.locator('#e7-v94-landscape-food-grid').evaluate(
+                    '(el)=>el.sheet.disabled=false')
+                assert original_icon is not None
+                assert abs(original_icon['width']-image['width'])<=.05 and \
+                    abs(original_icon['height']-image['height'])<=.05,\
+                    ('icon size changed',width,selector,original_icon,image)
+                if selector.startswith('#inventory'):
+                    field=el.locator('input').bounding_box()
+                    assert field and field['y']>=card['y']-1 and \
+                        field['y']+field['height']<=card['y']+card['height']+1,\
+                        ('inventory input outside landscape card',width,card,field)
                 centers=[]
                 for tile in page.locator(selector).all():
                     area=tile.locator('.food-media').bounding_box()

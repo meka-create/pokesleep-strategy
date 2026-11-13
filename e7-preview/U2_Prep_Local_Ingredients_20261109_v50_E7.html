@@ -263,6 +263,34 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
  .actual-grid .food input{height:23px;min-height:23px;font-size:12px}
 }
 </style>
+<style id="e7-v94-landscape-food-grid">
+/* v94: 5:4 (width:height). Keep v80 food-media and .pic dimensions exactly
+   as accepted; rearrange only the card tracks, interior spacing and target tag. */
+.goal-grid .food,.actual-grid .food{
+  aspect-ratio:5 / 4;
+  grid-template-rows:minmax(0,1fr) 25px;
+  row-gap:0;
+  padding:2px 3px 3px;
+}
+.goal-grid .food-media,.actual-grid .food-media{
+  align-self:center;
+  justify-self:center;
+}
+.goal-grid .food .goal-value,.actual-grid .food .input-wrap{
+  align-self:center;
+}
+.actual-grid .food .target-chip{
+  right:-6px;
+  bottom:3px;
+}
+@media(max-width:370px){
+  .goal-grid .food,.actual-grid .food{
+    grid-template-rows:minmax(0,1fr) 23px;
+    row-gap:0;
+    padding:1px 2px;
+  }
+}
+</style>
 <style id="f3-v88-style">
 #f3-prep-status{margin:6px 2px 1px;font-size:11px;color:#c8d7e4;line-height:1.45}
 #f3-prep-status[data-state="blocked"]{color:#e3c48b}
