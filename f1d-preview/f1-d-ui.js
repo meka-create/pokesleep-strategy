@@ -61,7 +61,7 @@ function card(doc){
  const event=create(doc,'p','f1d-note');event.id='f1d-event';section.append(event);
  const details=create(doc,'details');details.id='f1d-picker';
  const summary=create(doc,'summary',null,'実個体を5匹選択');summary.id='f1d-picker-title';details.append(summary);
- const fields=create(doc,'div','f1d-fields');
+ const fields=create(doc,'div','f1d-fields');fields.id='f1d-form';
  for(let i=0;i<5;i++){
   const label=create(doc,'label',null,String(i+1)+'匹目');
   const select=create(doc,'select');select.dataset.f1dIndex=String(i);
