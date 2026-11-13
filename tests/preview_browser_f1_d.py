@@ -39,7 +39,7 @@ box={'version':1,'source':'pokesleep-tool-header-mapped',
      'items':[individual(name) for name in pokemon]}
 conditions={'version':1,'weekStart':week,'eventId':event,'confirmed':{
     'weekStart':week,'eventId':event,'status':'CONFIRMED',
-    'revision':'test-conditions','missingFields':[],
+    'revision':'test-conditions','savedAt':'2026-11-13T03:00:00Z','missingFields':[],
     'fields':{'field':'シアンの砂浜','food':'curry','camp':True,'source':None}}}
 stocks={name:0 for name in ingredients.values()}
 stocks['とくせんリンゴ']=60
