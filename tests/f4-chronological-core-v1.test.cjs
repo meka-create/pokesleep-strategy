@@ -65,7 +65,7 @@ test('F4-A builds exactly 21 daytime choices, 21 meal opportunities and 7 nights
  assert.equal(x.mealOpportunities,21);assert.equal(x.sleepSlots,7);
  assert.equal(x.slots.length,28);
  for(let day=0;day<7;day++){
-  assert.deepEqual(x.slots.slice(day*4,day*4+4).map(x=>x.slot),
+  assert.deepEqual(Array.from(x.slots.slice(day*4,day*4+4),x=>x.slot),
    ['morning','noon','evening','sleep']);
   for(const row of x.slots.slice(day*4,day*4+4)){
    assert.equal(row.day,day);assert.equal(row.team.length,5);
@@ -173,8 +173,8 @@ test('F4-A deterministic bounded search; no writes or F1 parent mutation',()=>{
  const y=F4.plan(input);
  assert.equal(JSON.stringify(x),JSON.stringify(y),'Nondeterministic schedule');
  assert.equal(JSON.stringify(input),pre,'Input was mutated');
- assert.equal(x.energyProxy,x.mealEnergyProxy+x.berryEnergyProxy>=0?
-  x.energyProxy:x.energyProxy);
+ assert(Math.abs(x.energyProxy-(x.mealEnergyProxy+x.berryEnergyProxy))<=1,
+  'Energy proxy does not equal berries plus meals');
  assert(!read('f4/f4-chronological-core-v1.js').includes('localStorage'));
  assert(!read('f4/f4-chronological-core-v1.js').includes('setItem('));
  assert(!read('index.html').includes('f4-chronological-core-v1.js'));
