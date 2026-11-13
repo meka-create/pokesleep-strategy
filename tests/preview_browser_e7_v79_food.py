@@ -1,4 +1,4 @@
-"""E7 v80 Android-width browser regression: icon-only ingredient grids and Box quantities."""
+"""E7 v81 Android-width browser regression: icon-only ingredient grids and Box quantities."""
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -27,6 +27,7 @@ box={'version':1,'source':'pokesleep-tool-header-mapped','items':[
     item('エーフィ','モーモーミルク','リラックスカカオ','モーモーミルク','エーフィの個体'),
     item('ミュウ','とくせんエッグ','ふといながねぎ','とくせんエッグ','ミュウの個体')]}
 box['items'][1]['ribbon']=500
+box['items'][0]['shiny']=True
 player={'version':1,'pot':57,'bag':600,'bonuses':{f:(50 if f=='シアンの砂浜' else None) for f in fields}}
 try:
     with sync_playwright() as playwright:
@@ -85,6 +86,13 @@ try:
             dialog=page.locator('#box-detail-dialog')
             assert dialog.is_visible()
             assert dialog.locator('.iv-ingredient').count()==3
+            assert dialog.locator('#box-detail-fields>.iv-key').first.inner_text()=='ポケモン：'
+            assert dialog.locator('#box-detail-extra .iv-key').all_inner_texts()==['一緒に眠った時間：']
+            assert box['items'][0]['shiny'] is True  # Raw identity was not changed
+            assert dialog.locator('#box-delete').is_visible()
+            box_tone=dialog.locator('#box-detail-avatar').evaluate(
+                '(el)=>el.style.getPropertyValue("--tone")')
+            assert box_tone==page.evaluate('()=>window.PokeE7PokemonDetail.tone("エーフィ")')
             assert dialog.locator('.ingredient-name').count()==0
             assert dialog.locator('.iv-ingredient-quantity').all_text_contents()==['×1','×1','×4']
             icons=dialog.locator('.iv-ingredient-image')
@@ -100,8 +108,32 @@ try:
             assert dialog.locator('.iv-ingredient-quantity').all_text_contents()==['×2','×3','×6']
             assert dialog.locator('#box-detail-extra .iv-value').first.inner_text()=='500～1000時間'
             assert not errors,'Box errors: '+str(errors[:3])
+            # Strategy and Box now draw the same modal sections, with separate
+            # data adapters and Box-only destructive action.
+            page.goto(BASE+'U3_Strategy_UI_20261109_v50_E7.html',wait_until='domcontentloaded')
+            assert page.evaluate('()=>Boolean(window.PokeE7PokemonDetail)')
+            # Date/phase gate may hide settings before an event is selected.
+            # Trigger the existing handler without altering saved conditions.
+            page.locator('#sleep-open').evaluate('(el)=>el.click()')
+            first=page.locator('#sleep-team-preview .avatar-tap').first
+            species=first.get_attribute('aria-label').replace('のステータス','')
+            first.click()
+            plan_dialog=page.locator('#pokemon-dialog')
+            assert plan_dialog.is_visible()
+            assert plan_dialog.locator('.iv-ingredient').count()==3
+            assert plan_dialog.locator('#pokemon-extra .iv-key').all_inner_texts()==['一緒に眠った時間：']
+            assert plan_dialog.locator('#pokemon-extra .iv-value').all_inner_texts()==['—']
+            assert plan_dialog.locator('#box-delete').count()==0
+            expected_tone=page.evaluate('(name)=>window.PokeE7PokemonDetail.tone(name)',species)
+            actual_tone=plan_dialog.locator('#pokemon-sprite').evaluate(
+                '(el)=>el.style.getPropertyValue("--tone")')
+            assert actual_tone==expected_tone,('Strategy portrait type color',species,actual_tone,expected_tone)
+            assert plan_dialog.locator('#pokemon-base-rows>.iv-key').all_inner_texts()==[
+                '食材：','おてつだい時間：','最大所持数：'
+            ]
+            assert not errors,'Strategy errors: '+str(errors[:3])
             context.close()
-        print('E7 v80 Chromium 320/393/430px: square aligned icon grids, saved stock, exact individual quantities PASS')
+        print('E7 v81 Chromium 320/393/430px: square aligned icon grids, saved stock, exact individual quantities PASS')
         browser.close()
 finally:
     server.shutdown()

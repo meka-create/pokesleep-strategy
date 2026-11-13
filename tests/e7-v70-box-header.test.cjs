@@ -21,7 +21,7 @@ test('E7 v78: one selected-event subtitle resolver for all three tabs',()=>{
 });
 test('E7 v78: versioned offline assets and supplied header icon',()=>{
  assert.match(read('index.html'),/<title>ポケスリ作戦室 E7 v78<\/title>/);
- assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v80-square-prep-detail-20261113/);
+ assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v81-shared-pokemon-detail-20261113/);
  assert.match(read('e7-sw-v50.js'),/'icons\/icon-header-96\.png'/);
  assert.match(read('e7-unified-bridge-v51.js'),/icon\.src='icons\/icon-header-96\.png'/);
  const manifest=JSON.parse(read('e7-manifest-v50.webmanifest'));
