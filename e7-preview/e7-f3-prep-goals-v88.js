@@ -108,7 +108,7 @@ function render(){
    currentStock:ctx.current});
   if(result.status!=='PROVISIONAL')throw Error(result.message);
   drawGoals(result.goals);
-  status.textContent='F3暫定目標 · '+result.recipesUsed+'/'+result.mealSlots+
+  status.textContent='F3暫定目標（既存78料理） · '+result.recipesUsed+'/'+result.mealSlots+
    '食 · バッグ '+result.capacity.used.toLocaleString('ja-JP')+'/'+
    result.capacity.bag.toLocaleString('ja-JP')+'個';
   status.dataset.state='ready';detail.hidden=false;
@@ -120,7 +120,8 @@ function render(){
    content.append(section);
   }
   const caveat=document.createElement('p');caveat.className='f3-caveat';
-  caveat.textContent='レシピの基礎エナジーによる備蓄参考値。レシピレベル・料理チャンス・イベント中の食材生産は未反映。';
+  caveat.textContent='基礎エナジーによる備蓄参考値。レシピレベル・料理チャンス・イベント中の食材生産は未反映。'+
+   (ctx.week>='2026-11-16'?' 11/16追加予定の新食材「ひとくちナッツ」と新料理3種は未反映。':'');
   content.append(caveat);
  }catch(error){
   drawGoals({});
