@@ -124,3 +124,49 @@ test('F2: E7 selection is read-only until Save; service worker offline asset and
  assert.match(sw,/v86-f2-event-catalog-20261113/);
  assert(!read('index.html').includes('e7-f2-event-catalog-v1.js'));
 });
+
+test('pre-F3: corrupting one upcoming event, name, or daily bonus cannot poison the last-good catalog',async()=>{
+ const storage=store(),at='2026-11-13T10:00:00Z';
+ await F2.refresh({fetchImpl:responder(data,lang),storage,nowISO:at});
+ const initial=storage.getItem(F2.KEY);
+ const malformed=mirror(data);
+ malformed.bonus[0].effects.ingredient=-3;
+ await assert.rejects(()=>F2.refresh({fetchImpl:responder(malformed,lang),storage,nowISO:at}),
+  /Previously validated upcoming event/);
+ assert.equal(storage.getItem(F2.KEY),initial);
+ const noJapanese=mirror(lang);
+ delete noJapanese.events['dream shard week 3'];
+ await assert.rejects(()=>F2.refresh({fetchImpl:responder(data,noJapanese),storage,nowISO:at}),
+  /Previously validated upcoming event/);
+ assert.equal(storage.getItem(F2.KEY),initial);
+ const badDaily=mirror(data);
+ badDaily.drowsy[0].bonus=-1;
+ await assert.rejects(()=>F2.refresh({fetchImpl:responder(badDaily,lang),storage,nowISO:at}),
+  /Previously validated upcoming daily bonus/);
+ assert.equal(storage.getItem(F2.KEY),initial);
+ // A malformed *historical* event is isolated without blocking valid future data.
+ const historical=mirror(data);
+ historical.bonus[2].effects.skillTrigger=-1;
+ const updated=mirror(await F2.refresh({fetchImpl:responder(historical,lang),storage,nowISO:at}));
+ assert.equal(updated.bonus.length,2);
+ assert.equal(updated.invalidCount,1);
+ assert(updated.bonus.some(x=>x.name==='bountiful banquet week vol1'));
+ assert(updated.bonus.some(x=>x.name==='dream shard week 3'));
+});
+test('pre-F3: bundled offline 11/16 ingredient bonus matches pinned upstream; only explicit Save updates names',()=>{
+ const u3=read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html');
+ const a=u3.indexOf('const EVENT_EMBEDDED_SNAPSHOT=');
+ const b=u3.indexOf(';\n let eventCandidates=',a);
+ assert(a>=0&&b>a,'Bundled source changed format');
+ const embedded=JSON.parse(u3.slice(a+'const EVENT_EMBEDDED_SNAPSHOT='.length,b));
+ const event=embedded.find(x=>x.name==='bountiful banquet week vol1');
+ assert(event,'11/16 event absent in offline bootstrap');
+ assert.deepEqual(event.effects,{extraIng:'nuts',ingredient:1,carryLimitAdd:10});
+ assert.match(u3,/JSON\.stringify\(\{name:latest\.name,effects:latest\.verifiedEffects/);
+ assert.match(u3,/pendingEventSource=structuredClone\(latest\)/);
+ assert.match(u3,/const confirmed=E1\.confirmEventConditions\(edited,\{userConfirmed:true\}\)/);
+ const shell=read('e7-preview/index.html');
+ assert.match(shell,/tab==='box'\?'global-box-v1':stamp\(\)/);
+ assert(!F2.KEY.startsWith('pokesleep-strategy-e7-'),
+  'Source cache key must not trigger Box hard-refresh in persistent shell');
+});
