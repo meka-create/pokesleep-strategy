@@ -29,6 +29,10 @@ const codes=['leek','mushroom','egg','potato','apple','herb','sausage','milk',
 const dict=Object.fromEntries(codes.map((c,i)=>[c,names[i]]));
 const master={ingredients:dict,types:{water:'みず',fire:'ほのお',grass:'くさ'}};
 const copy=x=>JSON.parse(JSON.stringify(x));
+// E1's VM-realm serializer explicitly permits null-prototype plain objects.
+const sourceShape=x=>Array.isArray(x)?x.map(sourceShape):
+ x&&typeof x==='object'?Object.assign(Object.create(null),
+  Object.fromEntries(Object.entries(x).map(([k,v])=>[k,sourceShape(v)]))):x;
 const instant='2026-11-15T12:00:00+09:00';
 const deps={e1,scope,weekClock:clock};
 function storage(){
@@ -43,7 +47,7 @@ function fixture({id='manual:'+W,source=null,plan=true,auto=false,field=FIELD}={
  const sel={id,weekStart:W};
  const fields={field,food:'curry',camp:false,source};
  let ledger=e1.newConditionLedger(sel);
- ledger=e1.stageConditionEdits(ledger,{fields,revision:'cond1',
+ ledger=e1.stageConditionEdits(ledger,{fields:sourceShape(fields),revision:'cond1',
   savedAt:instant,missingFields:[]});
  ledger=e1.confirmEventConditions(ledger,{userConfirmed:true});
  put(store,'pokesleep-strategy-u3-e3-v1:selected',sel);
