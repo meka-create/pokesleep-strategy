@@ -34,7 +34,12 @@ const sourceShape=x=>Array.isArray(x)?x.map(sourceShape):
  x&&typeof x==='object'?Object.assign(Object.create(null),
   Object.fromEntries(Object.entries(x).map(([k,v])=>[k,sourceShape(v)]))):x;
 const instant='2026-11-15T12:00:00+09:00';
-const deps={e1,scope,weekClock:clock};
+const deps={scope,weekClock:clock,e1:{...e1,
+ // Browser scripts share one JS realm. Isolated vm tests instead pass
+ // null-prototype snapshots so E1's strict own-realm validator agrees.
+ validateConditionLedger:raw=>e1.validateConditionLedger(sourceShape(raw)),
+ validateInventoryTimeline:(raw,w)=>e1.validateInventoryTimeline(sourceShape(raw),w)
+}};
 function storage(){
  const data=new Map(),writes=[];
  return {getItem:k=>data.has(k)?data.get(k):null,
