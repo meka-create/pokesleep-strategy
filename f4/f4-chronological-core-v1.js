@@ -1,7 +1,7 @@
 /* F4-A v91: time-ordered, read-only 21 daytime + 21 meal + 7 night
  * REFERENCE optimizer. All dynamic gameplay effects absent in F1-B are
  * deliberately NOT called accurate weekly energy: no skill/energy/queues.
- * Never reads or writes localStorage. F4-B must replace proxy transitions.
+ * Never reads or writes browser persistence. F4-B must replace proxy transitions.
  */
 (function(root,factory){
  'use strict';
