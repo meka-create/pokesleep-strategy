@@ -115,7 +115,7 @@ function foodSlots(row,target,snapshot,legal){
 }
 function simulateWeekly(input,deps){
  if(!deps||!input||!Array.isArray(input.box)||!input.box.length||
-    input.box.length>1000||!deps.simulator||!deps.rates||!deps.legal)
+    input.box.length>1000||!deps.simulator?.f1VerifiedRateSupport||!deps.rates||!deps.legal)
   return fail('INVALID_F1C_INPUT');
  const {snapshot,traits,master,simulator,rates,legal}=deps;
  let catalog,teams;
