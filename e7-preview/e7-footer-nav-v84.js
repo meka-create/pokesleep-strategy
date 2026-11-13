@@ -5,8 +5,6 @@
 (function(root){'use strict';
 function attach(mode){
  if(!['prep','plan','box'].includes(mode))throw Error('Invalid E7 footer view');
-{
-'use strict';
 const sel=q=>document.querySelector(q),target={
  plan:'U3_Strategy_UI_20261109_v50_E7.html',prep:'U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  box:'U4_Box_Preview_20261109_v50_E7.html'};
