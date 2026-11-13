@@ -85,3 +85,32 @@ test('E7 v79 U3 / Box display icons plus badges, without visible ingredient capt
  const source=read('e7-preview/e7-box-detail-v60.css');
  assert.match(source,/\.box-detail-dialog \.iv-ingredient-quantity/);
 });
+
+test('E7 v80 displays pokesleep-tool ribbon categories, without modifying imported numeric hours',()=>{
+ const sandbox={window:{}};
+ vm.runInNewContext(read('e7-preview/e7-box-detail-v60.js'),sandbox);
+ const format=sandbox.window.E7BoxDetail.formatSharedSleepHours;
+ for(const [input,expected] of [
+  [null,'—'],[-1,'—'],[0,'200時間未満'],[199,'200時間未満'],
+  [200,'200～500時間'],[499,'200～500時間'],
+  [500,'500～1000時間'],[999,'500～1000時間'],
+  [1000,'1000～2000時間'],[1999,'1000～2000時間'],
+  [2000,'2000時間以上'],[2500,'2000時間以上']
+ ])assert.equal(format(input),expected,String(input));
+ assert.match(read('e7-preview/e7-box-detail-v60.js'),/value\('一緒に眠った時間',formatSharedSleepHours\(item\.ribbon\)\)/);
+ assert.match(read('e7-preview/e7-box-detail-v60.js'),/'一緒に眠った時間'\]/);
+ assert.match(read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html'),/一緒に眠った時間：/);
+});
+test('E7 v80 preserves both prep grids and tightens detail rows without changing inventory fields',()=>{
+ const prep=read('e7-preview/U2_Prep_Local_Ingredients_20261109_v50_E7.html');
+ const plan=read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html');
+ const css=read('e7-preview/e7-box-detail-v60.css');
+ assert.match(prep,/<style id="e7-v80-square-food-grid">/);
+ assert.match(prep,/aspect-ratio:1\/1/);
+ assert.match(prep,/\.goal-grid,\.actual-grid\{max-width:370px/);
+ assert.equal((prep.match(/<img class="pic" src="assets\/ingredients\/ingredient-\d{2}\.png"/g)||[]).length,38);
+ assert.match(plan,/<style id="e7-v80-status-compact-rows">/);
+ assert.match(plan,/#pokemon-dialog #pokemon-base-rows>\.iv-value/);
+ assert.match(css,/#box-detail-fields>\.iv-value/);
+ assert.match(css,/#box-detail-extra>\.iv-value/);
+});
