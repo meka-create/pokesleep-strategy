@@ -3,7 +3,7 @@
  * refresh never replaces the last validated full catalog. No saved event edits. */
 (function(root){
 'use strict';
-const KEY='pokesleep-strategy-e7-f2-catalog-v1';
+const KEY='pokesleep-strategy-f2-upstream-catalog-v1';
 const REPO='nitoyon/pokesleep-tool';
 const API='https://api.github.com/repos/'+REPO+'/commits/main';
 const RAW='https://raw.githubusercontent.com/'+REPO+'/';
@@ -74,25 +74,32 @@ function prepare(data,lang,{revision,checkedAt}={}){
   !Array.isArray(data.drowsy)||data.drowsy.length>1000||
   !plain(lang)||!plain(lang.events))throw Error('Invalid upstream event schema');
  if(typeof revision!=='string'||revision.length>120)throw Error('Invalid catalog revision');
- const bonus=[],drowsy=[],translations={},seen=new Set(),invalid=[];
+ const bonus=[],drowsy=[],translations={},seen=new Set(),invalid=[],ambiguous=new Set();
  for(const event of data.bonus){
   if(!validWeekly(event)){invalid.push('weekly-shape');continue;}
   const name=resolveName(event.name,lang.events);
   if(!name){invalid.push('missing-translation');continue;}
   const id='pokesleep-tool:'+event.name+':'+event.start.slice(0,10);
-  if(id.length>160||seen.has(id)){invalid.push('duplicate-weekly');continue;}
+  if(id.length>160||seen.has(id)){invalid.push('duplicate-weekly');ambiguous.add(id);continue;}
   seen.add(id);
   // JSON-only clones guarantee user input or other objects cannot be smuggled in.
   bonus.push(JSON.parse(JSON.stringify({name:event.name,start:event.start,end:event.end,
    target:event.target,effects:event.effects})));
   translations[event.name]=name;
  }
+ // Conflicting duplicate IDs must not inherit an arbitrary first bonus.
+ for(let i=bonus.length-1;i>=0;i--){
+  const v=bonus[i],id='pokesleep-tool:'+v.name+':'+v.start.slice(0,10);
+  if(ambiguous.has(id))bonus.splice(i,1);
+ }
+ const dailySeen=new Set(),dailyAmbiguous=new Set();
  for(const x of data.drowsy){
   if(!validDrowsy(x)){invalid.push('daily-shape');continue;}
   const id=x.day+'|'+x.name;
-  if(drowsy.some(y=>y.day+'|'+y.name===id)){invalid.push('duplicate-daily');continue;}
-  drowsy.push({name:x.name,day:x.day,bonus:x.bonus});
+  if(dailySeen.has(id)){invalid.push('duplicate-daily');dailyAmbiguous.add(id);continue;}
+  dailySeen.add(id);drowsy.push({name:x.name,day:x.day,bonus:x.bonus});
  }
+ for(let i=drowsy.length-1;i>=0;i--)if(dailyAmbiguous.has(drowsy[i].day+'|'+drowsy[i].name))drowsy.splice(i,1);
  if(!bonus.length)throw Error('No valid weekly event candidates');
  bonus.sort((a,b)=>a.start.localeCompare(b.start)||a.name.localeCompare(b.name));
  drowsy.sort((a,b)=>a.day.localeCompare(b.day));
