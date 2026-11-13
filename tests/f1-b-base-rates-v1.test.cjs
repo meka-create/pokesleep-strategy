@@ -68,8 +68,8 @@ test('F1-B batch: nature boosts, mint neutralization, ingredient/skill substacks
  const r=get(b);
  close(r.ingredientProbabilityPerHelp,
   Math.floor(Number((.164*1.2*(1+.18*3)*1e4).toFixed(6)))/1e4,'ingredient stacking');
- close(r.referenceHelpSeconds,2400*calc.natureFactor('Modest',false,'speed')*
-  Math.floor(Number((441/500*1e4).toFixed(6)))/1e4,'nature helper slow');
+ close(r.referenceHelpSeconds,2400*
+  Math.floor(Number((441/500*1.075*1e4).toFixed(6)))/1e4,'nature helper slow');
  const m=get({...b,mint:true});
  close(m.ingredientProbabilityPerHelp,
   Math.floor(Number((.164*(1+.18*3)*1e4).toFixed(6)))/1e4,'mint neutralization');
