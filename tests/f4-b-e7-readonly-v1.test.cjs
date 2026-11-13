@@ -190,3 +190,31 @@ test('F4-B is isolated from protected E7 views and main root',()=>{
   assert(!source.includes(banned),'F4-B new bridge must not write persistence: '+banned);
  assert(!source.includes('localStorage.'));
 });
+
+
+test('F4-B rejects future stock and current midweek stock as full-week initial inventory',()=>{
+ const owner='manual:'+W,k=scope.scopedKey(W,owner);
+ const upcoming=fixture();
+ assert.equal(f4b.readContext(upcoming,deps,'2026-11-15T11:59:59+09:00').reason,
+  'INVENTORY_FROM_FUTURE');
+ const mid=fixture(),before=JSON.parse(mid.getItem(k)),values=copy(before.currentInventory.values);
+ values['とくせんリンゴ']=13;
+ const changed=e1.applyInventorySave(before,{
+  savedAt:'2026-11-17T11:00:00+09:00',revision:'inv2',values});
+ put(mid,k,{...changed,eventId:owner});
+ mid.writes.length=0;
+ const ctx=f4b.readContext(mid,deps,'2026-11-17T12:00:00+09:00');
+ assert.equal(ctx.status,'CONTEXT_READY',ctx.message);
+ const x=f4b.buildNeutralInput(ctx,{neutralReferenceOnly:true},{master});
+ assert.equal(x.reason,'MIDWEEK_STOCK_NOT_WEEK_START');
+ assert.equal(mid.writes.length,0);
+});
+test('F4-B isolated read-only browser diagnostics reference only approved assets',()=>{
+ const page=read('f4b-preview/index.html');
+ assert(page.includes('f4-b-e7-readonly-v1.js'));
+ assert(page.includes('f4-b-game-week-v1.js'));
+ assert(page.includes('e7-e1-core-v84.js'));
+ assert(!page.includes('localStorage.setItem'));
+ assert(!page.includes('localStorage.removeItem'));
+ assert(!page.includes('privateBoxRows'));
+});
