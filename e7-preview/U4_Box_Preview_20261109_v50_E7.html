@@ -103,19 +103,10 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 </section>
 
 </main>
-<dialog id="box-detail-dialog" class="box-detail-dialog stat-modal" aria-labelledby="box-detail-title">
-<h2 id="box-detail-title" class="visually-hidden">ポケモンの詳細</h2>
-<div class="iv-close-row"><button type="button" class="btn secondary" id="box-detail-close" aria-label="ステータスを閉じる">閉じる</button></div>
-<div class="iv-hero"><span id="box-detail-avatar" class="status-portrait"></span><div class="iv-hero-name"><strong id="box-detail-name"></strong><span id="box-detail-level"></span></div></div>
-<div class="iv-base" id="box-detail-fields"></div>
-<h3 class="iv-section-title">メインスキル・サブスキル</h3>
-<div class="iv-main" id="box-detail-main-skill"></div>
-<div class="iv-subskills" id="box-detail-subskills"></div>
-<h3 class="iv-section-title">詳細ステータス</h3>
-<div class="iv-nature-wrap" id="box-detail-nature" role="group" aria-label="せいかく"></div>
-<div class="iv-base" id="box-detail-extra"></div>
+<dialog id="box-detail-dialog" class="pokemon-detail-modal box-detail-dialog stat-modal" aria-labelledby="box-detail-title">
 <div class="box-detail-actions"><button type="button" class="btn danger-subtle" id="box-delete">削除</button></div>
 </dialog>
+<script>PokeE7PokemonDetail.mount('box');</script>
 <nav id="e6-footer" aria-label="メインナビゲーション">
 <a id="e6-footer-plan" href="U3_Strategy_UI_20261109_v50_E7.html"><svg class="e6-ico" viewBox="60 60 392 392" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="23" stroke-linejoin="round" stroke-linecap="round"><rect x="103" y="125" width="306" height="272" rx="34"/><path d="M170 92v62m172-62v62M107 200h301"/></g><g fill="currentColor" stroke="none"><circle cx="178" cy="270" r="19"/><circle cx="257" cy="270" r="19"/><circle cx="335" cy="270" r="19"/><circle cx="178" cy="337" r="19"/><circle cx="257" cy="337" r="19"/></g></svg><span>作戦</span></a>
 <a id="e6-footer-prep" href="U2_Prep_Local_Ingredients_20261109_v50_E7.html"><svg class="e6-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3.3 2.8v5.7c0 1.8 1.1 3 2.7 3s2.7-1.2 2.7-3V2.8M6 2.8v5.7M6 11.5v9.6" stroke-width="2.05"/><path d="M17 2c-2.25 0-3.55 2.3-3.55 5.2 0 2.5 1.06 4.48 2.55 5.1v8.65a1 1 0 0 0 2 0v-8.65c1.49-.62 2.55-2.6 2.55-5.1C20.55 4.3 19.25 2 17 2Z" fill="currentColor" stroke="none"/></svg><span>準備</span></a>
