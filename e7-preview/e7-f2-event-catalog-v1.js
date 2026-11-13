@@ -137,7 +137,7 @@ async function refresh({fetchImpl,storage,timeoutMs=6500,nowISO}={}){
    checkedAt:typeof nowISO==='string'?nowISO:new Date().toISOString()});
   // A partial upstream file must not wipe healthy records from prior refreshes.
   const last=storage?readLastKnownGood(storage):null;
-  if(last&&catalog.bonus.length<Math.max(1,Math.floor(last.bonus.length*.65)))
+  if(last&&catalog.bonus.length<Math.max(1,Math.ceil(last.bonus.length*.65)))
    throw Error('Suspicious upstream shrink');
   if(storage){
    // This namespace contains only public upstream records; never touch E7 saves.
