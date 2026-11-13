@@ -73,7 +73,7 @@ const TABLE=Object.freeze({
  "レントラー":[{"あんみんトマト":2},{"あんみんトマト":5,"ピュアなオイル":4},{"あんみんトマト":7,"ピュアなオイル":7,"めざましコーヒー":5}],
  "ロコン":[{"ワカクサ大豆":1},{"ワカクサ大豆":2,"ワカクサコーン":2},{"ワカクサ大豆":4,"ワカクサコーン":3,"ほっこりポテト":3}],
 });
-const norm=v=>typeof v==='string'?v.normalize('NFKC').trim().replace(/\\s*\\(/g,' ('):'';
+const norm=v=>typeof v==='string'?v.normalize('NFKC').trim().replace(/\s*\(/g,' ('):'';
 function get(species,ingredient,slot){
  if(!Number.isInteger(slot)||slot<1||slot>3)return null;
  const values=TABLE[norm(species)]?.[slot-1];
