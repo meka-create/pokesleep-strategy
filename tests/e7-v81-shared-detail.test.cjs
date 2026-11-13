@@ -46,7 +46,7 @@ test('E7 v81 shared status styles and scripts are loaded by both tabs, with Box-
  const sw=read('e7-sw-v50.js');
  for(const name of ['e7-pokemon-detail-shared-v81.js','e7-pokemon-detail-shared-v81.css'])
   assert.ok(sw.includes("'"+name+"'"),name);
- assert.match(sw,/pokesleep-strategy-e7-v81-shared-pokemon-detail-20261113/);
+ assert.match(sw,/pokesleep-strategy-e7-v84-shared-e1-footer-20261113/);
 });
 test('E7 v81 no duplicate embedded ingredient artwork or metadata/skills tables in Strategy',()=>{
  assert.ok(strategy.length<190000,'U3 HTML must not re-embed the 19 image PNGs');
