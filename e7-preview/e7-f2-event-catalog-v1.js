@@ -120,7 +120,7 @@ function readLastKnownGood(storage){
 }
 function embedded(data,names){
  return prepare({bonus:data,drowsy:[]},{events:names},
-  {revision:'verified-bundled-20261107',checkedAt:'2026-11-07'});
+  {revision:'verified-bundled-20261113',checkedAt:'2026-11-13'});
 }
 async function jsonResponse(fetchImpl,url,signal,maxBytes){
  const response=await fetchImpl(url,{signal,cache:'no-store',mode:'cors'});
