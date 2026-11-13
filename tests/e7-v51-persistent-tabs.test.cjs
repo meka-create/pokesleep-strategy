@@ -7,8 +7,8 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-// v94 U2 layout-only change reviewed; U3 and U4 remain byte-for-byte pinned.
-const auditedSHA=['4e10c2d3594479e353ce53c147ba475fcbe3750d', '8e7837d19b161b57c550cbbfbeaf7c8765a772a5', '0d33b8c39df975ff44d9b2c120a862f4fa077ecc'];
+// v95 U2 target-badge layout-only change reviewed; U3 and U4 remain byte-for-byte pinned.
+const auditedSHA=['466d2455ad0918a7242d4074b6539289bbd97338', '8e7837d19b161b57c550cbbfbeaf7c8765a772a5', '0d33b8c39df975ff44d9b2c120a862f4fa077ecc'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
@@ -48,7 +48,7 @@ test('E7 v51 architecture: one persistent frame per tab, one common footer',()=>
  assert.doesNotMatch(html,/frame\.src=buildUrl\(tab\)/);
  for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);
 });
-test('E7 v94 pins reviewed U2 5:4 food grid and unchanged U3/Box source',()=>{
+test('E7 v95 pins reviewed U2 target badge placement and unchanged U3/Box source',()=>{
  for(let i=0;i<names.length;i++){
   const s=read(names[i]);
   assert.ok(s.includes('<script src="e7-unified-bridge-v51.js"></script>'));
@@ -58,6 +58,8 @@ test('E7 v94 pins reviewed U2 5:4 food grid and unchanged U3/Box source',()=>{
  }
  const prep=read(names[0]);
  assert.match(prep,/id="e7-v94-landscape-food-grid"/);
+ assert.match(prep,/id="e7-v95-inventory-target-badge"/);
+ assert.match(prep,/\.actual-grid \.food\.needed \.food-media\{/);
  assert.match(prep,/aspect-ratio:5 \/ 4/);
  assert.match(prep,/id="e7-v80-square-food-grid"/);
  const strategy=read(names[1]),box=read(names[2]);
