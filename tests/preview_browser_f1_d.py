@@ -47,7 +47,9 @@ stock={'version':2,'weekStart':week,'eventId':event,
        'preparationLatest':None,'startInventory':None,'currentInventory':{
        'weekStart':week,'savedAt':'2026-11-16T01:00:00Z',
        'revision':'test-stock','values':stocks}}
-player={'version':1,'pot':57,'bag':600,'bonuses':{'シアンの砂浜':50}}
+fields=['ワカクサ本島','シアンの砂浜','トープ洞窟','ウノハナ雪原','ラピスラズリ湖畔','ゴールド旧発電所','アンバー渓谷','ワカクサ本島EX','シアンの砂浜EX']
+player={'version':1,'pot':57,'bag':600,
+        'bonuses':{f:(50 if f=='シアンの砂浜' else None) for f in fields}}
 prefix='pokesleep-strategy-u3-e3-v1:'
 # The approved E7 UI restores a separate event-owned plan record in addition
 # to the confirmed condition ledger. Seed both, as the real Save action does.
