@@ -156,7 +156,7 @@ test('pre-F3: corrupting one upcoming event, name, or daily bonus cannot poison 
 test('pre-F3: bundled offline 11/16 ingredient bonus matches pinned upstream; only explicit Save updates names',()=>{
  const u3=read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html');
  const a=u3.indexOf('const EVENT_EMBEDDED_SNAPSHOT=');
- const b=u3.indexOf(';\n let eventCandidates=',a);
+ const b=u3.indexOf(';\nlet eventCandidates=',a);
  assert(a>=0&&b>a,'Bundled source changed format');
  const embedded=JSON.parse(u3.slice(a+'const EVENT_EMBEDDED_SNAPSHOT='.length,b));
  const event=embedded.find(x=>x.name==='bountiful banquet week vol1');
