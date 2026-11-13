@@ -23,7 +23,7 @@ test('E7 v62 shared roster template and protected Box UI contracts',()=>{
  assert.match(box,/class="actions import-actions"/);
  assert.match(box,/\.import-actions \.btn\{height:38px;min-height:38px/);
  assert.doesNotMatch(box,/id="box-detail-dismiss"/);
- assert.match(css,/#box-delete\{height:32px;min-height:32px/);
+ assert.match(css,/#box-delete\s*\{\s*height:32px;min-height:32px/);
  assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v81-shared-pokemon-detail/);
  assert.match(read('index.html'),/E7 v78/);
  for(const f of [u3,box]){
