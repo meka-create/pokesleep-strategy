@@ -291,6 +291,46 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
   }
 }
 </style>
+<style id="e7-v95-inventory-target-badge">
+/* Preserve v94 5:4 cards, centered icons and full-width stock inputs.
+   The target-count chip sits in the card's upper-right corner. On narrow
+   screens it can touch a small part of the image, never the stock field. */
+.actual-grid .food.needed .food-media{
+  grid-column:1;
+  grid-row:1;
+  justify-self:center;
+  position:static;
+}
+.actual-grid .food.needed .input-wrap{
+  grid-column:1;
+  grid-row:2;
+  width:100%;
+}
+.actual-grid .food.needed .target-chip{
+  position:absolute;
+  top:2px;
+  right:2px;
+  bottom:auto;
+  max-width:28px;
+  min-width:19px;
+  min-height:16px;
+  padding:1px 2px 0;
+  border-radius:6px;
+  box-shadow:0 1px 3px #0009;
+}
+.actual-grid .food.needed .target-chip b{
+  font-size:10px;
+  letter-spacing:-.04em;
+}
+@media(max-width:370px){
+  .actual-grid .food.needed .target-chip{
+    top:1px;
+    right:1px;
+    max-width:25px;
+  }
+  .actual-grid .food.needed .target-chip b{font-size:9px}
+}
+</style>
 <style id="f3-v88-style">
 #f3-prep-status{margin:6px 2px 1px;font-size:11px;color:#c8d7e4;line-height:1.45}
 #f3-prep-status[data-state="blocked"]{color:#e3c48b}

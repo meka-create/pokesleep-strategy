@@ -53,20 +53,49 @@ try:
                 assert card and image
                 assert abs((image['x']+image['width']/2)-(card['x']+card['width']/2))<=2,\
                     ('icon not centered',width,selector,card,image)
+                targeted=selector.startswith('#inventory') and \
+                    'needed' in (el.get_attribute('class') or '').split()
+                if targeted:
+                    badge=el.locator('.target-chip').bounding_box()
+                    field=el.locator('input').bounding_box()
+                    assert badge and field,('missing target chip or stock input',width)
+                    assert badge['x']>=card['x']-1 and \
+                        badge['x']+badge['width']<=card['x']+card['width']+1 and \
+                        badge['y']>=card['y']-1 and \
+                        badge['y']+badge['height']<=card['y']+card['height']+1,\
+                        ('target chip outside card',width,card,badge)
+                    def overlaps(a,b):
+                        return a['x']<b['x']+b['width']-.3 and \
+                            b['x']<a['x']+a['width']-.3 and \
+                            a['y']<b['y']+b['height']-.3 and \
+                            b['y']<a['y']+a['height']-.3
+                    # On 320px screens, a small upper-right image overlap
+                    # is acceptable; the original centered icon must remain.
+                    assert badge['y']+badge['height']<=card['y']+card['height']/2+4,\
+                        ('target chip not in upper part of card',width,card,badge)
+                    assert not overlaps(field,badge),\
+                        ('target chip overlaps stock field',width,card,field,badge)
                 assert abs(card['height']-(card['width']*4/5))<=1.1,('food card not 5:4',width,selector,card)
                 assert card['height']>=48,('food card too small',width,selector,card)
                 assert image['width']>=27,('tiny icon',width,selector)
                 # v94 changes geometry only; the pixel dimensions of the
                 # accepted v80 ingredient image MUST be exactly unchanged.
-                page.locator('#e7-v94-landscape-food-grid').evaluate(
+                stock_field=el.locator('input').bounding_box() if selector.startswith('#inventory') else None
+                page.locator('#e7-v95-inventory-target-badge').evaluate(
                     '(el)=>el.sheet.disabled=true')
                 original_icon=el.locator('.food-media').bounding_box()
-                page.locator('#e7-v94-landscape-food-grid').evaluate(
+                original_field=el.locator('input').bounding_box() if stock_field else None
+                page.locator('#e7-v95-inventory-target-badge').evaluate(
                     '(el)=>el.sheet.disabled=false')
                 assert original_icon is not None
                 assert abs(original_icon['width']-image['width'])<=.05 and \
                     abs(original_icon['height']-image['height'])<=.05,\
                     ('icon size changed',width,selector,original_icon,image)
+                if stock_field:
+                    assert abs(stock_field['x']-original_field['x'])<=.05 and \
+                        abs(stock_field['width']-original_field['width'])<=.05 and \
+                        abs(stock_field['height']-original_field['height'])<=.05,\
+                        ('stock input resized or moved',width,selector,stock_field,original_field)
                 if selector.startswith('#inventory'):
                     field=el.locator('input').bounding_box()
                     assert field and field['y']>=card['y']-1 and \
@@ -81,7 +110,7 @@ try:
             assert len(grid_positions[0])==len(grid_positions[1])==19
             for i,(g,a) in enumerate(zip(*grid_positions)):
                 assert abs(g[0]-a[0])<=0.6 and abs(g[1]-a[1])<=0.6,\
-                    ('prep positions shifted after switching',width,i,g,a)
+                    ('food icon shifted from center on tab change',width,i,g,a)
             stock=page.locator('#inventory-panel input[data-key="apple"]')
             assert stock.is_visible()
             assert stock.locator('xpath=..').count()==1
