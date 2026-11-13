@@ -51,24 +51,28 @@ try:
                 card=el.bounding_box()
                 image=el.locator('.food-media').bounding_box()
                 assert card and image
+                assert abs((image['x']+image['width']/2)-(card['x']+card['width']/2))<=2,\
+                    ('icon not centered',width,selector,card,image)
                 targeted=selector.startswith('#inventory') and \
                     'needed' in (el.get_attribute('class') or '').split()
-                if not targeted:
-                    assert abs((image['x']+image['width']/2)-(card['x']+card['width']/2))<=2,\
-                        ('icon not centered',width,selector,card,image)
-                else:
-                    assert image['x']>=card['x']-1 and \
-                        image['x']+image['width']<=card['x']+card['width']+1,\
-                        ('relocated icon outside card',width,card,image)
+                if targeted:
                     badge=el.locator('.target-chip').bounding_box()
-                    assert badge,('missing target chip',width)
+                    field=el.locator('input').bounding_box()
+                    assert badge and field,('missing target chip or stock input',width)
                     assert badge['x']>=card['x']-1 and \
                         badge['x']+badge['width']<=card['x']+card['width']+1 and \
                         badge['y']>=card['y']-1 and \
                         badge['y']+badge['height']<=card['y']+card['height']+1,\
                         ('target chip outside card',width,card,badge)
-                    assert image['x']+image['width']<=badge['x']-1,\
-                        ('target chip overlaps ingredient icon',width,card,image,badge)
+                    def overlaps(a,b):
+                        return a['x']<b['x']+b['width']-.3 and \
+                            b['x']<a['x']+a['width']-.3 and \
+                            a['y']<b['y']+b['height']-.3 and \
+                            b['y']<a['y']+a['height']-.3
+                    assert not overlaps(image,badge),\
+                        ('target chip overlaps centered icon',width,card,image,badge)
+                    assert not overlaps(field,badge),\
+                        ('target chip overlaps stock field',width,card,field,badge)
                 assert abs(card['height']-(card['width']*4/5))<=1.1,('food card not 5:4',width,selector,card)
                 assert card['height']>=48,('food card too small',width,selector,card)
                 assert image['width']>=27,('tiny icon',width,selector)
@@ -96,15 +100,8 @@ try:
                 grid_positions.append(centers)
             assert len(grid_positions[0])==len(grid_positions[1])==19
             for i,(g,a) in enumerate(zip(*grid_positions)):
-                cls=(page.locator('#inventory-panel .food').nth(i).get_attribute('class') or '').split()
-                if 'needed' in cls:
-                    # v95 targeted stock cards place the icon to the left,
-                    # leaving the top-right target chip free of image overlap.
-                    assert a[0]<g[0]-2 and abs(g[1]-a[1])<=0.6,\
-                        ('target card icon not shifted left',width,i,g,a)
-                else:
-                    assert abs(g[0]-a[0])<=0.6 and abs(g[1]-a[1])<=0.6,\
-                        ('non-target positions shifted after switching',width,i,g,a)
+                assert abs(g[0]-a[0])<=0.6 and abs(g[1]-a[1])<=0.6,\
+                    ('food icon shifted from center on tab change',width,i,g,a)
             stock=page.locator('#inventory-panel input[data-key="apple"]')
             assert stock.is_visible()
             assert stock.locator('xpath=..').count()==1
