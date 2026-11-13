@@ -53,8 +53,10 @@ function populate(s,id=A,stock=25,all=false){
  }));
  s.setItem(api.BOX,JSON.stringify({version:1,source:'pokesleep-tool-header-mapped',
   items:FIVE.map(n=>item(n)).concat(item('ミュウ'))}));
+ const f=['ワカクサ本島','シアンの砂浜','トープ洞窟','ウノハナ雪原','ラピスラズリ湖畔',
+  'ゴールド旧発電所','アンバー渓谷','ワカクサ本島EX','シアンの砂浜EX'];
  s.setItem(api.PLAYER,JSON.stringify({version:1,pot:57,bag:600,
-  bonuses:{'シアンの砂浜':50}}));
+  bonuses:Object.fromEntries(f.map(x=>[x,x==='シアンの砂浜'?50:null]))}));
 }
 test('F1-D reads confirmed event, five indexed actual individuals and player/inventory without writes',()=>{
  const s=sMap();populate(s);const before=s.dump(),c=api.context(s,scope);
