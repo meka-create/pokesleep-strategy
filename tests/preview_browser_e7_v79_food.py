@@ -1,0 +1,89 @@
+"""E7 v79 Android-width browser regression: icon-only ingredient grids and Box quantities."""
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from pathlib import Path
+from playwright.sync_api import sync_playwright
+from urllib.parse import quote
+import functools,threading,json
+
+ROOT=Path(__file__).resolve().parents[1]
+class Quiet(SimpleHTTPRequestHandler):
+    def log_message(self,*args): pass
+server=ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(ROOT)))
+threading.Thread(target=server.serve_forever,daemon=True).start()
+BASE=f'http://127.0.0.1:{server.server_port}/e7-preview/'
+WEEK='2026-11-16'
+OWNER='manual:'+WEEK
+PREF='pokesleep-strategy-e7-'
+fields=['ワカクサ本島','シアンの砂浜','トープ洞窟','ウノハナ雪原','ラピスラズリ湖畔',
+        'ゴールド旧発電所','アンバー渓谷','ワカクサ本島EX','シアンの砂浜EX']
+def item(pokemon,ing1,ing2,ing3,nick):
+    return dict(nickname=nick,pokemon=pokemon,level=50,skillLevel=4,
+      ing1=ing1,ing2=ing2,ing3=ing3,
+      mainSkill='エナジーチャージM',nature='てれや',mint=False,
+      ribbon=0,shiny=False,favorite='',
+      lv10='きのみの数S',lv25='おてつだいボーナス',
+      lv50='おてつだいスピードS',lv70='スキル確率アップM',lv80='食材確率アップM')
+box={'version':1,'source':'pokesleep-tool-header-mapped','items':[
+    item('エーフィ','モーモーミルク','リラックスカカオ','モーモーミルク','エーフィの個体'),
+    item('ミュウ','とくせんエッグ','ふといながねぎ','とくせんエッグ','ミュウの個体')]}
+player={'version':1,'pot':57,'bag':600,'bonuses':{f:(50 if f=='シアンの砂浜' else None) for f in fields}}
+try:
+    with sync_playwright() as playwright:
+        browser=playwright.chromium.launch(headless=True,args=['--no-sandbox','--disable-dev-shm-usage'])
+        for width in (320,393,430):
+            context=browser.new_context(viewport={'width':width,'height':852},timezone_id='Asia/Tokyo')
+            page=context.new_page()
+            errors=[]
+            page.on('pageerror',lambda e:errors.append(str(e)))
+            base=BASE+'U2_Prep_Local_Ingredients_20261109_v50_E7.html?eventStart='+WEEK+\
+                '&eventId='+quote(OWNER,safe='')+'&previewNow=2026-11-17T09:00'
+            page.goto(base,wait_until='domcontentloaded')
+            assert page.locator('#goal-panel .food').count()==19
+            for selector in ('#goal-panel .food','#inventory-panel .food'):
+                page.locator('#btn-goal' if selector.startswith('#goal') else '#btn-inventory').click()
+                el=page.locator(selector).nth(4)
+                style=el.locator('.name').evaluate(
+                   '(e)=>({clip:getComputedStyle(e).clipPath,width:e.getBoundingClientRect().width})')
+                assert style['clip']=='inset(50%)' and style['width']==1,(width,selector,style)
+                card=el.bounding_box()
+                image=el.locator('.food-media').bounding_box()
+                assert card and image
+                assert abs((image['x']+image['width']/2)-(card['x']+card['width']/2))<=2,\
+                    ('icon not centered',width,selector,card,image)
+                assert card['height']>=80,('tiny food card',width,selector)
+                assert image['width']>=38,('tiny icon',width,selector)
+            stock=page.locator('#inventory-panel input[data-key="apple"]')
+            assert stock.is_visible()
+            assert stock.locator('xpath=..').count()==1
+            assert page.locator('#inventory-panel [data-item="apple"] .name').inner_text()=='とくせんリンゴ'
+            stock.fill('27')
+            page.locator('#save-inventory').click()
+            page.reload(wait_until='domcontentloaded')
+            page.locator('#btn-inventory').click()
+            assert page.locator('#inventory-panel input[data-key="apple"]').input_value()=='27'
+            assert not errors,'U2 errors: '+str(errors[:3])
+            # The Box tab reads its existing saved records; no import or schema change.
+            page.goto(BASE+'U4_Box_Preview_20261109_v50_E7.html',wait_until='domcontentloaded')
+            page.evaluate('(pairs)=>{for(const [k,v] of Object.entries(pairs))localStorage.setItem(k,v)}',{
+                PREF+'box-v1':json.dumps(box),PREF+'player-v1':json.dumps(player)})
+            page.reload(wait_until='domcontentloaded')
+            assert page.locator('#box-list .box-entry').count()==2
+            page.locator('#box-list .box-avatar').first.click()
+            dialog=page.locator('#box-detail-dialog')
+            assert dialog.is_visible()
+            assert dialog.locator('.iv-ingredient').count()==3
+            assert dialog.locator('.ingredient-name').count()==0
+            assert dialog.locator('.iv-ingredient-quantity').all_text_contents()==['×1','×1','×4']
+            icons=dialog.locator('.iv-ingredient-image')
+            xs=[i.bounding_box() for i in icons.all()]
+            assert all(v and v['width']>=35 for v in xs)
+            assert xs[0]['x']<xs[1]['x']<xs[2]['x']
+            page.locator('#box-detail-close').click()
+            page.locator('#box-list .box-avatar').nth(1).click()
+            assert dialog.locator('.iv-ingredient-quantity').all_text_contents()==['×2','×3','×6']
+            assert not errors,'Box errors: '+str(errors[:3])
+            context.close()
+        print('E7 v79 Chromium 320/393/430px: centered icon grids, saved stock, exact individual quantities PASS')
+        browser.close()
+finally:
+    server.shutdown()
