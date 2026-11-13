@@ -81,6 +81,7 @@ function navigation(mode,selection,query,more={}){
  for(const tab of ['plan','prep','box']){
   const link={dataset:{},attrs:{},
    setAttribute(key,v){this.attrs[key]=v},
+   getAttribute(key){return this.attrs[key]??null},
    addEventListener(name,fn){if(name==='click')handlers.set(tab,fn)}
   };
   links.set('#e6-footer-'+tab,link);
