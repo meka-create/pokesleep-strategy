@@ -14,8 +14,9 @@ const rates=load('f1/f1-b-base-rates-v1.js',
  name=>{if(name==='./f1-b-legal-build-v2.js')return legal;throw Error('Unexpected import: '+name)});
 const bridge=load('f1/f1-c-step2-simulation-bridge-v1.js');
 const context={module:{exports:{}},globalThis:{}};
-for(const file of ['src/master.js','src/recipes.js','src/simulator.js'])load(file,context);
-const master=context.globalThis.PokeMaster,simulator=context.globalThis.PokeSimulator;
+for(const file of ['src/master.js','src/recipes.js','src/simulator.js','f1/f1-c-simulator-v1.js'])load(file,context);
+const master=context.globalThis.PokeMaster,simulator=context.globalThis.PokeF1CSimulator;
+assert.ok(context.globalThis.PokeSimulator,'protected legacy must remain available');
 const deps={snapshot:snap,traits,master,simulator,rates,legal};
 const sources=new Map(snap.targets.map(x=>[x.name,x]));
 const food=(t,slot)=>{
@@ -134,8 +135,11 @@ test('F1-C bridge: malformed species/build, inputs and IDs stop without weakenin
 test('F1-C bridge: no source files, UI, save-state, or time-based schedules are modified',()=>{
  const core=fs.readFileSync(path.resolve(__dirname,'../f1/f1-c-step2-simulation-bridge-v1.js'),'utf8');
  assert.doesNotMatch(core,/localStorage|sessionStorage|indexedDB|fetch\(/);
- const patched=fs.readFileSync(path.resolve(__dirname,'../src/simulator.js'),'utf8');
- assert.match(patched,/if\(p\.__f1VerifiedRates\)/);
- assert.match(patched,/function simulate\(input\)/);
+ const protectedSource=fs.readFileSync(path.resolve(__dirname,'../src/simulator.js'),'utf8');
+ assert.doesNotMatch(protectedSource,/if\(p\.__f1VerifiedRates\)/);
+ const f1Source=fs.readFileSync(path.resolve(__dirname,'../f1/f1-c-simulator-v1.js'),'utf8');
+ assert.match(f1Source,/if\(p\.__f1VerifiedRates\)/);
+ assert.match(f1Source,/function simulate\(input\)/);
+ assert.match(f1Source,/root\.PokeF1CSimulator=api/);
 });
 
