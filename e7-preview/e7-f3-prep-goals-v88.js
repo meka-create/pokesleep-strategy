@@ -43,13 +43,14 @@ function readContext(){
  const ledgerRaw=localStorage.getItem('pokesleep-strategy-u3-e3-v1:'+suffix+':conditions');
  if(!ledgerRaw)throw Error('作戦タブでイベント条件を保存してください。');
  const ledger=E1.validateConditionLedger(JSON.parse(ledgerRaw));
- if(ledger.weekStart!==week||ledger.eventId!==id||ledger.confirmed?.status!=='CONFIRMED')
-  throw Error('イベント条件が確定していません。');
+ if(ledger.weekStart!==week||ledger.eventId!==id||
+  !['CONFIRMED','MISSING'].includes(ledger.confirmed?.status))
+  throw Error('イベント条件を保存してください。');
  const fields=ledger.confirmed.fields;
- if(!['curry','salad','dessert','all'].includes(fields.food)||
+ if(!['','curry','salad','dessert','all'].includes(fields.food)||
   typeof fields.camp!=='boolean')
   throw Error('イベントの料理・チケット条件を確認してください。');
- if(fields.food!=='all'&&own.prep.categories.some(c=>c!==fields.food))
+ if(fields.food&&fields.food!=='all'&&own.prep.categories.some(c=>c!==fields.food))
   throw Error('備蓄する料理カテゴリとイベント条件の料理が一致しません。');
  const playerRaw=localStorage.getItem('pokesleep-strategy-e7-player-v1');
  const player=playerRaw?JSON.parse(playerRaw):null;
@@ -64,7 +65,7 @@ function readContext(){
   current[code]=n;
  }
  return {week,id,revision:ledger.confirmed.revision,
-  categories:own.prep.categories,
+  categories:own.prep.categories,foodUnconfirmed:!fields.food,
   camp:fields.camp,pot:player?.pot,bag:player?.bag,current};
 }
 function badge(cell,count){
@@ -108,7 +109,7 @@ function render(){
    currentStock:ctx.current});
   if(result.status!=='PROVISIONAL')throw Error(result.message);
   drawGoals(result.goals);
-  status.textContent='F3暫定目標（既存78料理） · '+result.recipesUsed+'/'+result.mealSlots+
+  status.textContent='F3暫定目標（既存78料理）'+(ctx.foodUnconfirmed?'・料理未確定':'')+' · '+result.recipesUsed+'/'+result.mealSlots+
    '食 · バッグ '+result.capacity.used.toLocaleString('ja-JP')+'/'+
    result.capacity.bag.toLocaleString('ja-JP')+'個';
   status.dataset.state='ready';detail.hidden=false;
@@ -121,6 +122,7 @@ function render(){
   }
   const caveat=document.createElement('p');caveat.className='f3-caveat';
   caveat.textContent='基礎エナジーによる備蓄参考値。レシピレベル・料理チャンス・イベント中の食材生産は未反映。'+
+   (ctx.foodUnconfirmed?' 料理未確定のため、選択カテゴリを均等優先する準備用シナリオです。':'')+
    (ctx.week>='2026-11-16'?' 11/16追加予定の新食材「ひとくちナッツ」と新料理3種は未反映。':'');
   content.append(caveat);
  }catch(error){
