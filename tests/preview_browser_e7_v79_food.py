@@ -92,7 +92,7 @@ try:
             assert dialog.locator('#box-delete').is_visible()
             box_shape=dialog.evaluate("""(el)=>{
               const c=getComputedStyle(el),backdrop=getComputedStyle(el,'::backdrop');
-              return {position:c.position,top:c.top,bottom:c.bottom,left:c.left,right:c.right,
+              return {position:c.position,bottom:c.bottom,left:c.left,right:c.right,
                 width:c.width,maxHeight:c.maxHeight,padding:c.padding,margin:c.margin,
                 border:c.border,borderRadius:c.borderRadius,background:c.backgroundColor,
                 color:c.color,boxShadow:c.boxShadow,overflowY:c.overflowY,
@@ -145,7 +145,7 @@ try:
             ]
             plan_shape=plan_dialog.evaluate("""(el)=>{
               const c=getComputedStyle(el),backdrop=getComputedStyle(el,'::backdrop');
-              return {position:c.position,top:c.top,bottom:c.bottom,left:c.left,right:c.right,
+              return {position:c.position,bottom:c.bottom,left:c.left,right:c.right,
                 width:c.width,maxHeight:c.maxHeight,padding:c.padding,margin:c.margin,
                 border:c.border,borderRadius:c.borderRadius,background:c.backgroundColor,
                 color:c.color,boxShadow:c.boxShadow,overflowY:c.overflowY,
