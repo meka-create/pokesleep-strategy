@@ -292,9 +292,11 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 }
 </style>
 <style id="e7-v95-inventory-target-badge">
-/* Preserve v94 5:4 cards, centered icons and full-width stock inputs.
-   The target-count chip sits in the card's upper-right corner. On narrow
-   screens it can touch a small part of the image, never the stock field. */
+/* v96: keep 5:4 cards, centered original-size icons, full-width input.
+   The unchanged-size target-count badge belongs immediately ABOVE the input
+   inside the right side of the card; never outside the card or on the field.
+   Default bottom gap = 25px input + 3px card padding + 2px separation.
+   Narrow bottom gap = 23px input + 1px card padding + 2px separation. */
 .actual-grid .food.needed .food-media{
   grid-column:1;
   grid-row:1;
@@ -308,9 +310,9 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 }
 .actual-grid .food.needed .target-chip{
   position:absolute;
-  top:2px;
+  top:auto;
   right:2px;
-  bottom:auto;
+  bottom:30px;
   max-width:28px;
   min-width:19px;
   min-height:16px;
@@ -324,8 +326,8 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 }
 @media(max-width:370px){
   .actual-grid .food.needed .target-chip{
-    top:1px;
     right:1px;
+    bottom:26px;
     max-width:25px;
   }
   .actual-grid .food.needed .target-chip b{font-size:9px}
