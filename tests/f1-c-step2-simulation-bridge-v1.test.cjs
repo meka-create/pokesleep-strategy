@@ -132,6 +132,14 @@ test('F1-C bridge: malformed species/build, inputs and IDs stop without weakenin
  const old=sample();old.options.camp='true';
  assert.equal(bridge.simulateWeekly(old,deps).reason,'INVALID_CAMP_SETTING');
 });
+test('F1-C bridge: legacy STEP2 simulator cannot masquerade as verified F1-C',()=>{
+ const bad=bridge.simulateWeekly(sample(),{
+  ...deps,simulator:context.globalThis.PokeSimulator
+ });
+ assert.equal(bad.status,'BLOCKED');
+ assert.equal(bad.reason,'INVALID_F1C_INPUT');
+ assert.equal(bad.weeklyEnergy,null);
+});
 test('F1-C bridge: no source files, UI, save-state, or time-based schedules are modified',()=>{
  const core=fs.readFileSync(path.resolve(__dirname,'../f1/f1-c-step2-simulation-bridge-v1.js'),'utf8');
  assert.doesNotMatch(core,/localStorage|sessionStorage|indexedDB|fetch\(/);
