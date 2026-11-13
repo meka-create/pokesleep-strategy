@@ -15,7 +15,10 @@ const options={
 const source=()=>JSON.parse(JSON.stringify(options));
 const normalEffects=['extraIng','ingredient','carryLimitAdd'];
 const modelRules=Array.from(G.BOUNTIFUL_BANQUET.requiredImplementations);
-const recipes=require('../src/recipes.js');
+// The repository is ESM; src/recipes.js uses a browser UMD wrapper.
+const recipeVM={module:{exports:{}},globalThis:{}};
+vm.runInNewContext(read('src/recipes.js'),recipeVM,{filename:'src/recipes.js'});
+const recipes=recipeVM.module.exports;
 const legacyCodes=['leek','mushroom','egg','potato','apple','herb','sausage','milk','honey',
  'oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado'];
 const provenance={verifiedAgainstOfficialRelease:true,sourceCommit:'a'.repeat(40)};
