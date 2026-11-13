@@ -26,6 +26,7 @@ def item(pokemon,ing1,ing2,ing3,nick):
 box={'version':1,'source':'pokesleep-tool-header-mapped','items':[
     item('エーフィ','モーモーミルク','リラックスカカオ','モーモーミルク','エーフィの個体'),
     item('ミュウ','とくせんエッグ','ふといながねぎ','とくせんエッグ','ミュウの個体')]}
+box['items'][1]['ribbon']=500
 player={'version':1,'pot':57,'bag':600,'bonuses':{f:(50 if f=='シアンの砂浜' else None) for f in fields}}
 try:
     with sync_playwright() as playwright:
