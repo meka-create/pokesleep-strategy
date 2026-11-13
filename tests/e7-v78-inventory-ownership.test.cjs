@@ -90,7 +90,10 @@ test('E7 v78 every event-aware screen and shared footer imports the same resolve
  for(const p of paths){
   const s=read(p);
   assert.match(s,/<script src="e7-inventory-scope-v78\.js"><\/script>/,p);
-  assert.match(s,/PokeE7InventoryScope\.read\(localStorage/,p);
+  if(p.startsWith('U4_')){
+   assert.match(s,/<script src="e7-footer-nav-v84\.js"><\/script>/,p);
+   assert.match(read('e7-footer-nav-v84.js'),/PokeE7InventoryScope\.read\(localStorage/,p);
+  }else assert.match(s,/PokeE7InventoryScope\.read\(localStorage/,p);
  }
  const u2=read(paths[0]),u3=read(paths[1]);
  assert.match(u2,/PokeE7InventoryScope\.writeKey\(week,validEventId\?selectedEventId:null\)/);
