@@ -41,7 +41,10 @@ conditions={'version':1,'weekStart':week,'eventId':event,'confirmed':{
     'weekStart':week,'eventId':event,'status':'CONFIRMED',
     'revision':'test-conditions','savedAt':'2026-11-13T03:00:00Z','missingFields':[],
     'fields':{'field':'シアンの砂浜','food':'curry','camp':True,'source':None}}}
-stocks={name:0 for name in ingredients.values()}
+# Approved E7 v78 inventory is 19 foods; the newer F1 source has
+# a twentieth (nuts) that must NOT be injected into legacy event stocks.
+stocks={name:0 for code,name in ingredients.items() if code!='nuts'}
+assert len(stocks)==19
 stocks['とくせんリンゴ']=60
 stock={'version':2,'weekStart':week,'eventId':event,
        'preparationLatest':None,'startInventory':None,'currentInventory':{
