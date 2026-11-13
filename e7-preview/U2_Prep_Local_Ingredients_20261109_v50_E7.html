@@ -263,6 +263,18 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
  .actual-grid .food input{height:23px;min-height:23px;font-size:12px}
 }
 </style>
+<style id="f3-v88-style">
+#f3-prep-status{margin:6px 2px 1px;font-size:11px;color:#c8d7e4;line-height:1.45}
+#f3-prep-status[data-state="blocked"]{color:#e3c48b}
+#f3-prep-breakdown{margin:8px 2px 0;border-top:1px solid #405367;padding:7px 0 0;color:#cedce8}
+#f3-prep-breakdown[hidden]{display:none!important}
+#f3-prep-breakdown summary{cursor:pointer;font-size:12px;font-weight:700}
+#f3-prep-dishes{font-size:11px;line-height:1.6;padding-top:5px}
+.f3-category-result,.f3-caveat{margin:3px 0}
+.f3-caveat{color:#a9bbc9}
+</style>
+<script src="../src/recipes.js"></script>
+<script src="../f3/f3-prep-optimizer-v1.js"></script>
 </head><body><details id="e6-dev">
 <summary>開発用・日時切替</summary>
 <div class="e6-body">
@@ -690,4 +702,5 @@ save.addEventListener('click',()=>{
 render();
 })();
 </script>
+<script src="e7-f3-prep-goals-v88.js"></script>
 <script src="e7-footer-nav-v84.js"></script><script id="e6-v35-footer-nav">PokeE7FooterNav.attach('prep');</script><script src="e7-unified-bridge-v51.js"></script></body></html>
