@@ -19,6 +19,8 @@ test('E7 v83 single canonical modal shell owns outer geometry, backdrop and acce
  for(const html of [plan,box])assert.match(html,/class="[^"]*pokemon-detail-modal[^"]*"/);
  assert.match(plan,/PokeE7PokemonDetail\.mount\('plan'\)/);
  assert.match(box,/PokeE7PokemonDetail\.mount\('box'\)/);
+ for(const html of [plan,box])assert(html.indexOf('<script src="e7-pokemon-detail-shared-v81.js">')<html.indexOf('PokeE7PokemonDetail.mount('),'renderer must load before mount');
+ assert(box.indexOf('PokeE7PokemonDetail.mount(')<box.indexOf('<script id="e7-box">'),'mount must precede Box handler binding');
  assert.doesNotMatch(plan,/<div class="iv-hero">/);
  assert.doesNotMatch(box,/<div class="iv-hero">/);
  assert.doesNotMatch(plan,/id="box-delete"/);
