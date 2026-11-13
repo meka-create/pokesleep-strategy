@@ -71,8 +71,11 @@ try:
                             b['y']<a['y']+a['height']-.3
                     # On 320px screens, a small upper-right image overlap
                     # is acceptable; the original centered icon must remain.
-                    assert badge['y']+badge['height']<=card['y']+card['height']/2+4,\
-                        ('target chip not in upper part of card',width,card,badge)
+                    gap=field['y']-(badge['y']+badge['height'])
+                    assert 0.5<=gap<=5,\
+                        ('target count not directly above stock field',width,card,field,badge,gap)
+                    assert badge['x']>card['x']+card['width']/2,\
+                        ('target count not right aligned',width,card,badge)
                     assert not overlaps(field,badge),\
                         ('target chip overlaps stock field',width,card,field,badge)
                 assert abs(card['height']-(card['width']*4/5))<=1.1,('food card not 5:4',width,selector,card)
