@@ -57,3 +57,23 @@
 /* E7 v62: only one bottom-right delete action, same height as the top close. */
 .box-detail-dialog .box-detail-actions{justify-content:flex-end}
 .box-detail-dialog #box-delete{height:32px;min-height:32px;padding:6px 10px;font-size:12px;line-height:18px;box-sizing:border-box}
+
+
+/* E7 v79: compact, icon-only three-slot ingredient row. */
+.box-detail-dialog .iv-ingredients{
+ grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:9px;align-items:center;justify-items:center;padding:5px 4px;
+}
+.box-detail-dialog .iv-ingredient{display:grid;place-items:center;min-width:0;padding:3px 1px;margin:0}
+.box-detail-dialog .iv-ingredient-image{
+ display:grid;place-items:center;position:relative;
+ width:clamp(35px,10vw,46px);height:clamp(35px,10vw,46px);
+}
+.box-detail-dialog .iv-ingredient-image img{display:block;width:100%;height:100%;object-fit:contain}
+.box-detail-dialog .iv-ingredient-quantity{
+ position:absolute;right:-7px;bottom:-2px;display:flex;align-items:center;
+ justify-content:center;min-width:23px;min-height:17px;padding:1px 4px;
+ border:1px solid #c7a367;border-radius:999px;background:#16283b;color:#fff5df;
+ font-size:10px;font-weight:850;line-height:1.1;white-space:nowrap;
+ box-shadow:0 1px 3px #0008;box-sizing:border-box;
+}
