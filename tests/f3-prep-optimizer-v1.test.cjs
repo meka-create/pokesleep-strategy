@@ -1,8 +1,17 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
-const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const F3=require('../f3/f3-prep-optimizer-v1.js');
-const recipeSource=require('../src/recipes.js');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+/* package.json is type:module; browser IIFEs are loaded with their UMD
+ * wrapper in a sandbox, not require()'d as CommonJS. */
+function browserModule(relative){
+ const mod={exports:{}},context={module:mod};
+ context.globalThis=context;
+ vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'..',relative),'utf8'),
+  context,{filename:relative});
+ return mod.exports;
+}
+const F3=browserModule('f3/f3-prep-optimizer-v1.js');
+const recipeSource=browserModule('src/recipes.js');
 const snapshot=JSON.stringify(recipeSource);
 const mini=[
  {id:'high',name:'高エナジー',type:'curry',baseStrength:1000,
