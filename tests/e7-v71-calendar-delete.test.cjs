@@ -147,7 +147,7 @@ test('E7 v78: UI, shell, service worker and legacy paths use scoped deletion',()
  assert.match(u2,/旧形式の週一括初期化リンクは無効/);
  for(const f of [u2,u3,parent])assert.match(f,/e7-event-delete-v71\.js/);
  assert.match(sw,/'e7-event-delete-v71\.js'/);
- assert.match(sw,/pokesleep-strategy-e7-v81-shared-pokemon-detail-20261113/);
+ assert.match(sw,/pokesleep-strategy-e7-v84-shared-e1-footer-20261113/);
  assert.match(parent,/<title>ポケスリ作戦室 E7 v78<\/title>/);
  for(const file of [u2,u3,parent]){
   for(const match of file.matchAll(/<script(?:[^>]*)>([\s\S]*?)<\/script>/g))
