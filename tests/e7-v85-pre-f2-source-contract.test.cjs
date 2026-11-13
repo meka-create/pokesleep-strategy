@@ -82,7 +82,7 @@ test('pre-F2: source data is display-only and condition confirmation/Box/F1 scop
  assert.match(U3,/Immutable provenance; parsed effects are never applied as energy numbers/);
  assert.match(read('e7-preview/e7-e1-core-v84.js'),/if\(!userConfirmed\|\|!prev\.editing\)throw/);
  assert.match(read('e7-preview/e7-inventory-scope-v78.js'),/encodeURIComponent\(id\)\+':timeline'/);
- assert.match(SW,/pokesleep-strategy-e7-v84-shared-e1-footer-20261113/);
+ assert.match(SW,/pokesleep-strategy-e7-v86-f2-event-catalog-20261113/);
  assert.match(read('e7-preview/e7-manifest-v50.webmanifest'),/"name"\s*:\s*"作戦室"/);
  const f1=read('f1d-preview/f1-d-ui.js');
  assert.doesNotMatch(f1,/localStorage\.setItem|localStorage\.removeItem/);
