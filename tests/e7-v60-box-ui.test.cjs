@@ -37,7 +37,7 @@ test('E7 v60 collapsed registration contains full delete only inside',()=>{
  assert.doesNotMatch(sec,/\bopen\b/);
  assert.match(box,/icon\.style\.setProperty\('--tone',E7BoxDetail\.tone\(item\)\)/);
  assert.match(box,/E7BoxDetail\.render\(item\)/);
- assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v80-square-prep-detail/);
+ assert.match(read('e7-sw-v50.js'),/pokesleep-strategy-e7-v81-shared-pokemon-detail/);
  assert.match(read('e7-sw-v50.js'),/'e7-box-detail-v60\.js','e7-box-detail-v60\.css'/);
  assert.match(read('index.html'),/E7 v78/);
 });
