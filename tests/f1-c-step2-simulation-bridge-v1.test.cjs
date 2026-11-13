@@ -75,11 +75,47 @@ test('F1-C bridge: team changes preserve independent per-member, per-teammate-ra
  input.box.push({id:'unused',pokemon:'ミュウ'});
  assert.equal(bridge.simulateWeekly(input,deps).status,'PROVISIONAL');
 });
-test('F1-C bridge: unsupported in-party Mew never generates an invented skill expectation',()=>{
+test('F1-C bridge: Mew uses provisional per-effect probabilities, not one universal 4%',()=>{
+ const mew={...sample().box[0],pokemon:'ミュウ',
+  ing1:'とくせんエッグ',ing2:'げきからハーブ',ing3:'',
+  mainSkill:snap.dictionaries.mainSkills['Charge Strength M']};
+ const examples=[
+  ['Berry Burst',.0284],['Energy for Everyone S',.0337],
+  ['Charge Strength M',.04],['Energizing Cheer S',.0439],
+  ['Charge Energy S',.064],['Charge Strength S (Random)',.064]
+ ];
+ for(const [effect,expected] of examples){
+  const value=bridge.mewProvisional({...mew,mainSkill:snap.dictionaries.mainSkills[effect]},snap,rates);
+  assert.equal(value.selected,effect);
+  assert.equal(value.probability,expected,effect);
+ }
  const input=sample();
- input.box[0]={...input.box[0],pokemon:'ミュウ'};
- assert.equal(bridge.simulateWeekly(input,deps).reason,'MEW_SKILL_RATE_UNVERIFIED');
- assert.equal(bridge.simulateWeekly(input,deps).weeklyEnergy,null);
+ input.box[0]={...mew,id:'0'};
+ const result=bridge.simulateWeekly(input,deps);
+ assert.equal(result.status,'PROVISIONAL',result.reason);
+ assert.equal(result.calculation,'WEEKLY_EXPECTATION_PROTOTYPE');
+ assert(Number.isFinite(result.weeklyEnergy)&&result.weeklyEnergy>0);
+ assert(result.warnings.some(w=>w.includes('ミュウ')&&w.includes('暫定推定値')));
+ assert(!JSON.stringify(result).includes('SENSITIVE_TEST_NAME'));
+ const finger=sample();
+ finger.box[0]={...mew,id:'0',mainSkill:snap.dictionaries.mainSkills.Metronome};
+ const metronome=bridge.simulateWeekly(finger,deps);
+ assert.equal(metronome.status,'PROVISIONAL',metronome.reason);
+ assert(metronome.warnings.some(w=>w.includes('ゆびをふる')));
+ assert(result.breakdown.skills>metronome.breakdown.skills);
+});
+test('F1-C bridge: ambiguous or invalid Mew effect cannot silently be misidentified',()=>{
+ const b=sample(),m={...b.box[0],pokemon:'ミュウ',
+  ing1:'とくせんエッグ',ing2:'げきからハーブ',ing3:'',
+  mainSkill:snap.dictionaries.mainSkills.Versatile};
+ b.box[0]=m;
+ const defaultEffect=bridge.simulateWeekly(b,deps);
+ assert.equal(defaultEffect.status,'PROVISIONAL',defaultEffect.reason);
+ assert(defaultEffect.warnings.some(w=>w.includes('初期状態')));
+ b.box[0]={...m,mainSkill:'存在しないスキル'};
+ assert.equal(bridge.simulateWeekly(b,deps).reason,'INVALID_BUILD');
+ b.box[0]={...m,mainSkill:''};
+ assert.equal(bridge.simulateWeekly(b,deps).reason,'MEW_EFFECT_NOT_IDENTIFIED');
 });
 test('F1-C bridge: malformed species/build, inputs and IDs stop without weakening STEP2',()=>{
  const base=sample();
