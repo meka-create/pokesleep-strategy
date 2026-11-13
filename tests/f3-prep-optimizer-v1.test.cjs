@@ -46,6 +46,7 @@ test('F3 recipe data contract, all 78 official input recipes and 19 ingredients 
 test('F3 goals use a single shared stockpile, never re-use the same apple for two meals',()=>{
  const r=run({bagCapacity:19,currentStock:{apple:2}});
  assert.equal(r.status,'PROVISIONAL',r.message);
+ assert(r.categories.every(x=>x.meals>=1),'An equally prioritized category was needlessly starved');
  const totalDemand=Object.values(r.demand).reduce((a,b)=>a+b,0);
  const totalTopups=Object.values(r.topups).reduce((a,b)=>a+b,0);
  assert.equal(r.capacity.additional,totalTopups);
