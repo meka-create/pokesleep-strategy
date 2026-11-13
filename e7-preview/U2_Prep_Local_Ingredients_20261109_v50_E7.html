@@ -291,6 +291,45 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
   }
 }
 </style>
+<style id="e7-v95-inventory-target-badge">
+/* Keep the v94 card ratio, v80 ingredient image size and input geometry.
+   For targeted stock only, reserve room alongside (not on) the image. */
+.actual-grid .food.needed{
+  grid-template-columns:minmax(0,1fr) 29px;
+}
+.actual-grid .food.needed .food-media{
+  grid-column:1;
+  grid-row:1;
+  justify-self:start;
+  position:static;
+}
+.actual-grid .food.needed .input-wrap{
+  grid-column:1/-1;
+}
+.actual-grid .food.needed .target-chip{
+  position:absolute;
+  top:6px;
+  right:2px;
+  bottom:auto;
+  max-width:29px;
+  min-width:18px;
+  padding:1px 1px 0;
+  border-radius:6px;
+}
+.actual-grid .food.needed .target-chip b{
+  font-size:9px;
+  letter-spacing:-.05em;
+}
+@media(max-width:370px){
+  .actual-grid .food.needed{
+    grid-template-columns:minmax(0,1fr) 28px;
+  }
+  .actual-grid .food.needed .target-chip{
+    top:4px;
+    right:1px;
+  }
+}
+</style>
 <style id="f3-v88-style">
 #f3-prep-status{margin:6px 2px 1px;font-size:11px;color:#c8d7e4;line-height:1.45}
 #f3-prep-status[data-state="blocked"]{color:#e3c48b}
