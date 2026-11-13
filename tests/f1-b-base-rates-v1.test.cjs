@@ -104,9 +104,10 @@ test('F1-B batch: ribbon HOURS are transformed to tiers, with evolution speed',(
   Math.floor(Number((.902*.75*1e4).toFixed(6)))/1e4,'two-evolution ribbon');
 });
 test('F1-B batch: level unlocks subskills and food (30 / 60 / 70 / 80)',()=>{
- const one=get(row('エーフィ',29));
- const two=get(row('エーフィ',30));
- const three=get(row('エーフィ',60));
+ const selected={...row('エーフィ',29),ing2:'リラックスカカオ'};
+ const one=get(selected);
+ const two=get({...selected,level:30});
+ const three=get({...selected,level:60});
  assert(one.ingredientCountsPerHelp.milk>0);
  assert(!Object.hasOwn(one.ingredientCountsPerHelp,'cacao'));
  assert(two.ingredientCountsPerHelp.cacao>0);
