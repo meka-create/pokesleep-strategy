@@ -1,4 +1,4 @@
-"""E7 v79 Android-width browser regression: icon-only ingredient grids and Box quantities."""
+"""E7 v80 Android-width browser regression: icon-only ingredient grids and Box quantities."""
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -39,6 +39,7 @@ try:
                 '&eventId='+quote(OWNER,safe='')+'&previewNow=2026-11-17T09:00'
             page.goto(base,wait_until='domcontentloaded')
             assert page.locator('#goal-panel .food').count()==19
+            grid_positions=[]
             for selector in ('#goal-panel .food','#inventory-panel .food'):
                 page.locator('#btn-goal' if selector.startswith('#goal') else '#btn-inventory').click()
                 el=page.locator(selector).nth(4)
@@ -50,8 +51,19 @@ try:
                 assert card and image
                 assert abs((image['x']+image['width']/2)-(card['x']+card['width']/2))<=2,\
                     ('icon not centered',width,selector,card,image)
-                assert card['height']>=80,('tiny food card',width,selector)
-                assert image['width']>=38,('tiny icon',width,selector)
+                assert abs(card['height']-card['width'])<=1.1,('food card not square',width,selector,card)
+                assert card['height']>=60,('food card too small',width,selector,card)
+                assert image['width']>=27,('tiny icon',width,selector)
+                centers=[]
+                for tile in page.locator(selector).all():
+                    area=tile.locator('.food-media').bounding_box()
+                    assert area
+                    centers.append((area['x']+area['width']/2,area['y']+area['height']/2))
+                grid_positions.append(centers)
+            assert len(grid_positions[0])==len(grid_positions[1])==19
+            for i,(g,a) in enumerate(zip(*grid_positions)):
+                assert abs(g[0]-a[0])<=0.6 and abs(g[1]-a[1])<=0.6,\
+                    ('prep positions shifted after switching',width,i,g,a)
             stock=page.locator('#inventory-panel input[data-key="apple"]')
             assert stock.is_visible()
             assert stock.locator('xpath=..').count()==1
@@ -78,12 +90,17 @@ try:
             xs=[i.bounding_box() for i in icons.all()]
             assert all(v and v['width']>=35 for v in xs)
             assert xs[0]['x']<xs[1]['x']<xs[2]['x']
+            assert dialog.locator('#box-detail-extra .iv-key').first.inner_text()=='一緒に眠った時間：'
+            assert dialog.locator('#box-detail-extra .iv-value').first.inner_text()=='200時間未満'
+            heights=[x.bounding_box()['height'] for x in dialog.locator('#box-detail-fields>.iv-value').all()]
+            assert all(h<=39 for h in heights[-2:]),('detail rows not compact',width,heights)
             page.locator('#box-detail-close').click()
             page.locator('#box-list .box-avatar').nth(1).click()
             assert dialog.locator('.iv-ingredient-quantity').all_text_contents()==['×2','×3','×6']
+            assert dialog.locator('#box-detail-extra .iv-value').first.inner_text()=='500～1000時間'
             assert not errors,'Box errors: '+str(errors[:3])
             context.close()
-        print('E7 v79 Chromium 320/393/430px: centered icon grids, saved stock, exact individual quantities PASS')
+        print('E7 v80 Chromium 320/393/430px: square aligned icon grids, saved stock, exact individual quantities PASS')
         browser.close()
 finally:
     server.shutdown()
