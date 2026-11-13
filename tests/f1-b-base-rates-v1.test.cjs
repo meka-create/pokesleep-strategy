@@ -1,10 +1,19 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
-const path=require('node:path');
+const path=require('node:path'),vm=require('node:vm');
+const load=relative=>{
+ const context={module:{exports:{}},globalThis:{},
+  require:rel=>{
+   if(rel==='./f1-b-legal-build-v2.js')return load('f1/f1-b-legal-build-v2.js');
+   throw new Error('Unexpected module dependency: '+rel);
+  }};
+ vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'..',relative),'utf8'),context,{filename:relative});
+ return context.module.exports;
+};
 const snapshot=require('../f1/f1-b-target-source-v1.json');
 const traits=require('../f1/f1-b-help-traits-v1.json');
-const calc=require('../f1/f1-b-base-rates-v1.js');
-const legal=require('../f1/f1-b-legal-build-v2.js');
+const calc=load('f1/f1-b-base-rates-v1.js');
+const legal=load('f1/f1-b-legal-build-v2.js');
 const dict=snapshot.dictionaries,byName=new Map(snapshot.targets.map(t=>[t.name,t]));
 function firstFood(t,slot){
  const special=legal.SPECIAL_FOODS[t.name];
