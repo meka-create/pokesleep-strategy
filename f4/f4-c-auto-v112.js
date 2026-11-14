@@ -198,7 +198,7 @@
     stage:'F4_C_INTEGRATED_V112',eventId:ctx.eventId,weekStart:ctx.weekStart,
     sourceCommit:prepared.sourceCommit,
     conditionRevision:ctx.conditionRevision,inventoryRevision:ctx.inventoryRevision,
-    planningBasis:JSON.stringify([ctx.fields,ctx.player,ctx.savedBerrySetup??null,ctx.autoSleep]),
+    planningBasis:JSON.stringify([ctx.fields,ctx.player,ctx.savedBerrySetup??null,ctx.autoSleep,ctx.previousCarryRevision??null]),
     selectedPrimary:win.pair[0],selectedSecondary:win.pair[1],
     candidatePairsChecked:considered.length,
     favoriteTypes:favorite,previousWeekCarryUnknown:unknown,

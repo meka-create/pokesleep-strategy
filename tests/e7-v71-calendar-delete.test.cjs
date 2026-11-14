@@ -114,6 +114,26 @@ test('E7 v78: rollback does not materialize an originally absent prep key',()=>{
  assert.deepEqual(values(s),initial);
  assert.equal(s.getItem(prep),null);
 });
+test('F4-C v114: confirmed previous-Sunday roster is deleted only with its exact event',()=>{
+ const e=engine(),a={id:'manual:'+WEEK,weekStart:WEEK},b='other-event';
+ const base='pokesleep-strategy-f4c-v112:carry:'+WEEK+':';
+ const carry=id=>JSON.stringify({version:1,eventId:id,weekStart:WEEK,
+  source:'USER_CONFIRMED_PREVIOUS_SUNDAY',teamIds:[],revision:'confirmed'});
+ const ka=base+encodeURIComponent(a.id),kb=base+encodeURIComponent(b);
+ const s=storage({...record(a.id),...record(b),[SELECTED]:JSON.stringify(a),
+  [ka]:carry(a.id),[kb]:carry(b)});
+ const before=e.snapshot(s,a,{requireSelected:true});
+ assert(before.keys.includes(ka));
+ assert(!before.keys.includes(kb));
+ e.remove(s,before);
+ assert.equal(s.getItem(ka),null);
+ assert.equal(s.getItem(kb),carry(b));
+ assert(s.getItem(PREFIX+WEEK+':'+encodeURIComponent(b)+':plan'));
+ const foreign=storage({...record(a.id),[SELECTED]:JSON.stringify(a),
+  [ka]:carry(b)});
+ assert.throws(()=>e.snapshot(foreign,a,{requireSelected:true}),/所有者/);
+});
+
 test('E7 v78: UI, shell, service worker and legacy paths use scoped deletion',()=>{
  const u3=read('U3_Strategy_UI_20261109_v50_E7.html');
  const u2=read('U2_Prep_Local_Ingredients_20261109_v50_E7.html');

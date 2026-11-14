@@ -25,7 +25,7 @@ function snapshot(storage,selection,{requireSelected=false}={}){
  const keys=[base+'conditions',base+'plan',PREP+week+':'+encoded];
  // New real-box adopted and manual sleep state belong to this exact owner.
  // Include them in the same comparison/rollback transaction as E7 deletion.
- const sidecars=[F4C+'plan:'+week+':'+encoded,F4C+'sleep:'+week+':'+encoded];
+ const sidecars=[F4C+'plan:'+week+':'+encoded,F4C+'sleep:'+week+':'+encoded,F4C+'carry:'+week+':'+encoded];
  const values={};
  for(const key of keys)values[key]=storage.getItem(key);
  for(const key of sidecars){
@@ -34,7 +34,10 @@ function snapshot(storage,selection,{requireSelected=false}={}){
   const data=readJSON(raw);
   if(data?.weekStart!==week||data?.eventId!==id||
    (key.startsWith(F4C+'plan:')?
-     data.kind!=='REAL_BOX_PLAN_V112':data.version!==1))
+     data.kind!=='REAL_BOX_PLAN_V112':
+     key.startsWith(F4C+'carry:')?
+      data.version!==1||data.source!=='USER_CONFIRMED_PREVIOUS_SUNDAY':
+      data.version!==1))
    throw Error('実個体の作戦または睡眠編成の所有者が一致しません。');
   keys.push(key);values[key]=raw;
  }

@@ -10,7 +10,7 @@ class Quiet(SimpleHTTPRequestHandler):
     def log_message(self,*args): pass
 server=ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(ROOT)))
 threading.Thread(target=server.serve_forever,daemon=True).start()
-BASE=f'http://127.0.0.1:{server.server_port}/e7-preview/U3_Strategy_UI_20261109_v50_E7.html?previewNow=2026-11-15T16:00&eventStart=2026-11-16'
+BASE=f'http://127.0.0.1:{server.server_port}/e7-preview/U3_Strategy_UI_20261109_v50_E7.html?previewNow=2026-11-16T00:10&eventStart=2026-11-16'
 snapshot=json.loads((ROOT/'f1/f1-b-target-source-v1.json').read_text())
 targets={t['name']:t for t in snapshot['targets']}
 ingredient_map=snapshot['dictionaries']['ingredients']
@@ -79,9 +79,35 @@ try:
         page.goto(BASE,wait_until='domcontentloaded')
         page.evaluate('(data)=>{for(const [key,val] of Object.entries(data))localStorage.setItem(key,val)}',seed)
         page.reload(wait_until='domcontentloaded')
-        page.locator('#e3-next[data-action="F4C_PROPOSE"]:not([disabled])').wait_for(state='visible',timeout=30000)
+        # The prior Sunday registration is only offered after secure real-Box
+        # identity and verified computation inputs are both ready.
+        try:
+            page.locator('#f4c-carry-trigger').wait_for(state='visible',timeout=20000)
+        except Exception as exc:
+            detail={
+              'integrated':page.evaluate('''() => window.PokeF4CIntegratedUI?.status?.()'''),
+              'warning':page.locator('#e3-warning').text_content(),
+              'action':page.locator('#e3-next').get_attribute('data-action'),
+              'errors':errors[-6:]
+            }
+            raise AssertionError('Confirmed carry controls not ready: '+repr(detail)) from exc
+        page.locator('#e3-next[data-action="F4C_PROPOSE"]:not([disabled])').wait_for(state='visible',timeout=20000)
         assert page.locator('#f4c-real-card').count()==0
         assert page.locator('#f4c-real-consent').count()==0
+        # A human explicitly confirms actual previous Sunday sleeping five.
+        # The old accepted PLAN by itself must never populate this record.
+        page.locator('#f4c-carry-trigger').click()
+        page.locator('#f4c-carry-edit').click()
+        for _ in range(5):
+            page.locator('#pick-grid .pick-select[aria-pressed="false"]:not([disabled])').first.click()
+        page.locator('#edit-save').click()
+        page.locator('#sleep-dialog').wait_for(state='visible')
+        assert page.locator('#f4c-carry-preview .mon').count()==5
+        carry=page.evaluate('''() => JSON.parse(localStorage.getItem(
+         'pokesleep-strategy-f4c-v112:carry:2026-11-16:manual%3A2026-11-16'))''')
+        assert carry['source']=='USER_CONFIRMED_PREVIOUS_SUNDAY' and len(carry['teamIds'])==5
+        assert carry['previousSunday']=='2026-11-15'
+        page.locator('#sleep-close').click()
         before=page.evaluate('(keys)=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]))',list(seed))
         page.locator('#e3-next').click()
         try:
@@ -96,6 +122,14 @@ try:
             raise AssertionError('F4-C v112 real propose unavailable: '+repr(detail)) from exc
         shown=page.locator('#review-slots').inner_text()
         assert 'サーナイト' in shown or 'ニンフィア' in shown,shown[:500]
+        # The actual individual detail uses the identical pinned F1-B engine as Box.
+        page.locator('#review-slots .avatar-tap').first.click()
+        page.wait_for_function("""() => [...document.querySelectorAll('#pokemon-base-rows .iv-key')]
+            .filter(e => ['おてつだい時間：','最大所持数：'].includes(e.textContent))
+            .length === 2 && [...document.querySelectorAll('#pokemon-base-rows .iv-key')]
+            .filter(e => ['おてつだい時間：','最大所持数：'].includes(e.textContent))
+            .every(e => !['—','算出中…','原典未確認'].includes(e.nextElementSibling?.textContent))""",timeout=15000)
+        page.locator('#pokemon-dialog').evaluate('(el)=>el.close()')
         mid=page.evaluate('(keys)=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]))',list(seed))
         assert mid==before,'Proposal should never write legacy E7 event/box/inventory'
         page.locator('#review-adopt').click()
@@ -109,6 +143,9 @@ try:
             keys:Object.keys(localStorage).filter(x=>x.startsWith('pokesleep-strategy-f4c-v112:'))};
         }''')
         assert saved['kind']=='REAL_BOX_PLAN_V112' and saved['slots']==29,saved
+        actual=page.evaluate('''() => JSON.parse(localStorage.getItem(
+         'pokesleep-strategy-f4c-v112:plan:2026-11-16:manual%3A2026-11-16'))''')
+        assert len(actual['slots'][0]['teamIds'])==5,'confirmed prior Sunday must not be discarded'
         after=page.evaluate('(keys)=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]))',list(seed))
         assert before==after,'Adoption must not mutate legacy mock plan or Box'
         page.reload(wait_until='domcontentloaded')

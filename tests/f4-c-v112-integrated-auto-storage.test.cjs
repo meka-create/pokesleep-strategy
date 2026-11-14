@@ -62,7 +62,7 @@ function fake(){
    const energy=1000*get(p).ratesByTeammateBonus[0].berryEnergyPerHelp+
     100*get(secondary).ratesByTeammateBonus[0].berryEnergyPerHelp;
    const slots=records.map((r,i)=>({
-    ...r,team:i===0?[]:r.slot==='sleep'?
+    ...r,team:i===0?(inp.previousWeekCarryUnknown?[]:inp.previousWeekSleepTeam):r.slot==='sleep'?
     inp.nightTeams[r.day]:r.slot==='morning'?
     ['p2','p3','p4',secondary,p]:['p2','p3','p4','p5',p],
     cookedRecipeId:r.slot==='sleep'?null:'recipe1',recipeId:r.slot==='sleep'?null:'recipe1'
@@ -143,4 +143,48 @@ test('adoption replaces pN refs with stable opaque IDs and validates owner/revis
  const changedBerry={...c,savedBerrySetup:{types:['grass','fire','normal']}};
  assert.equal(safe.readPlan(storage,changedBerry,identity,'a'.repeat(40),
   Array.from({length:78},(_,i)=>({id:'recipe'+i})),c.clock).status,'STALE_ADOPTED');
+});
+
+test('explicit user-confirmed Sunday lineup is pinned to real Box IDs and changes adopted-plan revision',()=>{
+ const c=getCtx(),{deps}=fake(),p=auto.propose(c,{},deps);
+ const map=new Map(Array.from({length:6},(_,i)=>[opaque(i),i]));
+ const identity={status:'IDENTITIES_READY',ids:[...map.keys()],byId:map,
+  digests:Array.from({length:6},(_,i)=>String(i).padStart(64,'0')),
+  boxRaw:'{"version":1,"items":[]}',ledgerRevision:'{"version":1}'};
+ const raw=new Map([['pokesleep-strategy-e7-box-v1',identity.boxRaw],
+  [safe.LEDGER,identity.ledgerRevision]]);
+ const storage={getItem:k=>raw.has(k)?raw.get(k):null,setItem:(k,v)=>raw.set(k,v)};
+ const recipes=Array.from({length:78},(_,i)=>({id:'recipe'+i}));
+ assert.equal(safe.adopt(storage,c,p,identity,'a'.repeat(40),recipes,c.clock).status,'ADOPTED');
+ assert.equal(safe.readCarry(storage,c,identity).status,'EMPTY');
+ assert.equal(safe.saveCarry(storage,c,identity,[0,2,3,4,5]).status,'CARRY_SAVED');
+ const confirmed=safe.readCarry(storage,c,identity);
+ assert.equal(confirmed.status,'CARRY_READY');
+ assert.deepEqual([...confirmed.team],[0,2,3,4,5]);
+ assert.equal(JSON.parse(storage.getItem(safe.key('carry',c.weekStart,c.eventId))).previousSunday,
+   '2026-11-15');
+ const changed={...c,previousCarryRevision:confirmed.revision};
+ assert.equal(safe.readPlan(storage,changed,identity,'a'.repeat(40),recipes,c.clock).status,
+  'STALE_ADOPTED');
+ const newProposal=auto.propose(changed,{previousWeekSleepIndices:confirmed.team},deps);
+ assert.equal(newProposal.status,'PROVISIONAL',newProposal.reason);
+ assert.equal(newProposal.previousWeekCarryUnknown,false);
+ assert.deepEqual(Array.from(newProposal.slots[0].team),['p0','p2','p3','p4','p5']);
+ const next=safe.adopt(storage,changed,newProposal,identity,'a'.repeat(40),recipes,c.clock);
+ assert.equal(next.status,'ADOPTED',next.reason);
+ assert.equal(next.slots[0].teamIds.length,5);
+ const other={...changed,eventId:'manual:2026-11-23'};
+ assert.equal(safe.readCarry(storage,other,identity).status,'EMPTY','event-owned data does not leak');
+ const corruptedRaw=JSON.parse(storage.getItem(safe.key('carry',c.weekStart,c.eventId)));
+ corruptedRaw.eventId='manual:other';
+ storage.setItem(safe.key('carry',c.weekStart,c.eventId),JSON.stringify(corruptedRaw));
+ assert.equal(safe.readCarry(storage,changed,identity).status,'BLOCKED');
+});
+test('real Strategy modal loads the same F1-B numerical source as Box, not placeholder values',()=>{
+ const html=fs.readFileSync(path.resolve(__dirname,'../e7-preview/U3_Strategy_UI_20261109_v50_E7.html'),'utf8');
+ const ui=fs.readFileSync(path.resolve(__dirname,'../e7-preview/e7-f4c-integrated-v112.js'),'utf8');
+ assert(html.includes('e7-box-individual-stats-v105.js'));
+ assert(ui.includes('root.PokeE7BoxStats?.calculate?.(item)'));
+ assert(ui.includes('eligibleIndices.has(i)'));
+ assert(ui.includes("store.readCarry(localStorage,c,refs)"));
 });
