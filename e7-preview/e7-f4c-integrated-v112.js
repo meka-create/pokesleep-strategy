@@ -16,7 +16,7 @@ const deps={scope:root.PokeE7InventoryScope,e1:root.PokeE7E1,
 let data=null,bound=null,modelPromise=null,plan=null,sleep=null,draft=null;
 let targetDay=0,reviewDay=0,sleepDay=0,editPicks=[],pending=false;
 let readToken=0,owner='',lastKey='',error='',sleepBusy=false,detailVersion=0;
-let eligibleIndices=new Set(),carryTeam=null,sleepViewCarry=false,editingCarry=false;
+let eligibleIndices=new Set(),carryTeam=null,sleepViewCarry=false,editingCarry=false,carryIssue='';
 const val=(storageKey)=>{try{return JSON.parse(localStorage.getItem(storageKey)||'null');}catch(_){return null;}};
 const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
 const instant=()=>{
@@ -181,7 +181,7 @@ function renderEffective(){
  if(data.clock?.phase==='ENDED'){card.hidden=true;return;}
  if(!card||!button)return;
  card.hidden=false;button.hidden=false;
- const can=data.status==='CONTEXT_READY'&&data.clock.phase==='BEFORE';
+ const can=data.status==='CONTEXT_READY'&&data.clock.phase==='BEFORE'&&!carryIssue;
  // Never bypass E7 condition validation when the player has unsaved edits.
  if(['SELECT_EVENT','SET_EVENT','SET_INVENTORY'].includes(button.dataset.action))return;
  button.textContent='作戦を提案';
@@ -212,7 +212,7 @@ async function synchronize(force=false){
  const id=++readToken,c=ctx(),sel=selected();
  if(c.status!=='CONTEXT_READY'){
   if(id!==readToken)return;
-  data=c;bound=null;plan=null;sleep=null;carryTeam=null;eligibleIndices=new Set();lastKey='';owner='';
+  data=c;bound=null;plan=null;sleep=null;carryTeam=null;carryIssue='';eligibleIndices=new Set();lastKey='';owner='';
   if(sel&&sel.id)error=c.message||'実ボックスの計算条件を確認してください。';
   renderEffective();return;
  }
@@ -239,11 +239,7 @@ async function synchronize(force=false){
    const nextEligible=new Set(eligibility.status==='READY'?
     eligibility.profiles.map(p=>Number(p.id.slice(1))):[]);
    const carried=store.readCarry(localStorage,c,refs);
-   if(carried.status==='BLOCKED'){
-    data=c;owner=newOwner;plan=null;bound=null;sleep=null;carryTeam=null;
-    eligibleIndices=new Set();error='前週日曜の個体照合に失敗しました：'+carried.reason;
-    renderEffective();return;
-   }
+   const nextCarryIssue=carried.status==='BLOCKED'?carried.reason:'';
    let adopted=store.readPlan(localStorage,c,refs,mods.snapshot.upstream.commit,
    deps.recipes,c.clock);
   const nights=store.readSleep(localStorage,c,refs);
@@ -256,11 +252,12 @@ async function synchronize(force=false){
   }
   if(id!==readToken)return;
   if(owner!==newOwner)draft=null;
-  owner=newOwner;data=c;bound=refs;eligibleIndices=nextEligible;
+  owner=newOwner;data=c;bound=refs;eligibleIndices=nextEligible;carryIssue=nextCarryIssue;
    carryTeam=carried.status==='CARRY_READY'?carried.team:null;
-  plan=['ADOPTED','STALE_ADOPTED'].includes(adopted.status)?adopted:null;
+  plan=!carryIssue&&['ADOPTED','STALE_ADOPTED'].includes(adopted.status)?adopted:null;
   sleep=nights.status==='SLEEP_READY'?nights.teams:Array.from({length:7},()=>null);
-  error=adopted.status==='BLOCKED'?
+  error=carryIssue?'前週日曜の個体照合に失敗しました。確定した5匹を再登録してください：'+carryIssue:
+    adopted.status==='BLOCKED'?
    '採用済み作戦は保存条件またはボックスが変更されたため保護しました。再提案が必要です。':
    carried.status==='CARRY_READY'&&carried.team.some(i=>!nextEligible.has(i))?
      '前週日曜の確定編成に未検証の個体が含まれています。対象個体5匹を再登録してください。':
@@ -272,13 +269,17 @@ async function synchronize(force=false){
   lastKey=key;renderEffective();
  }catch(_){
   if(id!==readToken)return;
-  data=c;bound=null;plan=null;carryTeam=null;eligibleIndices=new Set();error='計算原典またはボックス照合を確認できません。';
+  data=c;bound=null;plan=null;carryTeam=null;carryIssue='';eligibleIndices=new Set();error='計算原典またはボックス照合を確認できません。';
   renderEffective();
  }
 }
 function refresh(){void synchronize();}
 async function preflight(){
  const c=ctx();
+ if(carryIssue){
+  error='前週日曜の保存編成が照合できません。確定5匹を再登録してください。';
+  renderEffective();return null;
+ }
  if(c.status!=='CONTEXT_READY'){error=c.message||c.reason;renderEffective();return null;}
  if(c.clock.phase!=='BEFORE'){error='開始済み週の再提案はF5で対応します。';renderEffective();return null;}
  await synchronize(true);
