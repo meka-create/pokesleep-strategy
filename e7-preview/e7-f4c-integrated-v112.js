@@ -379,7 +379,8 @@ const hijack=(id,fn,condition=()=>true)=>q(id)?.addEventListener('click',e=>{
 // Keep E7's approved event-selection and event-save clicks untouched.
 hijack('e3-next',async()=>{
  const action=q('e3-next')?.dataset.action;
- if(action==='F4C_PROPOSE'&&data?.status==='CONTEXT_READY')return propose();
+ if(['F4C_PROPOSE','F4C_REPROPOSE'].includes(action)&&
+    data?.status==='CONTEXT_READY')return propose();
  // A selected event with missing Box/player/inventory must NEVER silently
  // fall back to the illustrative E7 mock proposal.
  error=data?.message||data?.reason||
