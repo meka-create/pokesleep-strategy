@@ -11,6 +11,8 @@
   exactCore:window.PokeF4BChronologicalCore,
   stateReplay:window.PokeF4CWindowReplay,
   stateKernel:window.PokeF4CStateKernel,
+  healerPolicy:window.PokeF4CHealerPolicy,
+  healerSearch:window.PokeF4CHealerSearch,
   roster:window.PokeF4F1RosterAdapter,
   legal:window.PokeF1LegalBuild,rates:window.PokeF1BaseRates,
   master:window.PokeMaster,recipes:window.PokeRecipes};
