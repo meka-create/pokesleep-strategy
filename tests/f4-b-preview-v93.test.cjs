@@ -11,7 +11,8 @@ test('F4-B v93 isolated UI loads all verified local sources and preserves E7 sto
   '../f4/f4-f1b-roster-adapter-v1.js','../f4/f4-b-game-week-v1.js',
   '../f4/f4-b-chronological-v2.js','../f4/f4-b-e7-readonly-v1.js',
   '../f4/f4-event-model-gate-v1.js','../f4/f4-c-official-rules-v1.js',
-  '../f4/f4-c-state-kernel-v1.js','f4-b-ui-v93.js'];
+  '../f4/f4-c-state-kernel-v1.js','../f4/f4-c-window-replay-v1.js',
+  'f4-b-ui-v93.js'];
  assert.deepEqual(assets,expected);
  for(const asset of assets)
   assert(fs.existsSync(path.resolve(root,'f4b-preview',asset)),asset);
