@@ -140,8 +140,11 @@
      a.signature.localeCompare(b.signature));
     const picked=[],seen=new Set();
     for(const s of states){
-     const key=s.lastTeam.join('|')+'|'+s.meals+'|'+foods.filter(k=>
-      s.inventory[k]>0).map(k=>k+Math.floor(s.inventory[k]/5)).join(';');
+     // Normal v100 de-duplicates coarse stock states. Reranking needs
+     // distinct paths even if their last 5 Pokemon and stock bins match.
+     const key=maxFinalists>1?s.signature:
+      s.lastTeam.join('|')+'|'+s.meals+'|'+foods.filter(k=>
+       s.inventory[k]>0).map(k=>k+Math.floor(s.inventory[k]/5)).join(';');
      if(seen.has(key))continue;
      seen.add(key);picked.push(s);
      if(picked.length>=beamWidth)break;
