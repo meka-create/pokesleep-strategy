@@ -1,7 +1,7 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const load=p=>{const sandbox={module:{exports:{}},globalThis:{}};
+const load=p=>{const sandbox={module:{exports:{}},globalThis:{},TextEncoder};
  vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'..',p),'utf8'),sandbox,{filename:p,timeout:15000});
  return sandbox.module.exports;};
 const auto=load('f4/f4-c-auto-v112.js');
