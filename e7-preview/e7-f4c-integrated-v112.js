@@ -17,6 +17,7 @@ let data=null,bound=null,modelPromise=null,plan=null,sleep=null,draft=null;
 let targetDay=0,reviewDay=0,sleepDay=0,editPicks=[],pending=false;
 let readToken=0,owner='',lastKey='',error='',sleepBusy=false,detailVersion=0;
 let eligibleIndices=new Set(),carryTeam=null,sleepViewCarry=false,editingCarry=false,carryIssue='';
+let collapsedRealEvent='';
 const val=(storageKey)=>{try{return JSON.parse(localStorage.getItem(storageKey)||'null');}catch(_){return null;}};
 const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
 const instant=()=>{
@@ -146,7 +147,14 @@ function drawReview(){
 function drawAdopted(){
  if(!['ADOPTED','STALE_ADOPTED'].includes(plan?.status))return;
  const stale=plan.status==='STALE_ADOPTED';
+ // Real adoption is the sole rendered source. Preserve E7's compact
+ // collapsed-event card; do not reopen it on every legacy render.
+ const main=doc.querySelector('main'),details=q('event-details');
+ if(main)main.dataset.hasProposed='true';
+ if(details&&collapsedRealEvent!==owner){details.open=false;collapsedRealEvent=owner;}
  q('week-content').hidden=false;
+ const stockLink=q('e3-update-stock');
+ if(stockLink)stockLink.hidden=data?.clock?.phase!=='DURING';
  const button=q('e3-next'),card=q('e3-primary');
  card.hidden=!stale;button.hidden=!stale;
  if(stale){
@@ -155,7 +163,7 @@ function drawAdopted(){
   flash(data?.clock?.phase==='BEFORE'?
    '以前の作戦を保持しています。変更した条件・在庫を反映するには再提案してください。':
    '以前の作戦を保持しています。週途中の再提案はF5工程で対応します。');
- }else flash('');
+ }else flash(error,Boolean(error));
  const footer=q('e6-footer-plan');
  if(footer)footer.dataset.reproposal=String(stale);
  q('current-state-title').textContent='週間編成';
