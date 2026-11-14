@@ -16,6 +16,7 @@ const deps={scope:root.PokeE7InventoryScope,e1:root.PokeE7E1,
 let data=null,bound=null,modelPromise=null,plan=null,sleep=null,draft=null;
 let targetDay=0,reviewDay=0,sleepDay=0,editPicks=[],pending=false;
 let readToken=0,owner='',lastKey='',error='',sleepBusy=false,detailVersion=0;
+let eligibleIndices=new Set();
 const val=(storageKey)=>{try{return JSON.parse(localStorage.getItem(storageKey)||'null');}catch(_){return null;}};
 const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
 const instant=()=>{
@@ -200,7 +201,7 @@ async function synchronize(force=false){
  const id=++readToken,c=ctx(),sel=selected();
  if(c.status!=='CONTEXT_READY'){
   if(id!==readToken)return;
-  data=c;bound=null;plan=null;sleep=null;lastKey='';owner='';
+  data=c;bound=null;plan=null;sleep=null;eligibleIndices=new Set();lastKey='';owner='';
   if(sel&&sel.id)error=c.message||'実ボックスの計算条件を確認してください。';
   renderEffective();return;
  }
@@ -215,10 +216,18 @@ async function synchronize(force=false){
   });
   if(id!==readToken)return;
   if(refs.status!=='IDENTITIES_READY'){
-   data=c;owner=newOwner;plan=null;bound=null;sleep=null;error=refs.reason;
+   data=c;owner=newOwner;plan=null;bound=null;sleep=null;eligibleIndices=new Set();error=refs.reason;
    renderEffective();return;
   }
-  let adopted=store.readPlan(localStorage,c,refs,mods.snapshot.upstream.commit,
+  // A stable Box ID proves identity, NOT F1 legality or numerical support.
+   // Use the exact F1-B adapter used by the proposal engine.
+   const eligibility=deps.roster.adapt({items:c.privateBoxRows,
+    camp:c.fields.camp,fieldBonus:c.player?.bonuses?.[c.fields.field],
+    favoriteTypes:[]},{snapshot:mods.snapshot,traits:mods.traits,
+    legal:deps.legal,rates:deps.rates,master:deps.master});
+   const nextEligible=new Set(eligibility.status==='READY'?
+    eligibility.profiles.map(p=>Number(p.id.slice(1))):[]);
+   let adopted=store.readPlan(localStorage,c,refs,mods.snapshot.upstream.commit,
    deps.recipes,c.clock);
   const nights=store.readSleep(localStorage,c,refs);
   // Explicit manual night changes invalidate a formerly adopted plan.
@@ -230,16 +239,20 @@ async function synchronize(force=false){
   }
   if(id!==readToken)return;
   if(owner!==newOwner)draft=null;
-  owner=newOwner;data=c;bound=refs;
+  owner=newOwner;data=c;bound=refs;eligibleIndices=nextEligible;
   plan=['ADOPTED','STALE_ADOPTED'].includes(adopted.status)?adopted:null;
   sleep=nights.status==='SLEEP_READY'?nights.teams:Array.from({length:7},()=>null);
   error=adopted.status==='BLOCKED'?
    '採用済み作戦は保存条件またはボックスが変更されたため保護しました。再提案が必要です。':
-   nights.status==='BLOCKED'?'睡眠編成の実個体照合に失敗しました。':'';
+   nights.status==='BLOCKED'?'睡眠編成の実個体照合に失敗しました。':
+    nights.status==='SLEEP_READY'&&nights.teams.some(team=>
+     team&&team.some(i=>!nextEligible.has(i)))?
+     '睡眠編成にF1計算対象外または未検証の個体があります。合法個体5匹で再設定してください。':
+    eligibility.status!=='READY'?'睡眠編成用の合法個体判定ができません：'+eligibility.reason:'';
   lastKey=key;renderEffective();
  }catch(_){
   if(id!==readToken)return;
-  data=c;bound=null;plan=null;error='計算原典またはボックス照合を確認できません。';
+  data=c;bound=null;plan=null;eligibleIndices=new Set();error='計算原典またはボックス照合を確認できません。';
   renderEffective();
  }
 }
@@ -325,9 +338,8 @@ function drawEditor(){
  const grid=q('pick-grid');grid.replaceChildren();
  q('select-count').textContent=editPicks.length+' / 5';
  q('edit-save').disabled=editPicks.length!==5;
- const eligible=new Set((root.PokeF4CAutoV112?bound?.ids:[]));
  for(let i=0;i<data.privateBoxRows.length;i++){
-  if(!eligible.has(bound.ids[i]))continue;
+  if(!eligibleIndices.has(i))continue;
   const item=itemAt(i),on=editPicks.includes(i),entry=textNode('div',undefined,'pick');
   entry.dataset.selected=String(on);
   const pic=textNode('button',undefined,'pick-status sprite-stage');
@@ -349,14 +361,22 @@ function drawEditor(){
   entry.append(pic,choose);grid.append(entry);
  }
  root.PokeSprite?.enhance(grid);
+ if(!eligibleIndices.size){
+  const notice=textNode('p','F1計算対象となる合法個体を確認できません。イベント条件・プレイヤー情報・ボックスを確認してください。','hint');
+  grid.append(notice);
+ }
 }
 function beginEdit(){
- editPicks=sleep?.[sleepDay]?[...sleep[sleepDay]]:[];
+ editPicks=sleep?.[sleepDay]?sleep[sleepDay].filter(i=>eligibleIndices.has(i)):[];
  q('edit-title').textContent=DAYS[sleepDay]+'曜日 · 睡眠編成';
  drawEditor();q('edit-dialog').showModal();
 }
 function saveNight(teams){
  const c=ctx();
+ if(!Array.isArray(teams)||teams.some(team=>
+  team&&team.some(i=>!eligibleIndices.has(i)))){
+  error='F1計算対象外の個体を睡眠編成へ保存できません。';renderEffective();return false;
+ }
  if(c.status!=='CONTEXT_READY'||c.eventId!==data?.eventId||
   !bound)return false;
  const saved=store.saveSleep(localStorage,c,bound,teams);
