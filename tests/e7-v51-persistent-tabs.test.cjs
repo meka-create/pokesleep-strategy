@@ -8,7 +8,7 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 // v110 F4-C real Box read-only proposal is the only U3 audited addition; U2/Box unchanged.
-const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', 'c983f1024b7b725d757211b94f493434eb3b9d56', '6775191ee025b2c370e33420df60fe405375c7b9'];
+const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', '94cfc0e0c1583c3ec2655ff8b7804bd3e200b2c0', '6775191ee025b2c370e33420df60fe405375c7b9'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
@@ -48,7 +48,7 @@ test('E7 v51 architecture: one persistent frame per tab, one common footer',()=>
  assert.doesNotMatch(html,/frame\.src=buildUrl\(tab\)/);
  for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);
 });
-test('E7 v110 pins reviewed U2, F4-C U3 and updated Box source',()=>{
+test('E7 v112 pins accepted U2 and Box, integrated F4-C U3',()=>{
  for(let i=0;i<names.length;i++){
   const s=read(names[i]);
   assert.ok(s.includes('<script src="e7-unified-bridge-v51.js"></script>'));

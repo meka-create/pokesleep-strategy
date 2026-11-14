@@ -48,7 +48,7 @@
    const foods=deps.base.FOOD,byId=new Map(profiles.map(p=>[p.id,p]));
    const verified=ids=>Array.isArray(ids)&&ids.length===5&&
     new Set(ids).size===5&&ids.every(id=>byId.has(id));
-   if(!verified(input.previousWeekSleepTeam)||
+   if((input.previousWeekCarryUnknown===true?!(Array.isArray(input.previousWeekSleepTeam)&&input.previousWeekSleepTeam.length===0):!verified(input.previousWeekSleepTeam))||
     !Array.isArray(input.nightTeams)||input.nightTeams.length!==7||
     input.nightTeams.some(t=>!verified(t)))
     return blocked('REAL_MANUAL_SLEEP_TEAMS_REQUIRED');
@@ -153,8 +153,9 @@
    }
    for(const w of clock.windows){
     const sleep=w.slot==='sleep';
+    // Unknown historical team: explicitly EMPTY carry, never invented.
     const fixed=w.source==='PREVIOUS_WEEK_SLEEP'?
-     [input.previousWeekSleepTeam]:sleep?
+     [input.previousWeekCarryUnknown===true?[]:input.previousWeekSleepTeam]:sleep?
      [input.nightTeams[w.day]]:favorites.get(w.slot);
     const pot=Math.round(input.potCapacity*(w.day===6?2:1)*
      (input.camp?1.5:1));
@@ -220,6 +221,7 @@
        startsAt:w.startsAt,endsAt:w.endsAt,
        team:[...w.team],recipeId:w.recipeId}))
      }))}:{}),
+    previousWeekCarryUnknown:input.previousWeekCarryUnknown===true,
     healthRecoveredActual:false,skillTriggersModeled:false,
     itemCollectionScheduleModeled:false,
     weeklyEnergyCertified:false,writesSavedData:false,

@@ -167,8 +167,8 @@
      const w=timeline.windows[i],s=path.slots[i];
      if(w.day!==s?.day||w.slot!==s?.slot||w.source!==s?.source||
       w.startsAt!==s?.startsAt||w.endsAt!==s?.endsAt||
-      !Array.isArray(s.team)||s.team.length!==5||
-      new Set(s.team).size!==5||s.team.some(id=>!source.has(id))||
+      !Array.isArray(s.team)||(input.previousWeekCarryUnknown===true&&w.source==='PREVIOUS_WEEK_SLEEP'&&s.team.length===0?false:s.team.length!==5)||
+      (input.previousWeekCarryUnknown===true&&w.source==='PREVIOUS_WEEK_SLEEP'&&s.team.length===0?false:new Set(s.team).size!==5)||s.team.some(id=>!source.has(id))||
       (w.slot==='sleep'&&s.recipeId!==null))
       return fail('PATH_MISMATCH');
      const tap=SLOTS.includes(w.slot);
@@ -353,6 +353,7 @@
      explicitCookingSkillCastsAreObserved:false,
      greedyRecipeChoiceIsGlobalOptimum:false,
      stochasticFoodDrawsExact:false}:{}),
+    previousWeekCarryUnknown:input.previousWeekCarryUnknown===true,
     healthRecoveredActual:false,
     exactDiscreteProbabilityModeled:false,
     cookingBaseCriticalChanceUnverified:true,

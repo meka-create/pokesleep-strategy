@@ -89,28 +89,24 @@ try:
         plan=tab('plan')
         assert get_marker('plan')=='keep-plan','plan was unnecessarily reconstructed after stock update'
         assert page.locator('#tab-plan').get_attribute('aria-current')=='page'
+        # F4-C integrated: an event without a real Box/player must never
+        # offer or silently adopt the former illustrative 5-Pokemon mock.
         plan.locator('#e3-next').click()
-        assert plan.locator('#review-dialog').evaluate('(e)=>e.open')
-        plan.locator('#review-adopt').click()
+        assert not plan.locator('#review-dialog').evaluate('(e)=>e.open')
+        old=page.evaluate("""()=>{
+          return JSON.parse(localStorage.getItem(
+           'pokesleep-strategy-u3-e3-v1:2026-11-09:manual%3A2026-11-09:plan')||'null')
+        }""")
+        assert old and old.get('hasApplied') is False
         prep=tab('prep')
-        assert get_marker('prep')=='keep-prep','prep was unnecessarily reconstructed after proposal save'
+        assert get_marker('prep')=='keep-prep','prep was unnecessarily reconstructed after failed proposal'
         prep.locator('#btn-inventory').click()
         prep.locator('#inventory-panel [data-key]').first.fill('14')
         prep.locator('#save-inventory').click()
-        page.wait_for_function(
-            "()=>document.getElementById('tab-plan').dataset.reproposal==='true'",
-            timeout=12000)
         plan=tab('plan')
         assert get_marker('plan')=='keep-plan'
-        page.wait_for_function("""()=>{
-            const f=document.getElementById('view-plan');
-            return f.contentDocument?.getElementById('e3-next')?.innerText==='作戦を再提案';
-        }""",timeout=15000)
-        plan.locator('#e3-next').click()
-        plan.locator('#review-adopt').click()
-        page.wait_for_function(
-            "()=>document.getElementById('tab-plan').dataset.reproposal==='false'",
-            timeout=12000)
+        assert not plan.locator('#review-dialog').evaluate('(e)=>e.open')
+        assert page.locator('#tab-plan').get_attribute('aria-current')=='page'
 
         box=tab('box')
         assert box.locator('#e6-footer').is_hidden()

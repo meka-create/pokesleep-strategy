@@ -1,5 +1,5 @@
 /* E7 v50 preview-only offline cache / persistent v52 tabs; this is NOT the production root service worker. */
-const CACHE='pokesleep-strategy-e7-v84-shared-e1-footer-20261113-v86-f2-event-catalog-20261113-v88-f3-prep-20261113-v89-f3-b-20261113-v90-f4-audit-20261113-v105-box-detail-20261114-v110-box-proposal-20261114';
+const CACHE='pokesleep-strategy-e7-v84-shared-e1-footer-20261113-v86-f2-event-catalog-20261113-v88-f3-prep-20261113-v89-f3-b-20261113-v90-f4-audit-20261113-v105-box-detail-20261114-v110-box-proposal-20261114-v112-integrated-real-plan-20261114-v113-stale-dot-20261115';
 const IMAGE_FILES=Array.from({length:19},(_,i)=>
  'assets/ingredients/ingredient-'+String(i+1).padStart(2,'0')+'.png');
 const imageUrls=new Set(IMAGE_FILES.map(x=>new URL(x,self.registration.scope).href));
@@ -22,7 +22,8 @@ const FILES=[
  '../f4/f4-b-game-week-v1.js','../f4/f4-b-e7-readonly-v1.js',
  '../f4/f4-c-healer-policy-v100.js','../f4/f4-c-healer-search-v100.js',
  '../f1/f1-c-skill-values-v1.js','../f4/f4-c-item-aware-rank-v101.js',
- '../f4/f4-c-baseline-proposal-v110.js','e7-f4c-baseline-v110.js',
+ '../f4/f4-c-stable-box-ids-v1.js','../f4/f4-c-auto-v112.js',
+ '../f4/f4-c-real-storage-v112.js','e7-f4c-integrated-v112.js',
  'e7-box-csv-v50.js','e7-ingredient-quantities-v79.js','e7-species-v59.js','e7-sprites-v59.js','e7-pokemon-detail-shared-v81.js','e7-pokemon-detail-shared-v81.css','e7-box-individual-stats-v105.js','e7-box-detail-v60.js','e7-box-detail-v60.css','e7-unified-bridge-v51.js','icons/apple-touch-icon.png','icons/favicon-16.png','icons/favicon-32.png','icons/favicon.ico','icons/icon-192.png','icons/icon-512.png','icons/icon-header-96.png','icons/icon-maskable-192.png','icons/icon-maskable-512.png','e7-settings-v56.js','e7-settings-v56.css',
  'e7-manifest-v50.webmanifest','e7-icon-v50.svg',
  ...IMAGE_FILES
