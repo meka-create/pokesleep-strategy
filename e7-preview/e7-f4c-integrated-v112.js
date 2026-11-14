@@ -143,6 +143,8 @@ function renderEffective(){
  if(!card||!button)return;
  card.hidden=false;button.hidden=false;
  const can=data.status==='CONTEXT_READY'&&data.clock.phase==='BEFORE';
+ // Never bypass E7 condition validation when the player has unsaved edits.
+ if(['SELECT_EVENT','SET_EVENT','SET_INVENTORY'].includes(button.dataset.action))return;
  button.textContent='作戦を提案';
  button.dataset.action='F4C_PROPOSE';
  button.disabled=!can||pending;
@@ -188,9 +190,16 @@ async function synchronize(force=false){
    data=c;owner=newOwner;plan=null;bound=null;sleep=null;error=refs.reason;
    renderEffective();return;
   }
-  const adopted=store.readPlan(localStorage,c,refs,mods.snapshot.upstream.commit,
+  let adopted=store.readPlan(localStorage,c,refs,mods.snapshot.upstream.commit,
    deps.recipes,c.clock);
   const nights=store.readSleep(localStorage,c,refs);
+  // Explicit manual night changes invalidate a formerly adopted plan.
+  if(adopted.status==='ADOPTED'&&!c.autoSleep){
+   const saved=nights.status==='SLEEP_READY'?nights.teams:null;
+   if(!saved||adopted.slots.some(w=>w.slot==='sleep'&&w.day>=0&&
+    (!saved[w.day]||w.teamIndices.join('|')!==saved[w.day].join('|'))))
+    adopted={status:'BLOCKED',reason:'MANUAL_SLEEP_CHANGED'};
+  }
   if(id!==readToken)return;
   if(owner!==newOwner)draft=null;
   owner=newOwner;data=c;bound=refs;

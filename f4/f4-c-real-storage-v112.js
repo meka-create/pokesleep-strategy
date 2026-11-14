@@ -153,6 +153,7 @@
    const p=r.value;
    if(!planShape(p)||p.weekStart!==ctx.weekStart||p.eventId!==ctx.eventId)
     return fail('STORED_PLAN_INVALID_OR_FOREIGN');
+   if(p.autoSleep!==ctx.autoSleep)return fail('SAVED_SLEEP_MODE_CHANGED');
    if(p.conditionRevision!==ctx.conditionRevision||
     p.inventoryRevision!==ctx.inventoryRevision||
     p.sourceCommit!==sourceCommit)return fail('SAVED_PLAN_INPUTS_CHANGED');
