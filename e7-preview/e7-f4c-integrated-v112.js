@@ -362,16 +362,27 @@ const hijack=(id,fn,condition=()=>true)=>q(id)?.addEventListener('click',e=>{
  void fn();
 },true);
 // Keep E7's approved event-selection and event-save clicks untouched.
-hijack('e3-next',propose,()=>q('e3-next').dataset.action==='F4C_PROPOSE'&&
- !q('e3-next').disabled);
+hijack('e3-next',async()=>{
+ const action=q('e3-next')?.dataset.action;
+ if(action==='F4C_PROPOSE'&&data?.status==='CONTEXT_READY')return propose();
+ // A selected event with missing Box/player/inventory must NEVER silently
+ // fall back to the illustrative E7 mock proposal.
+ error=data?.message||data?.reason||
+  '実ボックスとイベント条件を登録してから作戦を提案してください。';
+ flash(error,true);
+},()=>['F4C_PROPOSE','PROPOSE','REPROPOSE','RESUME_DRAFT']
+ .includes(q('e3-next')?.dataset.action));
 hijack('generate',propose);
 hijack('review-adopt',adopt);
 hijack('review-close',()=>{draft=null;q('review-dialog').close();});
 hijack('review-cancel',()=>{draft=null;q('review-dialog').close();});
-hijack('sleep-open',openSleep);
-hijack('sleep-change',beginEdit);
-hijack('sleep-copy',copyNights);
-hijack('edit-save',saveEdit);
+// Preserve the accepted E7 sleeping interface while no real Box is loaded.
+// Once a legal real Box is ready, use the exact same existing modal controls.
+const realReady=()=>data?.status==='CONTEXT_READY'&&!!bound;
+hijack('sleep-open',openSleep,realReady);
+hijack('sleep-change',beginEdit,realReady);
+hijack('sleep-copy',copyNights,realReady);
+hijack('edit-save',saveEdit,realReady);
 const realDrop=q('review-dialog');
 if(realDrop)realDrop.addEventListener('close',()=>{
  if(!plan||plan.status!=='ADOPTED')draft=null;
