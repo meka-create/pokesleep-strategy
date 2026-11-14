@@ -79,12 +79,23 @@ try:
         page.goto(BASE,wait_until='domcontentloaded')
         page.evaluate('(data)=>{for(const [key,val] of Object.entries(data))localStorage.setItem(key,val)}',seed)
         page.reload(wait_until='domcontentloaded')
-        page.locator('#e3-next[data-action="F4C_PROPOSE"]:not([disabled])').wait_for(state='visible',timeout=30000)
+        # The prior Sunday registration is only offered after secure real-Box
+        # identity and verified computation inputs are both ready.
+        try:
+            page.locator('#f4c-carry-trigger').wait_for(state='visible',timeout=20000)
+        except Exception as exc:
+            detail={
+              'integrated':page.evaluate('''() => window.PokeF4CIntegratedUI?.status?.()'''),
+              'warning':page.locator('#e3-warning').text_content(),
+              'action':page.locator('#e3-next').get_attribute('data-action'),
+              'errors':errors[-6:]
+            }
+            raise AssertionError('Confirmed carry controls not ready: '+repr(detail)) from exc
+        page.locator('#e3-next[data-action="F4C_PROPOSE"]:not([disabled])').wait_for(state='visible',timeout=20000)
         assert page.locator('#f4c-real-card').count()==0
         assert page.locator('#f4c-real-consent').count()==0
         # A human explicitly confirms actual previous Sunday sleeping five.
         # The old accepted PLAN by itself must never populate this record.
-        page.locator('#f4c-carry-trigger').wait_for(state='visible')
         page.locator('#f4c-carry-trigger').click()
         page.locator('#f4c-carry-edit').click()
         for _ in range(5):
