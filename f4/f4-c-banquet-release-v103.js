@@ -49,6 +49,7 @@
   return Object.values(requirements).every(n=>integer(n,1,999));
  };
  const signature=r=>JSON.stringify([r.id,r.type,r.name,r.baseStrength,
+  r.strength70??null,
   Object.entries(r.requirements).sort((a,b)=>a[0].localeCompare(b[0]))]);
  const cleanRecipe=(r,allowed)=>plain(r)&&
   typeof r.id==='string'&&/^[a-z][a-z0-9_]{1,79}$/.test(r.id)&&
@@ -153,6 +154,8 @@
   const t=input.timeline,week=input.weekStart,eventId=input.eventId;
   if(!plain(t)||t.version!==2||typeof week!=='string'||
    !/^\d{4}-\d\d-\d\d$/.test(week)||
+   !Number.isFinite(Date.parse(week+'T12:00:00Z'))||
+   new Date(week+'T12:00:00Z').toISOString().slice(0,10)!==week||
    new Date(week+'T12:00:00Z').getUTCDay()!==1||
    t.weekStart!==week||t.eventId!==eventId||
    typeof eventId!=='string'||!eventId.trim()||eventId.length>160||
@@ -190,6 +193,12 @@
   if(t.preparationLatest&&JSON.stringify(t.preparationLatest)!==
    JSON.stringify(t.startInventory))
    return blocked('INVENTORY_BASELINE_CONFLICT');
+  const startMs=Date.parse(week+'T04:00:00+09:00');
+  if((t.preparationLatest&&Date.parse(t.preparationLatest.savedAt)>=startMs)||
+   (t.startInventory&&Date.parse(t.startInventory.savedAt)>=startMs)||
+   (t.preparationLatest&&Date.parse(t.currentInventory.savedAt)<
+    Date.parse(t.preparationLatest.savedAt)))
+   return blocked('INVENTORY_TIMELINE_CHRONOLOGY_INVALID');
   if(oldStatus.currentInventory===20&&
    (oldStatus.preparationLatest===19||oldStatus.startInventory===19))
    return blocked('MIXED_FOOD_TIMELINE_UNSAFE');
