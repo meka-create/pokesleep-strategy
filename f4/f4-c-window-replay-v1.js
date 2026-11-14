@@ -2,7 +2,7 @@
  * Does not assert a re-optimized weekly plan, real RNG, unobserved taps,
  * sleep behavior, main skill triggers, or a verified event simulation.
  * Item provenance at 04:00 keeps pre-week berries out of this week's proxy.
- * No I/O, storage, logs, private rows or nicknames. Fail closed.
+ * No I/O, storage, logs, or personal row fields. Fail closed.
  */
 (function(root,factory){
  'use strict';
