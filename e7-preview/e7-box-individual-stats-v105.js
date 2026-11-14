@@ -1,6 +1,8 @@
 /* E7 v105: read-only display values; pinned F1-B source and model.
    Individual values assume zero energy, no camp, no teammate bonuses.
-   Carry uses a standard species evolution-count assumption (not CSV history). */
+   Carry uses the current species/form baseline. The pinned upstream carries
+   pre-v2.9.0 values, so their +5 per species evolution STAGE is a static
+   source-version normalization, not a specimen's actual evolution history. */
 (function(root){'use strict';
 const FILES=['../f1/f1-b-target-source-v1.json','../f1/f1-b-help-traits-v1.json'];
 let loading=null;
@@ -37,8 +39,17 @@ async function calculate(item){
   // Missing mint, ribbon, or other required CSV facts must never be guessed.
   // Show species-only primitives with an explicit distinct label instead.
   const p=target.sourceProfile;
+  // Source data is pinned to the older per-form baseline: for example
+  // Blastoise 17 -> current 27, Raichu 21 -> current 31 (Ver.2.9.0).
+  // This is invariant across direct capture / evolution of the SAME form.
+  const sourceTrait=traits.traits.find(t=>t.name===name);
+  if(!sourceTrait||!Number.isSafeInteger(sourceTrait.evolutionCount)||
+     !Number.isSafeInteger(p.carryLimit)||p.carryLimit<=0)
+   return {helpTime:duration(p.frequency)+'（種族基礎）',
+    carry:'原典未確認',state:'CARRY_SOURCE_UNAVAILABLE'};
+  const speciesBaseCarry=p.carryLimit+5*Math.max(0,sourceTrait.evolutionCount);
   return {helpTime:duration(p.frequency)+'（種族基礎）',
-   carry:String(p.carryLimit)+'（種族基礎）',state:'SPECIES_BASE_ONLY'};
+   carry:String(speciesBaseCarry)+'（種族基礎）',state:'SPECIES_BASE_ONLY'};
  }catch(error){return {helpTime:'原典未確認',carry:'原典未確認',state:'SOURCE_UNAVAILABLE'};}
 }
 root.PokeE7BoxStats=Object.freeze({calculate,duration});

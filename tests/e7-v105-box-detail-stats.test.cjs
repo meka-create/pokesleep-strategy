@@ -47,7 +47,31 @@ test('v105 real F1-B 60-level Blastoise, incomplete CSV and out-of-scope cases',
  assert.equal(actual.carry,String(expected.carryLimit)+'（参考）');
  assert.equal(actual.helpTime,sandbox.window.PokeE7BoxStats.duration(expected.referenceHelpSeconds)+'（参考）');
  const missing=await sandbox.window.PokeE7BoxStats.calculate({...row,mint:null,ribbon:null});
- assert.equal(missing.state,'SPECIES_BASE_ONLY');assert.equal(missing.carry,'17（種族基礎）');
+ assert.equal(missing.state,'SPECIES_BASE_ONLY');assert.equal(missing.carry,'27（種族基礎）');
  const unknown=await sandbox.window.PokeE7BoxStats.calculate({...row,pokemon:'未対象フォーム'});
  assert.equal(unknown.state,'OUT_OF_SCOPE');
+});
+
+// Ver.2.9.0: catching a final evolution directly has the same species carry
+// baseline as evolving it from an earlier stage. No personal capture history.
+test('v106 current species carry baseline is stable across acquisition histories',async()=>{
+ const snapshot=require('../f1/f1-b-target-source-v1.json');
+ const traits=require('../f1/f1-b-help-traits-v1.json');
+ const load=relative=>{
+  const context={module:{exports:{}},globalThis:{},
+   require:dep=>dep==='./f1-b-legal-build-v2.js'?load('f1/f1-b-legal-build-v2.js'):
+    (()=>{throw Error('Unexpected dependency '+dep);})()};
+  vm.runInNewContext(read(relative),context);return context.module.exports;
+ };
+ const sandbox={window:{PokeF1LegalBuild:load('f1/f1-b-legal-build-v2.js'),
+  PokeF1BaseRates:load('f1/f1-b-base-rates-v1.js'),
+  fetch:async url=>({ok:true,json:async()=>url.includes('target-source')?snapshot:traits})}};
+ vm.runInNewContext(js,sandbox);
+ for(const [name,expected] of [['カメックス',27],['ライチュウ',31]]){
+  const base={pokemon:name,level:60,skillLevel:3,mint:null,ribbon:null};
+  const evolved=await sandbox.window.PokeE7BoxStats.calculate({...base,originalEncounter:'base',actualEvolutions:2});
+  const caught=await sandbox.window.PokeE7BoxStats.calculate({...base,originalEncounter:'final',actualEvolutions:0});
+  assert.equal(evolved.carry,expected+'（種族基礎）');
+  assert.equal(caught.carry,evolved.carry,'acquisition history must not change carry');
+ }
 });
