@@ -189,7 +189,7 @@ function renderEffective(){
  if(data.clock?.phase==='ENDED'){card.hidden=true;return;}
  if(!card||!button)return;
  card.hidden=false;button.hidden=false;
- const can=data.status==='CONTEXT_READY'&&data.clock.phase==='BEFORE'&&!carryIssue;
+ const can=data.status==='CONTEXT_READY'&&data.clock.phase==='BEFORE'&&!!bound&&!carryIssue;
  // Never bypass E7 condition validation when the player has unsaved edits.
  if(['SELECT_EVENT','SET_EVENT','SET_INVENTORY'].includes(button.dataset.action))return;
  button.textContent='作戦を提案';
@@ -521,7 +521,10 @@ doc.addEventListener('click',e=>{
 },false);
 root.addEventListener('storage',refresh);
 root.addEventListener('pageshow',refresh);
-root.PokeF4CIntegratedUI=Object.freeze({refresh,isAdopted:(e)=>
+root.PokeF4CIntegratedUI=Object.freeze({refresh,
+ status:()=>({context:data?.status||'NONE',identityReady:!!bound,
+  eligibleCount:eligibleIndices.size,problem:error||'',carryIssue:carryIssue||''}),
+ isAdopted:(e)=>
  !!plan&&['ADOPTED','STALE_ADOPTED'].includes(plan.status)&&
  e?.weekStart===data?.weekStart&&e?.id===data?.eventId});
 void synchronize(true);
