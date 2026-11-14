@@ -14,6 +14,7 @@
   healerPolicy:window.PokeF4CHealerPolicy,
   healerSearch:window.PokeF4CHealerSearch,
   itemRank:window.PokeF4CItemAwareRank,
+  cookingSkills:window.PokeF4CCookingSkillState,
   skillValues:window.PokeF1SkillValues,
   roster:window.PokeF4F1RosterAdapter,
   legal:window.PokeF1LegalBuild,rates:window.PokeF1BaseRates,
