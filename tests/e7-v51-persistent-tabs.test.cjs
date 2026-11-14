@@ -8,7 +8,7 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 // v110 F4-C real Box read-only proposal is the only U3 audited addition; U2/Box unchanged.
-const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', '99b6bb9983c288d483fad66de0514c42c2bac02f', '6775191ee025b2c370e33420df60fe405375c7b9'];
+const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', 'c983f1024b7b725d757211b94f493434eb3b9d56', '6775191ee025b2c370e33420df60fe405375c7b9'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');

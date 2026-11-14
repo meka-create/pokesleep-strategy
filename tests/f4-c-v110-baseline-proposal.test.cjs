@@ -123,6 +123,7 @@ test('v110 E7 Plan tab loads verified scripts, preserves old UX/storage and cach
  assert(html.indexOf('../f1/f1-b-legal-build-v2.js')<
   html.indexOf('../f4/f4-c-baseline-proposal-v110.js'));
  assert(html.includes('e7-f4c-baseline-v110.js'));
+ assert.match(html,/window\.PokeF4CBaselineUI\?\.refresh\(\)/);
  assert(html.includes("const nodes=[$('#f4c-real-card'),primary"));
  assert(sw.includes("'../f4/f4-c-baseline-proposal-v110.js'"));
  assert(sw.includes("'e7-f4c-baseline-v110.js'"));
