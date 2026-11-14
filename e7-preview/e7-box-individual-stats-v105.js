@@ -20,7 +20,8 @@ async function sources(){
 }
 function duration(seconds){
  if(!Number.isFinite(seconds)||seconds<=0)return '—';
- const n=Math.round(seconds),h=Math.floor(n/3600);
+ // pokesleep-tool: EnergyPreviewPanel -> frequencyToString(Math.floor(baseFreq)).
+ const n=Math.floor(seconds),h=Math.floor(n/3600);
  return (h?h+'時間':'')+Math.floor(n%3600/60)+'分'+String(n%60).padStart(2,'0')+'秒';
 }
 async function calculate(item){
@@ -34,8 +35,8 @@ async function calculate(item){
   });
   if(Number.isFinite(result.referenceHelpSeconds)&&result.referenceHelpSeconds>0&&
    Number.isSafeInteger(result.carryLimit)&&result.carryLimit>0)
-   return {helpTime:duration(result.referenceHelpSeconds)+'（参考）',
-    carry:String(result.carryLimit)+'（参考）',state:'F1_REFERENCE'};
+   return {helpTime:duration(result.referenceHelpSeconds),
+    carry:String(result.carryLimit),state:'F1_VERIFIED_FORMULA'};
   // Missing mint, ribbon, or other required CSV facts must never be guessed.
   // Show species-only primitives with an explicit distinct label instead.
   const p=target.sourceProfile;

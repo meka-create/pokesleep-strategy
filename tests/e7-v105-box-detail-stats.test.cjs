@@ -43,9 +43,10 @@ test('v105 real F1-B 60-level Blastoise, incomplete CSV and out-of-scope cases',
  const expected=rates.evaluate(row,snapshot,traits,{goodCamp:false,teammateHelpingBonusCount:0});
  assert.notEqual(expected.status,'BLOCKED');
  const actual=await sandbox.window.PokeE7BoxStats.calculate(row);
- assert.equal(actual.state,'F1_REFERENCE');
- assert.equal(actual.carry,String(expected.carryLimit)+'（参考）');
- assert.equal(actual.helpTime,sandbox.window.PokeE7BoxStats.duration(expected.referenceHelpSeconds)+'（参考）');
+ assert.equal(actual.state,'F1_VERIFIED_FORMULA');
+ assert.equal(actual.carry,String(expected.carryLimit));
+ assert.equal(actual.helpTime,sandbox.window.PokeE7BoxStats.duration(expected.referenceHelpSeconds));
+ assert.doesNotMatch(actual.helpTime+actual.carry,/参考/);
  const missing=await sandbox.window.PokeE7BoxStats.calculate({...row,mint:null,ribbon:null});
  assert.equal(missing.state,'SPECIES_BASE_ONLY');assert.equal(missing.carry,'27（種族基礎）');
  const unknown=await sandbox.window.PokeE7BoxStats.calculate({...row,pokemon:'未対象フォーム'});
@@ -74,4 +75,23 @@ test('v106 current species carry baseline is stable across acquisition histories
   assert.equal(evolved.carry,expected+'（種族基礎）');
   assert.equal(caught.carry,evolved.carry,'acquisition history must not change carry');
  }
+});
+
+test('v107 pokesleep-tool default 0-energy frequency truncates seconds like its TimeUtil',()=>{
+ const sandbox={window:{}};vm.runInNewContext(js,sandbox);
+ const duration=sandbox.window.PokeE7BoxStats.duration;
+ assert.equal(duration(2646.999),'44分06秒');
+ assert.equal(duration(3661.999),'1時間1分01秒');
+ assert.equal(duration(59.999),'0分59秒');
+});
+test('v107 upstream PokemonIv source pinned/current contains the unchanged F1-B carry and helping formula',()=>{
+ // Static code contract copied from upstream source after independently checking
+ // PokemonIv.ts @ 663bf018 and @ 26047ad8, identical git blob a74f573c.
+ const rates=read('f1/f1-b-base-rates-v1.js');
+ assert.match(rates,/Math\.min\(\.35,\.07\*/);
+ assert.match(rates,/\.05\*\(\(options\.teammateHelpingBonusCount/);
+ assert.match(rates,/5\*Math\.max\(0,tr\.evolutionCount\)/);
+ assert.match(rates,/6\*\(total\('Inventory Up L'\)/);
+ assert.match(js,/const n=Math\.floor\(seconds\)/);
+ assert.doesNotMatch(js,/\+\s*'（参考）'/);
 });
