@@ -110,33 +110,30 @@ test('v110 forged chronology and healer teams fail closed, not shown as real pla
   assert.equal(api.propose(c,o,deps).status,'BLOCKED',modify.toString());
  }
 });
-test('v110 E7 Plan tab loads verified scripts, preserves old UX/storage and caches offline',()=>{
- const html=read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html'),
-  ui=read('e7-preview/e7-f4c-baseline-v110.js'),
-  sw=read('e7-preview/e7-sw-v50.js');
- for(const key of ['f4c-real-card','f4c-real-run','f4c-real-night',
-  'f4c-real-previous','f4c-real-favorites','f4c-real-consent',
-  'f4c-real-result'])assert(html.includes('id="'+key+'"'));
- assert(html.includes('実ボックスから作戦を提案'));
- assert.match(ui,/q\('f4c-real-consent'\)\.checked=false/);
- assert.match(ui,/busy=false;refresh\(\);/);
- assert.match(ui,/if\(error\)message\(error,true\)/);
- assert(html.indexOf('../f1/f1-b-legal-build-v2.js')<
-  html.indexOf('../f4/f4-c-baseline-proposal-v110.js'));
- assert(html.includes('e7-f4c-baseline-v110.js'));
- assert.match(html,/window\.PokeF4CBaselineUI\?\.refresh\(\)/);
- assert(html.includes("const nodes=[$('#f4c-real-card'),primary"));
- assert(sw.includes("'../f4/f4-c-baseline-proposal-v110.js'"));
- assert(sw.includes("'e7-f4c-baseline-v110.js'"));
- assert.doesNotMatch(ui,/localStorage\.setItem|localStorage\.removeItem|sendBeacon|console\.log/);
- assert.doesNotMatch(read('f4/f4-c-baseline-proposal-v110.js'),
-  /localStorage|sessionStorage|fetch\(|console\.log|\.setItem\(/);
- assert(!read('index.html').includes('f4-c-baseline-proposal-v110.js'));
- new vm.Script(ui);
+test('v112 E7 uses ONLY existing proposal-review-adoption and sleep UI',()=>{
+ const html=read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html');
+ const sw=read('e7-preview/e7-sw-v50.js');
+ const viewer=read('e7-preview/e7-f4c-integrated-v112.js');
+ for(const id of ['e3-primary','e3-next','review-dialog','review-adopt',
+  'sleep-open','auto-sleep','sleep-dialog','edit-dialog','week-content'])
+  assert(html.includes('id="'+id+'"'));
+ assert(!html.includes('id="f4c-real-card"'));
+ assert(!html.includes('id="f4c-real-consent"'));
+ assert(!html.includes('e7-f4c-baseline-v110.js'));
+ assert(html.includes('e7-f4c-integrated-v112.js'));
+ assert(html.includes('f4-c-auto-v112.js'));
+ assert(html.includes('f4-c-real-storage-v112.js'));
+ assert(html.includes("const nodes=[primary,week,sleep,conditions,calendar,actions,intro]"));
+ for(const p of ['../f4/f4-c-auto-v112.js','../f4/f4-c-real-storage-v112.js',
+  'e7-f4c-integrated-v112.js'])assert(sw.includes("'"+p+"'"));
+ assert.match(viewer,/hijack\('e3-next',propose/);
+ assert.match(viewer,/hijack\('review-adopt',adopt/);
+ assert.match(viewer,/hijack\('sleep-open',openSleep/);
+ assert.doesNotMatch(viewer,/localStorage\.setItem/);
+ new vm.Script(viewer);
 });
-
-test('v110 E7 Chromium: actual Box, 29 slots, zero writes', {timeout:160000},()=>{
+test('v112 real Box E7 Chromium: propose, adopt, restore without fake plan', {timeout:180000},()=>{
  const cp=require('node:child_process');
- cp.execFileSync('python3',[path.resolve(__dirname,'preview_browser_f4c_v110.py')],{
-  cwd:path.resolve(__dirname,'..'),stdio:'pipe',timeout:155000});
+ cp.execFileSync('python3',[path.resolve(__dirname,'preview_browser_f4c_v112.py')],{
+  cwd:path.resolve(__dirname,'..'),stdio:'pipe',timeout:175000});
 });

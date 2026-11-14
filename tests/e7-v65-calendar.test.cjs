@@ -6,7 +6,7 @@ const u3=fs.readFileSync(path.join(base,'U3_Strategy_UI_20261109_v50_E7.html'),'
 test('E7 v65 saved-event calendar is below the event conditions with a stable 3-tab order',()=>{
  const event=u3.indexOf('id="event-details"'),cal=u3.indexOf('id="e7-event-calendar"');
  assert(event>0&&cal>event&&cal<u3.indexOf('class="card sleep-settings"'));
- assert.match(u3,/const nodes=\[\$\('#f4c-real-card'\),primary,week,sleep,conditions,calendar,actions,intro\]/);
+ assert.match(u3,/const nodes=\[primary,week,sleep,conditions,calendar,actions,intro\]/);
  for(const id of ['e7-cal-month','e7-cal-prev','e7-cal-next','e7-cal-today','e7-cal-weeks'])
   assert.match(u3,new RegExp('id="'+id+'"'));
  assert.match(u3,/#e7-cal-board\{/);
