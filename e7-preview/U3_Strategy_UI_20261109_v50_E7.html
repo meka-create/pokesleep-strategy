@@ -1993,7 +1993,7 @@ render=function(){
  // Same-document localStorage updates do not emit storage events. Reflect
  // an event save/switch in the real-Box read-only pane immediately.
  window.PokeF4CIntegratedUI?.refresh();
- if((!hasProposed||['SELECT_EVENT','SET_EVENT'].includes(action))&&state.phase!=='ENDED')$('#event-details').open=true;
+ if(!window.PokeF4CIntegratedUI?.isAdopted(e3Selected)&&(!hasProposed||['SELECT_EVENT','SET_EVENT'].includes(action))&&state.phase!=='ENDED')$('#event-details').open=true;
  if(!selected){
   $('#phase-intro').hidden=true;$('#week-content').hidden=true;
   document.querySelectorAll('.u2-nav:not(#e6-footer-prep)').forEach(link=>link.removeAttribute('href'));
