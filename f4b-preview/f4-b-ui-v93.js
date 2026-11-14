@@ -15,6 +15,8 @@
   healerSearch:window.PokeF4CHealerSearch,
   itemRank:window.PokeF4CItemAwareRank,
   cookingSkills:window.PokeF4CCookingSkillState,
+  banquetRelease:window.PokeF4CBanquetCatalogV103,
+  banquetPreview:window.PokeF4CBanquetPreviewV103,
   skillValues:window.PokeF1SkillValues,
   roster:window.PokeF4F1RosterAdapter,
   legal:window.PokeF1LegalBuild,rates:window.PokeF1BaseRates,
