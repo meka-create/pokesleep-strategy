@@ -25,7 +25,7 @@
   typeof ctx.eventId==='string'&&ctx.eventId.length>0&&ctx.eventId.length<=160&&
   typeof ctx.conditionRevision==='string'&&typeof ctx.inventoryRevision==='string';
  const planningBasis=ctx=>JSON.stringify([ctx.fields,ctx.player,
-  ctx.savedBerrySetup??null,ctx.autoSleep]);
+  ctx.savedBerrySetup??null,ctx.autoSleep,ctx.previousCarryRevision??null]);
  const canonical=row=>{
   if(!isObj(row)||!FIELDS.every(f=>Object.hasOwn(row,f)))return null;
   const vals=FIELDS.map(k=>row[k]===undefined?null:row[k]);
@@ -250,6 +250,54 @@
     fail('SLEEP_SAVE_FAILED');
   }catch(_){return fail('SLEEP_SAVE_FAILED');}
  }
+ const previousSunday=week=>{
+  const d=Date.parse(week+'T12:00:00Z');
+  return Number.isFinite(d)?new Date(d-86400000).toISOString().slice(0,10):null;
+ };
+ // An adopted prior-week PLAN is not evidence of an actually played Sunday.
+ // Use a user-confirmed, event-scoped lineup; never fill in a missing record.
+ function readCarry(storage,ctx,identity){
+  try{
+   if(!ownerOK(ctx)||identity?.status!=='IDENTITIES_READY')return fail('BOX_NOT_VERIFIED');
+   const r=entry(storage,key('carry',ctx.weekStart,ctx.eventId));
+   if(!r.value)return {status:'EMPTY',team:null,revision:null};
+   const v=r.value;
+   if(v.version!==1||v.eventId!==ctx.eventId||v.weekStart!==ctx.weekStart||
+      v.previousSunday!==previousSunday(ctx.weekStart)||
+      v.source!=='USER_CONFIRMED_PREVIOUS_SUNDAY'||!five(v.teamIds)||
+      typeof v.revision!=='string'||!v.revision)
+    return fail('PREVIOUS_SUNDAY_CONFIRMATION_INVALID');
+   if(!uniqueUsed(v.teamIds,identity))
+    return fail('PREVIOUS_SUNDAY_BOX_CHANGED_OR_AMBIGUOUS');
+   return {status:'CARRY_READY',team:v.teamIds.map(id=>identity.byId.get(id)),
+    revision:v.revision};
+  }catch(_){return fail('PREVIOUS_SUNDAY_READ_FAILED');}
+ }
+ function saveCarry(storage,ctx,identity,team){
+  try{
+   if(!ownerOK(ctx)||identity?.status!=='IDENTITIES_READY'||
+      !Array.isArray(team)||team.length!==5||new Set(team).size!==5||
+      team.some(i=>!Number.isSafeInteger(i)||i<0||i>=identity.ids.length))
+    return fail('PREVIOUS_SUNDAY_INPUT_INVALID');
+   const teamIds=team.map(i=>identity.ids[i]);
+   if(!uniqueUsed(teamIds,identity))return fail('PREVIOUS_SUNDAY_IDENTITY_AMBIGUOUS');
+   if(storage.getItem(BOX)!==identity.boxRaw||
+      storage.getItem(LEDGER)!==identity.ledgerRevision)
+    return fail('BOX_CHANGED_BEFORE_PREVIOUS_SUNDAY_SAVE');
+   const k=key('carry',ctx.weekStart,ctx.eventId),before=entry(storage,k);
+   if(before.value&&(before.value.weekStart!==ctx.weekStart||
+      before.value.eventId!==ctx.eventId||
+      before.value.source!=='USER_CONFIRMED_PREVIOUS_SUNDAY'))
+    return fail('PREVIOUS_SUNDAY_OWNER_MISMATCH');
+   const raw=JSON.stringify({version:1,weekStart:ctx.weekStart,eventId:ctx.eventId,
+    previousSunday:previousSunday(ctx.weekStart),
+    source:'USER_CONFIRMED_PREVIOUS_SUNDAY',teamIds,revision:depsRevision()});
+   if(storage.getItem(k)!==before.raw)return fail('PREVIOUS_SUNDAY_CONCURRENT_EDIT');
+   storage.setItem(k,raw);
+   return storage.getItem(k)===raw?{status:'CARRY_SAVED'}:
+    fail('PREVIOUS_SUNDAY_WRITE_FAILED');
+  }catch(_){return fail('PREVIOUS_SUNDAY_SAVE_FAILED');}
+ }
  return Object.freeze({PREFIX,LEDGER,key,identities,createRecord,
-  readPlan,adopt,readSleep,saveSleep,planShape});
+  readPlan,adopt,readSleep,saveSleep,readCarry,saveCarry,planShape});
 });
