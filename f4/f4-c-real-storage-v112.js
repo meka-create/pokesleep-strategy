@@ -153,10 +153,12 @@
    const p=r.value;
    if(!planShape(p)||p.weekStart!==ctx.weekStart||p.eventId!==ctx.eventId)
     return fail('STORED_PLAN_INVALID_OR_FOREIGN');
-   if(p.autoSleep!==ctx.autoSleep)return fail('SAVED_SLEEP_MODE_CHANGED');
-   if(p.conditionRevision!==ctx.conditionRevision||
-    p.inventoryRevision!==ctx.inventoryRevision||
-    p.sourceCommit!==sourceCommit)return fail('SAVED_PLAN_INPUTS_CHANGED');
+   // Changed settings/inventory mark a saved lineup STALE, but do not erase
+   // it before the next explicit adoption. Invalid owner/Box still fail.
+   if(p.sourceCommit!==sourceCommit)return fail('VERIFIED_SOURCE_CHANGED');
+   const staleReason=p.autoSleep!==ctx.autoSleep?'SAVED_SLEEP_MODE_CHANGED':
+    (p.conditionRevision!==ctx.conditionRevision||
+     p.inventoryRevision!==ctx.inventoryRevision)?'SAVED_PLAN_INPUTS_CHANGED':null;
    if(clock?.windows?.length!==29||p.slots.some((w,i)=>{
     const c=clock.windows[i];return w.day!==c.day||w.slot!==c.slot||
      w.source!==c.source||w.startsAt!==c.startsAt||w.endsAt!==c.endsAt;
@@ -175,7 +177,8 @@
     healer1.some(w=>w.teamIds[3]!==p.secondaryId||w.teamIds[4]!==p.primaryId)||
     others.some(w=>w.teamIds.includes(p.secondaryId)||w.teamIds[4]!==p.primaryId))
     return fail('SAVED_HEALER_POSITIONS_CHANGED');
-   return {status:'ADOPTED',plan:p,slots,revision:r.raw};
+   return {status:staleReason?'STALE_ADOPTED':'ADOPTED',
+    ...(staleReason?{reason:staleReason}:{}),plan:p,slots,revision:r.raw};
   }catch(_){return fail('SAVED_PLAN_READ_FAILED');}
  }
  function adopt(storage,ctx,proposal,identity,sourceCommit,recipes,clock){

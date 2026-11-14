@@ -81,7 +81,7 @@ test('field favorite berry energy can beat higher-healing Pokemon for primary he
  const a=auto.propose(c,{previousWeekSleepIndices:null},{...deps});
  assert.equal(a.status,'PROVISIONAL',a.reason);
  assert.equal(a.selectedPrimary,'p1','preferred water healer should beat strong healer p0');
- assert.deepEqual(state.favorites,['water','fairy','flying']);
+ assert.deepEqual(Array.from(state.favorites),['water','fairy','flying']);
  assert.equal(state.source,null);
  assert.equal(a.previousWeekCarryUnknown,true);
  assert.equal(a.slots[0].team.length,0,'historical sleep never fabricated');
@@ -97,7 +97,7 @@ test('a berry favorite change can restore the recovery-strong primary healer',()
  const p=auto.propose(c,{},deps);
  assert.equal(p.status,'PROVISIONAL',p.reason);
  assert.equal(p.selectedPrimary,'p0');
- assert.deepEqual(p.favoriteTypes,['grass','fire','normal']);
+ assert.deepEqual(Array.from(p.favoriteTypes),['grass','fire','normal']);
 });
 test('unverified favorite berry combinations fail without guessing',()=>{
  const {deps}=fake(),c=getCtx();
@@ -130,6 +130,9 @@ test('adoption replaces pN refs with stable opaque IDs and validates owner/revis
  assert.equal(read.status,'ADOPTED',read.reason);
  assert.equal(read.slots.length,29);
  const altered={...c,inventoryRevision:'stock-new'};
- assert.equal(safe.readPlan(storage,altered,identity,'a'.repeat(40),
-  Array.from({length:78},(_,i)=>({id:'recipe'+i})),c.clock).status,'BLOCKED');
+ const stale=safe.readPlan(storage,altered,identity,'a'.repeat(40),
+  Array.from({length:78},(_,i)=>({id:'recipe'+i})),c.clock);
+ assert.equal(stale.status,'STALE_ADOPTED');
+ assert.equal(stale.slots.length,29);
+ assert.equal(stale.reason,'SAVED_PLAN_INPUTS_CHANGED');
 });

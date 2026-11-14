@@ -121,9 +121,20 @@ function drawReview(){
  drawSlots(q('review-slots'),viewForDraft(),reviewDay);
 }
 function drawAdopted(){
- if(plan?.status!=='ADOPTED')return;
+ if(!['ADOPTED','STALE_ADOPTED'].includes(plan?.status))return;
+ const stale=plan.status==='STALE_ADOPTED';
  q('week-content').hidden=false;
- q('e3-primary').hidden=true;
+ const button=q('e3-next'),card=q('e3-primary');
+ card.hidden=!stale;button.hidden=!stale;
+ if(stale){
+  button.textContent='作戦を再提案';button.dataset.action='F4C_REPROPOSE';
+  button.disabled=data?.clock?.phase!=='BEFORE'||pending;
+  flash(data?.clock?.phase==='BEFORE'?
+   '以前の作戦を保持しています。変更した条件・在庫を反映するには再提案してください。':
+   '以前の作戦を保持しています。週途中の再提案はF5工程で対応します。');
+ }else flash('');
+ const footer=q('e6-footer-plan');
+ if(footer)footer.dataset.reproposal=String(stale);
  q('current-state-title').textContent='週間編成';
  q('day-label').textContent=DAYS[targetDay]+'曜日';
  q('day-date').textContent=dateOf(targetDay);
@@ -131,12 +142,14 @@ function drawAdopted(){
  drawSlots(q('slots'),plan,targetDay);
  // No unverified weekly energy exposed as an authoritative figure.
  q('e4-result-energy').hidden=true;
- q('e4-changed').hidden=true;
+ q('e4-changed').hidden=!stale;
 }
 function renderEffective(){
  const sel=selected();
  if(!sel||!data||sel.weekStart!==data.weekStart||sel.id!==data.eventId)return;
- if(plan?.status==='ADOPTED'){drawAdopted();return;}
+ if(['ADOPTED','STALE_ADOPTED'].includes(plan?.status)){
+  drawAdopted();return;
+ }
  q('week-content').hidden=true;
  const button=q('e3-next'),card=q('e3-primary');
  if(data.clock?.phase==='ENDED'){card.hidden=true;return;}
@@ -194,16 +207,16 @@ async function synchronize(force=false){
    deps.recipes,c.clock);
   const nights=store.readSleep(localStorage,c,refs);
   // Explicit manual night changes invalidate a formerly adopted plan.
-  if(adopted.status==='ADOPTED'&&!c.autoSleep){
+  if(['ADOPTED','STALE_ADOPTED'].includes(adopted.status)&&!c.autoSleep){
    const saved=nights.status==='SLEEP_READY'?nights.teams:null;
    if(!saved||adopted.slots.some(w=>w.slot==='sleep'&&w.day>=0&&
     (!saved[w.day]||w.teamIndices.join('|')!==saved[w.day].join('|'))))
-    adopted={status:'BLOCKED',reason:'MANUAL_SLEEP_CHANGED'};
+    adopted={...adopted,status:'STALE_ADOPTED',reason:'MANUAL_SLEEP_CHANGED'};
   }
   if(id!==readToken)return;
   if(owner!==newOwner)draft=null;
   owner=newOwner;data=c;bound=refs;
-  plan=adopted.status==='ADOPTED'?adopted:null;
+  plan=['ADOPTED','STALE_ADOPTED'].includes(adopted.status)?adopted:null;
   sleep=nights.status==='SLEEP_READY'?nights.teams:Array.from({length:7},()=>null);
   error=adopted.status==='BLOCKED'?
    '採用済み作戦は保存条件またはボックスが変更されたため保護しました。再提案が必要です。':
@@ -336,6 +349,7 @@ function saveNight(teams){
   error='睡眠編成を保存できませんでした：'+saved.reason;renderEffective();return false;
  }
  sleep=teams;draft=null;lastKey='';
+ void synchronize(true);
  return true;
 }
 function saveEdit(){
@@ -370,7 +384,7 @@ hijack('e3-next',async()=>{
  error=data?.message||data?.reason||
   '実ボックスとイベント条件を登録してから作戦を提案してください。';
  flash(error,true);
-},()=>['F4C_PROPOSE','PROPOSE','REPROPOSE','RESUME_DRAFT']
+},()=>['F4C_PROPOSE','F4C_REPROPOSE','PROPOSE','REPROPOSE','RESUME_DRAFT']
  .includes(q('e3-next')?.dataset.action));
 hijack('generate',propose);
 hijack('review-adopt',adopt);
@@ -394,7 +408,7 @@ doc.addEventListener('click',e=>{
 root.addEventListener('storage',refresh);
 root.addEventListener('pageshow',refresh);
 root.PokeF4CIntegratedUI=Object.freeze({refresh,isAdopted:(e)=>
- !!plan&&plan.status==='ADOPTED'&&e?.weekStart===data?.weekStart&&
- e?.id===data?.eventId});
+ !!plan&&['ADOPTED','STALE_ADOPTED'].includes(plan.status)&&
+ e?.weekStart===data?.weekStart&&e?.id===data?.eventId});
 void synchronize(true);
 })(window);
