@@ -76,9 +76,19 @@
       const berry=rate.berryProbabilityPerHelp*
        rate.berryCountPerBerryHelp*berryUnit(target.type,row.level,
         input.favoriteTypes,input.fieldBonus,master);
+      if(!Number.isSafeInteger(rate.carryLimit)||rate.carryLimit<1||rate.carryLimit>2000||
+       !Number.isFinite(rate.berryProbabilityPerHelp*rate.berryCountPerBerryHelp)||
+       rate.berryProbabilityPerHelp*rate.berryCountPerBerryHelp<0)
+       throw Error('CARRY_OR_ITEM_RATE_UNVERIFIED');
       ratesByTeammateBonus.push({
        status:'BASE_RATES_AVAILABLE',helpSeconds:rate.referenceHelpSeconds,
-       berryEnergyPerHelp:berry,ingredientCountsPerHelp:rate.ingredientCountsPerHelp
+       berryEnergyPerHelp:berry,ingredientCountsPerHelp:rate.ingredientCountsPerHelp,
+       // F4-C uses anonymous item counts/individual capacity for a separate
+       // state replay. F4-A/B normalizeProfiles ignores these extra fields.
+       berryItemsPerHelp:rate.berryProbabilityPerHelp*rate.berryCountPerBerryHelp,
+       carryLimit:rate.carryLimit,
+       skillProbabilityPerEligibleHelp:rate.mainSkillProbabilityPerEligibleHelp,
+       selectedMainSkillLevel:rate.selectedMainSkillLevel
       });
      }catch(_){accepted=false;break;}
     }
@@ -86,7 +96,11 @@
     const hasHelpingBonus=['lv10','lv25','lv50','lv70','lv80'].some((key,j)=>
      row.level>=[10,25,50,70,80][j]&&row[key]===bonusName);
     results.push({id:'p'+idx,source:'F1_B_PINNED_66_SPECIES',
-     helpingBonus:hasHelpingBonus,ratesByTeammateBonus});
+     helpingBonus:hasHelpingBonus,ratesByTeammateBonus,
+     carryLimit:ratesByTeammateBonus[0].carryLimit,
+     // Skill probability is not a trigger or an automatically applied effect.
+     skillProbabilityPerEligibleHelp:ratesByTeammateBonus[0].skillProbabilityPerEligibleHelp,
+     selectedMainSkillLevel:ratesByTeammateBonus[0].selectedMainSkillLevel});
    }
    if(results.length<5)
     return blocked('INSUFFICIENT_VERIFIED_POKEMON',
