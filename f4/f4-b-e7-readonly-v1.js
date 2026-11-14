@@ -322,6 +322,53 @@
    sleepScoreAssumed:100,weeklyEnergyCertified:false,
    writesSavedData:false,privateIndividualDataInResult:false};
  }
+ // F4-C v101: optional higher-fidelity rerank. Existing saved plan, sleep
+ // teams, event owner and storage values stay read-only. No inferred taps.
+ function itemAwareReference(storage,options={},deps={}){
+  if(typeof deps.itemRank?.rank!=='function'||typeof deps.skillValues?.skillValue!=='function')
+   return fail('ITEM_AWARE_DEPENDENCIES_MISSING');
+  if(options.collectionScenario!=='ASSUMED_AT_0730_1200_1800'||
+   options.initialHeldScenario!=='EMPTY_AT_0400_ASSUMED'||
+   options.skillScenario!=='CAPPED_EXPECTED_DIRECT_ONLY'||
+   !['NO_CRITICAL','BASE_10_30_EXPECTATION'].includes(options.criticalScenario))
+   return fail('REFERENCE_ASSUMPTIONS_NOT_SELECTED');
+  const ctx=readContext(storage,deps,options.instant);
+  if(ctx.status!=='CONTEXT_READY')return ctx;
+  if(ctx.autoSleep)return fail('MANUAL_SLEEP_REQUIRED');
+  const prepared=buildNeutralInput(ctx,options,deps);
+  if(prepared.status!=='READY')return prepared;
+  const a=options.primaryHealerIndex,b=options.secondaryHealerIndex;
+  if(!Number.isSafeInteger(a)||!Number.isSafeInteger(b)||a===b||
+   a<0||b<0||a>=ctx.privateBoxRows.length||b>=ctx.privateBoxRows.length)
+   return fail('EXPLICIT_HEALERS_REQUIRED');
+  const profiles=prepared.input.profiles;
+  if(profiles.find(p=>p.id==='p'+a)?.healerRole!=='TEAM_WIDE_HEALER'||
+   profiles.find(p=>p.id==='p'+b)?.healerRole!=='TEAM_WIDE_HEALER')
+   return fail('VERIFIED_TEAM_WIDE_HEALERS_REQUIRED');
+  const result=deps.itemRank.rank({...prepared.input,
+   primaryHealerId:'p'+a,secondaryHealerId:'p'+b,
+   healthScenario:'HEALER_MAINTAINS_80_PLUS_REFERENCE',sleepScore:100,
+   collectionScenario:options.collectionScenario,
+   initialHeldScenario:options.initialHeldScenario,
+   skillScenario:options.skillScenario,criticalScenario:options.criticalScenario,
+   displayedRecipeEnergies:options.displayedRecipeEnergies,
+   beamWidth:options.beamWidth,dayCandidateCount:options.dayCandidateCount
+  },{search:deps.healerSearch,policy:deps.healerPolicy,
+   base:deps.baseCore,clock:deps.weekClock,skillValues:deps.skillValues});
+  if(result.status!=='PROVISIONAL')
+   return fail(result.reason||'ITEM_AWARE_REFERENCE_BLOCKED');
+  if(result.weekStart!==ctx.weekStart||result.slotCount!==29||
+   result.startsAt!==ctx.clock.startsAt||result.endsAt!==ctx.clock.endsAt||
+   result.weeklyEnergyCertified!==false||result.writesSavedData!==false||
+   result.privateIndividualDataInResult!==false)
+   return fail('ITEM_AWARE_REFERENCE_CONTRACT');
+  return {status:'PROVISIONAL',readOnly:true,
+   stage:'F4_C_V101_E7_LOCAL_REFERENCE',
+   weekStart:ctx.weekStart,eventId:ctx.eventId,
+   sourceCommit:prepared.sourceCommit,result,
+   weeklyEnergyCertified:false,writesSavedData:false,
+   privateIndividualDataInResult:false};
+ }
  return Object.freeze({readContext,publicStatus,buildNeutralInput,reference,
-  statefulScenario,healerFirstReference,keyFor});
+  statefulScenario,healerFirstReference,itemAwareReference,keyFor});
 });

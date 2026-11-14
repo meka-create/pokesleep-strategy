@@ -86,6 +86,7 @@
        // F4-C uses anonymous item counts/individual capacity for a separate
        // state replay. F4-A/B normalizeProfiles ignores these extra fields.
        berryItemsPerHelp:rate.berryProbabilityPerHelp*rate.berryCountPerBerryHelp,
+       berryCountPerBerryHelp:rate.berryCountPerBerryHelp,
        carryLimit:rate.carryLimit,
        skillProbabilityPerEligibleHelp:rate.mainSkillProbabilityPerEligibleHelp,
        selectedMainSkillLevel:rate.selectedMainSkillLevel
@@ -103,6 +104,8 @@
      skill==='Energy for Everyone S (Berry Juice)'?'TEAM_WIDE_HEALER':null;
     results.push({id:'p'+idx,source:'F1_B_PINNED_66_SPECIES',
      helpingBonus:hasHelpingBonus,ratesByTeammateBonus,healerRole,
+     // Fixed F1 source classification, not CSV-controlled arbitrary effects.
+     skillCode:skill,skillSpecialty:target.specialty,
      carryLimit:ratesByTeammateBonus[0].carryLimit,
      // Skill probability is not a trigger or an automatically applied effect.
      skillProbabilityPerEligibleHelp:ratesByTeammateBonus[0].skillProbabilityPerEligibleHelp,
