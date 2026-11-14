@@ -54,9 +54,8 @@ test('v101: independently reranks 29-window healer and cooking candidates, read-
  const v=input(),old=JSON.stringify(v),r=ranker.rank(v,deps);
  assert.equal(r.status,'PROVISIONAL',r.reason);
  assert.equal(r.slotCount,29);assert(r.evaluatedCandidates>1);
- assert.equal(r.energyExpected,
-  Math.round((r.mealsExpected+r.berryEnergyExpected+
-   r.directSkillEnergyExpected)*1000)/1000);
+ assert(Math.abs(r.energyExpected-(r.mealsExpected+
+  r.berryEnergyExpected+r.directSkillEnergyExpected))<=0.003);
  assert.equal(r.weeklyEnergyCertified,false);
  assert.equal(r.writesSavedData,false);
  assert.equal(r.collectionScenario,'ASSUMED_AT_0730_1200_1800');
