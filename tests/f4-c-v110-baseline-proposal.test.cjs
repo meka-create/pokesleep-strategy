@@ -126,7 +126,7 @@ test('v112 E7 uses ONLY existing proposal-review-adoption and sleep UI',()=>{
  assert(html.includes("const nodes=[primary,week,sleep,conditions,calendar,actions,intro]"));
  for(const p of ['../f4/f4-c-auto-v112.js','../f4/f4-c-real-storage-v112.js',
   'e7-f4c-integrated-v112.js'])assert(sw.includes("'"+p+"'"));
- assert.match(viewer,/hijack\('e3-next',propose/);
+ assert.match(viewer,/hijack\('e3-next',async/);
  assert.match(viewer,/hijack\('review-adopt',adopt/);
  assert.match(viewer,/hijack\('sleep-open',openSleep/);
  assert.doesNotMatch(viewer,/localStorage\.setItem/);

@@ -1,7 +1,11 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
-const auto=require('../f4/f4-c-auto-v112.js');
-const safe=require('../f4/f4-c-real-storage-v112.js');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const load=p=>{const sandbox={module:{exports:{}},globalThis:{}};
+ vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'..',p),'utf8'),sandbox,{filename:p,timeout:15000});
+ return sandbox.module.exports;};
+const auto=load('f4/f4-c-auto-v112.js');
+const safe=load('f4/f4-c-real-storage-v112.js');
 const records=Array.from({length:29},(_,i)=>{
  const d=i===0?-1:Math.floor((i-1)/4),
   k=i===0?'sleep':['morning','noon','evening','sleep'][(i-1)%4];
