@@ -132,3 +132,9 @@ test('v110 E7 Plan tab loads verified scripts, preserves old UX/storage and cach
  assert(!read('index.html').includes('f4-c-baseline-proposal-v110.js'));
  new vm.Script(ui);
 });
+
+test('v110 E7 Chromium: actual Box, 29 slots, zero writes', {timeout:160000},()=>{
+ const cp=require('node:child_process');
+ cp.execFileSync('python3',[path.resolve(__dirname,'preview_browser_f4c_v110.py')],{
+  cwd:path.resolve(__dirname,'..'),stdio:'pipe',timeout:155000});
+});
