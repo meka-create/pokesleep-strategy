@@ -115,6 +115,8 @@ test('v104: source, event, and inventory revisions make the saved draft stale',a
   b=>b.context.inventoryRevision='latest-stock',
   b=>b.context.eventId='manual:2026-11-23',
   b=>b.prepared.sourceCommit='b'.repeat(40),
+  b=>b.prepared.input.nightTeams[0]=['p0','p2','p3','p4','p6'],
+  b=>b.prepared.input.previousWeekSleepTeam=['p0','p2','p3','p4','p6'],
   b=>b.context.privateBoxRows[2].level++
  ]){
   const b=scenario({storage:a.storage});
