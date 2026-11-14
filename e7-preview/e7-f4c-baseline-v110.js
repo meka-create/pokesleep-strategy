@@ -51,6 +51,9 @@ function refresh(){
   s.main=null;s.secondary=null;s.night.fill(null);s.previous.fill(null);s.favorites.fill(null);
   const favorites=c?.savedBerrySetup?.types;
   if(Array.isArray(favorites))s.favorites=favorites.slice(0,3).map(v=>Object.hasOwn(types,v)?v:Object.keys(types).find(k=>types[k]===v)||null);
+  // Consent belongs to a specific verified event/conditions snapshot.
+  // Never carry consent from one official event to another.
+  q('f4c-real-consent').checked=false;
   invalidate();createFields();
  }else ctx=c;
  const usable=c.status==='CONTEXT_READY'&&c.clock.phase==='BEFORE'&&
@@ -113,7 +116,7 @@ async function run(){
   if(answer.status!=='PROVISIONAL'){message('提案を生成できません：'+answer.reason,true);return;}
   result=answer;display(answer);message('実ボックスを参照した29窓の参考提案ができました（未採用）。');
  }catch(_){message('計算原典の取得または提案生成に失敗しました。',true);}
- finally{busy=false;q('f4c-real-run').disabled=false;}
+ finally{busy=false;refresh();}
 }
 q('f4c-real-run').addEventListener('click',run);
 q('f4c-real-refresh').addEventListener('click',refresh);
