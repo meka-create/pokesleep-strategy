@@ -284,6 +284,8 @@
       startsAt:w.startsAt,endsAt:w.endsAt,
       team:[...s.team],recipeId:s.recipeId,
       cookedRecipeId:cooked,recipeSkippedForStock:missed,
+      ...(cookingMode?{recommendedRecipeId:cooked,
+       potCapacityAtMeal:pot,unconsumedPotBonus:cooking.potExtra}:{}),
       mealEnergyExpected:R(meal),sneakyBerryEnergy:R(windowSneaky),
       helpsExpected:R(helps),bagAfter:R(sum(bag)),
       overflowItemExpectation:R(overflowInWindow)});
@@ -305,15 +307,29 @@
      forfeitedHeldItemsExpected:R(forfeited),
      ingredientBagOverflowExpected:R(foodOverflow),
      endingBagExpected:R(sum(bag)),
+      ...(cookingMode?{
+       explicitCookingSkillCasts:casts,
+       addedIngredientMeanExpected:R(ingredientAdded),
+       ingredientSkillCapacityLossExpected:R(ingredientMissed),
+       potBonusesConsumedTotal:potUsed,
+       endingPotBonus:cooking.potExtra,
+       endingTastyChanceExpected:R(cooking.tastyDistribution.reduce(
+        (a,b,i)=>a+b*i,0)),
+       recipeChoicePolicy:recipeMode
+      }:{}),
      weeklyEnergyCertified:false,writesSavedData:false,
      privateIndividualDataInResult:false};
    }
    const evaluated=[],reasons=[];
    for(let i=0;i<candidate.finalists.length;i++){
-    const result=simulate(candidate.finalists[i]);
-    if(result.status==='PROVISIONAL')
-     evaluated.push({candidateIndex:i,...result});
-    else reasons.push(result.reason);
+    const modes=cookingMode&&input.recipeChoicePolicy==='GREEDY_AWARE'?
+     ['KEEP_CANDIDATE','GREEDY_AWARE']:['KEEP_CANDIDATE'];
+    for(const mode of modes){
+     const result=simulate(candidate.finalists[i],mode);
+     if(result.status==='PROVISIONAL')
+      evaluated.push({candidateIndex:i,...result});
+     else reasons.push(result.reason);
+    }
    }
    if(!evaluated.length)return fail(reasons[0]||'NO_FEASIBLE_CANDIDATE');
    evaluated.sort((a,b)=>b.energyExpected-a.energyExpected||
@@ -321,8 +337,11 @@
     a.candidateIndex-b.candidateIndex);
    const winner=evaluated[0];
    return Object.freeze({...winner,
-    status:'PROVISIONAL',stage:'F4_C_V101_ITEM_AWARE_RERANK',
-    model:'BOUNDED_ASSUMED_COLLECTION_STATE_REFERENCE',
+    status:'PROVISIONAL',
+    stage:cookingMode?'F4_C_V102_COOKING_STATE_REFERENCE':
+     'F4_C_V101_ITEM_AWARE_RERANK',
+    model:cookingMode?'EXPLICIT_COOKING_SKILL_29_WINDOW_REFERENCE':
+     'BOUNDED_ASSUMED_COLLECTION_STATE_REFERENCE',
     evaluatedCandidates:evaluated.length,chosenCandidateIndex:winner.candidateIndex,
     collectionScenario:input.collectionScenario,
     sleepScoreAssumed:100,
@@ -330,6 +349,10 @@
     sourceWeekCertified:false,
     directSkillExpectationPriced:true,
     unsupportedSkillEffectsPriced:false,
+    ...(cookingMode?{cookingSkillScenario:input.cookingSkillScenario,
+     explicitCookingSkillCastsAreObserved:false,
+     greedyRecipeChoiceIsGlobalOptimum:false,
+     stochasticFoodDrawsExact:false}:{}),
     healthRecoveredActual:false,
     exactDiscreteProbabilityModeled:false,
     cookingBaseCriticalChanceUnverified:true,
@@ -340,7 +363,9 @@
      '所持上限到達以降をきのみのおてつだいにし、食材生成・スキル抽選は行わない',
      '食材・きのみ・スキル抽選は連続期待値の比例近似で、個数の離散性は未検証',
      'スキルストックは1または2回上限の保守的期待値。発動保証ではない',
-     '全体回復・料理チャンス・鍋拡張・食材ゲットなどの効果量はエナジーへ換算しない',
+     cookingMode?
+      '明示した発動の鍋・料理チャンス・食材ゲットのみ参照計算。実発動は保証しない':
+      '全体回復・料理チャンス・鍋拡張・食材ゲットなどの効果量はエナジーへ換算しない',
      'レシピ表示エナジーを未指定の場合は基礎エナジー。大成功率は検証Wikiの仮説値',
      '公式イベントやEX補正・20/81新食材カタログは未接続。週間エナジーは未認証'
     ]});
