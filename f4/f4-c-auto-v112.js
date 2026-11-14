@@ -209,7 +209,7 @@
     officialEffectsExcluded:ctx.fields.source!=null,
     slots:slots.map(s=>({day:s.day,slot:s.slot,source:s.source,
      startsAt:s.startsAt,endsAt:s.endsAt,team:[...s.team],
-     recipeId:s.cookedRecipeId??s.recipeId??null})),
+     recipeId:Object.hasOwn(s,'cookedRecipeId')?s.cookedRecipeId:s.recipeId??null})),
     // Only the user may adopt after seeing the review; not yet certified.
     canAdopt:true,weeklyEnergyCertified:false,
     officialEventEnergyCertified:false,writesSavedData:false,
