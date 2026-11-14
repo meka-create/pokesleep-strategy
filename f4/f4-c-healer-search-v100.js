@@ -69,6 +69,8 @@
    if(Object.values(inventory).reduce((a,b)=>a+b,0)>input.bagCapacity)
     return blocked('BAG_OVER_CAPACITY');
    const beamWidth=input.beamWidth??12,candidateCount=input.dayCandidateCount??8;
+   const maxFinalists=input.maxFinalists??1;
+   if(!integer(maxFinalists,1,12))return blocked('FINALISTS_LIMIT');
    if(!integer(beamWidth,2,60)||!integer(candidateCount,1,24))
     return blocked('SEARCH_LIMIT');
    const demand=Object.create(null);
@@ -205,6 +207,16 @@
     finalExpectedInventory:Object.fromEntries(foods.map(k=>
      [k,round3(best.inventory[k])])),
     slots:best.slots,
+    // Explicit only: consumers may rerank alternative full-week paths
+    // with individual carry/collection/skill/cooking state. Never persist.
+    ...(maxFinalists>1?{finalists:[...beam].sort((a,b)=>
+      b.energy-a.energy||a.signature.localeCompare(b.signature))
+     .slice(0,maxFinalists).map(s=>({
+      energyProxy:Math.round(s.energy),
+      slots:s.slots.map(w=>({day:w.day,slot:w.slot,source:w.source,
+       startsAt:w.startsAt,endsAt:w.endsAt,
+       team:[...w.team],recipeId:w.recipeId}))
+     }))}:{}),
     healthRecoveredActual:false,skillTriggersModeled:false,
     itemCollectionScheduleModeled:false,
     weeklyEnergyCertified:false,writesSavedData:false,
