@@ -352,9 +352,16 @@
    initialHeldScenario:options.initialHeldScenario,
    skillScenario:options.skillScenario,criticalScenario:options.criticalScenario,
    displayedRecipeEnergies:options.displayedRecipeEnergies,
+   // v102 remains opt-in. Undefined values keep exact v101 behavior.
+   cookingSkillScenario:options.cookingSkillScenario,
+   cookingSkillEvents:options.cookingSkillEvents,
+   initialCookingBuffs:options.initialCookingBuffs,
+   recipeChoicePolicy:options.recipeChoicePolicy,
+   unlockedIngredientCodes:options.unlockedIngredientCodes,
    beamWidth:options.beamWidth,dayCandidateCount:options.dayCandidateCount
   },{search:deps.healerSearch,policy:deps.healerPolicy,
-   base:deps.baseCore,clock:deps.weekClock,skillValues:deps.skillValues});
+   base:deps.baseCore,clock:deps.weekClock,skillValues:deps.skillValues,
+   cookingSkills:deps.cookingSkills});
   if(result.status!=='PROVISIONAL')
    return fail(result.reason||'ITEM_AWARE_REFERENCE_BLOCKED');
   if(result.weekStart!==ctx.weekStart||result.slotCount!==29||
