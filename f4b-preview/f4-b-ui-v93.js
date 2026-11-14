@@ -13,6 +13,8 @@
   stateKernel:window.PokeF4CStateKernel,
   healerPolicy:window.PokeF4CHealerPolicy,
   healerSearch:window.PokeF4CHealerSearch,
+  itemRank:window.PokeF4CItemAwareRank,
+  skillValues:window.PokeF1SkillValues,
   roster:window.PokeF4F1RosterAdapter,
   legal:window.PokeF1LegalBuild,rates:window.PokeF1BaseRates,
   master:window.PokeMaster,recipes:window.PokeRecipes};
