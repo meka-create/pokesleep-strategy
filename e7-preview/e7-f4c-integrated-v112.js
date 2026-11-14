@@ -347,13 +347,14 @@ async function copyNights(){
  const teams=Array.from({length:7},()=>[...current]);
  if(saveNight(teams)){drawSleep();root.PokeUI?.toast('7晩に設定しました');}
 }
-const hijack=(id,fn)=>q(id)?.addEventListener('click',e=>{
+const hijack=(id,fn,condition=()=>true)=>q(id)?.addEventListener('click',e=>{
+ if(!condition())return;
  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
  void fn();
 },true);
-hijack('e3-next',()=>{const b=q('e3-next');
- if(!b.disabled&&b.dataset.action==='F4C_PROPOSE')void propose();
-});
+// Keep E7's approved event-selection and event-save clicks untouched.
+hijack('e3-next',propose,()=>q('e3-next').dataset.action==='F4C_PROPOSE'&&
+ !q('e3-next').disabled);
 hijack('generate',propose);
 hijack('review-adopt',adopt);
 hijack('review-close',()=>{draft=null;q('review-dialog').close();});
