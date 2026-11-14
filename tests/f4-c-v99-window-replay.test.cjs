@@ -103,6 +103,8 @@ test('v99: reject stale conditions, event model, malformed teams and clock',()=>
  assert.equal(replay.replay(x,deps).reason,'UNVERIFIED_EVENT_OR_SCENARIO');
  x=make();x.reference.slots[0].team=['p0','p0','p1','p2','p3'];
  assert.equal(replay.replay(x,deps).reason,'PATH_WINDOW_OR_ROSTER_MISMATCH');
+ x=make();x.collections[0].at='2026-11-22T19:00:00';
+ assert.equal(replay.replay(x,deps).reason,'COLLECTION_SCHEDULE_INVALID');
  x=make();x.collections[0].at='2026-11-23T04:01:00+09:00';
  assert.equal(replay.replay(x,deps).reason,'COLLECTION_SCHEDULE_INVALID');
  x=make();x.initialHeld.p0.berryCount=1;

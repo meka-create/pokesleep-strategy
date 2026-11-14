@@ -106,7 +106,8 @@
     Object.keys(input.initialHeld).some(k=>!usedIds.has(k)))
     return fail('STALE_OR_MIXED_ROSTER_SNAPSHOT');
    const start=Date.parse(clock.startsAt),end=Date.parse(clock.endsAt);
-   const validTime=t=>typeof t==='string'&&Number.isFinite(Date.parse(t))&&
+   const offsetTime=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
+   const validTime=t=>typeof t==='string'&&offsetTime.test(t)&&Number.isFinite(Date.parse(t))&&
     Date.parse(t)>=start&&Date.parse(t)<=end&&
     (Date.parse(t)-start)%600000===0;
    const actions=new Map();
