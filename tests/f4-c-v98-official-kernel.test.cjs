@@ -124,9 +124,9 @@ test('F4-C: real 19/78 catalog blocked; synthetic complete fixture is only cover
 });
 test('F4-C: health tiers match verified 0.45/0.52/0.58/0.66/1.00 rate factors',()=>{
  for(const [energy,factor] of [[150,.45],[80.1,.45],[80,.52],[60.1,.52],
-  [60,.58],[40.1,.58],[40,.66],[1.1,.66],[0,1]])
+  [60,.58],[40.1,.58],[40,.66],[1.1,.66],[1,1],[.9,1],[.1,1],[0,1]])
   assert.equal(kernel.tier(energy).helpSecondsFactor,factor,'energy '+energy);
- for(const energy of [-1,151,NaN,1,.1])
+ for(const energy of [-1,151,NaN,Infinity])
   assert.equal(kernel.tier(energy).status,'BLOCKED','energy '+energy);
 });
 test('F4-C: awake 10m energy drain integrates across rate boundaries with no auto-recovery',()=>{
@@ -139,8 +139,11 @@ test('F4-C: awake 10m energy drain integrates across rate boundaries with no aut
  assert.equal(x.tickCountByTier['80+'],1);
  assert.equal(x.tickCountByTier['60+'],2);
  assert.equal(x.doesNotModelTimerCarry,true);
- assert.equal(kernel.awakeTicks({initialEnergy:1,referenceHelpSeconds:3600,ticks:1}).reason,
- 'ENERGY_LOW_BOUNDARY_UNVERIFIED');
+ const low=kernel.awakeTicks({initialEnergy:1,referenceHelpSeconds:3600,ticks:2});
+ assert.equal(low.status,'PROVISIONAL_AWAKE_HELP');
+ assert.equal(low.endingEnergy,0);
+ assert.equal(low.tickCountByTier['0'],2);
+ assert.equal(low.expectedHelpOpportunities,0.333333);
  assert.equal(kernel.awakeTicks({initialEnergy:100,referenceHelpSeconds:3600,ticks:1.5}).reason,
  'AWAKE_INPUT_INVALID');
 });

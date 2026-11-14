@@ -16,16 +16,17 @@
  const plain=x=>x&&typeof x==='object'&&!Array.isArray(x);
  const inRange=(n,min,max)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
  const integer=(n,min,max)=>Number.isSafeInteger(n)&&n>=min&&n<=max;
- // Source specifies tenths. Values on the undocumented 0.1-1.0 boundary
- // are blocked rather than silently put in the wrong speed tier.
+ // Verified game energy includes tenths: 1.0 down to 0.0 has factor 1.00,
+ // 1.1 up to 40.0 has factor 0.66. Source: wikiwiki.jp/poke_sleep/げんき
+ // (2026-11-12 detailed internal-energy tier table).
  function tier(energy){
   if(!inRange(energy,0,150))return blocked('ENERGY_INVALID');
   if(energy>80)return Object.freeze({status:'TIER_READY',label:'80+',helpSecondsFactor:0.45});
   if(energy>60)return Object.freeze({status:'TIER_READY',label:'60+',helpSecondsFactor:0.52});
   if(energy>40)return Object.freeze({status:'TIER_READY',label:'40+',helpSecondsFactor:0.58});
   if(energy>1)return Object.freeze({status:'TIER_READY',label:'1+',helpSecondsFactor:0.66});
-  if(energy===0)return Object.freeze({status:'TIER_READY',label:'0',helpSecondsFactor:1});
-  return blocked('ENERGY_LOW_BOUNDARY_UNVERIFIED');
+  if(energy>=0)return Object.freeze({status:'TIER_READY',label:'0',helpSecondsFactor:1});
+  return blocked('ENERGY_INVALID');
  }
  // Explicit observed recovery only. Do not infer how often a skill triggers.
  function observedRecovery(energy,points,origin){
@@ -37,8 +38,8 @@
    weeklyEnergyCertified:false,writesSavedData:false});
  }
  // 10-minute awake ticks; evaluate help rate BEFORE that tick's 1-point drop.
- // No wake/sleep transition or daily recovery is assumed. Unknown low
- // boundary blocks the whole run instead of masking it.
+ // No wake/sleep transition or daily recovery is assumed. Energy in [0,1]
+ // uses the independently verified unboosted tier; no fabricated recovery.
  function awakeTicks(input={}){
   if(!plain(input)||!inRange(input.initialEnergy,0,150)||
    !inRange(input.referenceHelpSeconds,120,25000)||
