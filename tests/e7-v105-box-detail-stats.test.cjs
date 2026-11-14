@@ -23,8 +23,15 @@ test('v105 source order, offline assets and read-only isolation',()=>{
 test('v105 real F1-B 60-level Blastoise, incomplete CSV and out-of-scope cases',async()=>{
  const snapshot=require('../f1/f1-b-target-source-v1.json');
  const traits=require('../f1/f1-b-help-traits-v1.json');
- const rates=require('../f1/f1-b-base-rates-v1.js');
- const legal=require('../f1/f1-b-legal-build-v2.js');
+ const load=relative=>{
+  const ctx={module:{exports:{}},globalThis:{},
+   require:dep=>dep==='./f1-b-legal-build-v2.js'?load('f1/f1-b-legal-build-v2.js'):
+    (()=>{throw Error('Unexpected dependency '+dep);})()};
+  vm.runInNewContext(read(relative),ctx,{filename:relative});
+  return ctx.module.exports;
+ };
+ const rates=load('f1/f1-b-base-rates-v1.js');
+ const legal=load('f1/f1-b-legal-build-v2.js');
  const sandbox={window:{PokeF1BaseRates:rates,PokeF1LegalBuild:legal,
   fetch:async url=>({ok:true,json:async()=>url.includes('target-source')?snapshot:traits})}};
  vm.runInNewContext(js,sandbox);
