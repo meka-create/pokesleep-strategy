@@ -376,6 +376,58 @@
    weeklyEnergyCertified:false,writesSavedData:false,
    privateIndividualDataInResult:false};
  }
+ // F4-C v103: official event release readiness; deliberately not a
+ // neutral 19-food weekly plan, and never an implicit 20-food E7 migration.
+ function banquetReleaseReadiness(storage,options={},deps={}){
+  if(typeof deps.banquetRelease?.preflight!=='function'||
+   typeof deps.banquetRelease?.activate!=='function'||
+   typeof deps.banquetRelease?.inventoryPreview!=='function'||
+   typeof deps.officialRules?.match!=='function')
+   return fail('BANQUET_RELEASE_DEPENDENCIES_MISSING');
+  const ctx=readContext(storage,deps,options.instant);
+  if(ctx.status!=='CONTEXT_READY')return ctx;
+  if(ctx.weekStart!=='2026-11-16')
+   return fail('NOT_BANQUET_EVENT_WEEK');
+  const ownerCheck=deps.officialRules.match(ctx.fields.source);
+  if(ownerCheck.status!=='RULES_MATCHED_ONLY')
+   return fail(ownerCheck.reason||'OFFICIAL_EVENT_NOT_VERIFIED');
+  const owned=deps.scope.read(storage,ctx.weekStart,ctx.eventId);
+  if(!owned)return fail('EVENT_INVENTORY_MISSING');
+  const preview=deps.banquetRelease.inventoryPreview({
+   timeline:owned,weekStart:ctx.weekStart,eventId:ctx.eventId,
+   baselineIngredientNames:deps.master?.ingredients,
+   explicitCurrentNuts:options.explicitCurrentNuts
+  });
+  if(!['PREVIEW_REQUIRES_EXPLICIT_COMMIT','ALREADY_20_FOODS_NO_WRITE']
+   .includes(preview.status))return fail(preview.reason||'INVENTORY_MIGRATION_BLOCKED');
+  const audit=options.candidateCatalog?
+   deps.banquetRelease.activate({...options.candidateCatalog,
+    eventSource:ctx.fields.source},{
+    officialRules:deps.officialRules,eventGate:deps.eventGate}):
+   {status:'BLOCKED',reason:'RELEASE_CATALOG_NOT_AVAILABLE'};
+  if(audit.status!=='RELEASE_CATALOG_PINNED_ONLY')
+   return {
+    status:'BLOCKED',
+    stage:'F4_C_V103_BANQUET_READINESS',
+    reason:audit.reason||'UNVERIFIED_RELEASE_CATALOG',
+    eventId:ctx.eventId,weekStart:ctx.weekStart,
+    inventoryMigrationStatus:preview.status,
+    requiresExplicitInventoryCommit:preview.requiresExplicitCommit,
+    releaseCatalogCertified:false,readOnly:true,
+    weeklyEnergyCertified:false,writesSavedData:false,
+    privateIndividualDataInResult:false
+   };
+  // Even once release data are pinned, adoption needs a separate event
+  // engine and E7 schema migration. This API can never write or certify.
+  return {status:'BLOCKED',stage:'F4_C_V103_BANQUET_READINESS',
+   reason:'OFFICIAL_WEEK_OPTIMIZER_NOT_CERTIFIED',
+   eventId:ctx.eventId,weekStart:ctx.weekStart,
+   inventoryMigrationStatus:preview.status,
+   releaseCatalogCertified:false,readOnly:true,
+   weeklyEnergyCertified:false,writesSavedData:false,
+   privateIndividualDataInResult:false};
+ }
  return Object.freeze({readContext,publicStatus,buildNeutralInput,reference,
-  statefulScenario,healerFirstReference,itemAwareReference,keyFor});
+  statefulScenario,healerFirstReference,itemAwareReference,
+  banquetReleaseReadiness,keyFor});
 });
