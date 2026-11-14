@@ -35,6 +35,8 @@
  const plain=o=>!!o&&typeof o==='object'&&!Array.isArray(o);
  const validId=s=>typeof s==='string'&&/^f4c_[a-f0-9-]{32,40}$/.test(s);
  const validRev=s=>typeof s==='string'&&/^[a-f0-9-]{32,40}$/.test(s);
+ const validSourceRev=s=>typeof s==='string'&&s.length>0&&s.length<=160&&
+  !/[\u0000-\u001f]/.test(s);
  const validSHA=s=>typeof s==='string'&&/^[0-9a-f]{40}$/.test(s);
  const validSalt=s=>typeof s==='string'&&/^[0-9a-f]{32}$/.test(s);
  const validISO=s=>typeof s==='string'&&
@@ -94,7 +96,7 @@
    d.eventId.length>160||!/^manual:\d{4}-\d\d-\d\d$/.test(d.eventId)||
    !/^\d{4}-\d\d-\d\d$/.test(d.weekStart)||
    d.eventId!=='manual:'+d.weekStart||
-   !validRev(d.conditionsRevision)||!validRev(d.inventoryRevision)||
+   !validSourceRev(d.conditionsRevision)||!validSourceRev(d.inventoryRevision)||
    !validSHA(d.sourceCommit)||!validId(d.primaryId)||
    !validId(d.secondaryId)||d.primaryId===d.secondaryId||
    !validISO(d.createdAt)||!STAGES.has(d.sourceStage)||
@@ -138,7 +140,7 @@
    !/^manual:\d{4}-\d\d-\d\d$/.test(ctx.eventId)||
    ctx.eventId!=='manual:'+ctx.weekStart||
    ctx.fields?.source!=null||ctx.autoSleep!==false||
-   !validRev(ctx.conditionRevision)||!validRev(ctx.inventoryRevision)||
+   !validSourceRev(ctx.conditionRevision)||!validSourceRev(ctx.inventoryRevision)||
    !Array.isArray(ctx.privateBoxRows)||ctx.privateBoxRows.length<6||
    !validISO(ctx.clock?.asOf)||
    prepared?.status!=='READY'||!validSHA(prepared.sourceCommit)||
@@ -241,6 +243,8 @@
    typeof deps.identity?.reconcile!=='function'||
    !contextOK(ctx,prepared,deps.clock))
    return fail('LOCAL_REFERENCE_DEPENDENCIES_MISSING');
+  let rawAtStart;
+  try{rawAtStart=storage.getItem(KEY);}catch(_){return fail('LOCAL_STATE_CORRUPTED');}
   const saved=read(storage,deps.identity);
   if(saved.status==='BLOCKED')return saved;
   if((saved.state?.revision||null)!==(options.expectedRevision??null))
@@ -283,11 +287,8 @@
   if(payload.length>3000000)return fail('LOCAL_STATE_TOO_LARGE');
   try{
    // Best-effort compare-and-swap, not cross-tab atomicity.
-   if(storage.getItem(KEY)!==(args.expectedRaw??storage.getItem(KEY))){
-    // expectedRaw may be supplied by a coordinating UI for additional
-    // optimistic concurrency; the revision guard remains mandatory.
+   if(storage.getItem(KEY)!==rawAtStart)
     return fail('LOCAL_REFERENCE_WRITE_RACE');
-   }
    const latest=read(storage,deps.identity);
    if(latest.status==='BLOCKED'||(latest.state?.revision||null)!==
     (options.expectedRevision??null))
@@ -340,6 +341,22 @@
    startsAt:w.startsAt,endsAt:w.endsAt,
    teamIndices:w.teamIds.map(id=>ix.get(id)),recipeId:w.recipeId
   }));
+  const knownRecipes=new Set(args.prepared.input.recipes.map(r=>r.id));
+  for(const w of restored){
+   if(w.recipeId!==null&&!knownRecipes.has(w.recipeId))
+    return fail('REFERENCE_RECIPE_NO_LONGER_VERIFIED');
+   if(w.slot==='sleep'){
+    if(w.recipeId!==null)return fail('REFERENCE_SLEEP_RECIPE_INVALID');
+    continue;
+   }
+   const team=w.teamIndices.map(idFor);
+   if(team[4]!==idFor(primary)||
+    (w.slot==='morning'&&team[3]!==idFor(secondary))||
+    (w.slot!=='morning'&&team.includes(idFor(secondary)))||
+    team.slice(0,w.slot==='morning'?3:4).some(id=>
+     pmap.get(id)?.healerRole==='TEAM_WIDE_HEALER'))
+    return fail('RESTORED_HEALER_POLICY_CHANGED');
+  }
   // Do not silently upgrade to current E7 saved plan. Full-week engine is
   // still a provisional scenario, and official bonuses remain BLOCKED.
   return Object.freeze({status:'REFERENCE_DRAFT_RESTORED',
