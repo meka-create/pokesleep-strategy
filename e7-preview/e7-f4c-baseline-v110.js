@@ -116,7 +116,13 @@ async function run(){
   if(answer.status!=='PROVISIONAL'){message('提案を生成できません：'+answer.reason,true);return;}
   result=answer;display(answer);message('実ボックスを参照した29窓の参考提案ができました（未採用）。');
  }catch(_){message('計算原典の取得または提案生成に失敗しました。',true);}
- finally{busy=false;refresh();}
+ finally{
+  const element=q('f4c-real-status');
+  const error=element.dataset.error==='true'?element.textContent:null;
+  busy=false;refresh();
+  // Refresh restores button eligibility but must not hide a calculation error.
+  if(error)message(error,true);
+ }
 }
 q('f4c-real-run').addEventListener('click',run);
 q('f4c-real-refresh').addEventListener('click',refresh);

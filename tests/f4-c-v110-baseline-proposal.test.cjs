@@ -119,7 +119,8 @@ test('v110 E7 Plan tab loads verified scripts, preserves old UX/storage and cach
   'f4c-real-result'])assert(html.includes('id="'+key+'"'));
  assert(html.includes('実ボックスから作戦を提案'));
  assert.match(ui,/q\('f4c-real-consent'\)\.checked=false/);
- assert.match(ui,/finally\{busy=false;refresh\(\);\}/);
+ assert.match(ui,/busy=false;refresh\(\);/);
+ assert.match(ui,/if\(error\)message\(error,true\)/);
  assert(html.indexOf('../f1/f1-b-legal-build-v2.js')<
   html.indexOf('../f4/f4-c-baseline-proposal-v110.js'));
  assert(html.includes('e7-f4c-baseline-v110.js'));
