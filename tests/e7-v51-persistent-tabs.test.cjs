@@ -8,7 +8,7 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 // v114 F4-C known-defect repair is the only authorized U3 delta; accepted U2/Box unchanged.
-const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', 'afb2f76ce859797f4a5aaa8823c11fe99b0654ba', '6775191ee025b2c370e33420df60fe405375c7b9'];
+const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', '94781240d223f22ec6fe3fb3daae933ae0733bba', '6775191ee025b2c370e33420df60fe405375c7b9'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
