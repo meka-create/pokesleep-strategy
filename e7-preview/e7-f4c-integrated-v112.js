@@ -16,14 +16,22 @@ const deps={scope:root.PokeE7InventoryScope,e1:root.PokeE7E1,
 let data=null,bound=null,modelPromise=null,plan=null,sleep=null,draft=null;
 let targetDay=0,reviewDay=0,sleepDay=0,editPicks=[],pending=false;
 let readToken=0,owner='',lastKey='',error='',sleepBusy=false,detailVersion=0;
-let eligibleIndices=new Set();
+let eligibleIndices=new Set(),carryTeam=null,sleepViewCarry=false,editingCarry=false;
 const val=(storageKey)=>{try{return JSON.parse(localStorage.getItem(storageKey)||'null');}catch(_){return null;}};
 const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
 const instant=()=>{
  const value=new URLSearchParams(location.search).get('previewNow');
  return value&&/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(value)?value+':00+09:00':new Date().toISOString();
 };
-const ctx=()=>bridge.readContext(localStorage,deps,instant());
+const ctx=()=>{
+ const c=bridge.readContext(localStorage,deps,instant());
+ if(c.status!=='CONTEXT_READY')return c;
+ const k=store.key('carry',c.weekStart,c.eventId);
+ try{
+  const raw=localStorage.getItem(k),p=raw?JSON.parse(raw):null;
+  return {...c,previousCarryRevision:raw?(p?.revision||'INVALID_CARRY'):null};
+ }catch(_){return {...c,previousCarryRevision:'INVALID_CARRY'};}
+};
 const textNode=(tag,txt,cl)=>{
  const e=doc.createElement(tag);if(txt!==undefined)e.textContent=txt;
  if(cl)e.className=cl;return e;
@@ -160,6 +168,9 @@ function drawAdopted(){
  q('e4-changed').hidden=!stale;
 }
 function renderEffective(){
+ const carryButton=q('f4c-carry-trigger');
+ if(carryButton)carryButton.hidden=!(data?.status==='CONTEXT_READY'&&
+  !!bound&&data?.clock?.phase==='BEFORE');
  const sel=selected();
  if(!sel||!data||sel.weekStart!==data.weekStart||sel.id!==data.eventId)return;
  if(['ADOPTED','STALE_ADOPTED'].includes(plan?.status)){
@@ -183,7 +194,7 @@ function renderEffective(){
 }
 function dataFingerprint(c){
  return JSON.stringify([c?.status,c?.eventId,c?.weekStart,c?.conditionRevision,
-  c?.inventoryRevision,c?.autoSleep,c?.fields,c?.player,c?.savedBerrySetup,
+  c?.inventoryRevision,c?.autoSleep,c?.fields,c?.player,c?.savedBerrySetup,c?.previousCarryRevision,
   c?.privateBoxRows,
   localStorage.getItem(c?.eventId?store.key('plan',c.weekStart,c.eventId):'invalid'),
   localStorage.getItem(c?.eventId?store.key('sleep',c.weekStart,c.eventId):'invalid')]);
@@ -201,7 +212,7 @@ async function synchronize(force=false){
  const id=++readToken,c=ctx(),sel=selected();
  if(c.status!=='CONTEXT_READY'){
   if(id!==readToken)return;
-  data=c;bound=null;plan=null;sleep=null;eligibleIndices=new Set();lastKey='';owner='';
+  data=c;bound=null;plan=null;sleep=null;carryTeam=null;eligibleIndices=new Set();lastKey='';owner='';
   if(sel&&sel.id)error=c.message||'実ボックスの計算条件を確認してください。';
   renderEffective();return;
  }
@@ -216,7 +227,7 @@ async function synchronize(force=false){
   });
   if(id!==readToken)return;
   if(refs.status!=='IDENTITIES_READY'){
-   data=c;owner=newOwner;plan=null;bound=null;sleep=null;eligibleIndices=new Set();error=refs.reason;
+   data=c;owner=newOwner;plan=null;bound=null;sleep=null;carryTeam=null;eligibleIndices=new Set();error=refs.reason;
    renderEffective();return;
   }
   // A stable Box ID proves identity, NOT F1 legality or numerical support.
@@ -227,6 +238,12 @@ async function synchronize(force=false){
     legal:deps.legal,rates:deps.rates,master:deps.master});
    const nextEligible=new Set(eligibility.status==='READY'?
     eligibility.profiles.map(p=>Number(p.id.slice(1))):[]);
+   const carried=store.readCarry(localStorage,c,refs);
+   if(carried.status==='BLOCKED'){
+    data=c;owner=newOwner;plan=null;bound=null;sleep=null;carryTeam=null;
+    eligibleIndices=new Set();error='前週日曜の個体照合に失敗しました：'+carried.reason;
+    renderEffective();return;
+   }
    let adopted=store.readPlan(localStorage,c,refs,mods.snapshot.upstream.commit,
    deps.recipes,c.clock);
   const nights=store.readSleep(localStorage,c,refs);
@@ -240,11 +257,14 @@ async function synchronize(force=false){
   if(id!==readToken)return;
   if(owner!==newOwner)draft=null;
   owner=newOwner;data=c;bound=refs;eligibleIndices=nextEligible;
+   carryTeam=carried.status==='CARRY_READY'?carried.team:null;
   plan=['ADOPTED','STALE_ADOPTED'].includes(adopted.status)?adopted:null;
   sleep=nights.status==='SLEEP_READY'?nights.teams:Array.from({length:7},()=>null);
   error=adopted.status==='BLOCKED'?
    '採用済み作戦は保存条件またはボックスが変更されたため保護しました。再提案が必要です。':
-   nights.status==='BLOCKED'?'睡眠編成の実個体照合に失敗しました。':
+   carried.status==='CARRY_READY'&&carried.team.some(i=>!nextEligible.has(i))?
+     '前週日曜の確定編成に未検証の個体が含まれています。対象個体5匹を再登録してください。':
+    nights.status==='BLOCKED'?'睡眠編成の実個体照合に失敗しました。':
     nights.status==='SLEEP_READY'&&nights.teams.some(team=>
      team&&team.some(i=>!nextEligible.has(i)))?
      '睡眠編成にF1計算対象外または未検証の個体があります。合法個体5匹で再設定してください。':
@@ -252,7 +272,7 @@ async function synchronize(force=false){
   lastKey=key;renderEffective();
  }catch(_){
   if(id!==readToken)return;
-  data=c;bound=null;plan=null;eligibleIndices=new Set();error='計算原典またはボックス照合を確認できません。';
+  data=c;bound=null;plan=null;carryTeam=null;eligibleIndices=new Set();error='計算原典またはボックス照合を確認できません。';
   renderEffective();
  }
 }
@@ -278,7 +298,7 @@ async function propose(){
   if(!c)return;
   const original=dataFingerprint(c),mods=await models();
   if(original!==dataFingerprint(ctx())){error='保存内容が変更されました。';return;}
-  const o={manualNights:sleep,previousWeekSleepIndices:null};
+  const o={manualNights:sleep,previousWeekSleepIndices:carryTeam};
   const result=auto.propose(c,o,{...deps,...mods});
   if(result.status!=='PROVISIONAL'){
    const reason={
@@ -321,23 +341,50 @@ async function adopt(){
 }
 function drawSleep(){
  if(!data||!bound)return;
+ q('sleep-title').textContent=sleepViewCarry?'前週日曜の睡眠編成':'睡眠編成';
+ q('f4c-carry-entry').hidden=!sleepViewCarry;
+ q('sleep-manual').hidden=sleepViewCarry;
+ if(sleepViewCarry){
+  const target=q('f4c-carry-preview');target.replaceChildren();
+  if(carryTeam)for(const i of carryTeam)target.append(realAvatar(i));
+  else target.append(textNode('p','確定編成は未登録です。持越しは未観測として計算します。','hint'));
+  root.PokeSprite?.enhance(target);
+  q('f4c-carry-edit').disabled=data.clock?.phase!=='BEFORE';
+  return;
+ }
  nav('sleep-day-nav',sleepDay,d=>{sleepDay=d;drawSleep();});
  const target=q('sleep-team-preview');target.replaceChildren();
  const chosen=sleep?.[sleepDay];
  if(chosen)for(const i of chosen)target.append(realAvatar(i));
  else target.append(textNode('p','この夜の睡眠編成は未設定です。','hint'));
  root.PokeSprite?.enhance(target);
- q('sleep-change').disabled=false;q('sleep-copy').disabled=!chosen;
+ q('sleep-change').disabled=data.clock?.phase!=='BEFORE';
+ q('sleep-copy').disabled=!chosen||data.clock?.phase!=='BEFORE';
 }
 function openSleep(){
  if(!data||!bound){error='ボックスを確認できません。';renderEffective();return;}
- if(data.autoSleep){error='睡眠自動ONでは手動設定は無効です。';renderEffective();return;}
- sleepDay=0;drawSleep();q('sleep-dialog').showModal();
+ if(data.autoSleep){error='睡眠自動ONでは当週7晩の手動設定は無効です。';renderEffective();return;}
+ sleepViewCarry=false;sleepDay=0;drawSleep();q('sleep-dialog').showModal();
+}
+function openCarry(){
+ if(!data||!bound||data.clock?.phase!=='BEFORE'){
+  error='前週日曜の確定編成はイベント開始前にのみ登録できます。';
+  renderEffective();return;
+ }
+ sleepViewCarry=true;drawSleep();q('sleep-dialog').showModal();
+}
+function beginCarryEdit(){
+ if(!bound||!eligibleIndices.size||data?.clock?.phase!=='BEFORE')return;
+ editingCarry=true;
+ editPicks=carryTeam?carryTeam.filter(i=>eligibleIndices.has(i)):[];
+ q('edit-title').textContent='前週日曜 · 確定5匹';
+ drawEditor();q('edit-dialog').showModal();
 }
 function drawEditor(){
  const grid=q('pick-grid');grid.replaceChildren();
  q('select-count').textContent=editPicks.length+' / 5';
  q('edit-save').disabled=editPicks.length!==5;
+ q('edit-save').textContent=editingCarry?'前週日曜の5匹を登録':'この夜を保存';
  for(let i=0;i<data.privateBoxRows.length;i++){
   if(!eligibleIndices.has(i))continue;
   const item=itemAt(i),on=editPicks.includes(i),entry=textNode('div',undefined,'pick');
@@ -367,12 +414,16 @@ function drawEditor(){
  }
 }
 function beginEdit(){
+ editingCarry=false;
  editPicks=sleep?.[sleepDay]?sleep[sleepDay].filter(i=>eligibleIndices.has(i)):[];
  q('edit-title').textContent=DAYS[sleepDay]+'曜日 · 睡眠編成';
  drawEditor();q('edit-dialog').showModal();
 }
 function saveNight(teams){
  const c=ctx();
+ if(c.clock?.phase!=='BEFORE'){
+  error='開始済み週の睡眠編成変更はF5で対応します。';renderEffective();return false;
+ }
  if(!Array.isArray(teams)||teams.some(team=>
   team&&team.some(i=>!eligibleIndices.has(i)))){
   error='F1計算対象外の個体を睡眠編成へ保存できません。';renderEffective();return false;
@@ -388,7 +439,23 @@ function saveNight(teams){
  return true;
 }
 function saveEdit(){
- if(editPicks.length!==5||new Set(editPicks).size!==5)return;
+ if(editPicks.length!==5||new Set(editPicks).size!==5||
+    editPicks.some(i=>!eligibleIndices.has(i)))return;
+ if(editingCarry){
+  const c=ctx();
+  if(c.status!=='CONTEXT_READY'||c.clock.phase!=='BEFORE'||!bound||
+     c.eventId!==data?.eventId){error='前週日曜の登録条件が変更されました。';renderEffective();return;}
+  const saved=store.saveCarry(localStorage,c,bound,editPicks);
+  if(saved.status!=='CARRY_SAVED'){
+   error='前週日曜の確定編成を保存できませんでした：'+saved.reason;
+   renderEffective();return;
+  }
+  carryTeam=[...editPicks];draft=null;lastKey='';
+  q('edit-dialog').close();drawSleep();
+  void synchronize(true);
+  root.PokeUI?.toast('前週日曜の確定5匹を登録しました');
+  return;
+ }
  const teams=sleep.map(x=>x?[...x]:null);
  teams[sleepDay]=[...editPicks];
  if(saveNight(teams)){
@@ -430,6 +497,8 @@ hijack('review-cancel',()=>{draft=null;q('review-dialog').close();});
 // Once a legal real Box is ready, use the exact same existing modal controls.
 const realReady=()=>data?.status==='CONTEXT_READY'&&!!bound;
 hijack('sleep-open',openSleep,realReady);
+hijack('f4c-carry-trigger',openCarry);
+hijack('f4c-carry-edit',beginCarryEdit);
 hijack('sleep-change',beginEdit,realReady);
 hijack('sleep-copy',copyNights,realReady);
 hijack('edit-save',saveEdit,realReady);
