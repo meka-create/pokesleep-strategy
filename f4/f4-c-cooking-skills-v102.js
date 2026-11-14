@@ -82,11 +82,14 @@
     weeklyEnergyCertified:false,writesSavedData:false});
   }
   if(event.skill==='Tasty Chance S'){
+   // In some stochastic branches the buff is already capped, so a
+   // deterministic cast cannot be asserted across all branches.
+   if(state.tastyDistribution[70]>1e-8)
+    return fail('TASTY_CAP_PATH_UNRESOLVED');
    const dist=Array(71).fill(0);
    for(let b=0;b<=70;b++)if(state.tastyDistribution[b])
     dist[Math.min(70,b+lookup.value*event.count)]+=
      state.tastyDistribution[b];
-   if(dist[70]===1)return fail('TASTY_CHANCE_ALREADY_MAX');
    return Object.freeze({status:'APPLIED',kind:'TASTY',
     state:pack(state.potExtra,dist),appliedUnits:lookup.value*event.count,
     ingredientExpectedAdded:0,bag,
