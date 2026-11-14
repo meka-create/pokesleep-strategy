@@ -238,5 +238,45 @@
    weeklyEnergyCertified:false,writesSavedData:false,
    privateIndividualDataInResult:false};
  }
- return Object.freeze({readContext,publicStatus,buildNeutralInput,reference,keyFor});
+ // F4-C: opt-in read-only replay, never an E7 plan adoption.
+ // No new storage keys, and no guessed historic health/tap/skill state.
+ function statefulScenario(storage,options={},deps={}){
+  if(options.scenarioConsent!=='EXPLICIT_OBSERVATIONS_AND_SLEEP_PROXY')
+   return fail('STATE_SCENARIO_EXPLICIT_REQUIRED');
+  if(typeof deps.stateReplay?.replay!=='function'||
+   typeof deps.stateKernel?.tier!=='function')
+   return fail('STATEFUL_DEPENDENCIES_MISSING');
+  const ctx=readContext(storage,deps,options.instant);
+  if(ctx.status!=='CONTEXT_READY')return ctx;
+  const prepared=buildNeutralInput(ctx,options,deps);
+  if(prepared.status!=='READY')return prepared;
+  if(typeof deps.exactCore?.plan!=='function')return fail('EXACT_CORE_MISSING');
+  const referenceResult=deps.exactCore.plan(prepared.input,
+   {base:deps.baseCore,gameWeek:deps.weekClock});
+  if(referenceResult.status!=='PROVISIONAL'||referenceResult.slotCount!==29||
+   referenceResult.startsAt!==ctx.clock.startsAt||
+   referenceResult.endsAt!==ctx.clock.endsAt||
+   referenceResult.weeklyEnergyCertified!==false||
+   referenceResult.writesSavedData!==false)
+   return fail(referenceResult.reason||'EXACT_CORE_CONTRACT');
+  const replayResult=deps.stateReplay.replay({
+   ...prepared.input,reference:referenceResult,
+   scenarioConsent:options.scenarioConsent,
+   initialEnergy:options.initialEnergy,initialHeld:options.initialHeld,
+   collections:options.collections,recoveries:options.recoveries
+  },{stateKernel:deps.stateKernel,baseCore:deps.baseCore,gameWeek:deps.weekClock});
+  if(replayResult.status!=='PROVISIONAL')
+   return fail(replayResult.reason||'STATEFUL_REPLAY_BLOCKED');
+  if(replayResult.weeklyEnergyCertified!==false||
+   replayResult.writesSavedData!==false||
+   replayResult.privateIndividualDataInResult!==false)
+   return fail('STATEFUL_REPLAY_PRIVACY_CONTRACT');
+  return {status:'PROVISIONAL',stage:'F4_C_EXPLICIT_STATE_REFERENCE',
+   readOnly:true,result:replayResult,sourceCommit:prepared.sourceCommit,
+   weekStart:ctx.weekStart,eventId:ctx.eventId,
+   optimizedForHealth:false,weeklyEnergyCertified:false,
+   writesSavedData:false,privateIndividualDataInResult:false};
+ }
+ return Object.freeze({readContext,publicStatus,buildNeutralInput,reference,
+  statefulScenario,keyFor});
 });
