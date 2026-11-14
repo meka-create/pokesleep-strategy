@@ -258,6 +258,7 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 
 <link rel="stylesheet" href="e7-pokemon-detail-shared-v81.css">
 <script src="e7-species-v59.js"></script>
+<script src="e7-sprites-v59.js"></script><script src="e7-ingredient-quantities-v79.js"></script>
 <script src="e7-pokemon-detail-shared-v81.js"></script>
 <script src="../f1/f1-b-legal-build-v2.js"></script><script src="../f1/f1-b-base-rates-v1.js"></script>
 <script src="../src/master.js"></script><script src="../src/recipes.js"></script>
@@ -265,26 +266,14 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
 <script src="../f4/f4-f1b-roster-adapter-v1.js"></script><script src="../f4/f4-b-game-week-v1.js"></script>
 <script src="../f4/f4-b-e7-readonly-v1.js"></script><script src="../f4/f4-c-healer-policy-v100.js"></script>
 <script src="../f4/f4-c-healer-search-v100.js"></script><script src="../f1/f1-c-skill-values-v1.js"></script>
-<script src="../f4/f4-c-item-aware-rank-v101.js"></script><script src="../f4/f4-c-baseline-proposal-v110.js"></script>
-<style id="f4c-v110-style">
-#f4c-real-card[hidden]{display:none!important}
-.f4c-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
-.f4c-field{min-width:0;display:block;font-size:12px}
-.f4c-field>span{display:block;color:var(--muted);margin-bottom:3px}
-.f4c-field select{width:100%;min-height:40px;background:#15273a;color:var(--text);
-border:1px solid #536980;border-radius:9px;padding:6px;font-size:12px}
-#f4c-real-card details{border:1px solid #40546a;padding:8px 10px;border-radius:10px;margin:8px 0}
-#f4c-real-card summary{cursor:pointer;font-weight:650}
-#f4c-real-favorites{grid-template-columns:repeat(3,minmax(0,1fr))}
-#f4c-real-consent{width:18px;height:18px;flex:0 0 18px}
-#f4c-real-official label{display:flex;align-items:flex-start;gap:8px;font-size:12px}
-#f4c-real-status[data-error="true"]{color:#ffb9a9}
-#f4c-real-result{font-size:12px}
-#f4c-real-result .f4c-metric{color:#f6ce83;font-weight:800;font-size:15px}
-.f4c-real-slot{padding:7px 0;border-bottom:1px solid #40546a}
-.f4c-real-slot p{margin:3px 0;overflow-wrap:anywhere}
-.f4c-warning{color:#f6ce83}
-@media(max-width:360px){.f4c-field select{padding:5px 2px;font-size:11px}}
+<script src="../f4/f4-c-item-aware-rank-v101.js"></script>
+<script src="../f4/f4-c-stable-box-ids-v1.js"></script>
+<script src="../f4/f4-c-auto-v112.js"></script>
+<script src="../f4/f4-c-real-storage-v112.js"></script>
+<style id="f4c-v112-style">
+#e3-warning[data-error="true"]{color:#f5b7a8}
+#review-slots .slot .mon-name,#slots .slot .mon-name{overflow-wrap:anywhere}
+#pick-grid .pick-select .pick-name{overflow-wrap:anywhere}
 </style>
 </head>
 <body><details id="e6-dev">
@@ -337,20 +326,6 @@ border:1px solid #536980;border-radius:9px;padding:6px;font-size:12px}
  <p id="e7-cal-empty" hidden>この月に保存済みのイベントはありません。</p>
 </section>
 <section class="card sleep-settings" aria-label="睡眠編成の設定"><div class="section-head"><h2>睡眠編成</h2><div class="sleep-controls"><button type="button" class="control-toggle sleep-auto-toggle" id="auto-sleep" role="switch" aria-checked="false" aria-label="睡眠編成を自動提案"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button><button type="button" id="sleep-open" class="btn small secondary">設定</button></div></div></section>
-<section id="f4c-real-card" class="card" aria-labelledby="f4c-real-title" hidden>
-<div class="section-head"><h2 id="f4c-real-title">実ボックスから作戦を提案</h2>
-<button type="button" class="btn small secondary" id="f4c-real-refresh">更新</button></div>
-<p class="hint">現行19食材・78料理を使い、実個体から朝昼夜の自動編成と料理を提案します（現在は未採用）。</p>
-<div id="f4c-real-healers" class="f4c-fields"></div>
-<details><summary>7晩共通の育成5匹</summary><div id="f4c-real-night" class="f4c-fields"></div></details>
-<details><summary>前週日曜の睡眠5匹</summary><p class="hint">月曜04:00〜07:30の持越し個体です。</p>
-<div id="f4c-real-previous" class="f4c-fields"></div></details>
-<details><summary>好みのきのみ3種類</summary><div id="f4c-real-favorites" class="f4c-fields"></div></details>
-<div id="f4c-real-official" hidden><label><input type="checkbox" id="f4c-real-consent"><span>
-イベント特別補正・新食材・新料理を含まない「通常データ基準の参考提案」であることを了承する。イベントの正式な週間エナジーではありません。</span></label></div>
-<button type="button" id="f4c-real-run" class="btn full">実ボックスで7日間を提案</button>
-<p id="f4c-real-status" class="hint" role="status" aria-live="polite"></p>
-<div id="f4c-real-result"></div></section>
 <section class="card plan-actions" aria-label="週間作戦の操作"><button type="button" id="generate" class="btn full">7日間の作戦を提案</button><button type="button" id="repropose" class="btn secondary full" hidden>作戦を再提案</button><button type="button" id="resume-draft" class="btn secondary full" hidden>未採用の提案を確認</button><p class="hint" id="event-gate" role="status" aria-live="polite" hidden></p><p class="hint" id="stock-gate" hidden>食材在庫を保存すると提案できます。<a class="u2-nav" href="U2_Prep_Local_Ingredients_20261109_v50_E7.html">食材在庫へ</a></p><p class="hint" id="inventory-notice" hidden></p><a class="hint u2-nav" href="U2_Prep_Local_Ingredients_20261109_v50_E7.html">食材在庫の入力・修正は準備画面で行う</a><p class="hint" id="mock-note">このプレビューの編成と料理は操作確認用の例です。</p><div id="status" class="status-message" role="status" aria-live="polite"></div></section>
 <section class="card" id="week-content" hidden><div class="section-head"><h2 id="current-state-title">週間編成</h2><span class="energy" id="e4-result-energy" hidden aria-hidden="true">週間エナジー <b>—</b></span><span id="e4-changed" hidden>更新前の作戦</span></div><div class="week-head"><div class="day-title"><span id="day-label">月曜日</span><small id="day-date">11/9</small></div></div><div class="daynav" id="day-nav" role="tablist" aria-label="曜日を選択"></div><div id="slots"></div><a class="hint u2-nav" id="e3-update-stock" href="U2_Prep_Local_Ingredients_20261109_v50_E7.html">食材在庫を更新</a></section></main></div><nav id="e6-footer" aria-label="メインナビゲーション">
 <a id="e6-footer-plan" href="U3_Strategy_UI_20261109_v50_E7.html" aria-current="page"><svg class="e6-ico" viewBox="60 60 392 392" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="23" stroke-linejoin="round" stroke-linecap="round"><rect x="103" y="125" width="306" height="272" rx="34"/><path d="M170 92v62m172-62v62M107 200h301"/></g><g fill="currentColor" stroke="none"><circle cx="178" cy="270" r="19"/><circle cx="257" cy="270" r="19"/><circle cx="335" cy="270" r="19"/><circle cx="178" cy="337" r="19"/><circle cx="257" cy="337" r="19"/></g></svg><span>作戦</span></a>
@@ -1196,7 +1171,7 @@ function arrangePhaseLayout(phase,activePlan,blockers){
  main.dataset.hasProposed=String(hasProposed);
  if(layout!==visiblePhaseStage){
   const calendar=$('#e7-event-calendar');
-  const nodes=[$('#f4c-real-card'),primary,week,sleep,conditions,calendar,actions,intro];
+  const nodes=[primary,week,sleep,conditions,calendar,actions,intro];
   for(const node of nodes)main.appendChild(node);
   // Initial conditions stay expanded until the first actual successful proposal.
   // Phase clock transitions never collapse a card opened by the player.
@@ -2013,7 +1988,7 @@ render=function(){
  e7RefreshEventActions();
  // Same-document localStorage updates do not emit storage events. Reflect
  // an event save/switch in the real-Box read-only pane immediately.
- window.PokeF4CBaselineUI?.refresh();
+ window.PokeF4CIntegratedUI?.refresh();
  if((!hasProposed||['SELECT_EVENT','SET_EVENT'].includes(action))&&state.phase!=='ENDED')$('#event-details').open=true;
  if(!selected){
   $('#phase-intro').hidden=true;$('#week-content').hidden=true;
@@ -2130,4 +2105,4 @@ save?.addEventListener('click',e=>{
 },true);
 })();
 </script>
-<script src="e7-f4c-baseline-v110.js"></script><script src="e7-footer-nav-v84.js"></script><script id="e6-v35-footer-nav">PokeE7FooterNav.attach('plan');</script><script src="e7-unified-bridge-v51.js"></script></body></html>
+<script src="e7-f4c-integrated-v112.js"></script><script src="e7-footer-nav-v84.js"></script><script id="e6-v35-footer-nav">PokeE7FooterNav.attach('plan');</script><script src="e7-unified-bridge-v51.js"></script></body></html>

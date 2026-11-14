@@ -8,6 +8,7 @@ const PREFIX='pokesleep-strategy-u3-e3-v1:';
 const SELECTED=PREFIX+'selected';
 const PREP='pokesleep-strategy-u2-e6-prep-v1:';
 const TIMELINE='pokesleep-strategy-u2-e2-v1:';
+const F4C='pokesleep-strategy-f4c-v112:';
 function valid(selection){
  if(!selection||typeof selection.id!=='string'||!selection.id.trim()||
     selection.id.length>160||typeof selection.weekStart!=='string'||
@@ -22,8 +23,21 @@ function snapshot(storage,selection,{requireSelected=false}={}){
  const week=selection.weekStart,id=selection.id,encoded=encodeURIComponent(id);
  const base=PREFIX+week+':'+encoded+':';
  const keys=[base+'conditions',base+'plan',PREP+week+':'+encoded];
+ // New real-box adopted and manual sleep state belong to this exact owner.
+ // Include them in the same comparison/rollback transaction as E7 deletion.
+ const sidecars=[F4C+'plan:'+week+':'+encoded,F4C+'sleep:'+week+':'+encoded];
  const values={};
  for(const key of keys)values[key]=storage.getItem(key);
+ for(const key of sidecars){
+  const raw=storage.getItem(key);
+  if(raw===null)continue;
+  const data=readJSON(raw);
+  if(data?.weekStart!==week||data?.eventId!==id||
+   (key.startsWith(F4C+'plan:')?
+     data.kind!=='REAL_BOX_PLAN_V112':data.version!==1))
+   throw Error('実個体の作戦または睡眠編成の所有者が一致しません。');
+  keys.push(key);values[key]=raw;
+ }
  const ledger=values[base+'conditions']===null?null:readJSON(values[base+'conditions']);
  const plan=values[base+'plan']===null?null:readJSON(values[base+'plan']);
  if(!ledger||ledger.weekStart!==week||ledger.eventId!==id||
