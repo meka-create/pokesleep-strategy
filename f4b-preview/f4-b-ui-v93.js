@@ -9,6 +9,8 @@
  const deps={scope:window.PokeE7InventoryScope,e1:window.PokeE7E1,
   weekClock,baseCore:window.PokeF4ChronologicalCore,
   exactCore:window.PokeF4BChronologicalCore,
+  stateReplay:window.PokeF4CWindowReplay,
+  stateKernel:window.PokeF4CStateKernel,
   roster:window.PokeF4F1RosterAdapter,
   legal:window.PokeF1LegalBuild,rates:window.PokeF1BaseRates,
   master:window.PokeMaster,recipes:window.PokeRecipes};
