@@ -1,8 +1,10 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const {createHash}=require('node:crypto');
-const fs=require('node:fs'),path=require('node:path');
-const id=require('../f4/f4-c-stable-box-ids-v1.js');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const sandbox={module:{exports:{}},globalThis:{}};
+vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'../f4/f4-c-stable-box-ids-v1.js'),'utf8'),sandbox,{filename:'f4-c-stable-box-ids-v1.js',timeout:15000});
+const id=sandbox.module.exports;
 const digest=s=>createHash('sha256').update(s).digest('hex');
 const A=digest('PRIVATE_ROW_A'),B=digest('PRIVATE_ROW_B'),C=digest('PRIVATE_ROW_C');
 let n=0;const issue=()=>('f4c_'+(++n).toString(16).padStart(32,'0'));
