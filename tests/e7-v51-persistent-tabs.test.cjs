@@ -7,8 +7,8 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-// v110 F4-C real Box read-only proposal is the only U3 audited addition; U2/Box unchanged.
-const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', '94cfc0e0c1583c3ec2655ff8b7804bd3e200b2c0', '6775191ee025b2c370e33420df60fe405375c7b9'];
+// v114 F4-C known-defect repair is the only authorized U3 delta; accepted U2/Box unchanged.
+const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', 'afb2f76ce859797f4a5aaa8823c11fe99b0654ba', '6775191ee025b2c370e33420df60fe405375c7b9'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
