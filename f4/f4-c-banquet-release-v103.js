@@ -190,6 +190,9 @@
   if(t.preparationLatest&&JSON.stringify(t.preparationLatest)!==
    JSON.stringify(t.startInventory))
    return blocked('INVENTORY_BASELINE_CONFLICT');
+  if(oldStatus.currentInventory===20&&
+   (oldStatus.preparationLatest===19||oldStatus.startInventory===19))
+   return blocked('MIXED_FOOD_TIMELINE_UNSAFE');
   if(oldStatus.currentInventory===20)
    return Object.freeze({status:'ALREADY_20_FOODS_NO_WRITE',
     timeline:{
