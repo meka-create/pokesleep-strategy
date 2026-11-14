@@ -114,6 +114,20 @@ try:
         page.reload(wait_until='domcontentloaded')
         page.locator('#week-content').wait_for(state='visible',timeout=30000)
         assert 'Lv.' in page.locator('#slots').inner_text()
+        # F4-C: a newer saved inventory must not erase the LAST adopted
+        # lineup. It becomes visibly stale, with a re-propose action.
+        page.evaluate('''() => {
+          const k='pokesleep-strategy-u2-e2-v1:2026-11-16:manual%3A2026-11-16:timeline';
+          const p=JSON.parse(localStorage.getItem(k));
+          p.currentInventory.revision='f4b-stock-updated';
+          p.currentInventory.values['とくせんリンゴ']=55;
+          localStorage.setItem(k,JSON.stringify(p));
+        }''')
+        page.reload(wait_until='domcontentloaded')
+        page.locator('#week-content').wait_for(state='visible',timeout=30000)
+        page.locator('#e3-next[data-action="F4C_REPROPOSE"]').wait_for(state='visible',timeout=15000)
+        assert 'Lv.' in page.locator('#slots').inner_text()
+        assert page.locator('#e4-changed').is_visible()
         assert not errors,'Browser errors: '+repr(errors[-8:])
         print('F4-C v112 Chromium: existing E7 button, real healer auto proposal/adoption, stable restore PASS')
         browser.close()

@@ -308,6 +308,28 @@
     needed=Boolean((stockChanged||conditionsChanged||sleepChanged)&&!draftReady);
    }
   }
+  // v113: also observe the real-Box sidecar, not only E7's old mock plan.
+  if(selected&&typeof selected.id==='string'&&selected.id.length<=160&&
+     typeof selected.weekStart==='string'&&/^\\d{4}-\\d\\d-\\d\\d$/.test(selected.weekStart)){
+   const week=selected.weekStart,id=selected.id,now=clockMs();
+   const owner=week+':'+encodeURIComponent(id);
+   const real=parse('pokesleep-strategy-f4c-v112:plan:'+owner);
+   if(real?.kind==='REAL_BOX_PLAN_V112'&&real.eventId===id&&
+      real.weekStart===week&&futureSlotExists(week,now)){
+    const ledger=parse('pokesleep-strategy-u3-e3-v1:'+owner+':conditions');
+    const saved=(()=>{try{return PokeE7InventoryScope.read(localStorage,week,id);}
+     catch(_){return null;}})();
+    const setting=parse('pokesleep-strategy-u3-e3-v1:'+owner+':plan');
+    const sleeping=parse('pokesleep-strategy-f4c-v112:sleep:'+owner);
+    const changedSleep=real.autoSleep!==setting?.autoSleep||
+     (!real.autoSleep&&(!Array.isArray(sleeping?.teams)||
+       sleeping.teams.length!==7||
+       real.slots.some(w=>w.slot==='sleep'&&w.day>=0&&
+        JSON.stringify(w.teamIds)!==JSON.stringify(sleeping.teams[w.day]))));
+    needed=Boolean(real.conditionRevision!==ledger?.confirmed?.revision||
+     real.inventoryRevision!==saved?.currentInventory?.revision||changedSleep);
+   }
+  }
   footer.dataset.reproposal=String(needed);
   footer.setAttribute('aria-label',needed?'作戦（再提案が必要）':'作戦');
  }
