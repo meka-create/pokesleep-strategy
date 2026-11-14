@@ -59,29 +59,37 @@
   try{
    if(!deps.identity?.reconcile||!deps.identity?.validate||
     !deps.crypto?.subtle||!deps.crypto?.randomUUID||
-    !deps.crypto?.getRandomValues||!storage?.getItem)return fail('SECURE_LOCAL_IDENTITY_UNAVAILABLE');
-   const old=entry(storage,LEDGER),boxRaw=storage.getItem(BOX);
-   if(!boxRaw||!Array.isArray(rows)||JSON.stringify(JSON.parse(boxRaw)?.items)!==
-    JSON.stringify(rows))return fail('BOX_CHANGED_BEFORE_MAPPING');
-   const salt=old.value?.salt||hex(deps.crypto.getRandomValues(new Uint8Array(16)));
-   const digests=await hashes(rows,salt,deps.crypto);
-   if(!digests)return fail('UNSUPPORTED_PRIVATE_BOX_ROW');
-   const prior=old.value?.ledger||null;
-   if(old.value&&(!/^[0-9a-f]{32}$/.test(old.value.salt)||
-     !deps.identity.validate(prior)))return fail('BOX_LEDGER_CORRUPTED');
-   const mapped=deps.identity.reconcile(digests,prior,
-    ()=>'f4c_'+deps.crypto.randomUUID());
-   if(mapped.status!=='IDENTITY_READY')return fail(mapped.reason);
-   if(storage.getItem(BOX)!==boxRaw||storage.getItem(LEDGER)!==old.raw)
-    return fail('BOX_OR_IDENTITY_CONCURRENT_MODIFICATION');
-   const encoded=JSON.stringify({version:1,salt,ledger:mapped.ledger});
-   if(encoded!==old.raw){
-    storage.setItem(LEDGER,encoded);
-    if(storage.getItem(LEDGER)!==encoded)return fail('IDENTITY_SAVE_FAILED');
+    !deps.crypto?.getRandomValues||!storage?.getItem)
+    return fail('SECURE_LOCAL_IDENTITY_UNAVAILABLE');
+   const boxRaw=storage.getItem(BOX);
+   if(!boxRaw||!Array.isArray(rows)||
+      JSON.stringify(JSON.parse(boxRaw)?.items)!==JSON.stringify(rows))
+    return fail('BOX_CHANGED_BEFORE_MAPPING');
+   // Parallel E7 lifecycle refreshes may both read an empty ledger.
+   // Only a SAME-Box ledger race is retried. A changed Box, malformed
+   // ledger, changed user row, or reused ID still fails closed.
+   for(let attempt=0;attempt<4;attempt++){
+    const old=entry(storage,LEDGER);
+    if(old.value&&(!/^[0-9a-f]{32}$/.test(old.value.salt)||
+       !deps.identity.validate(old.value.ledger)))
+     return fail('BOX_LEDGER_CORRUPTED');
+    const salt=old.value?.salt||hex(deps.crypto.getRandomValues(new Uint8Array(16)));
+    const digests=await hashes(rows,salt,deps.crypto);
+    if(!digests)return fail('UNSUPPORTED_PRIVATE_BOX_ROW');
+    const mapped=deps.identity.reconcile(digests,old.value?.ledger||null,
+      ()=>'f4c_'+deps.crypto.randomUUID());
+    if(mapped.status!=='IDENTITY_READY')return fail(mapped.reason);
+    if(storage.getItem(BOX)!==boxRaw)return fail('BOX_CHANGED_BEFORE_MAPPING');
+    if(storage.getItem(LEDGER)!==old.raw)continue;
+    const encoded=JSON.stringify({version:1,salt,ledger:mapped.ledger});
+    if(encoded!==old.raw)storage.setItem(LEDGER,encoded);
+    if(storage.getItem(BOX)!==boxRaw)return fail('BOX_CHANGED_BEFORE_MAPPING');
+    if(storage.getItem(LEDGER)!==encoded)continue;
+    const byId=new Map(mapped.ledger.entries.map((e,i)=>[e.id,i]));
+    return {status:'IDENTITIES_READY',ids:mapped.ledger.entries.map(x=>x.id),
+     byId,digests,boxRaw,ledgerRevision:encoded};
    }
-   const byId=new Map(mapped.ledger.entries.map((e,i)=>[e.id,i]));
-   return {status:'IDENTITIES_READY',ids:mapped.ledger.entries.map(x=>x.id),
-    byId,digests,boxRaw,ledgerRevision:encoded};
+   return fail('IDENTITY_LEDGER_CONTENTION_EXCEEDED');
   }catch(_){return fail('IDENTITY_READ_OR_SAVE_FAILED');}
  }
  function uniqueUsed(ids,identity){
