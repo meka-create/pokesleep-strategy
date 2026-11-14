@@ -83,7 +83,7 @@ test('v100: main team-wide healer and secondary healer must both be explicit and
   secondaryHealerId:'p0',sleepScore:100}).reason,'HEALER_POLICY_INPUT_INVALID');
  assert.equal(policy.validate({profiles:roster,primaryHealerId:'p0',
   secondaryHealerId:'p1',sleepScore:80}).reason,'HEALER_POLICY_INPUT_INVALID');
- const fewer=roster.filter(p=>p.id!=='p4'&&p.id!=='p5'&&p.id!=='p6');
+ const fewer=roster.slice(0,6).map((p,i)=>i===5?{...p,healerRole:'TEAM_WIDE_HEALER'}:p);
  assert.equal(policy.validate({profiles:fewer,primaryHealerId:'p0',
   secondaryHealerId:'p1',sleepScore:100}).reason,'FOUR_NON_HEALERS_REQUIRED');
 });
@@ -109,7 +109,12 @@ test('v100: official and EX-like unverified sources, sleep score and scenario ar
   'REAL_MANUAL_SLEEP_TEAMS_REQUIRED');
 });
 test('v100: recipe cannot use future help and no bag creates ingredients from nothing',()=>{
- const input=make({initialInventory:{apple:0},
+ const rows=roster.map((p,i)=>({
+  ...p,ratesByTeammateBonus:p.ratesByTeammateBonus.map(r=>({
+   ...r,ingredientCountsPerHelp:{apple:i>=6?5:0}
+  }))
+ }));
+ const input=make({initialInventory:{apple:0},profiles:rows,
   recipes:[{id:'only',type:'curry',baseStrength:100,requirements:{apple:3}}]});
  const result=search.plan(input,deps);
  assert.equal(result.status,'PROVISIONAL',result.reason);
