@@ -341,6 +341,16 @@
    startsAt:w.startsAt,endsAt:w.endsAt,
    teamIndices:w.teamIds.map(id=>ix.get(id)),recipeId:w.recipeId
   }));
+  // A change in the seven manually selected sleep teams or the prior
+  // Sunday rollover invalidates this reference draft, even after a
+  // legitimate CSV reorder. Never substitute an old sleep team silently.
+  const sleep=[restored[0],...restored.filter(w=>w.slot==='sleep'&&w.day>=0)];
+  const expected=[args.prepared.input.previousWeekSleepTeam,
+   ...(args.prepared.input.nightTeams||[])];
+  if(sleep.length!==8||expected.length!==8||
+   sleep.some((w,i)=>JSON.stringify(w.teamIndices.map(idFor))!==
+    JSON.stringify(expected[i])))
+   return fail('SAVED_SLEEP_SETTING_CHANGED');
   const knownRecipes=new Set(args.prepared.input.recipes.map(r=>r.id));
   for(const w of restored){
    if(w.recipeId!==null&&!knownRecipes.has(w.recipeId))
