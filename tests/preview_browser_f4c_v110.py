@@ -88,6 +88,8 @@ try:
                 page.locator('#f4c-real-previous select').nth(i).select_option(str(ix))
             for i,berry in enumerate(['water','fire','grass']):
                 page.locator('#f4c-real-favorites select').nth(i).select_option(berry)
+        for title in ['7晩共通の育成5匹','前週日曜の睡眠5匹','好みのきのみ3種類']:
+            page.get_by_text(title,exact=True).click()
         fill()
         before=page.evaluate('(keys)=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]))',list(seed))
         page.locator('#f4c-real-run').click()

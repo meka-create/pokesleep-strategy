@@ -197,9 +197,13 @@ test('missing sleep, player values, unknown foods and plan owner mismatch fail c
  put(other,k,entry);
  assert.equal(f4b.readContext(other,deps,instant).reason,'SAVED_PLAN_OWNER_MISMATCH');
 });
-test('F4-B is isolated from protected E7 views and main root',()=>{
+test('F4-B read-only bridge is explicitly integrated in E7 for F4-C, not root',()=>{
  const ui=read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html');
- assert(!ui.includes('f4-b-e7-readonly-v1.js'));
+ assert(ui.includes('f4-b-e7-readonly-v1.js'));
+ assert(ui.includes('f4-c-baseline-proposal-v110.js'));
+ assert(!read('index.html').includes('f4-b-e7-readonly-v1.js'));
+ assert(!read('e7-preview/index.html').includes('f4-c-baseline-proposal-v110.js'));
+ assert(!read('e7-preview/e7-f4c-baseline-v110.js').includes('localStorage.setItem'));
  const source=read('f4/f4-b-e7-readonly-v1.js');
  for(const banned of ['.setItem(','.removeItem(','.clear('])
   assert(!source.includes(banned),'F4-B new bridge must not write persistence: '+banned);
