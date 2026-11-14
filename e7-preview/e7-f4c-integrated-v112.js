@@ -15,7 +15,7 @@ const deps={scope:root.PokeE7InventoryScope,e1:root.PokeE7E1,
  master:root.PokeMaster,recipes:root.PokeRecipes,crypto:root.crypto};
 let data=null,bound=null,modelPromise=null,plan=null,sleep=null,draft=null;
 let targetDay=0,reviewDay=0,sleepDay=0,editPicks=[],pending=false;
-let readToken=0,owner='',lastKey='',error='',sleepBusy=false;
+let readToken=0,owner='',lastKey='',error='',sleepBusy=false,detailVersion=0;
 const val=(storageKey)=>{try{return JSON.parse(localStorage.getItem(storageKey)||'null');}catch(_){return null;}};
 const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
 const instant=()=>{
@@ -50,8 +50,18 @@ function realAvatar(i){
  btn.addEventListener('click',()=>showDetail(item));
  tile.append(btn,textNode('span',label(i),'mon-name'));return tile;
 }
+function patchDetailStats(version,stats){
+ const dialog=q('pokemon-dialog');
+ if(version!==detailVersion||!dialog?.open)return;
+ for(const label of q('pokemon-base-rows')?.querySelectorAll('.iv-key')||[]){
+  const value=label.nextElementSibling;if(!value)continue;
+  if(label.textContent==='おてつだい時間：')value.textContent=stats.helpTime;
+  if(label.textContent==='最大所持数：')value.textContent=stats.carry;
+ }
+}
 function showDetail(item){
  if(!item||!root.PokeE7PokemonDetail)return;
+ const version=++detailVersion;
  const foods=[item.ing1,item.ing2,item.ing3].map((name,i)=>({
   name,count:root.PokeE7IngredientQuantities?.get(item.pokemon,name,i+1)??null
  }));
@@ -60,10 +70,14 @@ function showDetail(item){
   nature:item.nature,mint:item.mint,mainSkill:item.mainSkill,
   skillLevel:item.skillLevel,ingredients:foods,
   subskills:[item.lv10,item.lv25,item.lv50,item.lv70,item.lv80],
-  ribbon:item.ribbon,favorite:item.favorite,helpTime:'—',carry:'—'
+  ribbon:item.ribbon,favorite:item.favorite,helpTime:'算出中…',carry:'算出中…'
  },node=>{node.innerHTML=root.PokeSprite?.icon(item)||item.pokemon.slice(0,2);});
  root.PokeSprite?.enhance(q('pokemon-dialog'));
  q('pokemon-dialog').showModal();
+ Promise.resolve().then(()=>root.PokeE7BoxStats?.calculate?.(item)||
+  {helpTime:'原典未確認',carry:'原典未確認'}).then(stats=>
+  patchDetailStats(version,stats)).catch(()=>patchDetailStats(version,
+  {helpTime:'原典未確認',carry:'原典未確認'}));
 }
 function dateOf(day){
  const date=new Date((data?.weekStart||'2026-11-09')+'T12:00:00Z');
