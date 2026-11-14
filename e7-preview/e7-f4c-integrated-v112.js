@@ -168,7 +168,8 @@ function renderEffective(){
 }
 function dataFingerprint(c){
  return JSON.stringify([c?.status,c?.eventId,c?.weekStart,c?.conditionRevision,
-  c?.inventoryRevision,c?.autoSleep,c?.fields,c?.player,c?.privateBoxRows,
+  c?.inventoryRevision,c?.autoSleep,c?.fields,c?.player,c?.savedBerrySetup,
+  c?.privateBoxRows,
   localStorage.getItem(c?.eventId?store.key('plan',c.weekStart,c.eventId):'invalid'),
   localStorage.getItem(c?.eventId?store.key('sleep',c.weekStart,c.eventId):'invalid')]);
 }

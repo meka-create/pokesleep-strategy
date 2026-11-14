@@ -135,4 +135,12 @@ test('adoption replaces pN refs with stable opaque IDs and validates owner/revis
  assert.equal(stale.status,'STALE_ADOPTED');
  assert.equal(stale.slots.length,29);
  assert.equal(stale.reason,'SAVED_PLAN_INPUTS_CHANGED');
+ const changedPlayer={...c,player:{...c.player,pot:90}};
+ const playerStale=safe.readPlan(storage,changedPlayer,identity,'a'.repeat(40),
+  Array.from({length:78},(_,i)=>({id:'recipe'+i})),c.clock);
+ assert.equal(playerStale.status,'STALE_ADOPTED');
+ assert.equal(playerStale.reason,'PLAYER_OR_BERRY_SETTINGS_CHANGED');
+ const changedBerry={...c,savedBerrySetup:{types:['grass','fire','normal']}};
+ assert.equal(safe.readPlan(storage,changedBerry,identity,'a'.repeat(40),
+  Array.from({length:78},(_,i)=>({id:'recipe'+i})),c.clock).status,'STALE_ADOPTED');
 });

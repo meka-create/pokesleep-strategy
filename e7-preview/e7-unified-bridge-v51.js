@@ -326,8 +326,12 @@
        sleeping.teams.length!==7||
        real.slots.some(w=>w.slot==='sleep'&&w.day>=0&&
         JSON.stringify(w.teamIds)!==JSON.stringify(sleeping.teams[w.day]))));
+    const player=parse('pokesleep-strategy-e7-player-v1');
+    const expected=JSON.stringify([ledger?.confirmed?.fields,player,
+     setting?.eventInfo?.berrySetup??null,setting?.autoSleep===true]);
     needed=Boolean(real.conditionRevision!==ledger?.confirmed?.revision||
-     real.inventoryRevision!==saved?.currentInventory?.revision||changedSleep);
+     real.inventoryRevision!==saved?.currentInventory?.revision||changedSleep||
+     real.planningBasis!==expected);
    }
   }
   footer.dataset.reproposal=String(needed);

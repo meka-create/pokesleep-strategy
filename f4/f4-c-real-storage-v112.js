@@ -24,6 +24,8 @@
  const ownerOK=ctx=>ctx?.status==='CONTEXT_READY'&&weekOK(ctx.weekStart)&&
   typeof ctx.eventId==='string'&&ctx.eventId.length>0&&ctx.eventId.length<=160&&
   typeof ctx.conditionRevision==='string'&&typeof ctx.inventoryRevision==='string';
+ const planningBasis=ctx=>JSON.stringify([ctx.fields,ctx.player,
+  ctx.savedBerrySetup??null,ctx.autoSleep]);
  const canonical=row=>{
   if(!isObj(row)||!FIELDS.every(f=>Object.hasOwn(row,f)))return null;
   const vals=FIELDS.map(k=>row[k]===undefined?null:row[k]);
@@ -94,6 +96,7 @@
    !weekOK(p.weekStart)||typeof p.eventId!=='string'||
    typeof p.sourceCommit!=='string'||!/^[0-9a-f]{40}$/.test(p.sourceCommit)||
    typeof p.conditionRevision!=='string'||typeof p.inventoryRevision!=='string'||
+   typeof p.planningBasis!=='string'||p.planningBasis.length>50000||
    !idOK(p.primaryId)||!idOK(p.secondaryId)||p.primaryId===p.secondaryId||
    !Array.isArray(p.slots)||p.slots.length!==29)return false;
   for(let i=0;i<29;i++){
@@ -115,6 +118,7 @@
    proposal.eventId!==ctx.eventId||proposal.weekStart!==ctx.weekStart||
    proposal.conditionRevision!==ctx.conditionRevision||
    proposal.inventoryRevision!==ctx.inventoryRevision||
+   proposal.planningBasis!==planningBasis(ctx)||
    !/^[0-9a-f]{40}$/.test(proposal.sourceCommit||'')||
    proposal.slots?.length!==29)return fail('PROPOSAL_CONTEXT_MISMATCH');
   const translate=ids=>{
@@ -133,6 +137,7 @@
   if(!uniqueUsed(allIds,identity))return fail('DUPLICATE_INDIVIDUAL_IDENTITY_AMBIGUOUS');
   const out={kind:'REAL_BOX_PLAN_V112',weekStart:ctx.weekStart,eventId:ctx.eventId,
    conditionRevision:ctx.conditionRevision,inventoryRevision:ctx.inventoryRevision,
+   planningBasis:proposal.planningBasis,
    sourceCommit:proposal.sourceCommit,primaryId,secondaryId,
    previousWeekCarryUnknown:proposal.previousWeekCarryUnknown===true,
    sourceMode:proposal.officialEffectsExcluded?'UNBONUSED_EVENT_REFERENCE':'NEUTRAL',
@@ -158,7 +163,8 @@
    if(p.sourceCommit!==sourceCommit)return fail('VERIFIED_SOURCE_CHANGED');
    const staleReason=p.autoSleep!==ctx.autoSleep?'SAVED_SLEEP_MODE_CHANGED':
     (p.conditionRevision!==ctx.conditionRevision||
-     p.inventoryRevision!==ctx.inventoryRevision)?'SAVED_PLAN_INPUTS_CHANGED':null;
+     p.inventoryRevision!==ctx.inventoryRevision)?'SAVED_PLAN_INPUTS_CHANGED':
+    p.planningBasis!==planningBasis(ctx)?'PLAYER_OR_BERRY_SETTINGS_CHANGED':null;
    if(clock?.windows?.length!==29||p.slots.some((w,i)=>{
     const c=clock.windows[i];return w.day!==c.day||w.slot!==c.slot||
      w.source!==c.source||w.startsAt!==c.startsAt||w.endsAt!==c.endsAt;
