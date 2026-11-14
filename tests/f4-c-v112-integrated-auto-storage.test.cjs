@@ -188,3 +188,32 @@ test('real Strategy modal loads the same F1-B numerical source as Box, not place
  assert(ui.includes('eligibleIndices.has(i)'));
  assert(ui.includes("store.readCarry(localStorage,c,refs)"));
 });
+
+test('v115 parallel real-Box identity initialization converges on one ledger and stable IDs',async()=>{
+ const crypto=require('node:crypto');
+ const idEngine=load('f4/f4-c-stable-box-ids-v1.js');
+ const secure={subtle:crypto.webcrypto.subtle,
+  randomUUID:()=>crypto.randomUUID(),
+  getRandomValues:a=>crypto.randomFillSync(a)};
+ const rows=Array.from({length:7},(_,i)=>({
+  nickname:'private'+i,pokemon:'fixture'+i,level:50,skillLevel:3,
+  ing1:'apple',ing2:'milk',ing3:'oil',mainSkill:'test',nature:'てれや',
+  mint:false,lv10:'a',lv25:'b',lv50:'c',lv70:'d',lv80:'e',
+  ribbon:0,shiny:false,favorite:''
+ }));
+ const box=JSON.stringify({version:1,items:rows});
+ const values=new Map([['pokesleep-strategy-e7-box-v1',box]]);
+ const storage={getItem:k=>values.has(k)?values.get(k):null,
+  setItem:(k,v)=>values.set(k,v)};
+ const results=await Promise.all(Array.from({length:8},()=>safe.identities(
+  storage,rows,{identity:idEngine,crypto:secure})));
+ for(const result of results){
+  assert.equal(result.status,'IDENTITIES_READY',result.reason);
+  assert.equal(result.boxRaw,box);
+  assert.equal(result.ids.length,7);
+  assert.equal(result.ledgerRevision,results[0].ledgerRevision);
+  assert.deepEqual([...result.ids],[...results[0].ids]);
+ }
+ assert.equal(new Set(results[0].ids).size,7);
+ assert.equal(storage.getItem(safe.LEDGER),results[0].ledgerRevision);
+});
