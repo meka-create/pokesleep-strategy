@@ -51,7 +51,6 @@
    snapshot?.status!=='SOURCE_MAPPED_CALCULATION_BLOCKED'||
    snapshot?.initialInput?.rowCount!==PIN.rowCount||
    snapshot?.initialInput?.distinctSpeciesForms!==PIN.formCount||
-   !/^[a-f0-9]{64}$/.test(snapshot?.initialInput?.sourceFileSHA256||'')||
    snapshot?.upstream?.commit!==PIN.commit||
    snapshot?.upstream?.pokemonJson?.gitBlob!==PIN.blob||
    snapshot?.constraints?.energyCalculation!=='NOT_IMPLEMENTED'||

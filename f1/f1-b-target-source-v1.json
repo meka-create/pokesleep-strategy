@@ -5,8 +5,7 @@
   "initialInput": {
     "rowCount": 69,
     "distinctSpeciesForms": 66,
-    "format": "pokesleep-tool-header-18",
-    "sourceFileSHA256": "39a2d6d756dcdd63c2d4ab8120114252a889767a1c0d2ea5f0b978005248a53f"
+    "format": "pokesleep-tool-header-18"
   },
   "upstream": {
     "repository": "nitoyon/pokesleep-tool",

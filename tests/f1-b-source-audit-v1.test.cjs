@@ -37,7 +37,8 @@ test('F1-B: 69 individuals define 66 distinct species/forms with fixed upstream 
  const entries=audit.validateSnapshot(snapshot);
  assert.equal(entries.size,66);
  assert.equal(snapshot.initialInput.rowCount,69);
- assert.match(snapshot.initialInput.sourceFileSHA256,/^[a-f0-9]{64}$/);
+ assert(!Object.hasOwn(snapshot.initialInput,'sourceFileSHA256'),
+  'the private original CSV fingerprint must never ship in a public snapshot');
  assert.equal(snapshot.upstream.pokemonJson.gitBlob,'f45d24b214c03cdf592783207a883d9f573676d2');
  assert.equal(snapshot.upstream.japaneseNames.gitBlob,'fd983be0838a5bfa3d5923464515fcf818c26fe0');
  assert.equal(snapshot.constraints.energyCalculation,'NOT_IMPLEMENTED');
