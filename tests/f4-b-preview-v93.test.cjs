@@ -12,6 +12,7 @@ test('F4-B v93 isolated UI loads all verified local sources and preserves E7 sto
   '../f4/f4-b-chronological-v2.js','../f4/f4-b-e7-readonly-v1.js',
   '../f4/f4-event-model-gate-v1.js','../f4/f4-c-official-rules-v1.js',
   '../f4/f4-c-state-kernel-v1.js','../f4/f4-c-window-replay-v1.js',
+  '../f4/f4-c-healer-policy-v100.js','../f4/f4-c-healer-search-v100.js',
   'f4-b-ui-v93.js'];
  assert.deepEqual(assets,expected);
  for(const asset of assets)

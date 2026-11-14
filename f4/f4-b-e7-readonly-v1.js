@@ -277,6 +277,51 @@
    optimizedForHealth:false,weeklyEnergyCertified:false,
    writesSavedData:false,privateIndividualDataInResult:false};
  }
+ // F4-C v100: the user's fixed healer schedule is the default strategy
+ // policy, NOT a health-recovery estimation or a saved E7 roster mutation.
+ // Real individuals still use ephemeral indices for this one calculation only.
+ function healerFirstReference(storage,options={},deps={}){
+  if(typeof deps.healerSearch?.plan!=='function'||
+   typeof deps.healerPolicy?.validate!=='function')
+   return fail('HEALER_SEARCH_DEPENDENCIES_MISSING');
+  const ctx=readContext(storage,deps,options.instant);
+  if(ctx.status!=='CONTEXT_READY')return ctx;
+  if(ctx.autoSleep)
+   return fail('MANUAL_SLEEP_REQUIRED',
+    '睡眠編成を自動変更せず、7晩の育成用5匹を指定してください。');
+  // Reuse all event-id, inventory revision, source, legal individual,
+  // favorite berries, previous week and 7 night team guards from v93.
+  const prepared=buildNeutralInput(ctx,options,deps);
+  if(prepared.status!=='READY')return prepared;
+  const primary=options.primaryHealerIndex,secondary=options.secondaryHealerIndex;
+  const n=ctx.privateBoxRows.length;
+  if(!Number.isSafeInteger(primary)||!Number.isSafeInteger(secondary)||
+   primary<0||secondary<0||primary>=n||secondary>=n||primary===secondary)
+   return fail('EXPLICIT_HEALERS_REQUIRED');
+  const available=new Set(prepared.input.profiles.map(p=>p.id));
+  const primaryId='p'+primary,secondaryId='p'+secondary;
+  if(!available.has(primaryId)||!available.has(secondaryId)||
+   prepared.input.profiles.find(p=>p.id===primaryId)?.healerRole!=='TEAM_WIDE_HEALER'||
+   prepared.input.profiles.find(p=>p.id===secondaryId)?.healerRole!=='TEAM_WIDE_HEALER')
+   return fail('VERIFIED_TEAM_WIDE_HEALERS_REQUIRED');
+  const result=deps.healerSearch.plan({
+   ...prepared.input,
+   healthScenario:'HEALER_MAINTAINS_80_PLUS_REFERENCE',
+   sleepScore:100,primaryHealerId:primaryId,secondaryHealerId:secondaryId,
+   beamWidth:options.beamWidth,dayCandidateCount:options.dayCandidateCount
+  },{base:deps.baseCore,clock:deps.weekClock,policy:deps.healerPolicy});
+  if(result.status!=='PROVISIONAL')return fail(result.reason||'HEALER_SEARCH_BLOCKED');
+  if(result.slotCount!==29||result.totalHours!==168||
+   result.startsAt!==ctx.clock.startsAt||result.endsAt!==ctx.clock.endsAt||
+   result.weeklyEnergyCertified!==false||result.writesSavedData!==false||
+   result.privateIndividualDataInResult!==false)
+   return fail('HEALER_SEARCH_CONTRACT');
+  return {status:'PROVISIONAL',stage:'F4_C_HEALER_FIRST_READONLY',
+   readOnly:true,result,sourceCommit:prepared.sourceCommit,
+   weekStart:ctx.weekStart,eventId:ctx.eventId,
+   sleepScoreAssumed:100,weeklyEnergyCertified:false,
+   writesSavedData:false,privateIndividualDataInResult:false};
+ }
  return Object.freeze({readContext,publicStatus,buildNeutralInput,reference,
-  statefulScenario,keyFor});
+  statefulScenario,healerFirstReference,keyFor});
 });

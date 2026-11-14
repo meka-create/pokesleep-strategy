@@ -95,8 +95,14 @@
     if(!accepted){invalid++;continue;}
     const hasHelpingBonus=['lv10','lv25','lv50','lv70','lv80'].some((key,j)=>
      row.level>=[10,25,50,70,80][j]&&row[key]===bonusName);
+    // Only pinned source main skills that heal the whole party qualify.
+    // A self-heal, random cheer or targeted heal is not substituted for
+    // the user's team-wide main/secondary healer by speculation.
+    const skill=target.sourceProfile?.mainSkill;
+    const healerRole=skill==='Energy for Everyone S'||
+     skill==='Energy for Everyone S (Berry Juice)'?'TEAM_WIDE_HEALER':null;
     results.push({id:'p'+idx,source:'F1_B_PINNED_66_SPECIES',
-     helpingBonus:hasHelpingBonus,ratesByTeammateBonus,
+     helpingBonus:hasHelpingBonus,ratesByTeammateBonus,healerRole,
      carryLimit:ratesByTeammateBonus[0].carryLimit,
      // Skill probability is not a trigger or an automatically applied effect.
      skillProbabilityPerEligibleHelp:ratesByTeammateBonus[0].skillProbabilityPerEligibleHelp,
