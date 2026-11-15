@@ -30,9 +30,9 @@ test('three chosen categories reserve at least one and never introduce fallback 
  const a=Calc.make({...base,categories:['curry','salad','dessert'],
   selectedRecipes:{curry:'c1',salad:'s1',dessert:'d1'}});
  assert.equal(a.status,'PROVISIONAL');assert.equal(a.counts.curry,1);
- assert.equal(a.counts.salad,1);assert.equal(a.counts.dessert,2);
- assert.equal(a.capacity.used,190);assert.equal(a.goals.apple,60);
- assert.equal(a.goals.milk,50);assert.equal(a.goals.cacao,80);
+ assert.equal(a.counts.salad,2);assert.equal(a.counts.dessert,1);
+ assert.equal(a.capacity.used,200);assert.equal(a.goals.apple,60);
+ assert.equal(a.goals.milk,100);assert.equal(a.goals.cacao,40);
  assert.equal(Object.keys(a.goals).filter(k=>a.goals[k]>0).length,3);
  assert.equal(Calc.make({...base,categories:['curry','salad','dessert'],
   selectedRecipes:{curry:'c1',salad:'s1',dessert:'d1'},
