@@ -162,12 +162,17 @@
     a.ids.join().localeCompare(b.ids.join()));
    const short=[],used=new Set(),cap=healerIds.length<=5?20:18;
    for(const keyName of ['joint','recovery','energy']){
-    for(const pair of by(keyName).slice(0,cap)){
+    for(const pair of by(keyName).slice(0,Math.min(6,cap))){
      const id=pair.ids.join('|');
      if(!used.has(id)){short.push(pair);used.add(id);}
      if(short.length>=cap)break;
     }
     if(short.length>=cap)break;
+   }
+   for(const pair of by('joint')){
+    if(short.length>=cap)break;
+    const id=pair.ids.join('|');
+    if(!used.has(id)){short.push(pair);used.add(id);}
    }
    const possibilities=[];
    for(const pair of short){
