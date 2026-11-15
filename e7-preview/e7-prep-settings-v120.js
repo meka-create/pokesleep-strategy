@@ -73,7 +73,8 @@
   return types.filter(t=>q('[data-stock-type="'+t+'"]')?.getAttribute('aria-pressed')==='true')
    .filter((_,i,a)=>a.length===count);
  }
- let saved=valid?read(week,id):null;
+ let saved=null;
+ try{if(valid)saved=read(week,id);}catch(_){}
  let recipes={...(saved?.selectedRecipes||{})},meals={...(saved?.targetMeals||{})};
  let needsReview=false,renderKey='';
  function build(){
@@ -159,7 +160,7 @@
   const oldRecord={version:1,weekStart:week,eventId:id,prep:draft,savedAt:stamp};
   const newRecord={kind:'F3_STOCKPILE_PREF_V120',version:1,weekStart:week,eventId:id,
    categories:p.categories,selectedRecipes:res.selectedRecipes,
-   targetMeals:res.targetMeals,savedAt:stamp};
+   targetMeals:res.targetMeals,allocatedMeals:res.counts,savedAt:stamp};
   const oldRaw=localStorage.getItem(oldKey),newRaw=localStorage.getItem(newKey);
   try{
    const old=oldRaw?JSON.parse(oldRaw):null,prior=newRaw?JSON.parse(newRaw):null;
