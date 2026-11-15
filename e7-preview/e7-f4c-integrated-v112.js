@@ -14,6 +14,7 @@ const deps={scope:root.PokeE7InventoryScope,e1:root.PokeE7E1,
  itemRank:root.PokeF4CItemAwareRank,skillValues:root.PokeF1SkillValues,
  master:root.PokeMaster,recipes:root.PokeRecipes,crypto:root.crypto};
 let data=null,bound=null,modelPromise=null,plan=null,sleep=null,draft=null;
+let draftPlanRaw=null;
 let targetDay=0,reviewDay=0,sleepDay=0,editPicks=[],pending=false;
 let readToken=0,owner='',lastKey='',error='',sleepBusy=false,detailVersion=0;
 let eligibleIndices=new Set(),carryTeam=null,sleepViewCarry=false,editingCarry=false,carryIssue='';
@@ -319,6 +320,8 @@ async function propose(){
    }[result.reason]||('今回の条件では自動提案できません：'+result.reason);
    error=reason;return;
   }
+  // Capture the saved plan when the review actually begins.
+  draftPlanRaw=localStorage.getItem(store.key('plan',c.weekStart,c.eventId));
   draft=result;reviewDay=0;drawReview();q('review-dialog').showModal();
  }catch(_){error='実個体の計算に失敗しました。ボックス・在庫・設定を確認してください。';}
  finally{pending=false;renderEffective();}
@@ -338,9 +341,9 @@ async function adopt(){
    identity:deps.identity,crypto:deps.crypto});
   if(refs.status!=='IDENTITIES_READY'){error=refs.reason;return;}
   const adopted=store.adopt(localStorage,c,draft,refs,
-   mods.snapshot.upstream.commit,deps.recipes,c.clock);
+   mods.snapshot.upstream.commit,deps.recipes,c.clock,draftPlanRaw);
   if(adopted.status!=='ADOPTED'){error='採用保存できませんでした：'+adopted.reason;return;}
-  data=c;bound=refs;plan=adopted;draft=null;
+  data=c;bound=refs;plan=adopted;draft=null;draftPlanRaw=null;
   q('review-dialog').close();lastKey='';
   await synchronize(true);
   if(plan?.status==='ADOPTED')root.PokeUI?.toast('実ボックスから作成した作戦を採用しました');
@@ -500,8 +503,8 @@ hijack('e3-next',async()=>{
  .includes(q('e3-next')?.dataset.action));
 hijack('generate',propose);
 hijack('review-adopt',adopt);
-hijack('review-close',()=>{draft=null;q('review-dialog').close();});
-hijack('review-cancel',()=>{draft=null;q('review-dialog').close();});
+hijack('review-close',()=>{draft=null;draftPlanRaw=null;q('review-dialog').close();});
+hijack('review-cancel',()=>{draft=null;draftPlanRaw=null;q('review-dialog').close();});
 // Preserve the accepted E7 sleeping interface while no real Box is loaded.
 // Once a legal real Box is ready, use the exact same existing modal controls.
 const realReady=()=>data?.status==='CONTEXT_READY'&&!!bound;
@@ -513,7 +516,7 @@ hijack('sleep-copy',copyNights,realReady);
 hijack('edit-save',saveEdit,realReady);
 const realDrop=q('review-dialog');
 if(realDrop)realDrop.addEventListener('close',()=>{
- if(!plan||plan.status!=='ADOPTED')draft=null;
+ if(!plan||plan.status!=='ADOPTED'){draft=null;draftPlanRaw=null;}
 });
 doc.addEventListener('click',e=>{
  if(e.target?.closest?.('#event-save,#e7-cal-weeks,#auto-sleep,#e7-event-delete'))
