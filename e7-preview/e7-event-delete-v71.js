@@ -10,6 +10,7 @@ const PREP='pokesleep-strategy-u2-e6-prep-v1:';
 const TIMELINE='pokesleep-strategy-u2-e2-v1:';
 const F4C='pokesleep-strategy-f4c-v112:';
 const F5='pokesleep-strategy-f5-v119:partial:';
+const PREP120='pokesleep-strategy-f3-v120:prep:';
 function valid(selection){
  if(!selection||typeof selection.id!=='string'||!selection.id.trim()||
     selection.id.length>160||typeof selection.weekStart!=='string'||
@@ -26,7 +27,7 @@ function snapshot(storage,selection,{requireSelected=false}={}){
  const keys=[base+'conditions',base+'plan',PREP+week+':'+encoded];
  // New real-box adopted and manual sleep state belong to this exact owner.
  // Include them in the same comparison/rollback transaction as E7 deletion.
- const sidecars=[F4C+'plan:'+week+':'+encoded,F4C+'sleep:'+week+':'+encoded,F4C+'carry:'+week+':'+encoded,F5+week+':'+encoded];
+ const sidecars=[F4C+'plan:'+week+':'+encoded,F4C+'sleep:'+week+':'+encoded,F4C+'carry:'+week+':'+encoded,F5+week+':'+encoded,PREP120+week+':'+encoded];
  const values={};
  for(const key of keys)values[key]=storage.getItem(key);
  for(const key of sidecars){
@@ -36,6 +37,8 @@ function snapshot(storage,selection,{requireSelected=false}={}){
   if(data?.weekStart!==week||data?.eventId!==id||
    (key.startsWith(F5)?
      data.kind!=='F5_PARTIAL_PLAN_V119':
+     key.startsWith(PREP120)?
+     data.kind!=='F3_STOCKPILE_PREF_V120':
      key.startsWith(F4C+'plan:')?
      data.kind!=='REAL_BOX_PLAN_V112':
      key.startsWith(F4C+'carry:')?
