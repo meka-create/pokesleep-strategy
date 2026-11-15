@@ -4,7 +4,7 @@
  */
 (function(root){'use strict';
 const doc=root.document,q=id=>doc.getElementById(id);
-const auto=root.PokeF4CAutoV112,store=root.PokeF4CRealStoreV112;
+const auto=root.PokeF4CAutoV112,store=root.PokeF4CRealStoreV112,mid=root.PokeF5MidweekV119;
 const bridge=root.PokeF4BE7ReadOnly, DAYS=['月','火','水','木','金','土','日'];
 const deps={scope:root.PokeE7InventoryScope,e1:root.PokeE7E1,
  weekClock:root.PokeF4BGameWeek,bridge,identity:root.PokeF4CStableBoxIDs,
@@ -125,6 +125,10 @@ function drawSlots(parent,visible,day){
     (known.get(w.recipeId)||'未照合レシピ'):'料理なし','meal');
    section.append(meal);
   }
+  if(w.windowPhase==='PAST_FORECAST_ONLY')section.append(textNode('p',
+   '以前に採用した予測（実績は未確認・再計算対象外）','hint'));
+  if(w.windowPhase==='ACTIVE_REMAINDER')section.append(textNode('p',
+   '現在の時間枠：旧編成と料理を保持し、在庫確定後の残り時間だけ試算','hint'));
   parent.append(section);
  }
  root.PokeSprite?.enhance(parent);
@@ -138,7 +142,9 @@ function viewForDraft(){
 function drawReview(){
  if(!draft)return;
  const note=q('review-dialog')?.querySelector('.review-note');
- if(note)note.textContent=draft.officialEffectsExcluded?
+ if(note&&draft.stage==='F5_REMAINING_V119')note.textContent=
+  '食材在庫の確定時点から残時間だけを再計算します。過去の表示は以前の予測であり、実績未確認です。イベント未確認効果は未反映。';
+ else if(note)note.textContent=draft.officialEffectsExcluded?
   '実ボックスを使用した作戦です。一部イベント補正・新食材・新料理は未反映（参考計算）。':
   '実ボックスを使用した19食材・78料理の提案です。回復発動・収集は期待値の参考計算です。';
  const adopt=q('review-adopt');adopt.disabled=false;adopt.textContent='この作戦を採用';
@@ -159,11 +165,12 @@ function drawAdopted(){
  const button=q('e3-next'),card=q('e3-primary');
  card.hidden=!stale;button.hidden=!stale;
  if(stale){
-  button.textContent='作戦を再提案';button.dataset.action='F4C_REPROPOSE';
-  button.disabled=data?.clock?.phase!=='BEFORE'||pending;
-  flash(data?.clock?.phase==='BEFORE'?
-   '以前の作戦を保持しています。変更した条件・在庫を反映するには再提案してください。':
-   '以前の作戦を保持しています。週途中の再提案はF5工程で対応します。');
+  button.textContent='作戦を再提案';
+  button.dataset.action=data?.clock?.phase==='DURING'?'F5_REPROPOSE':'F4C_REPROPOSE';
+  button.disabled=data?.clock?.phase==='ENDED'||pending||!bound;
+  flash(data?.clock?.phase==='DURING'?
+   '以前の採用予測を保持しています。準備タブで現在庫を更新した後、残期間を再提案できます。':
+   '以前の作戦を保持しています。変更した条件・在庫を反映するには再提案してください。');
  }else flash(error,Boolean(error));
  const footer=q('e6-footer-plan');
  if(footer)footer.dataset.reproposal=String(stale);
@@ -190,13 +197,14 @@ function renderEffective(){
  if(data.clock?.phase==='ENDED'){card.hidden=true;return;}
  if(!card||!button)return;
  card.hidden=false;button.hidden=false;
- const can=data.status==='CONTEXT_READY'&&data.clock.phase==='BEFORE'&&!!bound&&!carryIssue;
+ const can=data.status==='CONTEXT_READY'&&
+  ['BEFORE','DURING'].includes(data.clock.phase)&&!!bound&&!carryIssue;
  // Never bypass E7 condition validation when the player has unsaved edits.
  if(['SELECT_EVENT','SET_EVENT','SET_INVENTORY'].includes(button.dataset.action))return;
- button.textContent='作戦を提案';
- button.dataset.action='F4C_PROPOSE';
+ button.textContent=data.clock.phase==='DURING'?'作戦を再提案':'作戦を提案';
+ button.dataset.action=data.clock.phase==='DURING'?'F5_REPROPOSE':'F4C_PROPOSE';
  button.disabled=!can||pending;
- if(data.clock.phase!=='BEFORE')flash('開始済みの週の残期間再提案は、F5工程で対応します。',true);
+ if(data.clock.phase==='DURING'&&!plan)flash('残期間の再提案には、以前に採用した実個体作戦と現在庫が必要です。',true);
  else if(error)flash(error,true);
  else if(!can)flash('イベント条件・在庫・ボックス・プレイヤー設定を確認してください。',true);
  else flash('');
@@ -206,7 +214,8 @@ function dataFingerprint(c){
   c?.inventoryRevision,c?.autoSleep,c?.fields,c?.player,c?.savedBerrySetup,c?.previousCarryRevision,
   c?.privateBoxRows,
   localStorage.getItem(c?.eventId?store.key('plan',c.weekStart,c.eventId):'invalid'),
-  localStorage.getItem(c?.eventId?store.key('sleep',c.weekStart,c.eventId):'invalid')]);
+  localStorage.getItem(c?.eventId?store.key('sleep',c.weekStart,c.eventId):'invalid'),
+  localStorage.getItem(c?.eventId?mid.key(c):'invalid')]);
 }
 async function models(){
  if(!modelPromise)modelPromise=Promise.all([
@@ -251,7 +260,10 @@ async function synchronize(force=false){
    const nextCarryIssue=carried.status==='BLOCKED'?carried.reason:'';
    let adopted=store.readPlan(localStorage,c,refs,mods.snapshot.upstream.commit,
    deps.recipes,c.clock);
-  const nights=store.readSleep(localStorage,c,refs);
+  const partial=mid.read(localStorage,c,refs,mods.snapshot.upstream.commit,
+    deps.recipes,c.clock,store);
+   if(['ADOPTED','STALE_ADOPTED','BLOCKED'].includes(partial.status))adopted=partial;
+   const nights=store.readSleep(localStorage,c,refs);
   // Explicit manual night changes invalidate a formerly adopted plan.
   if(['ADOPTED','STALE_ADOPTED'].includes(adopted.status)&&!c.autoSleep){
    const saved=nights.status==='SLEEP_READY'?nights.teams:null;
@@ -283,14 +295,15 @@ async function synchronize(force=false){
  }
 }
 function refresh(){void synchronize();}
-async function preflight(){
+async function preflight(allowDuring=false){
  const c=ctx();
  if(carryIssue){
   error='前週日曜の保存編成が照合できません。確定5匹を再登録してください。';
   renderEffective();return null;
  }
  if(c.status!=='CONTEXT_READY'){error=c.message||c.reason;renderEffective();return null;}
- if(c.clock.phase!=='BEFORE'){error='開始済み週の再提案はF5で対応します。';renderEffective();return null;}
+ if(c.clock.phase!=='BEFORE'&&!(allowDuring&&c.clock.phase==='DURING')){
+  error='現在の週ではこの操作を行えません。';renderEffective();return null;}
  await synchronize(true);
  if(!bound||data?.eventId!==c.eventId)return null;
  const now=ctx();
@@ -301,6 +314,7 @@ async function preflight(){
  return c;
 }
 async function propose(){
+ if(ctx()?.clock?.phase==='DURING')return proposeDuring();
  if(pending)return;
  pending=true;error='';renderEffective();
  try{
@@ -326,11 +340,31 @@ async function propose(){
  }catch(_){error='実個体の計算に失敗しました。ボックス・在庫・設定を確認してください。';}
  finally{pending=false;renderEffective();}
 }
+async function proposeDuring(){
+ if(pending)return;
+ pending=true;error='';renderEffective();
+ try{
+  const c=await preflight(true);
+  if(!c||c.clock.phase!=='DURING')return;
+  const mods=await models();
+  const result=mid.reference(c,plan,bound,{...deps,...mods,
+   auto,base:deps.baseCore,store,storage:localStorage});
+  if(result.status!=='PROVISIONAL'){
+   error='残期間を再提案できません：'+result.reason+
+    '。現在庫を更新し、採用済み作戦とボックスを確認してください。';
+   return;
+  }
+  draft=result;draftPlanRaw=null;reviewDay=0;
+  drawReview();q('review-dialog').showModal();
+ }catch(_){error='残期間の再計算に失敗しました。現在庫・実個体・保存状態を確認してください。';}
+ finally{pending=false;renderEffective();}
+}
 async function adopt(){
  if(!draft||pending||!bound)return;
  pending=true;q('review-adopt').disabled=true;
  try{
-  const c=await preflight();
+  const partial=draft.stage==='F5_REMAINING_V119';
+  const c=await preflight(partial);
   if(!c)return;
   if(c.weekStart!==draft.weekStart||c.eventId!==draft.eventId||
    c.conditionRevision!==draft.conditionRevision||
@@ -340,13 +374,16 @@ async function adopt(){
   const refs=await store.identities(localStorage,c.privateBoxRows,{
    identity:deps.identity,crypto:deps.crypto});
   if(refs.status!=='IDENTITIES_READY'){error=refs.reason;return;}
-  const adopted=store.adopt(localStorage,c,draft,refs,
-   mods.snapshot.upstream.commit,deps.recipes,c.clock,draftPlanRaw);
+  const adopted=partial?mid.adopt(localStorage,c,draft,refs,
+   mods.snapshot.upstream.commit,deps.recipes,c.clock,store):
+   store.adopt(localStorage,c,draft,refs,
+    mods.snapshot.upstream.commit,deps.recipes,c.clock,draftPlanRaw);
   if(adopted.status!=='ADOPTED'){error='採用保存できませんでした：'+adopted.reason;return;}
   data=c;bound=refs;plan=adopted;draft=null;draftPlanRaw=null;
   q('review-dialog').close();lastKey='';
   await synchronize(true);
-  if(plan?.status==='ADOPTED')root.PokeUI?.toast('実ボックスから作成した作戦を採用しました');
+  if(plan?.status==='ADOPTED')root.PokeUI?.toast(partial?
+   '現在庫を基準に残期間の作戦を更新しました':'実ボックスから作成した作戦を採用しました');
  }catch(_){error='実個体作戦を安全に保存できませんでした。';}
  finally{pending=false;q('review-adopt').disabled=false;renderEffective();
   if(error)flash(error,true);}
@@ -492,14 +529,14 @@ const hijack=(id,fn,condition=()=>true)=>q(id)?.addEventListener('click',e=>{
 // Keep E7's approved event-selection and event-save clicks untouched.
 hijack('e3-next',async()=>{
  const action=q('e3-next')?.dataset.action;
- if(['F4C_PROPOSE','F4C_REPROPOSE'].includes(action)&&
+ if(['F4C_PROPOSE','F4C_REPROPOSE','F5_REPROPOSE'].includes(action)&&
     data?.status==='CONTEXT_READY')return propose();
  // A selected event with missing Box/player/inventory must NEVER silently
  // fall back to the illustrative E7 mock proposal.
  error=data?.message||data?.reason||
   '実ボックスとイベント条件を登録してから作戦を提案してください。';
  flash(error,true);
-},()=>['F4C_PROPOSE','F4C_REPROPOSE','PROPOSE','REPROPOSE','RESUME_DRAFT']
+},()=>['F4C_PROPOSE','F4C_REPROPOSE','F5_REPROPOSE','PROPOSE','REPROPOSE','RESUME_DRAFT']
  .includes(q('e3-next')?.dataset.action));
 hijack('generate',propose);
 hijack('review-adopt',adopt);

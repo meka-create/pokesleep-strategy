@@ -7,8 +7,8 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-// v117 accepted U3: centered 12px side gutters; accepted U2/Box HTML unchanged.
-const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', '39904a4de236904c115e95842d5e8110652d70f8', '6775191ee025b2c370e33420df60fe405375c7b9'];
+// v119 F5 U3: load the new residual module; centered 12px gutters and U2/Box HTML unchanged.
+const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', '00176b1658c27273b1a9de9f95ace5a3075410b9', '6775191ee025b2c370e33420df60fe405375c7b9'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
