@@ -71,7 +71,7 @@ def check_goals(page):
     assert page.locator('#goal-panel .row.total strong').inner_text()==f'{n:,}個',(n,values)
     assert page.locator('#f3-prep-status').get_attribute('data-state')=='ready'
     assert page.locator('#f3-prep-breakdown').count()==1
-    assert page.locator('#f3-prep-status').inner_text().startswith('F3暫定目標')
+    assert page.locator('#f3-prep-status').inner_text().startswith('F3備蓄目標')
     return n
 try:
     with sync_playwright() as pw:
@@ -88,7 +88,7 @@ try:
         data={**records(ID1,['curry','salad','dessert']),
               **records(ID2,['dessert']),
               **records(ID3,['curry','salad','dessert'],True),
-              PLAYER:{'version':1,'pot':57,'bag':120,'bonuses':{}},
+              PLAYER:{'version':1,'pot':57,'bag':600,'bonuses':{}},
               BOX:synthetic_roster()}
         page.evaluate("""entries=>{
           for(const [key,value] of Object.entries(entries))localStorage.setItem(key,JSON.stringify(value));
@@ -99,8 +99,13 @@ try:
             .map(k=>[k,localStorage.getItem(k)]))""")
         page.reload(wait_until='domcontentloaded')
         page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        # v120 selects at most five energy-ranked recipes and never exposes
+        # meal counts that exceed the ingredient bag capacity.
+        assert page.locator('#f3-v120-controls .f3-v120-row').count()==3
+        for el in page.locator('#f3-v120-controls .f3-v120-row select').all():
+            assert el.locator('option').count()<=22
         a=check_goals(page)
-        assert a<=120,(a,120)
+        assert a<=600,(a,600)
         # No expensive real-box scan / F1 JSON request just by opening U2.
         assert len(model_requests)==before_model_requests,'Collapsed reference fetched source unnecessarily'
         assert page.locator('#f3-b-production-content').text_content()==''
