@@ -37,7 +37,9 @@ const recipes=Array.from({length:78},(_,i)=>({
 const deps={weekClock:clock,roster:{adapt:()=>({
  status:'READY',sourceCommit:COMMIT,profiles})},
  base:core,policy,master:{ingredients:dict},recipes,
- auto:{favorites:()=>['water','fairy','flying']},
+ auto:{favorites:()=>['water','fairy','flying'],
+ rankingScore:(r,p)=>({score:r.energyExpected*(p[0]==='p0'?0.95:1),recoveryProxyPoints:20})},
+ skillValues:{skillValue:()=>({status:'BASE_VALUE_ONLY'})},
  snapshot:{upstream:{commit:COMMIT}},traits:{},legal:{},rates:{},store};
 function make(){
  const raw=new Map([['pokesleep-strategy-e7-box-v1',identity.boxRaw],
