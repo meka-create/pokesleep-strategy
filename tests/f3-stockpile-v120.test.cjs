@@ -19,7 +19,7 @@ const base={recipes:RECIPES,bagCapacity:200,potCapacity:80,camp:false,
  currentStock:{},categories:['curry'],selectedRecipes:{curry:'c1'}};
 test('top five are energy ranked, feasible by weekday pot, sixth is never selectable',()=>{
  const a=Calc.catalog(RECIPES,'curry',80,false);
- assert.equal(a.length,5);assert.deepEqual(a.map(r=>r.id),['c1','c2','c3','c4','c5']);
+ assert.equal(a.length,5);assert.deepEqual(Array.from(a,r=>r.id),['c1','c2','c3','c4','c5']);
  assert.equal(Calc.catalog(RECIPES,'curry',30,false)[0].id,'c4');
  assert.equal(Calc.make({...base,selectedRecipes:{curry:'c6'}}).reason,'RECIPE_SELECTION_STALE');
 });
@@ -27,7 +27,7 @@ test('automatic meal count uses full bag only without fraction or overflow',()=>
  const r=Calc.make(base);
  assert.equal(r.status,'PROVISIONAL');assert.equal(r.counts.curry,3);
  assert.equal(r.goals.apple,180);assert.equal(r.capacity.used,180);
- assert.deepEqual(Calc.mealOptions(base,'curry'),[1,2,3]);
+ assert.deepEqual(Array.from(Calc.mealOptions(base,'curry')),[1,2,3]);
  assert.equal(Calc.make({...base,targetMeals:{curry:4}}).reason,'NO_ROOM');
 });
 test('three chosen categories reserve at least one and never introduce fallback recipes',()=>{
