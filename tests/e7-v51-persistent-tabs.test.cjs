@@ -8,7 +8,7 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 // v120 F3 U2: reviewed new recipe selector imports, unchanged U3 and Box HTML.
-const auditedSHA=['a3a4515490fda007e55b69f672689f9ed24de632', '00176b1658c27273b1a9de9f95ace5a3075410b9', '6775191ee025b2c370e33420df60fe405375c7b9'];
+const auditedSHA=['a3a4515490fda007e55b69f672689f9ed24de632', 'eb7a2c24abdc8980709d648eec5520ed5f38302f', '6775191ee025b2c370e33420df60fe405375c7b9'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
