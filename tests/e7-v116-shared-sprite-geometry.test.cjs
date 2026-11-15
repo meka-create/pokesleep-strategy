@@ -32,7 +32,8 @@ test('E7 v116 common and sleep sheet are centered, while approved Box HTML stays
  const sw=read('e7-preview/e7-sw-v50.js');
  assert.match(css,/inset:auto auto 0 50%/);
  assert.match(css,/transform:translateX\(-50%\)/);
- assert.match(plan,/dialog\.modal:not\(\.pokemon-detail-modal\)\{inset:auto auto 0 50%;margin:0;transform:translateX\(-50%\)/);
- assert(sw.includes('v116-shared-sprites-modal-20261115'));
+ assert.match(css,/width:min\(540px,calc\(100vw - 24px\)\);max-width:calc\(100vw - 24px\)/);
+ assert.match(plan,/dialog\.modal:not\(\.pokemon-detail-modal\)\{inset:auto auto 0 50%;margin:0;transform:translateX\(-50%\);width:min\(540px,calc\(100vw - 24px\)\);max-width:calc\(100vw - 24px\)/);
+ assert(sw.includes('v117-compact-dialog-20261115'));
  assert(sw.includes("'e7-pokemon-detail-shared-v81.css'"));
 });
