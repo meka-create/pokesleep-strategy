@@ -45,6 +45,11 @@
    if(clock.status!=='TIMELINE_READY'||clock.windowCount!==29||
     !Array.isArray(previous.slots)||previous.slots.length!==29)
     return fail('F5_TIMELINE_INVALID');
+   // The 30-minute freshness allowance must not span a meal/team switch.
+   const inWindow=(windows,t)=>windows.findIndex(w=>
+    Date.parse(w.startsAt)<=t&&t<Date.parse(w.endsAt));
+   if(inWindow(clock.windows,anchor)!==inWindow(ctx.clock.windows,now))
+    return fail('F5_INVENTORY_WINDOW_CHANGED');
    const rootRaw=deps.storage?.getItem(oldKey(deps.store,ctx));
    if(!rootRaw)return fail('F5_ORIGINAL_ADOPTION_MISSING');
    const original=JSON.parse(rootRaw);
