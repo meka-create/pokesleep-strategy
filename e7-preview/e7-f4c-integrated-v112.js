@@ -21,6 +21,28 @@ let eligibleIndices=new Set(),carryTeam=null,sleepViewCarry=false,editingCarry=f
 let collapsedRealEvent='';
 const val=(storageKey)=>{try{return JSON.parse(localStorage.getItem(storageKey)||'null');}catch(_){return null;}};
 const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
+ const prepKey=c=>'pokesleep-strategy-f3-v120:prep:'+c.weekStart+':'+encodeURIComponent(c.eventId);
+ function prepPreference(c){
+  const raw=localStorage.getItem(prepKey(c));
+  if(!raw)return {status:'EMPTY'};
+  try{
+   const p=JSON.parse(raw),calc=root.PokeF3StockpileV120;
+   if(!calc||p?.kind!=='F3_STOCKPILE_PREF_V120'||p.version!==1||
+    p.weekStart!==c.weekStart||p.eventId!==c.eventId||
+    !Array.isArray(p.categories)||p.categories.length<1||p.categories.length>3||
+    new Set(p.categories).size!==p.categories.length||!p.selectedRecipes||
+    !p.allocatedMeals||p.categories.some(cat=>!calc.CATS.includes(cat)||
+     c.fields.food!=='all'&&c.fields.food!==cat||
+     !calc.catalog(deps.recipes,cat,c.player.pot,c.fields.camp)
+      .some(x=>x.id===p.selectedRecipes[cat])||
+     !Number.isSafeInteger(p.allocatedMeals[cat])||
+     p.allocatedMeals[cat]<1||p.allocatedMeals[cat]>21)||
+    p.categories.reduce((n,cat)=>n+p.allocatedMeals[cat],0)>21)
+    return {status:'BLOCKED',reason:'備蓄レシピまたは食数が現在の条件と一致しません。準備タブで保存し直してください。'};
+   return {status:'READY',selectedRecipes:p.selectedRecipes,
+    targetCounts:p.allocatedMeals};
+  }catch(_){return {status:'BLOCKED',reason:'備蓄設定の保存内容を確認してください。'};}
+ }
 const instant=()=>{
  const value=new URLSearchParams(location.search).get('previewNow');
  return value&&/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(value)?value+':00+09:00':new Date().toISOString();
@@ -31,8 +53,10 @@ const ctx=()=>{
  const k=store.key('carry',c.weekStart,c.eventId);
  try{
   const raw=localStorage.getItem(k),p=raw?JSON.parse(raw):null;
-  return {...c,previousCarryRevision:raw?(p?.revision||'INVALID_CARRY'):null};
- }catch(_){return {...c,previousCarryRevision:'INVALID_CARRY'};}
+  return {...c,previousCarryRevision:raw?(p?.revision||'INVALID_CARRY'):null,
+   prepPreferenceRevision:localStorage.getItem(prepKey(c))||null};
+ }catch(_){return {...c,previousCarryRevision:'INVALID_CARRY',
+   prepPreferenceRevision:localStorage.getItem(prepKey(c))||null};}
 };
 const textNode=(tag,txt,cl)=>{
  const e=doc.createElement(tag);if(txt!==undefined)e.textContent=txt;
@@ -210,7 +234,7 @@ function renderEffective(){
  else flash('');
 }
 function dataFingerprint(c){
- return JSON.stringify([c?.status,c?.eventId,c?.weekStart,c?.conditionRevision,
+ return JSON.stringify([c?.status,c?.eventId,c?.weekStart,c?.prepPreferenceRevision,c?.conditionRevision,
   c?.inventoryRevision,c?.autoSleep,c?.fields,c?.player,c?.savedBerrySetup,c?.previousCarryRevision,
   c?.privateBoxRows,
   localStorage.getItem(c?.eventId?store.key('plan',c.weekStart,c.eventId):'invalid'),
@@ -322,7 +346,10 @@ async function propose(){
   if(!c)return;
   const original=dataFingerprint(c),mods=await models();
   if(original!==dataFingerprint(ctx())){error='保存内容が変更されました。';return;}
-  const o={manualNights:sleep,previousWeekSleepIndices:carryTeam};
+  const pref=prepPreference(c);
+  if(pref.status==='BLOCKED'){error=pref.reason;return;}
+  const o={manualNights:sleep,previousWeekSleepIndices:carryTeam,
+   prepPreference:pref.status==='READY'?pref:null};
   const result=auto.propose(c,o,{...deps,...mods});
   if(result.status!=='PROVISIONAL'){
    const reason={
@@ -346,9 +373,11 @@ async function proposeDuring(){
  try{
   const c=await preflight(true);
   if(!c||c.clock.phase!=='DURING')return;
-  const mods=await models();
+  const mods=await models(),pref=prepPreference(c);
+  if(pref.status==='BLOCKED'){error=pref.reason;return;}
   const result=mid.reference(c,plan,bound,{...deps,...mods,
-   auto,base:deps.baseCore,store,storage:localStorage});
+   auto,base:deps.baseCore,store,storage:localStorage,
+   prepPreference:pref.status==='READY'?pref:null});
   if(result.status!=='PROVISIONAL'){
    error='残期間を再提案できません：'+result.reason+
     '。現在庫を更新し、採用済み作戦とボックスを確認してください。';
