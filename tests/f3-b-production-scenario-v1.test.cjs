@@ -118,7 +118,9 @@ test('F3-B UI only renders read-only optional scenario, keeps root and F1 calcul
  assert.match(ui,/PokeF3ProductionScenario/);
  assert.match(ui,/const raw=localStorage\.getItem\('pokesleep-strategy-e7-box-v1'\)/);
  assert.match(ui,/targetIngredients:base\.demand/);
- assert.match(ui,/forecastProduction:source\.scenarioProduction/);
+ // v120: hypothetical roster's weekly production must never be silently deducted.
+ assert.doesNotMatch(ui,/forecastProduction:source\.scenarioProduction/);
+ assert.match(ui,/仮生産は収集時刻不明のため目標へ自動控除しません/);
  assert.match(ui,/準備目標から自動控除しません/);
  assert.doesNotMatch(ui,/localStorage\.setItem|localStorage\.removeItem/);
  assert.match(prep,/src="\.\.\/f3\/f3-b-production-scenario-v1\.js"/);
