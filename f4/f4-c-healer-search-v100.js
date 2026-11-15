@@ -58,6 +58,16 @@
    if(policy.status!=='POLICY_READY')return blocked(policy.reason);
    const allowed=recipes.filter(r=>input.foodMode==='all'||r.type===input.foodMode);
    if(!allowed.length)return blocked('NO_RECIPES');
+   const preferred=input.preferredRecipes??{},limits=input.preferredMealCounts??{};
+   if(!plain(preferred)||!plain(limits)||Object.keys(preferred).some(cat=>
+     !['curry','salad','dessert'].includes(cat)||
+     !allowed.some(r=>r.type===cat&&r.id===preferred[cat])||
+     !integer(limits[cat],1,21))||
+     Object.keys(limits).some(cat=>!Object.hasOwn(preferred,cat)))
+    return blocked('PREP_PREFERENCE_INVALID');
+   const preferredId=new Set(Object.values(preferred));
+   const preferredBoost=x=>Object.keys(preferred).reduce((n,cat)=>
+    n+Math.min(x.prefCount?.[cat]||0,limits[cat]),0);
    const inventory=Object.fromEntries(foods.map(k=>[k,0]));
    if(!plain(input.initialInventory)||
     Object.keys(input.initialInventory).some(k=>!foods.includes(k)))
@@ -74,7 +84,7 @@
    if(!integer(beamWidth,2,60)||!integer(candidateCount,1,24))
     return blocked('SEARCH_LIMIT');
    const demand=Object.create(null);
-   for(const r of [...allowed].sort((a,b)=>b.baseStrength-a.baseStrength).slice(0,7)){
+   for(const r of (preferredId.size?allowed.filter(r=>preferredId.has(r.id)):[...allowed].sort((a,b)=>b.baseStrength-a.baseStrength).slice(0,7))){
     for(const [k,v] of Object.entries(r.requirements))
      if(v>0)demand[k]=(demand[k]||0)+v;
    }
@@ -130,10 +140,10 @@
     return {inventory:next,berry:berries,discarded:incoming*(1-scale)};
    }
    let beam=[{inventory,energy:0,meals:0,berry:0,meal:0,carry:0,discarded:0,
-    lastTeam:[],slots:[],signature:''}];
+    lastTeam:[],slots:[],signature:'',prefCount:{}}];
    function rank(s){
     const stock=foods.reduce((n,k)=>n+s.inventory[k]*8,0);
-    return s.energy+stock;
+    return s.energy+stock+(preferredId.size?preferredBoost(s)*1000000:0);
    }
    function take(states){
     states.sort((a,b)=>rank(b)-rank(a)||b.meal-a.meal||
@@ -163,7 +173,9 @@
     for(const s of beam){
      const feasible=sleep?[]:allowed.filter(r=>r.size<=pot&&foods.every(k=>
       s.inventory[k]+1e-8>=r.requirements[k]))
-      .sort((a,b)=>b.baseStrength-a.baseStrength||a.id.localeCompare(b.id))
+      .sort((a,b)=>Number(preferredId.has(b.id)&&(s.prefCount[b.type]||0)<(limits[b.type]||0))-
+       Number(preferredId.has(a.id)&&(s.prefCount[a.type]||0)<(limits[a.type]||0))||
+       b.baseStrength-a.baseStrength||a.id.localeCompare(b.id))
       .slice(0,3);
      for(const dish of [null,...feasible]){
       const after={...s.inventory};
@@ -176,7 +188,10 @@
         energy:s.energy+countedBerry+meal,berry:s.berry+countedBerry,
         meal:s.meal+meal,carry:s.carry+(carry?got.berry:0),
         discarded:s.discarded+got.discarded,meals:s.meals+Number(Boolean(dish)),
-        lastTeam:team,signature:s.signature+(dish?.id||'-')+':'+team.join(',')+';',
+        lastTeam:team,
+         prefCount:dish&&preferred[dish.type]===dish.id?
+          {...s.prefCount,[dish.type]:(s.prefCount[dish.type]||0)+1}:s.prefCount,
+         signature:s.signature+(dish?.id||'-')+':'+team.join(',')+';',
         slots:[...s.slots,{day:w.day,slot:w.slot,source:w.source,
          startsAt:w.startsAt,endsAt:w.endsAt,hours:w.hours,team:[...team],
          recipeId:dish?.id||null,recipeCategory:dish?.type||null,
@@ -189,7 +204,7 @@
     beam=take(expanded);
     if(!beam.length)return blocked('EMPTY_BEAM');
    }
-   const best=[...beam].sort((a,b)=>b.energy-a.energy||
+   const best=[...beam].sort((a,b)=>(preferredId.size?preferredBoost(b)-preferredBoost(a):0)||b.energy-a.energy||
     a.signature.localeCompare(b.signature))[0];
    if(!best||best.slots.length!==29||
     best.slots[0].source!=='PREVIOUS_WEEK_SLEEP'||
@@ -207,14 +222,14 @@
     berryEnergyProxy:Math.round(best.berry),mealEnergyProxy:Math.round(best.meal),
     energyProxy:Math.round(best.energy),
     carryBerryExcludedProxy:Math.round(best.carry),
-    mealsCooked:best.meals,discardedIngredientExpectation:round3(best.discarded),
+    mealsCooked:best.meals,preferredAchieved:preferredBoost(best),discardedIngredientExpectation:round3(best.discarded),
     finalExpectedInventory:Object.fromEntries(foods.map(k=>
      [k,round3(best.inventory[k])])),
     slots:best.slots,
     // Explicit only: consumers may rerank alternative full-week paths
     // with individual carry/collection/skill/cooking state. Never persist.
     ...(maxFinalists>1?{finalists:[...beam].sort((a,b)=>
-      b.energy-a.energy||a.signature.localeCompare(b.signature))
+      (preferredId.size?preferredBoost(b)-preferredBoost(a):0)||b.energy-a.energy||a.signature.localeCompare(b.signature))
      .slice(0,maxFinalists).map(s=>({
       energyProxy:Math.round(s.energy),
       slots:s.slots.map(w=>({day:w.day,slot:w.slot,source:w.source,

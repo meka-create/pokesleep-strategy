@@ -7,8 +7,8 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-// v119 F5 U3: load the new residual module; centered 12px gutters and U2/Box HTML unchanged.
-const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', '00176b1658c27273b1a9de9f95ace5a3075410b9', '6775191ee025b2c370e33420df60fe405375c7b9'];
+// v120 F3 U2: reviewed new recipe selector imports, unchanged U3 and Box HTML.
+const auditedSHA=['a3a4515490fda007e55b69f672689f9ed24de632', 'eb7a2c24abdc8980709d648eec5520ed5f38302f', '6775191ee025b2c370e33420df60fe405375c7b9'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
@@ -48,7 +48,7 @@ test('E7 v51 architecture: one persistent frame per tab, one common footer',()=>
  assert.doesNotMatch(html,/frame\.src=buildUrl\(tab\)/);
  for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);
 });
-test('E7 v112 pins accepted U2 and Box, integrated F4-C U3',()=>{
+test('E7 v120 pins reviewed prep imports, integrated F4-C U3 and accepted Box',()=>{
  for(let i=0;i<names.length;i++){
   const s=read(names[i]);
   assert.ok(s.includes('<script src="e7-unified-bridge-v51.js"></script>'));

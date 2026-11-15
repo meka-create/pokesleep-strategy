@@ -17,7 +17,8 @@
  const five=x=>Array.isArray(x)&&x.length===5&&new Set(x).size===5;
  const oldKey=(store,c)=>store.key('plan',c.weekStart,c.eventId);
  const key=c=>PREFIX+c.weekStart+':'+encodeURIComponent(c.eventId);
- const basis=c=>JSON.stringify([c.fields,c.player,c.savedBerrySetup??null,c.autoSleep,c.previousCarryRevision??null]);
+ const basis=c=>JSON.stringify([c.fields,c.player,c.savedBerrySetup??null,c.autoSleep,c.previousCarryRevision??null,
+  ...(c.prepPreferenceRevision?[c.prepPreferenceRevision]:[])]);
  const rev=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random();
  const clockFields=(a,b)=>a.day===b.day&&a.slot===b.slot&&a.source===b.source&&
   a.startsAt===b.startsAt&&a.endsAt===b.endsAt;
@@ -113,6 +114,19 @@
    const recipes=deps.base.normalizeRecipes(deps.recipes)
     .filter(r=>ctx.fields.food==='all'||r.type===ctx.fields.food);
    if(!recipes.length)return fail('F5_NO_ALLOWED_RECIPES');
+    const pref=deps.prepPreference?.selectedRecipes??{},budget=deps.prepPreference?.targetCounts??{};
+    if(!plain(pref)||!plain(budget)||Object.keys(pref).some(c=>
+      !['curry','salad','dessert'].includes(c)||
+      !recipes.some(r=>r.id===pref[c]&&r.type===c)||
+      !Number.isSafeInteger(budget[c])||budget[c]<1||budget[c]>21))
+     return fail('F5_PREFERRED_RECIPES_INVALID');
+    const elapsed=old.slice(0,anchorIndex+1);
+    const remainingBudget={};
+    for(const c of Object.keys(pref))
+     remainingBudget[c]=Math.max(0,budget[c]-elapsed.filter(w=>w.recipeId===pref[c]).length);
+    const preferredIds=new Set(Object.values(pref));
+    const preferredTotal=state=>Object.keys(pref).reduce((n,c)=>
+     n+Math.min(remainingBudget[c],state.prefCount?.[c]||0),0);
    const healerIds=roster.profiles.filter(p=>p.healerRole==='TEAM_WIDE_HEALER')
     .map(p=>p.id);
    if(healerIds.length<2||roster.profiles.length-healerIds.length<4)
@@ -125,7 +139,7 @@
     return p.rates[bonus];
    }
    const demand=Object.fromEntries(foods.map(f=>[f,0]));
-   for(const r of [...recipes].sort((a,b)=>b.baseStrength-a.baseStrength).slice(0,7))
+   for(const r of (preferredIds.size?recipes.filter(x=>preferredIds.has(x.id)):[...recipes].sort((a,b)=>b.baseStrength-a.baseStrength).slice(0,7)))
     for(const f of foods)demand[f]+=r.requirements[f]||0;
    const totalDemand=Math.max(1,Object.values(demand).reduce((a,b)=>a+b,0));
    function teamValue(team,weight){
@@ -149,7 +163,8 @@
     for(const f of foods)got[f]+=items[f]*factor;
     return {stock:got,berry:carry?0:berry};
    }
-   const rank=s=>s.energy+Object.values(s.stock).reduce((a,b)=>a+b,0)*8;
+   const rank=state=>state.energy+Object.values(state.stock).reduce((a,b)=>a+b,0)*8+
+     (preferredIds.size?preferredTotal(state)*1000000:0);
    const pairs=[],profileMap=new Map(roster.profiles.map(p=>[p.id,p]));
    for(const primary of healerIds)for(const secondary of healerIds){
     if(primary===secondary)continue;
@@ -202,7 +217,7 @@
      if(!choices[slot].length){bad=true;break;}
     }
     if(bad)continue;
-    let beam=[{stock:{...inventory},energy:0,slots:[],signature:''}];
+    let beam=[{stock:{...inventory},energy:0,slots:[],signature:'',prefCount:{}}];
     for(let i=anchorIndex;i<29;i++){
      const w=clock.windows[i],future=Date.parse(w.startsAt)>=anchor;
      const remaining=Math.max(0,(Date.parse(w.endsAt)-
@@ -214,7 +229,9 @@
       const pot=Math.round(player.pot*(w.day===6?2:1)*(ctx.fields.camp?1.5:1));
       const feasible=!future||w.slot==='sleep'?[]:recipes.filter(r=>
        r.size<=pot&&foods.every(f=>state.stock[f]+1e-8>=r.requirements[f]))
-       .sort((a,b)=>b.baseStrength-a.baseStrength).slice(0,3);
+       .sort((a,b)=>Number(pref[b.type]===b.id&&(state.prefCount[b.type]||0)<remainingBudget[b.type])-
+         Number(pref[a.type]===a.id&&(state.prefCount[a.type]||0)<remainingBudget[a.type])||
+         b.baseStrength-a.baseStrength).slice(0,3);
       for(const dish of [null,...feasible]){
        const eaten={...state.stock};
        if(dish)for(const f of foods)eaten[f]-=dish.requirements[f];
@@ -228,6 +245,8 @@
         row.remainingHours=remaining;
         expanded.push({stock:estimated.stock,
          energy:state.energy+meal+estimated.berry,
+         prefCount:dish&&pref[dish.type]===dish.id?
+          {...state.prefCount,[dish.type]:(state.prefCount[dish.type]||0)+1}:state.prefCount,
          slots:[...state.slots,row],
          signature:state.signature+(dish?.id||'-')+':'+team.join(',')+';'});
        }
@@ -238,17 +257,18 @@
      if(!beam.length){bad=true;break;}
     }
     if(bad||!beam.length)continue;
-    const winner=[...beam].sort((a,b)=>b.energy-a.energy||
+    const winner=[...beam].sort((a,b)=>(preferredIds.size?preferredTotal(b)-preferredTotal(a):0)||b.energy-a.energy||
      a.signature.localeCompare(b.signature))[0];
     // Same bounded recovery coverage proxy as F4-C, NOT actual skill procs.
     const ranked=deps.auto.rankingScore({energyExpected:winner.energy},
      pair.ids,profileMap,deps.skillValues);
     if(!finite(ranked?.score))continue;
     possibilities.push({primary,secondary,winner,score:ranked.score,
+     preferredAchieved:preferredTotal(winner),
      recoveryProxyPoints:ranked.recoveryProxyPoints});
    }
    if(!possibilities.length)return fail('F5_NO_FEASIBLE_REMAINING_PLAN');
-   possibilities.sort((a,b)=>b.score-a.score||
+   possibilities.sort((a,b)=>(preferredIds.size?b.preferredAchieved-a.preferredAchieved:0)||b.score-a.score||
     (a.primary+'|'+a.secondary).localeCompare(b.primary+'|'+b.secondary));
    const best=possibilities[0];
    const prefix=old.slice(0,anchorIndex).map(w=>({...w,

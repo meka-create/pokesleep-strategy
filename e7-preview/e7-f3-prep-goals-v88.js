@@ -5,12 +5,12 @@
 (function(){
 'use strict';
 const q=s=>document.querySelector(s);
-const Opt=window.PokeF3PrepOptimizer,Scope=window.PokeE7InventoryScope,E1=window.PokeE7E1;
+const Opt=window.PokeF3StockpileV120,Prefs=window.PokeF3PrepPrefsV120,Scope=window.PokeE7InventoryScope,E1=window.PokeE7E1;
 const goalCells=[...document.querySelectorAll('#goal-panel .goal-grid .food')];
 const stockCells=[...document.querySelectorAll('#inventory-panel .actual-grid .food')];
 const total=q('#goal-panel .row.total strong');
 const goalCard=q('#goal-panel>.card:first-child');
-if(!Opt||!Scope||!E1||!Array.isArray(window.PokeRecipes)||
+if(!Opt||!Prefs||!Scope||!E1||!Array.isArray(window.PokeRecipes)||
  goalCells.length!==19||stockCells.length!==19||!total||!goalCard)return;
 const status=document.createElement('p');status.id='f3-prep-status';
 status.className='f3-status';status.setAttribute('role','status');
@@ -63,23 +63,13 @@ function showProductionResult(ctx,base,source){
  }
  const members=source.teamSpecies.join('・');
  write('仮の5匹：'+members,'f3-category-result');
- const projection=Opt.plan({recipes:window.PokeRecipes,categories:ctx.categories,
-  camp:ctx.camp,potCapacity:ctx.pot,bagCapacity:ctx.bag,
-  currentStock:ctx.current,forecastProduction:source.scenarioProduction});
+ // Hypothetical 5-member roster is NOT confirmed F4/F5 production.
  const all=source.scenarioProduction;
  const ranked=Object.entries(all).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,6);
  const labelFor=Object.fromEntries([...codes].map(([jp,code])=>[code,jp]));
  write('168時間の0げんき基準・連続編成シナリオ（主な食材）：'+
   (ranked.map(([key,n])=>(labelFor[key]||key)+' 約'+n+'個').join('、')||'対象なし'));
- if(projection.status==='PROVISIONAL'){
-  write('この仮生産を使った場合の料理候補：'+projection.recipesUsed+'食（生産なし：'+base.recipesUsed+'食）');
-  const differences=Object.entries(base.topups)
-   .filter(([key,n])=>n!==(projection.topups[key]||0))
-   .map(([key,n])=>({key,before:n,after:projection.topups[key]||0,diff:Math.abs(n-(projection.topups[key]||0))}))
-   .sort((a,b)=>b.diff-a.diff).slice(0,5);
-  if(differences.length)write('必要な追加収集数の比較（仮定による変化）：'+differences.map(
-   x=>(labelFor[x.key]||x.key)+' '+x.before+'→'+x.after).join('、'));
- }
+ write('料理は各カテゴリ1レシピに限定。仮生産は収集時刻不明のため目標へ自動控除しません。');
  write('実際の編成ではありません。げんき・所持数・回収・スキル・収集時刻は未反映。'+
   (source.assumedMintCount||source.assumedRibbonCount?
    ' ミント未記入'+source.assumedMintCount+'匹／睡眠時間未記入'+source.assumedRibbonCount+'匹は仮定値です。':'')+
@@ -155,7 +145,8 @@ function readContext(){
  }
  return {week,id,revision:ledger.confirmed.revision,
   categories:own.prep.categories,foodUnconfirmed:!fields.food,
-  camp:fields.camp,pot:player?.pot,bag:player?.bag,current};
+  camp:fields.camp,pot:player?.pot,bag:player?.bag,current,
+  preference:Prefs.read(week,id)};
 }
 function badge(cell,count){
  const media=cell.querySelector('.food-media');
@@ -194,24 +185,29 @@ function render(){
  const token=++renderToken;
  try{
   const ctx=readContext();
-  const result=Opt.plan({recipes:window.PokeRecipes,categories:ctx.categories,
+  const pref=ctx.preference;
+  const aligned=pref&&pref.categories.length===ctx.categories.length&&
+   ctx.categories.every(c=>pref.categories.includes(c));
+  const result=Opt.make({recipes:window.PokeRecipes,categories:ctx.categories,
    camp:ctx.camp,bagCapacity:ctx.bag,potCapacity:ctx.pot,
-   currentStock:ctx.current});
+   currentStock:ctx.current,
+   selectedRecipes:aligned?pref.selectedRecipes:undefined,
+   targetMeals:aligned?pref.targetMeals:undefined});
   if(result.status!=='PROVISIONAL')throw Error(result.message);
   drawGoals(result.goals);
-  status.textContent='F3暫定目標（既存78料理）'+(ctx.foodUnconfirmed?'・料理未確定':'')+' · '+result.recipesUsed+'/'+result.mealSlots+
+  status.textContent='F3備蓄目標（上位レシピ限定）'+(ctx.foodUnconfirmed?'・料理未確定':'')+' · '+result.recipesUsed+'/'+result.mealSlots+
    '食 · バッグ '+result.capacity.used.toLocaleString('ja-JP')+'/'+
    result.capacity.bag.toLocaleString('ja-JP')+'個';
   status.dataset.state='ready';detail.hidden=false;
   content.replaceChildren();
   for(const group of result.categories){
    const section=document.createElement('p');section.className='f3-category-result';
-   section.textContent=({'curry':'カレー','salad':'サラダ','dessert':'デザート'}[group.category])+
-    ' '+group.meals+'食：'+(group.dishes.map(d=>d.name+' ×'+d.count).join('、')||'対象なし');
+   section.textContent=({'curry':'カレー','salad':'サラダ','dessert':'デザート'}[group.type])+
+    ' '+group.count+'食：'+group.name;
    content.append(section);
   }
   const caveat=document.createElement('p');caveat.className='f3-caveat';
-  caveat.textContent='基礎エナジーによる備蓄参考値。レシピレベル・料理チャンス・イベント中の食材生産は未反映。'+
+  caveat.textContent='バッグ容量内の指定レシピのみを備蓄。レシピレベル・料理チャンス・時間別生産は目標から未控除。'+
    (ctx.foodUnconfirmed?' 料理未確定のため、選択カテゴリを均等優先する準備用シナリオです。':'')+
    (ctx.week>='2026-11-16'?' 11/16追加予定の新食材「ひとくちナッツ」と新料理3種は未反映。':'');
   content.append(caveat);
@@ -229,6 +225,7 @@ function render(){
  }
 }
 const rerender=()=>queueMicrotask(render);
+ window.addEventListener('pokesleep-prep-v120-saved',rerender);
 q('#e6-prep-save')?.addEventListener('click',rerender);
 q('#save-inventory')?.addEventListener('click',rerender);
 window.addEventListener('storage',e=>{
