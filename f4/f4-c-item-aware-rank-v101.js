@@ -321,18 +321,22 @@
      privateIndividualDataInResult:false};
    }
    const evaluated=[],reasons=[];
+    const preferred=input.preferredRecipes??{},limits=input.preferredMealCounts??{};
+    const preferredCount=rows=>Object.keys(preferred).reduce((sum,cat)=>
+     sum+Math.min(limits[cat]||0,rows.filter(w=>
+      w.cookedRecipeId===preferred[cat]).length),0);
    for(let i=0;i<candidate.finalists.length;i++){
     const modes=cookingMode&&input.recipeChoicePolicy==='GREEDY_AWARE'?
      ['KEEP_CANDIDATE','GREEDY_AWARE']:['KEEP_CANDIDATE'];
     for(const mode of modes){
      const result=simulate(candidate.finalists[i],mode);
      if(result.status==='PROVISIONAL')
-      evaluated.push({candidateIndex:i,...result});
+      evaluated.push({candidateIndex:i,...result,preferredAchieved:preferredCount(result.slots)});
      else reasons.push(result.reason);
     }
    }
    if(!evaluated.length)return fail(reasons[0]||'NO_FEASIBLE_CANDIDATE');
-   evaluated.sort((a,b)=>b.energyExpected-a.energyExpected||
+   evaluated.sort((a,b)=>(Object.keys(preferred).length?b.preferredAchieved-a.preferredAchieved:0)||b.energyExpected-a.energyExpected||
     a.skippedRecipesDueToStock-b.skippedRecipesDueToStock||
     a.candidateIndex-b.candidateIndex);
    const winner=evaluated[0];
