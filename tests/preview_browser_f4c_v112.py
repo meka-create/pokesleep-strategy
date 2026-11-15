@@ -111,7 +111,11 @@ try:
                     assert info['dialogOpen'] and info['dialog'],info
                     d=info['dialog']
                     assert abs((d['left']+d['right'])/2-width/2)<1.6,info
-                    assert d['width']<=width+0.5 and d['left']>=-1,info
+                    # v117: recover compact 12px minimum gutters instead of
+                    # v116 full-viewport-width sheets, for all dialog families.
+                    target_width=min(540,width-24)
+                    assert abs(d['width']-target_width)<1.6,info
+                    assert d['left']>=11.5 and d['right']<=width-11.5,info
             check_page.set_viewport_size({'width':393,'height':852})
         page.goto(BASE,wait_until='domcontentloaded')
         page.evaluate('(data)=>{for(const [key,val] of Object.entries(data))localStorage.setItem(key,val)}',seed)
