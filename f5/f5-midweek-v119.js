@@ -32,7 +32,9 @@
     identity?.status!=='IDENTITIES_READY'||!deps.weekClock?.build||
     !deps.roster?.adapt||!deps.base?.normalizeProfiles||
     !deps.base?.normalizeRecipes||!deps.policy?.validate||
-    !deps.policy?.candidateTeams||!deps.auto?.favorites)return fail('F5_CONTEXT_OR_PREVIOUS_PLAN_REQUIRED');
+    !deps.policy?.candidateTeams||!deps.auto?.favorites||
+    !deps.auto?.rankingScore||!deps.skillValues?.skillValue)
+    return fail('F5_CONTEXT_OR_PREVIOUS_PLAN_REQUIRED');
    const anchor=Date.parse(ctx.inventorySavedAt),now=Date.parse(ctx.clock.asOf);
    const start=Date.parse(ctx.clock.startsAt),end=Date.parse(ctx.clock.endsAt);
    // The inventory is a user-confirmed snapshot, not a measurement now.
@@ -143,16 +145,30 @@
     return {stock:got,berry:carry?0:berry};
    }
    const rank=s=>s.energy+Object.values(s.stock).reduce((a,b)=>a+b,0)*8;
-   const pairs=[];
+   const pairs=[],profileMap=new Map(roster.profiles.map(p=>[p.id,p]));
    for(const primary of healerIds)for(const secondary of healerIds){
     if(primary===secondary)continue;
-    const base=[primary,secondary];
-    pairs.push({ids:base,score:teamValue(base,100)});
+    const ids=[primary,secondary],energy=teamValue(ids,100);
+    const recover=deps.auto.rankingScore({energyExpected:energy},ids,
+     profileMap,deps.skillValues);
+    if(!finite(recover?.score)||!finite(recover?.recoveryProxyPoints))
+     return fail('F5_HEALER_RECOVERY_MODEL_INVALID');
+    pairs.push({ids,energy,recovery:recover.recoveryProxyPoints,
+     joint:recover.score});
    }
-   pairs.sort((a,b)=>b.score-a.score||a.ids.join().localeCompare(b.ids.join()));
-   // For compact boxes evaluate every ordered pair. For larger ones take
-   // energy, healing and favorite-berry categories, not a fixed healer.
-   const short=pairs.slice(0,healerIds.length<=5?20:18);
+   // Do not preselect only strongest berry producers. Include independent
+   // recovery-leading and total-energy-leading ordered pairs in bounded pool.
+   const by=(key)=>[...pairs].sort((a,b)=>b[key]-a[key]||
+    a.ids.join().localeCompare(b.ids.join()));
+   const short=[],used=new Set(),cap=healerIds.length<=5?20:18;
+   for(const keyName of ['joint','recovery','energy']){
+    for(const pair of by(keyName).slice(0,cap)){
+     const id=pair.ids.join('|');
+     if(!used.has(id)){short.push(pair);used.add(id);}
+     if(short.length>=cap)break;
+    }
+    if(short.length>=cap)break;
+   }
    const possibilities=[];
    for(const pair of short){
     const [primary,secondary]=pair.ids;
@@ -214,8 +230,12 @@
     if(bad||!beam.length)continue;
     const winner=[...beam].sort((a,b)=>b.energy-a.energy||
      a.signature.localeCompare(b.signature))[0];
-    // This is a residual forecast, not a recalculated full-week total.
-    possibilities.push({primary,secondary,winner,score:winner.energy});
+    // Same bounded recovery coverage proxy as F4-C, NOT actual skill procs.
+    const ranked=deps.auto.rankingScore({energyExpected:winner.energy},
+     pair.ids,profileMap,deps.skillValues);
+    if(!finite(ranked?.score))continue;
+    possibilities.push({primary,secondary,winner,score:ranked.score,
+     recoveryProxyPoints:ranked.recoveryProxyPoints});
    }
    if(!possibilities.length)return fail('F5_NO_FEASIBLE_REMAINING_PLAN');
    possibilities.sort((a,b)=>b.score-a.score||
@@ -235,7 +255,8 @@
     expectedPartialRaw:partialRaw,baseRaw:previous.revision,
     selectedPrimary:best.primary,selectedSecondary:best.secondary,
     expectedRemainingEnergy:Math.round(best.winner.energy*1000)/1000,
-    candidatePairsChecked:possibilities.length,slots,
+    candidatePairsChecked:possibilities.length,
+    healerRecoveryProxyPoints:best.recoveryProxyPoints,slots,
     pastEvidence:'UNOBSERVED_ADOPTED_FORECAST_ONLY',actualObservedCount:0,
     officialEffectsExcluded:ctx.fields.source!=null,autoSleep:ctx.autoSleep,
     weeklyEnergyCertified:false,officialEventEnergyCertified:false,
