@@ -217,3 +217,52 @@ test('v115 parallel real-Box identity initialization converges on one ledger and
  assert.equal(new Set(results[0].ids).size,7);
  assert.equal(storage.getItem(safe.LEDGER),results[0].ledgerRevision);
 });
+
+test('v118 independent audit: malformed proposals are rejected BEFORE writing event-owned plan',()=>{
+ const c=getCtx(),{deps}=fake(),valid=auto.propose(c,{},deps);
+ assert.equal(valid.status,'PROVISIONAL');
+ const byId=new Map(Array.from({length:6},(_,i)=>[opaque(i),i]));
+ const identity={status:'IDENTITIES_READY',ids:[...byId.keys()],byId,
+  digests:Array.from({length:6},(_,i)=>String(i).padStart(64,'0')),
+  boxRaw:'{"version":1,"items":[]}',ledgerRevision:'{"version":1}'};
+ const raw=new Map([
+  ['pokesleep-strategy-e7-box-v1',identity.boxRaw],
+  [safe.LEDGER,identity.ledgerRevision]]);
+ const storage={getItem:k=>raw.has(k)?raw.get(k):null,setItem:(k,v)=>raw.set(k,v)};
+ const recipes=Array.from({length:78},(_,i)=>({id:'recipe'+i}));
+ const planKey=safe.key('plan',c.weekStart,c.eventId);
+ const alter=(i,fn)=>({...valid,slots:valid.slots.map((slot,n)=>
+  n===i?fn({...slot,team:[...slot.team]}):slot)});
+ const incorrect=[
+  ['CLOCK',alter(1,s=>({...s,startsAt:'tampered'})),
+   'PROPOSED_SAVED_PLAN_TIMELINE_CHANGED'],
+  ['HEALER',alter(1,s=>({...s,team:[...s.team.slice(0,3),
+     s.team[4],s.team[3]]})),'PROPOSED_SAVED_HEALER_POSITIONS_CHANGED'],
+  ['RECIPE',alter(2,s=>({...s,recipeId:'recipe_not_in_catalog'})),
+   'PROPOSED_SAVED_RECIPE_SOURCE_CHANGED'],
+  ['SLEEP_RECIPE',alter(4,s=>({...s,recipeId:'recipe1'})),
+   'PROPOSED_SLEEP_WINDOW_RECIPE_NOT_ALLOWED']
+ ];
+ for(const [label,p,expected] of incorrect){
+  const got=safe.adopt(storage,c,p,identity,'a'.repeat(40),recipes,c.clock,null);
+  assert.equal(got.status,'BLOCKED',label+': '+got.reason);
+  assert.equal(got.reason,expected,label);
+  assert.equal(storage.getItem(planKey),null,'invalid '+label+' must not persist');
+ }
+ assert.equal(safe.adopt(storage,c,valid,identity,'a'.repeat(40),recipes,c.clock,null).status,
+  'ADOPTED');
+ const committed=storage.getItem(planKey);
+ const oldReview=safe.adopt(storage,c,valid,identity,'a'.repeat(40),recipes,c.clock,null);
+ assert.equal(oldReview.status,'BLOCKED');
+ assert.equal(oldReview.reason,'SAVED_PLAN_CHANGED_AFTER_REVIEW');
+ assert.equal(storage.getItem(planKey),committed,'stale review must not overwrite');
+ const currentReview=safe.adopt(storage,c,valid,identity,'a'.repeat(40),
+  recipes,c.clock,committed);
+ assert.equal(currentReview.status,'ADOPTED');
+});
+test('v118 UI passes exact reviewed plan revision and never upgrades past to observed',()=>{
+ const src=fs.readFileSync(path.resolve(__dirname,'../e7-preview/e7-f4c-integrated-v112.js'),'utf8');
+ assert.match(src,/draftPlanRaw=localStorage\.getItem\(store\.key\('plan',c\.weekStart,c\.eventId\)\)/);
+ assert.match(src,/deps\.recipes,c\.clock,draftPlanRaw/);
+ assert.doesNotMatch(src,/localStorage\.setItem\(/);
+});
