@@ -76,6 +76,43 @@ try:
         page=context.new_page()
         errors=[]
         page.on('pageerror',lambda exc:errors.append(str(exc)))
+        def assert_mobile_geometry(check_page, sprite_selector, sheet_selector=None):
+            """Catch the original PokeSprite 96px-in-42px overflow on real CSS."""
+            for width in (320,393,430):
+                check_page.set_viewport_size({'width':width,'height':852})
+                info=check_page.evaluate("""({spriteSelector,dialogSelector})=>{
+                  const box=document.querySelector(spriteSelector);
+                  const art=box?.querySelector(':scope > .poke-art');
+                  const img=art?.querySelector(':scope > img[data-sprite-url]');
+                  const dialog=dialogSelector?document.querySelector(dialogSelector):null;
+                  const rect=el=>{
+                    const r=el.getBoundingClientRect();
+                    return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,
+                      width:r.width,height:r.height};
+                  };
+                  return {
+                    viewport:innerWidth,
+                    box:box?rect(box):null,art:art?rect(art):null,img:img?rect(img):null,
+                    fit:img?getComputedStyle(img).objectFit:null,
+                    imgPosition:img?getComputedStyle(img).position:null,
+                    dialog:dialog?.open?rect(dialog):null,
+                    dialogOpen:dialog?dialog.open:null
+                  };
+                }""",{'spriteSelector':sprite_selector,'dialogSelector':sheet_selector})
+                assert info['box'] and info['art'] and info['img'],(
+                    f'missing canonical sprite in {sprite_selector} at {width}: {info}')
+                outer,art,img=info['box'],info['art'],info['img']
+                for child in (art,img):
+                    assert child['width']>0 and child['height']>0
+                    assert child['left']>=outer['left']-1.5 and child['right']<=outer['right']+1.5,info
+                    assert child['top']>=outer['top']-1.5 and child['bottom']<=outer['bottom']+1.5,info
+                assert info['fit']=='contain' and info['imgPosition']=='absolute',info
+                if sheet_selector:
+                    assert info['dialogOpen'] and info['dialog'],info
+                    d=info['dialog']
+                    assert abs((d['left']+d['right'])/2-width/2)<1.6,info
+                    assert d['width']<=width+0.5 and d['left']>=-1,info
+            check_page.set_viewport_size({'width':393,'height':852})
         page.goto(BASE,wait_until='domcontentloaded')
         page.evaluate('(data)=>{for(const [key,val] of Object.entries(data))localStorage.setItem(key,val)}',seed)
         page.reload(wait_until='domcontentloaded')
@@ -98,11 +135,13 @@ try:
         # The old accepted PLAN by itself must never populate this record.
         page.locator('#f4c-carry-trigger').click()
         page.locator('#f4c-carry-edit').click()
+        assert_mobile_geometry(page,'#pick-grid .pick-status','#edit-dialog')
         for _ in range(5):
             page.locator('#pick-grid .pick-select[aria-pressed="false"]:not([disabled])').first.click()
         page.locator('#edit-save').click()
         page.locator('#sleep-dialog').wait_for(state='visible')
         assert page.locator('#f4c-carry-preview .mon').count()==5
+        assert_mobile_geometry(page,'#f4c-carry-preview .avatar','#sleep-dialog')
         carry=page.evaluate('''() => JSON.parse(localStorage.getItem(
          'pokesleep-strategy-f4c-v112:carry:2026-11-16:manual%3A2026-11-16'))''')
         assert carry['source']=='USER_CONFIRMED_PREVIOUS_SUNDAY' and len(carry['teamIds'])==5
@@ -120,10 +159,12 @@ try:
                 'action':page.locator('#e3-next').get_attribute('data-action')
             }
             raise AssertionError('F4-C v112 real propose unavailable: '+repr(detail)) from exc
+        assert_mobile_geometry(page,'#review-slots .avatar','#review-dialog')
         shown=page.locator('#review-slots').inner_text()
         assert 'サーナイト' in shown or 'ニンフィア' in shown,shown[:500]
         # The actual individual detail uses the identical pinned F1-B engine as Box.
         page.locator('#review-slots .avatar-tap').first.click()
+        assert_mobile_geometry(page,'#pokemon-dialog .status-portrait','#pokemon-dialog')
         page.wait_for_function("""() => [...document.querySelectorAll('#pokemon-base-rows .iv-key')]
             .filter(e => ['おてつだい時間：','最大所持数：'].includes(e.textContent))
             .length === 2 && [...document.querySelectorAll('#pokemon-base-rows .iv-key')]
@@ -134,6 +175,7 @@ try:
         assert mid==before,'Proposal should never write legacy E7 event/box/inventory'
         page.locator('#review-adopt').click()
         page.locator('#week-content').wait_for(state='visible',timeout=30000)
+        assert_mobile_geometry(page,'#slots .avatar')
         adopted=page.locator('#slots').inner_text()
         assert 'サーナイト' in adopted or 'ニンフィア' in adopted,adopted[:500]
         saved=page.evaluate('''() => {
@@ -169,7 +211,17 @@ try:
         page.locator('#review-dialog').wait_for(state='visible',timeout=90000)
         page.locator('#review-cancel').click()
         assert not errors,'Browser errors: '+repr(errors[-8:])
-        print('F4-C v112 Chromium: existing E7 button, real healer auto proposal/adoption, stable restore PASS')
+        # The Box is the accepted reference: it must retain its original geometry.
+        box_page=context.new_page()
+        box_page.goto(BASE.split('/U3_Strategy_UI_')[0]+'/U4_Box_Preview_20261109_v50_E7.html',
+                      wait_until='domcontentloaded')
+        box_page.locator('#box-list .box-avatar').first.wait_for(state='visible',timeout=20000)
+        assert_mobile_geometry(box_page,'#box-list .box-avatar')
+        box_page.locator('#box-list .box-avatar').first.click()
+        box_page.locator('#box-detail-dialog').wait_for(state='visible',timeout=10000)
+        assert_mobile_geometry(box_page,'#box-detail-dialog .status-portrait','#box-detail-dialog')
+        box_page.close()
+        print('F4-C v116 Chromium: real 29-window plan + sprite containment/sheet center at 320/393/430px PASS')
         browser.close()
 finally:
     server.shutdown()

@@ -7,10 +7,11 @@ const css=read('e7-pokemon-detail-shared-v81.css');
 const plan=read('U3_Strategy_UI_20261109_v50_E7.html');
 const box=read('U4_Box_Preview_20261109_v50_E7.html');
 test('E7 v83 single canonical modal shell owns outer geometry, backdrop and accessible heading',()=>{
- assert.match(css,/\.pokemon-detail-modal\s*\{\s*position:fixed;inset:auto 0 0/);
+ assert.match(css,/\.pokemon-detail-modal\s*\{\s*position:fixed;inset:auto auto 0 50%/);
+ assert.match(css,/transform:translateX\(-50%\)/);
  assert.match(css,/\.pokemon-detail-modal::backdrop\s*\{/);
  assert.match(css,/\.pokemon-detail-modal \.visually-hidden\s*\{/);
- assert.match(css,/width:min\(540px,100%\)/);
+ assert.match(css,/width:min\(540px,100vw\);max-width:100%/);
  assert.match(css,/border-radius:20px 20px 0 0/);
  const local=read('e7-box-detail-v60.css');
  assert.doesNotMatch(local,/\.box-detail-dialog\s*\{/);

@@ -7,8 +7,8 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-// v114 F4-C known-defect repair is the only authorized U3 delta; accepted U2/Box unchanged.
-const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', '94781240d223f22ec6fe3fb3daae933ae0733bba', '6775191ee025b2c370e33420df60fe405375c7b9'];
+// v116 accepted U3: canonical sprite/modal geometry only; accepted U2/Box HTML unchanged.
+const auditedSHA=['a72668b2ab94ec4a4a5bf4b455183146ad16e4c9', '0d5ae3f49bcaf931e11f9db041a3e46c507bf33f', '6775191ee025b2c370e33420df60fe405375c7b9'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
