@@ -25,7 +25,8 @@
   typeof ctx.eventId==='string'&&ctx.eventId.length>0&&ctx.eventId.length<=160&&
   typeof ctx.conditionRevision==='string'&&typeof ctx.inventoryRevision==='string';
  const planningBasis=ctx=>JSON.stringify([ctx.fields,ctx.player,
-  ctx.savedBerrySetup??null,ctx.autoSleep,ctx.previousCarryRevision??null]);
+  ctx.savedBerrySetup??null,ctx.autoSleep,ctx.previousCarryRevision??null,
+  ...(ctx.prepPreferenceRevision?[ctx.prepPreferenceRevision]:[])]);
  const canonical=row=>{
   if(!isObj(row)||!FIELDS.every(f=>Object.hasOwn(row,f)))return null;
   const vals=FIELDS.map(k=>row[k]===undefined?null:row[k]);
