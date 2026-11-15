@@ -3,7 +3,11 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
-const Calc=require('../f3/f3-stockpile-v120.js');
+const vm=require('node:vm');
+const file=fs.readFileSync(path.join(__dirname,'../f3/f3-stockpile-v120.js'),'utf8');
+const sandbox={module:{exports:{}},globalThis:{}};
+vm.runInNewContext(file,sandbox,{filename:'f3-stockpile-v120.js'});
+const Calc=sandbox.module.exports;
 const shop=(type,id,energy,requirements)=>({type,id,name:id,baseStrength:energy,requirements});
 const RECIPES=[
  shop('curry','c1',1000,{apple:60}),shop('curry','c2',900,{apple:50}),
