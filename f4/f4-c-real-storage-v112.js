@@ -121,6 +121,37 @@
   }
   return true;
  }
+ // Use the SAME invariants before any write and at restoration time.
+ // A rejected proposal must never leave a malformed plan in localStorage.
+ function planSourcesReason(p,clock,recipes){
+  if(!planShape(p))return 'PLAN_SHAPE_INVALID';
+  if(clock?.status!=='TIMELINE_READY'||clock.windows?.length!==29||
+     !Array.isArray(recipes))return 'SAVED_PLAN_TIMELINE_CHANGED';
+  for(let i=0;i<29;i++){
+   const w=p.slots[i],c=clock.windows[i];
+   if(w.day!==c.day||w.slot!==c.slot||w.source!==c.source||
+      w.startsAt!==c.startsAt||w.endsAt!==c.endsAt)
+    return 'SAVED_PLAN_TIMELINE_CHANGED';
+   if(w.slot==='sleep'&&w.recipeId!==null)
+    return 'SLEEP_WINDOW_RECIPE_NOT_ALLOWED';
+   if(i===0){
+    if(p.previousWeekCarryUnknown===true&&w.teamIds.length!==0||
+       p.previousWeekCarryUnknown!==true&&w.teamIds.length!==5)
+     return 'PREVIOUS_WEEK_CARRY_TEAM_MISMATCH';
+   }else if(w.teamIds.length!==5)return 'INCOMPLETE_REAL_TEAM';
+  }
+  const allowed=new Set(recipes.map(r=>r.id));
+  if(p.slots.some(w=>w.recipeId!==null&&!allowed.has(w.recipeId)))
+   return 'SAVED_RECIPE_SOURCE_CHANGED';
+  const mornings=p.slots.filter(w=>w.slot==='morning');
+  const others=p.slots.filter(w=>w.slot==='noon'||w.slot==='evening');
+  const nights=p.slots.filter(w=>w.slot==='sleep'&&w.day>=0);
+  if(mornings.length!==7||others.length!==14||nights.length!==7||
+     mornings.some(w=>w.teamIds[3]!==p.secondaryId||w.teamIds[4]!==p.primaryId)||
+     others.some(w=>w.teamIds.includes(p.secondaryId)||w.teamIds[4]!==p.primaryId))
+   return 'SAVED_HEALER_POSITIONS_CHANGED';
+  return null;
+ }
  function createRecord(ctx,proposal,identity){
   if(!ownerOK(ctx)||proposal?.status!=='PROVISIONAL'||
    proposal.eventId!==ctx.eventId||proposal.weekStart!==ctx.weekStart||
@@ -173,37 +204,31 @@
     (p.conditionRevision!==ctx.conditionRevision||
      p.inventoryRevision!==ctx.inventoryRevision)?'SAVED_PLAN_INPUTS_CHANGED':
     p.planningBasis!==planningBasis(ctx)?'PLAYER_OR_BERRY_SETTINGS_CHANGED':null;
-   if(clock?.windows?.length!==29||p.slots.some((w,i)=>{
-    const c=clock.windows[i];return w.day!==c.day||w.slot!==c.slot||
-     w.source!==c.source||w.startsAt!==c.startsAt||w.endsAt!==c.endsAt;
-   }))return fail('SAVED_PLAN_TIMELINE_CHANGED');
-   const allowed=new Set(recipes.map(r=>r.id));
-   if(p.slots.some(s=>s.recipeId!==null&&!allowed.has(s.recipeId)))
-    return fail('SAVED_RECIPE_SOURCE_CHANGED');
+   const invalid=planSourcesReason(p,clock,recipes);
+   if(invalid)return fail(invalid);
    const all=[p.primaryId,p.secondaryId,...p.slots.flatMap(s=>s.teamIds)];
    if(!uniqueUsed(all,identity))return fail('SAVED_BOX_CHANGED_OR_AMBIGUOUS');
    const index=identity.byId;
    const slots=p.slots.map(w=>({...w,
     teamIndices:w.teamIds.map(id=>index.get(id))}));
-   const healer1=slots.slice(1).filter(w=>w.slot==='morning');
-   const others=slots.slice(1).filter(w=>w.slot==='noon'||w.slot==='evening');
-   if(healer1.length!==7||others.length!==14||
-    healer1.some(w=>w.teamIds[3]!==p.secondaryId||w.teamIds[4]!==p.primaryId)||
-    others.some(w=>w.teamIds.includes(p.secondaryId)||w.teamIds[4]!==p.primaryId))
-    return fail('SAVED_HEALER_POSITIONS_CHANGED');
    return {status:staleReason?'STALE_ADOPTED':'ADOPTED',
     ...(staleReason?{reason:staleReason}:{}),plan:p,slots,revision:r.raw};
   }catch(_){return fail('SAVED_PLAN_READ_FAILED');}
  }
- function adopt(storage,ctx,proposal,identity,sourceCommit,recipes,clock){
+ function adopt(storage,ctx,proposal,identity,sourceCommit,recipes,clock,expectedOldPlanRaw){
   try{
    const made=createRecord(ctx,proposal,identity);
    if(made.status!=='PLAN_READY')return made;
    if(made.plan.sourceCommit!==sourceCommit)return fail('MODEL_SOURCE_CHANGED');
+   const invalid=planSourcesReason(made.plan,clock,recipes);
+   if(invalid)return fail('PROPOSED_'+invalid);
    if(storage.getItem(BOX)!==identity.boxRaw||
      storage.getItem(LEDGER)!==identity.ledgerRevision)
     return fail('BOX_CHANGED_BEFORE_ADOPTION');
    const check=entry(storage,key('plan',ctx.weekStart,ctx.eventId));
+   // A proposal reviewed before another tab's adoption cannot overwrite it.
+   if(expectedOldPlanRaw!==undefined&&check.raw!==expectedOldPlanRaw)
+    return fail('SAVED_PLAN_CHANGED_AFTER_REVIEW');
    if(check.value&&(!planShape(check.value)||
     check.value.eventId!==ctx.eventId))return fail('FOREIGN_OR_CORRUPT_OLD_PLAN');
    const now=JSON.stringify({...made.plan,revision:depsRevision()});
