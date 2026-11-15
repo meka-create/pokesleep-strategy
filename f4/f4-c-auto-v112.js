@@ -149,7 +149,11 @@
     autoSleep:false};
    if(input.recipes.length!==78||input.eventSource!==null)
     return fail('RECIPE_OR_EVENT_SOURCE_INVALID');
-   const found=extract(input,ctx,deps);
+   if(options.prepPreference){
+     input.preferredRecipes=options.prepPreference.selectedRecipes;
+     input.preferredMealCounts=options.prepPreference.targetCounts;
+    }
+    const found=extract(input,ctx,deps);
    if(found.error)return fail(found.error);
    const profileMap=new Map(input.profiles.map(p=>[p.id,p]));
    const considered=[],errors=[];
@@ -170,7 +174,8 @@
     considered.push({pair,result,...ranked});
    }
    if(!considered.length)return fail(errors[0]||'NO_FEASIBLE_HEALER_PAIR');
-   considered.sort((a,b)=>b.score-a.score||
+   considered.sort((a,b)=>(input.preferredRecipes?(b.result.preferredAchieved||0)-(a.result.preferredAchieved||0):0)||
+     b.score-a.score||
     b.result.energyExpected-a.result.energyExpected||
     a.pair.join('|').localeCompare(b.pair.join('|')));
    const win=considered[0],slots=win.result.slots;
@@ -198,7 +203,8 @@
     stage:'F4_C_INTEGRATED_V112',eventId:ctx.eventId,weekStart:ctx.weekStart,
     sourceCommit:prepared.sourceCommit,
     conditionRevision:ctx.conditionRevision,inventoryRevision:ctx.inventoryRevision,
-    planningBasis:JSON.stringify([ctx.fields,ctx.player,ctx.savedBerrySetup??null,ctx.autoSleep,ctx.previousCarryRevision??null]),
+    planningBasis:JSON.stringify([ctx.fields,ctx.player,ctx.savedBerrySetup??null,ctx.autoSleep,ctx.previousCarryRevision??null,
+      ...(ctx.prepPreferenceRevision?[ctx.prepPreferenceRevision]:[])]),
     selectedPrimary:win.pair[0],selectedSecondary:win.pair[1],
     candidatePairsChecked:considered.length,
     favoriteTypes:favorite,previousWeekCarryUnknown:unknown,
