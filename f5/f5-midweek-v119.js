@@ -17,7 +17,8 @@
  const five=x=>Array.isArray(x)&&x.length===5&&new Set(x).size===5;
  const oldKey=(store,c)=>store.key('plan',c.weekStart,c.eventId);
  const key=c=>PREFIX+c.weekStart+':'+encodeURIComponent(c.eventId);
- const basis=c=>JSON.stringify([c.fields,c.player,c.savedBerrySetup??null,c.autoSleep,c.previousCarryRevision??null]);
+ const basis=c=>JSON.stringify([c.fields,c.player,c.savedBerrySetup??null,c.autoSleep,c.previousCarryRevision??null,
+  ...(c.prepPreferenceRevision?[c.prepPreferenceRevision]:[])]);
  const rev=()=>typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random();
  const clockFields=(a,b)=>a.day===b.day&&a.slot===b.slot&&a.source===b.source&&
   a.startsAt===b.startsAt&&a.endsAt===b.endsAt;
