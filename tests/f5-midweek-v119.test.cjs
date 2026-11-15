@@ -128,7 +128,7 @@ test('F5: adoption saves only stable IDs; restores, respects event owner and sto
  assert.equal(next.status,'PROVISIONAL',next.reason);
  for(let i=0;i<=next.anchorIndex;i++){
   assert.equal(next.slots[i].recipeId,stale.slots[i].recipeId);
-  assert.deepEqual([...next.slots[i].team],stale.slots[i].teamIndices.map(i=>'p'+i));
+  assert.deepEqual([...next.slots[i].team],[...stale.slots[i].teamIndices].map(i=>'p'+i));
  }
  assert.equal(mid.adopt(f.storage,replay.ctx,next,identity,COMMIT,recipes,
   replay.ctx.clock,store).status,'ADOPTED');
@@ -146,6 +146,9 @@ test('F5: stale review, tampered past or current slot, changed root, and stale s
  const oldReview=mid.adopt(f.storage,f.ctx,p,identity,COMMIT,recipes,f.ctx.clock,store);
  assert.equal(oldReview.reason,'F5_ADOPTION_CHANGED_SINCE_REVIEW');
  assert.equal(f.storage.getItem(key),current);
+ const crossed={...f.ctx,inventorySavedAt:'2026-11-18T11:55:00+09:00',
+  clock:clock.build(W,'2026-11-18T12:05:00+09:00')};
+ assert.equal(build({...f,ctx:crossed}).reason,'F5_INVENTORY_WINDOW_CHANGED');
  const oldStock={...f.ctx,inventorySavedAt:'2026-11-18T10:00:00+09:00'};
  assert.equal(build({...f,ctx:oldStock}).reason,'FRESH_MIDWEEK_INVENTORY_REQUIRED');
  f.storage.setItem(store.key('plan',W,ID),JSON.stringify({
