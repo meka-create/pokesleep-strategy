@@ -8,7 +8,7 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 // v120 F3 U2: reviewed new recipe selector imports, unchanged U3 and Box HTML.
-const auditedSHA=['a3a4515490fda007e55b69f672689f9ed24de632', 'eb7a2c24abdc8980709d648eec5520ed5f38302f', '6775191ee025b2c370e33420df60fe405375c7b9'];
+const auditedSHA=['15ab2895860b0e6f5ca339003ca71a8e34779295', 'eb7a2c24abdc8980709d648eec5520ed5f38302f', '6775191ee025b2c370e33420df60fe405375c7b9'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
@@ -129,14 +129,14 @@ test('E7 v52 reset revokes stale event frames before deleting event-week storage
  assert.match(plan,/window\.addEventListener\('beforeunload',storeState\)/);
 });
 
-test('E7 v54 images: 38 placements reuse 19 real external PNGs; no embedded base64',()=>{
+test('E7 v54 images: 40 placements reuse 20 real external PNGs; no embedded base64',()=>{
  const prep=read(names[0]);
  const entries=[...prep.matchAll(/<img class="pic" src="(assets\/ingredients\/ingredient-\d{2}\.png)" alt="" draggable="false" loading="lazy" decoding="async">/g)];
- assert.equal(entries.length,38,'Both ingredient grids must contain 19 icons');
+ assert.equal(entries.length,40,'Both ingredient grids must contain 20 icons');
  const unique=[...new Set(entries.map(x=>x[1]))];
- assert.equal(unique.length,19,'The same icon asset should be reused across both grids');
+ assert.equal(unique.length,20,'The same icon asset should be reused across both grids');
  assert.doesNotMatch(prep,/data:image\/png;base64,/);
- for(let i=1;i<=19;i++){
+ for(let i=1;i<=20;i++){
   const name='assets/ingredients/ingredient-'+String(i).padStart(2,'0')+'.png';
   assert.ok(unique.includes(name),'Missing icon in source: '+name);
   const png=fs.readFileSync(path.join(base,name));
