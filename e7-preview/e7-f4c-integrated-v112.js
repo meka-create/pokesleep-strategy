@@ -170,7 +170,7 @@ function drawReview(){
   '食材在庫の確定時点から残時間だけを再計算します。過去の表示は以前の予測であり、実績未確認です。イベント未確認効果は未反映。';
  else if(note)note.textContent=draft.officialEffectsExcluded?
   '実ボックスを使用した作戦です。一部イベント補正・新食材・新料理は未反映（参考計算）。':
-  '実ボックスを使用した19食材・78料理の提案です。回復発動・収集は期待値の参考計算です。';
+  '実ボックスを使用した20食材・81料理の提案です。回復発動・収集は期待値の参考計算です。';
  const adopt=q('review-adopt');adopt.disabled=false;adopt.textContent='この作戦を採用';
  nav('review-day-nav',reviewDay,day=>{reviewDay=day;drawReview();});
  drawSlots(q('review-slots'),viewForDraft(),reviewDay);

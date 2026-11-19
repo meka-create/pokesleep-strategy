@@ -7,7 +7,7 @@ test('F4-B v93 isolated UI loads all verified local sources and preserves E7 sto
  const assets=[...html.matchAll(/<script src="([^"]+)"/g)].map(x=>x[1]);
  const expected=['../e7-preview/e7-inventory-scope-v78.js','../e7-preview/e7-e1-core-v84.js',
   '../f1/f1-b-legal-build-v2.js','../f1/f1-b-base-rates-v1.js',
-  '../src/master.js','../src/recipes.js','../f4/f4-chronological-core-v1.js',
+  '../e7-preview/e7-master-v122.js','../e7-preview/e7-recipes-v122.js','../f4/f4-chronological-core-v1.js',
   '../f4/f4-f1b-roster-adapter-v1.js','../f4/f4-b-game-week-v1.js',
   '../f4/f4-b-chronological-v2.js','../f4/f4-b-e7-readonly-v1.js',
   '../f4/f4-event-model-gate-v1.js','../f4/f4-c-official-rules-v1.js',

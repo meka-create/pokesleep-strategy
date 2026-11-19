@@ -22,10 +22,10 @@ const names=[
  'とくせんリンゴ','げきからハーブ','マメミート','モーモーミルク',
  'あまいミツ','ピュアなオイル','あったかジンジャー','あんみんトマト',
  'リラックスカカオ','おいしいシッポ','ワカクサ大豆','ワカクサコーン',
- 'めざましコーヒー','ずっしりカボチャ','つやつやアボカド'
+ 'めざましコーヒー','ずっしりカボチャ','つやつやアボカド','ひとくちナッツ'
 ];
 const codes=['leek','mushroom','egg','potato','apple','herb','sausage','milk',
- 'honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado'];
+ 'honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado','nuts'];
 const dict=Object.fromEntries(codes.map((c,i)=>[c,names[i]]));
 const master={ingredients:dict,types:{water:'みず',fire:'ほのお',grass:'くさ'}};
 const copy=x=>JSON.parse(JSON.stringify(x));

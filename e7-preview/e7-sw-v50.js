@@ -1,6 +1,6 @@
 /* E7 v50 preview-only offline cache / persistent v52 tabs; this is NOT the production root service worker. */
-const CACHE='pokesleep-strategy-e7-v84-shared-e1-footer-20261113-v86-f2-event-catalog-20261113-v88-f3-prep-20261113-v89-f3-b-20261113-v90-f4-audit-20261113-v105-box-detail-20261114-v110-box-proposal-20261114-v112-integrated-real-plan-20261114-v114-real-sleep-stats-carry-20261115-v116-shared-sprites-modal-20261115-v117-compact-dialog-20261115-v118-f5-prestart-save-guard-20261115-v119-f5-midweek-20261115-v120-stockpile-20261115-v121-compact-prep-20261119';
-const IMAGE_FILES=Array.from({length:19},(_,i)=>
+const CACHE='pokesleep-strategy-e7-v84-shared-e1-footer-20261113-v86-f2-event-catalog-20261113-v88-f3-prep-20261113-v89-f3-b-20261113-v90-f4-audit-20261113-v105-box-detail-20261114-v110-box-proposal-20261114-v112-integrated-real-plan-20261114-v114-real-sleep-stats-carry-20261115-v116-shared-sprites-modal-20261115-v117-compact-dialog-20261115-v118-f5-prestart-save-guard-20261115-v119-f5-midweek-20261115-v120-stockpile-20261115-v121-compact-prep-20261119-v122-nut81-20261119-online-nuts-icon-256';
+const IMAGE_FILES=Array.from({length:20},(_,i)=>
  'assets/ingredients/ingredient-'+String(i+1).padStart(2,'0')+'.png');
 const imageUrls=new Set(IMAGE_FILES.map(x=>new URL(x,self.registration.scope).href));
 // Versioned, immutable common modules: once installed, avoid a network round-trip
@@ -14,7 +14,7 @@ const FILES=[
  'U4_Box_Preview_20261109_v50_E7.html',
  'e7-feedback-v66.js','e7-feedback-v66.css','e7-event-delete-v71.js','e7-inventory-scope-v78.js',
  'e7-e1-core-v84.js','e7-footer-nav-v84.js','e7-f2-event-catalog-v1.js',
- '../src/master.js','../src/recipes.js','../f3/f3-prep-optimizer-v1.js','../f3/f3-stockpile-v120.js','e7-prep-settings-v120.js','e7-f3-prep-goals-v88.js',
+ '../src/master.js','../src/recipes.js','e7-master-v122.js','e7-recipes-v122.js','../f3/f3-prep-optimizer-v1.js','../f3/f3-stockpile-v120.js','e7-prep-settings-v120.js','e7-f3-prep-goals-v88.js',
  '../f1/f1-b-legal-build-v2.js','../f1/f1-b-base-rates-v1.js',
  '../f1/f1-b-target-source-v1.json','../f1/f1-b-help-traits-v1.json',
  '../f3/f3-b-production-scenario-v1.js',

@@ -24,7 +24,7 @@ const INGREDIENT_NAMES = Object.freeze([
   'とくせんリンゴ','げきからハーブ','マメミート','モーモーミルク',
   'あまいミツ','ピュアなオイル','あったかジンジャー','あんみんトマト',
   'リラックスカカオ','おいしいシッポ','ワカクサ大豆','ワカクサコーン',
-  'めざましコーヒー','ずっしりカボチャ','つやつやアボカド'
+  'めざましコーヒー','ずっしりカボチャ','つやつやアボカド','ひとくちナッツ'
 ]);
 const INGREDIENT_SET = new Set(INGREDIENT_NAMES);
 const MS_DAY = 86_400_000;
@@ -89,11 +89,19 @@ function cleanRevision(x) {
 function cleanInventoryValues(values) {
   if(!values||typeof values!=='object'||Array.isArray(values))throw Error('Inventory must be an object.');
   const keys=Object.keys(values);
-  if(keys.length!==19||keys.some(k=>!INGREDIENT_SET.has(k)))throw Error('Exactly 19 known ingredient names required.');
+  // Old event-owned v2 snapshots are strict 19-food records, not corrupt.
+  // Only the newly introduced nuts ingredient may be absent; never silently default any
+  // of the other original 19 foods. Return a normalized 20-food READ view.
+  const oldNames=INGREDIENT_NAMES.slice(0,-1),hasNut=
+   Object.prototype.hasOwnProperty.call(values,'ひとくちナッツ');
+  if(keys.length!==(hasNut?20:19)||
+   keys.some(k=>!INGREDIENT_SET.has(k))||
+   oldNames.some(k=>!Object.prototype.hasOwnProperty.call(values,k)))
+   throw Error('20 known ingredient names required (19-food saved records permitted).');
   const next=Object.create(null);
   let total=0;
   for(const key of INGREDIENT_NAMES) {
-    const n=values[key];
+    const n=key==='ひとくちナッツ'&&!hasNut?0:values[key];
     if(!Number.isSafeInteger(n)||n<0||n>10000)throw Error('Invalid ingredient quantity: '+key);
     next[key]=n;total+=n;
   }
@@ -173,11 +181,9 @@ function previewLegacyU2V3(record,selectedWeek) {
   if(!validWeekStart(selectedWeek)||!record||record.version!==3||
     record.weekStart!==selectedWeek||record.source!=='inventory')
     throw Error('Legacy inventory belongs to a different event week or version.');
-  const values=cleanInventoryValues(Object.fromEntries(
-    INGREDIENT_NAMES.map(key=>[key,record.values?.[key]??0])));
-  // Missing keys from a corrupt old record MUST NOT become a zero value.
-  if(!record.values||INGREDIENT_NAMES.some(k=>!Object.prototype.hasOwnProperty.call(record.values,k))||
-    Object.keys(record.values).length!==19)throw Error('Legacy stock is incomplete.');
+  // Keep strict validation of every original ingredient. A legacy 19-food
+  // payload is extended in-memory with nut=0 and only written on user Save.
+  const values=cleanInventoryValues(record.values);
   const savedAt=record.savedAt;
   const t=instantMs(savedAt);
   const start=Date.parse(selectedWeek+'T04:00:00+09:00');

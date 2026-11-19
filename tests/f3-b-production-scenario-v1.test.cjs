@@ -56,7 +56,7 @@ test('F3-B pinned 66 species source, five real individuals, no private member da
  assert.equal(r.assumedMintCount,5);
  assert.equal(r.assumedRibbonCount,5);
  assert(Object.values(r.scenarioProduction).some(n=>n>0));
- assert.equal(Object.keys(r.scenarioProduction).length,19);
+ assert.equal(Object.keys(r.scenarioProduction).length,20);
  assert(!JSON.stringify(r).includes('PVT_NICKNAME_MUST_NOT_LEAK'));
  assert(!JSON.stringify(r).includes('nickname'));
  assert(!JSON.stringify(r).includes('lv10'));
@@ -72,7 +72,8 @@ test('F3-B production scenario remains separate from conservative stockpile plan
  assert.equal(forecast.status,'PROVISIONAL',forecast.message);
  const variant=f3.plan({recipes,categories:['curry','salad','dessert'],
   bagCapacity:600,potCapacity:57,camp:true,
-  currentStock:{},forecastProduction:forecast.scenarioProduction});
+  currentStock:{},forecastProduction:Object.fromEntries(Object.entries(forecast.scenarioProduction)
+    .filter(([code])=>code!=='nuts'))});
  assert.equal(variant.status,'PROVISIONAL',variant.message);
  assert.equal(variant.assumptions.forecastProvided,true);
  assert.equal(base.assumptions.forecastProvided,false);
@@ -103,7 +104,7 @@ test('F3-B fails closed on insufficient eligible, empty source, bad form and mis
 test('F3-B preserves individual ingredient restrictions, no invented nut or unknown food',()=>{
  const p=prod.estimate(options(),deps);
  assert.equal(p.status,'PROVISIONAL',p.message);
- assert.equal(Object.hasOwn(p.scenarioProduction,'nuts'),false);
+ assert.equal(p.scenarioProduction.nuts,0,'Old 66-species source cannot invent nuts production');
  const rows=team();rows[0].ing1='ひとくちナッツ';
  const result=prod.estimate(options({items:rows}),deps);
  assert.equal(result.status,'PROVISIONAL');

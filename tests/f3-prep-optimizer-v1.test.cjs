@@ -142,7 +142,7 @@ test('F3 U2 integration is read-only, respects saved event ledger, and precaches
  const prep=fs.readFileSync(path.resolve(__dirname,'../e7-preview/U2_Prep_Local_Ingredients_20261109_v50_E7.html'),'utf8');
  const ui=fs.readFileSync(path.resolve(__dirname,'../e7-preview/e7-f3-prep-goals-v88.js'),'utf8');
  const sw=fs.readFileSync(path.resolve(__dirname,'../e7-preview/e7-sw-v50.js'),'utf8');
- assert.match(prep,/<script src="\.\.\/src\/recipes\.js"><\/script>/);
+ assert.match(prep,/<script src="e7-recipes-v122\.js"><\/script>/);
  assert.match(prep,/<script src="\.\.\/f3\/f3-prep-optimizer-v1\.js"><\/script>/);
  assert.match(prep,/<script src="e7-f3-prep-goals-v88\.js"><\/script>/);
  assert.match(ui,/const ledger=E1\.validateConditionLedger\(JSON\.parse\(ledgerRaw\)\)/);

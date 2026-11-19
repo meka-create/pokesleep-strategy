@@ -30,7 +30,7 @@ const profiles=Array.from({length:7},(_,i)=>({
  }))
 }));
 const dict=Object.fromEntries(core.FOOD.map(c=>[c,'F5_NAME_'+c]));
-const recipes=Array.from({length:78},(_,i)=>({
+const recipes=Array.from({length:81},(_,i)=>({
  id:'recipe_'+i,type:'curry',baseStrength:100+i,
  requirements:{apple:i%3+1}
 }));

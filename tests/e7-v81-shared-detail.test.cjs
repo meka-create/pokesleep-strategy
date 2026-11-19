@@ -21,7 +21,7 @@ test('E7 v81 one metadata/renderer implementation serves both Strategy and Box',
  assert.equal(d.grade('スキル確率アップM'),'blue');
  assert.equal(d.grade('最大所持数アップS'),'white');
  assert.equal(d.grade('未知'),'unknown');
- assert.equal(Object.keys(d.ingredientIcons).length,19);
+ assert.equal(Object.keys(d.ingredientIcons).length,20);
  assert.equal(d.ingredientIcons['とくせんリンゴ'],'assets/ingredients/ingredient-05.png');
  assert.equal(d.ingredientIcons['つやつやアボカド'],'assets/ingredients/ingredient-19.png');
  assert.doesNotMatch(shared,/localStorage|sessionStorage|setItem|removeItem|deleteItem/);
@@ -49,7 +49,7 @@ test('E7 v81 shared status styles and scripts are loaded by both tabs, with Box-
  assert.match(sw,/pokesleep-strategy-e7-v84-shared-e1-footer-20261113/);
 });
 test('E7 v81 no duplicate embedded ingredient artwork or metadata/skills tables in Strategy',()=>{
- assert.ok(strategy.length<190000,'U3 HTML must not re-embed the 19 image PNGs');
+ assert.ok(strategy.length<190000,'U3 HTML must not re-embed the 20 image PNGs');
  assert.match(strategy,/const INGREDIENT_ICONS=window\.PokeE7PokemonDetail\.ingredientIcons/);
  assert.doesNotMatch(strategy,/data:image\/png;base64/);
  assert.doesNotMatch(strategy,/const NATURE_GRID=/);

@@ -6,7 +6,7 @@ const FOOD_NAMES=[
  'とくせんリンゴ','げきからハーブ','マメミート','モーモーミルク',
  'あまいミツ','ピュアなオイル','あったかジンジャー','あんみんトマト',
  'リラックスカカオ','おいしいシッポ','ワカクサ大豆','ワカクサコーン',
- 'めざましコーヒー','ずっしりカボチャ','つやつやアボカド'];
+ 'めざましコーヒー','ずっしりカボチャ','つやつやアボカド','ひとくちナッツ'];
 const ingredientIcons=Object.freeze(Object.fromEntries(FOOD_NAMES.map((name,i)=>[
  name,'assets/ingredients/ingredient-'+String(i+1).padStart(2,'0')+'.png'
 ])));

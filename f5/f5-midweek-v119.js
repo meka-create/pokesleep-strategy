@@ -75,10 +75,13 @@
     !Number.isSafeInteger(player?.pot)||player.pot<7||player.pot>5000)
     return fail('F5_PLAYER_VALUES_REQUIRED');
    const foods=deps.base.FOOD,dict=deps.master?.ingredients;
-   if(!Array.isArray(foods)||foods.length!==19||!plain(dict)||
-    Object.keys(dict).length!==19||Object.keys(ctx.inventoryValues||{}).length!==19||
-    !Array.isArray(deps.recipes)||deps.recipes.length!==78)
-    return fail('F5_PINNED_19_78_INPUT_REQUIRED');
+   if(!Array.isArray(foods)||!plain(dict)||![19,20].includes(foods.length)||
+    Object.keys(dict).length!==foods.length||
+    Object.keys(ctx.inventoryValues||{}).length!==foods.length||
+    !Array.isArray(deps.recipes)||
+    !((foods.length===19&&deps.recipes.length===78)||
+      (foods.length===20&&deps.recipes.length===81)))
+    return fail('F5_PINNED_CATALOG_INPUT_REQUIRED');
    const inventory={};
    for(const f of foods){
     const val=ctx.inventoryValues[dict[f]];

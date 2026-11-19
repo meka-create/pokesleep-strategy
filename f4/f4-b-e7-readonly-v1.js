@@ -13,7 +13,7 @@
  const K={selected:'pokesleep-strategy-u3-e3-v1:selected',
   box:'pokesleep-strategy-e7-box-v1',player:'pokesleep-strategy-e7-player-v1'};
  const FOODS=['leek','mushroom','egg','potato','apple','herb','sausage','milk',
-  'honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado'];
+  'honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado','nuts'];
  const CATS=['curry','salad','dessert','all'];
  const fail=(reason,message)=>Object.freeze({status:'BLOCKED',reason,
   message:message||reason,weeklyEnergyCertified:false,writesSavedData:false,
@@ -377,7 +377,7 @@
    privateIndividualDataInResult:false};
  }
  // F4-C v103: official event release readiness; deliberately not a
- // neutral 19-food weekly plan, and never an implicit 20-food E7 migration.
+ // neutral snapshot. The new nut is added through 20-food E7 read-only migration.
  function banquetReleaseReadiness(storage,options={},deps={}){
   if(typeof deps.banquetRelease?.preflight!=='function'||
    typeof deps.banquetRelease?.activate!=='function'||
