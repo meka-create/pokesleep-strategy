@@ -268,7 +268,7 @@
      if(typeof deps.diversity?.selectStates==='function'){
       const frontier=deps.diversity.selectStates({states:expanded,count:8,
        recipes,stockKey:'stock',rankEnergy:rank,
-       preferredCount:preferredTotal});
+       preferredCount:preferredTotal,preferredRecipes:pref});
       beam=frontier.status==='FRONTIER_READY'?frontier.states:[];
      }else{
       expanded.sort((a,b)=>preferenceOrder(a,b)||rank(b)-rank(a)||
