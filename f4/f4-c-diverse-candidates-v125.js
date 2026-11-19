@@ -20,7 +20,8 @@
  const unique=xs=>[...new Set(xs)];
  const sum=x=>Object.values(x).reduce((n,v)=>n+v,0);
  function selectTeams({policy,slot,profiles,rawProfiles,recipes,foods,
-   inventory={},count=12,skillValues,potCapacity=5000,camp=false}={}){
+   inventory={},count=12,skillValues,potCapacity=5000,camp=false,
+   preferredRecipes={}}={}){
   try{
    if(policy?.status!=='POLICY_READY'||!DAY.has(slot)||
     !Array.isArray(profiles)||!Array.isArray(rawProfiles)||!Array.isArray(recipes)||
@@ -40,10 +41,15 @@
    const rawRecipes=recipes.filter(r=>r&&
     typeof r.id==='string'&&finite(r.baseStrength)&&
     r.requirements&&Object.keys(r.requirements).length&&
-    Object.entries(r.requirements).every(([k,v])=>foods.includes(k)&&finite(v)&&v>0)&&
+    Object.entries(r.requirements).every(([k,v])=>foods.includes(k)&&finite(v))&&
+    Object.values(r.requirements).some(v=>v>0)&&
     finite(r.size)&&r.size<=potCapacity*(camp?1.5:1))
-    .sort((a,b)=>b.baseStrength-a.baseStrength||a.id.localeCompare(b.id));
-   const targets=rawRecipes.slice(0,6);
+    .sort((a,b)=>b.baseStrength-a.baseStrength||a.id.localeCompare(b.id))
+    .map(r=>({...r,requirements:Object.fromEntries(
+     Object.entries(r.requirements).filter(([,v])=>v>0))}));
+   const preferred=new Set(Object.values(preferredRecipes||{}));
+   const targets=[...rawRecipes.filter(r=>preferred.has(r.id)),...rawRecipes]
+    .filter((r,i,all)=>all.findIndex(a=>a.id===r.id)===i).slice(0,6);
    // Single-member value is for CANDIDATE POOL only. It never limits later
    // team synergy by assigning an ingredient to a Pokemon "specialty".
    const single=id=>{
@@ -52,7 +58,8 @@
     const hourly=3600/r.helpSeconds;
     const food=Object.fromEntries(foods.map(k=>[k,(r.ingredientCountsPerHelp[k]||0)*hourly]));
     const own=raw.get(id),chance=own?.ratesByTeammateBonus?.[0]?.skillProbabilityPerEligibleHelp;
-    const skill=own?.skillCode,verified=skillValues?.skillValue?.(skill,own?.selectedMainSkillLevel);
+    const skill=own?.skillCode,verified=DIRECT.has(skill)?
+     skillValues?.skillValue?.(skill,own?.selectedMainSkillLevel):null;
     const direct=DIRECT.has(skill)&&verified?.status==='BASE_VALUE_ONLY'&&
       verified?.unit==='ENERGY_PER_ACTIVATION'&&finite(verified.value)&&finite(chance)?
       hourly*chance*verified.value:0;
