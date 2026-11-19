@@ -12,7 +12,13 @@
 })(typeof globalThis!=='undefined'?globalThis:null,function(){
  'use strict';
  const DAY=new Set(['morning','noon','evening']);
- const SUPPORT=new Set(['Cooking Power-Up S','Tasty Chance S','Ingredient Magnet S']);
+ const SUPPORT=new Set(['Cooking Power-Up S','Tasty Chance S',
+  'Ingredient Magnet S','Ingredient Magnet S (Present)','Ingredient Draw S',
+  'Extra Helpful S','Helper Boost','Berry Burst','Charge Energy S',
+  'Energizing Cheer S','Energizing Cheer S (Heal Pulse)',
+  'Charge Strength S (Stockpile)','Charge Strength S (Random)',
+  'Charge Strength M (Bad Dreams)','Metronome',
+  'Skill Copy (Transform)','Versatile']);
  const DIRECT=new Set(['Charge Strength S','Charge Strength M']);
  const fail=reason=>Object.freeze({status:'BLOCKED',reason,
   weeklyEnergyCertified:false,writesSavedData:false});
@@ -161,7 +167,7 @@
    take('berry',m=>m.berry,2);
    take('ingredients',m=>m.throughput,1);
    take('direct',m=>m.direct,1,true);
-   take('cooking_support',m=>m.support,1,true);
+   take('support_skill',m=>m.support,1,true);
    for(let i=0;i<targets.length;i++)
     take('recipe_'+i,m=>m.recipe[i]||0,1,true);
    take('hybrid',m=>m.hybrid,count);
