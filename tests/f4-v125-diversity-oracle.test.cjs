@@ -57,7 +57,7 @@ test('v125: a berry, two complementary ingredient, direct and cooking-support st
   assert.equal(team[3],'p1');assert.equal(new Set(team).size,5);
  }
  assert(result.lanes.recipe_0>0);
- assert(result.lanes.cooking_support>0);
+ assert(result.lanes.support_skill>0);
 });
 test('v125: independent exhaustive tiny roster oracle keeps best recipe-complementing combination',()=>{
  const selected=diversity.selectTeams({...common,slot:'morning'});
