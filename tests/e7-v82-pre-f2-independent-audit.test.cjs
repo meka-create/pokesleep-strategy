@@ -41,7 +41,7 @@ test('pre-F2 independent audit: 20 shared ingredient icons exactly match both U2
  assert.equal(rows.length,40,'20 icons in both food views');
  for(let i=0;i<20;i++){
   assert.equal(rows[i][2],rows[i+20][2]);
-  assert.equal(rows[i][1],rows[i+19][1]);
+  assert.equal(rows[i][1],rows[i+20][1]);
   assert.equal(icons[rows[i][2]],rows[i][1],rows[i][2]);
   assert(fs.existsSync(path.join(E7,rows[i][1])),rows[i][1]);
  }
