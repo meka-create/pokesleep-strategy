@@ -174,5 +174,61 @@
     weeklyEnergyCertified:false,writesSavedData:false});
   }catch(_){return fail('V125_DIVERSITY_CALCULATION_INVALID');}
  }
- return Object.freeze({selectTeams});
+ // Preserve recipe-completion trajectories through a beam, not just during
+ // its initial team screening. Each chosen state is still scored by the
+ // existing stateful week simulation; these lanes are NOT energy estimates.
+ function selectStates({states,count=12,recipes,stockKey='inventory',
+   rankEnergy,preferredCount}={}){
+  try{
+   if(!Array.isArray(states)||!states.length||states.length>50000||
+    !Number.isSafeInteger(count)||count<2||count>60||
+    !Array.isArray(recipes)||typeof rankEnergy!=='function'||
+    !['stock','inventory'].includes(stockKey))
+    return fail('V125_STATE_FRONTIER_INPUT_INVALID');
+   const viable=recipes.filter(r=>r?.requirements&&finite(r.baseStrength)&&
+    Object.values(r.requirements).some(v=>finite(v)&&v>0))
+    .sort((a,b)=>b.baseStrength-a.baseStrength||a.id.localeCompare(b.id))
+    .slice(0,6);
+   const byStock=x=>x?.[stockKey]||{};
+   const amount=x=>sum(byStock(x));
+   const preference=typeof preferredCount==='function'?preferredCount:()=>0;
+   const recipesPotential=(x,r)=>{
+    const values=Object.entries(r.requirements).filter(([,n])=>n>0)
+     .map(([k,n])=>Math.min(1,(byStock(x)[k]||0)/n));
+    if(!values.length)return 0;
+    const bottleneck=Math.min(...values);
+    return r.baseStrength*(0.8*bottleneck+0.2*
+     values.reduce((n,v)=>n+v,0)/values.length);
+   };
+   const safeMetric=(f,x)=>{
+    const v=f(x);
+    return Number.isFinite(v)?v:-Infinity;
+   };
+   const picked=[],used=new Set(),lanes={};
+   function pick(label,measure,max,positiveOnly=false){
+    const order=states.slice().filter(s=>
+     !positiveOnly||safeMetric(measure,s)>0).sort((a,b)=>
+     safeMetric(measure,b)-safeMetric(measure,a)||
+     (a.signature||'').localeCompare(b.signature||''));
+    let n=0;
+    for(const item of order){
+     if(picked.length>=count||n>=max)break;
+     const key=item.signature||JSON.stringify(item.slots||item);
+     if(used.has(key))continue;
+     used.add(key);picked.push(item);n++;
+    }
+    lanes[label]=n;
+   }
+   pick('energy',rankEnergy,Math.min(2,count));
+   pick('preferred',preference,1,true);
+   pick('ingredients',amount,1,true);
+   for(let i=0;i<viable.length;i++)
+    pick('recipe_'+i,x=>recipesPotential(x,viable[i]),1,true);
+   pick('energy_fill',rankEnergy,count);
+   return Object.freeze({status:'FRONTIER_READY',states:picked,
+    lanes,screenedStates:states.length,recipeLanes:viable.length,
+    scoreIsWeeklyEnergy:false,weeklyEnergyCertified:false,writesSavedData:false});
+  }catch(_){return fail('V125_STATE_FRONTIER_CALCULATION_INVALID');}
+ }
+ return Object.freeze({selectTeams,selectStates});
 });
