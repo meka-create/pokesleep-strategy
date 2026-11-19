@@ -13,7 +13,7 @@
  const CATEGORIES=Object.freeze(['curry','salad','dessert']);
  const INGREDIENT_CODES=Object.freeze(['leek','mushroom','egg','potato','apple',
   'herb','sausage','milk','honey','oil','ginger','tomato','cacao','tail','soy',
-  'corn','coffee','pumpkin','avocado','nuts']);
+  'corn','coffee','pumpkin','avocado']);
  const CODE_SET=new Set(INGREDIENT_CODES);
  const failure=(reason,message)=>Object.freeze({status:'BLOCKED',reason,message});
  const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
@@ -23,7 +23,7 @@
   return p===null||Object.getPrototypeOf(p)===null;
  }
  function quantities(input,label){
-  if(input==null)return Array(INGREDIENT_CODES.length).fill(0);
+  if(input==null)return Array(19).fill(0);
   if(!plain(input)||Object.keys(input).some(k=>!CODE_SET.has(k)))
    throw Error(label+'の食材キーが不正です。');
   return INGREDIENT_CODES.map(k=>{
@@ -108,7 +108,7 @@
    const best=cats.map((_,i)=>Math.max(...candidates[i].map(r=>r.baseStrength)));
    const width=input.beamWidth??120;
    if(!Number.isSafeInteger(width)||width<12||width>300)return failure('PARAMS','探索設定が不正です。');
-   const origin={demand:Array(INGREDIENT_CODES.length).fill(0),catEnergy:cats.map(()=>0),catMeals:cats.map(()=>0),
+   const origin={demand:Array(19).fill(0),catEnergy:cats.map(()=>0),catMeals:cats.map(()=>0),
     recipes:[],energy:0,used:onHand};
    let beam=[origin];
    for(let slot=0;slot<mealSlots;slot++){
@@ -122,7 +122,7 @@
      for(const r of options){
       const demand=base.demand.map((n,i)=>n+r.req[i]);
       let used=onHand;
-      for(let i=0;i<INGREDIENT_CODES.length;i++)used+=Math.max(0,demand[i]-future[i]-current[i]);
+      for(let i=0;i<19;i++)used+=Math.max(0,demand[i]-future[i]-current[i]);
       if(used>bag)continue;
       const mul=dishMultiplier*(1+extraTasty*(day===6?2:1));
       const energy=base.energy+r.baseStrength*mul;
@@ -167,7 +167,7 @@
    if(!bestState||!bestState.recipes.length)
     return failure('NO_FEASIBLE_PLAN','現在のバッグ容量・鍋容量・食材条件では備蓄対象の料理を組めません。');
    const goals={},topups={},production={},ingredients={};
-   for(let i=0;i<INGREDIENT_CODES.length;i++){
+   for(let i=0;i<19;i++){
     const code=INGREDIENT_CODES[i];
     goals[code]=Math.max(0,bestState.demand[i]-future[i]);
     topups[code]=Math.max(0,goals[code]-current[i]);
