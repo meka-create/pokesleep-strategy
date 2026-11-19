@@ -184,6 +184,92 @@ function drawGoals(goals){
  }
  total.textContent=sum.toLocaleString('ja-JP')+'個';
 }
+// v124: link the EXACT adopted event-owned 29-window plan to opening targets.
+// Never create/reconcile stable IDs from Prep, never rewrite a plan/inventory.
+// When the cooking schedule, Box, owner, source or revision disagrees, the
+// v120 capacity-safe conservative target remains visible.
+async function applyAdoptedOpening(ctx,base,token){
+ const Store=window.PokeF4CRealStoreV112,Bridge=window.PokeF4BE7ReadOnly;
+ const Clock=window.PokeF4BGameWeek,IDs=window.PokeF4CStableBoxIDs;
+ const Adapter=window.PokeF4F1RosterAdapter,Model=window.PokeF3AdoptedOpeningV124;
+ if(!Store||!Bridge||!Clock||!IDs||!Adapter||!Model||ctx.draft)return;
+ const k=Store.key('plan',ctx.week,ctx.id);
+ if(!localStorage.getItem(k))return;
+ const explanation=(message)=>{
+  if(token!==renderToken)return;
+  const row=document.createElement('p');row.className='f3-caveat';
+  row.textContent=message;content.append(row);
+ };
+ try{
+  const mock=new URLSearchParams(location.search).get('previewNow');
+  const instant=mock?(mock+(/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(mock)?':00':'')+'+09:00'):
+   new Date().toISOString();
+  const original=Bridge.readContext(localStorage,{scope:Scope,e1:E1,weekClock:Clock},instant);
+  if(token!==renderToken)return;
+  if(original.status!=='CONTEXT_READY'||original.weekStart!==ctx.week||
+   original.eventId!==ctx.id||original.clock.phase!=='BEFORE'){
+   explanation('採用済み作戦の条件を照合できないため、時間別生産は未控除です。');return;
+  }
+  const prefs='pokesleep-strategy-f3-v120:prep:'+ctx.week+':'+encodeURIComponent(ctx.id);
+  const carry=Store.key('carry',ctx.week,ctx.id);
+  const carryRaw=localStorage.getItem(carry);
+  const c={...original,
+   previousCarryRevision:carryRaw?
+    (JSON.parse(carryRaw)?.revision||'INVALID_CARRY'):null,
+   prepPreferenceRevision:localStorage.getItem(prefs)||null};
+  const model=await sourceModels();
+  const ids=await Store.verifyExistingIdentities(localStorage,c.privateBoxRows,{
+   identity:IDs,crypto:window.crypto});
+  if(token!==renderToken)return;
+  if(ids.status!=='IDENTITIES_READY'){
+   explanation('ボックスの個体ID照合が未完了のため、時間別生産は未控除です。');return;
+  }
+  const bonus=c.player?.bonuses?.[c.fields.field];
+  if(!Number.isSafeInteger(bonus)||bonus<0||bonus>100){
+   explanation('フィールドボーナスが未確定のため、生産予測を控除していません。');return;
+  }
+  const roster=Adapter.adapt({items:c.privateBoxRows,camp:c.fields.camp,
+   fieldBonus:bonus,favoriteTypes:[]},{
+   snapshot:model.snapshot,traits:model.traits,legal:model.legal,
+   rates:model.rates,master:window.PokeMaster});
+  if(roster.status!=='READY'){
+   explanation('F1計算対象の実ボックス編成を確認できないため、生産予測は未控除です。');return;
+  }
+  const adopted=Store.readPlan(localStorage,c,ids,roster.sourceCommit,
+   window.PokeRecipes,c.clock);
+  if(adopted.status!=='ADOPTED'){
+   explanation('採用済み作戦が現在の条件と一致しないため、生産予測を控除していません。再提案・採用後に更新されます。');return;
+  }
+  const result=Model.calculate({ctx:c,plan:adopted.plan,identity:ids,
+   roster,recipes:window.PokeRecipes,base,bagCapacity:ctx.bag,
+   currentStock:ctx.current});
+  if(token!==renderToken)return;
+  if(result.status!=='PROVISIONAL'){
+   explanation(result.reason==='PLANNED_RECIPE_DIFFERS'||result.reason==='PLANNED_MEAL_COUNT_DIFFERS'?
+    '採用済み作戦の料理・食数が備蓄設定と異なるため、目標を減らしていません。':
+    '実編成の予測食材とバッグ容量を安全に両立できないため、目標を減らしていません。');
+   return;
+  }
+  // Check immutable owner inputs once more after all async work.
+  if(localStorage.getItem(k)!==adopted.revision||
+   localStorage.getItem('pokesleep-strategy-e7-box-v1')!==ids.boxRaw||
+   localStorage.getItem(Store.LEDGER)!==ids.ledgerRevision||
+   localStorage.getItem(prefs)!==c.prepPreferenceRevision)return;
+  drawGoals(result.goals);
+  const saved=Object.values(result.deductedExpected).reduce((a,b)=>a+b,0);
+  status.textContent='備蓄目標（採用作戦の生産見込み反映・参考） · '+
+   result.matchedPlannedMeals+'/'+base.mealSlots+'食 · 初期目標 '+
+   Object.values(result.goals).reduce((a,b)=>a+b,0).toLocaleString('ja-JP')+
+   '個（見込み控除 '+saved.toLocaleString('ja-JP')+'個）';
+  const caveat=document.createElement('p');caveat.className='f3-caveat';
+  caveat.textContent='29窓の採用済み料理・実個体・所持上限・回収時刻の仮定から算出。'+
+   '食材抽選や実際の回収、げんき、未検証のイベント補正は保証されません。'+
+   '確実な備蓄には元の必要量 '+Object.values(base.goals).reduce((a,b)=>a+b,0)+
+   '個を目安にしてください。';
+  content.append(caveat);
+ }catch(_){explanation('計算原典または保存状態を照合できないため、生産予測は未控除です。');}
+}
+
 function render(){
  const token=++renderToken;
  try{
@@ -215,6 +301,7 @@ function render(){
    '';
   content.append(caveat);
   currentScenario={ctx,base:result,token};
+  if(!ctx.draft)void applyAdoptedOpening(ctx,result,token);
   productionDetails.hidden=false;
   if(detail.open&&productionDetails.open)requestOpenScenario();
   else productionBody.replaceChildren();
