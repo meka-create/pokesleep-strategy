@@ -18,7 +18,10 @@ const modelRules=Array.from(G.BOUNTIFUL_BANQUET.requiredImplementations);
 // The repository is ESM; src/recipes.js uses a browser UMD wrapper.
 const recipeVM={module:{exports:{}},globalThis:{}};
 vm.runInNewContext(read('src/recipes.js'),recipeVM,{filename:'src/recipes.js'});
-const recipes=recipeVM.module.exports;
+const currentRecipes=recipeVM.module.exports;
+const newIds=new Set(['curry_nut_naan_20261116','salad_nut_wrap_20261116',
+ 'dessert_nut_tail_roll_20261116']);
+const recipes=currentRecipes.filter(r=>!newIds.has(r.id));
 const legacyCodes=['leek','mushroom','egg','potato','apple','herb','sausage','milk','honey',
  'oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado'];
 const provenance={verifiedAgainstOfficialRelease:true,sourceCommit:'a'.repeat(40)};
@@ -46,7 +49,8 @@ test('F4 gate must BLOCK a source with fully recognized upstream fields but unim
  assert.equal(r.weeklyOptimizationCertified,false);
  assert.equal(G.inspect({source:source()}).reason,'EVENT_EFFECT_NOT_MODELED');
 });
-test('F4 gate refuses current 19 ingredients / 78 recipes even when event effects are hypothetically declared supported',()=>{
+test('F4 gate refuses the isolated historical 19/78 catalog even when effects are declared',()=>{
+ assert.equal(currentRecipes.length,81);
  const r=G.inspect({source:source(),implementedEffects:normalEffects,
   implementedOfficialRules:modelRules,ingredientCodes:legacyCodes,recipes});
  assert.equal(r.status,'BLOCKED');assert.equal(r.reason,'NEW_INGREDIENT_OR_RECIPES_MISSING');
