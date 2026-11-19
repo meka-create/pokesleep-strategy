@@ -106,7 +106,7 @@
       const p=participants.get(id);
       const bonus=w.team.reduce((n,other)=>n+Number(other!==id&&participants.get(other).helpingBonus),0);
       const rate=p.ratesByTeammateBonus?.[bonus];
-      if(!rate||!valid(rate.helpSeconds)||rate.helpSeconds<120||
+      if(!rate||!Number.isFinite(rate.helpSeconds)||rate.helpSeconds<120||rate.helpSeconds>25000||
        !valid(rate.carryLimit)||rate.carryLimit<1||
        !valid(rate.berryItemsPerHelp)||
        !rate.ingredientCountsPerHelp)return null;
