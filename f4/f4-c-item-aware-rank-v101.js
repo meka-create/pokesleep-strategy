@@ -39,7 +39,8 @@
     !deps.cookingSkills?.cast||!deps.cookingSkills?.capacity||
     !deps.cookingSkills?.cook))return fail('COOKING_SKILL_KERNEL_MISSING');
    const width=input.beamWidth??12,n=Math.min(12,Math.max(2,Math.floor(width)));
-   const candidate=search.plan({...input,maxFinalists:n},{base,clock,policy});
+   const candidate=search.plan({...input,maxFinalists:n},{base,clock,policy,
+    diversity:deps.diversity,skillValues});
    if(candidate.status!=='PROVISIONAL'||candidate.slotCount!==29||
     !Array.isArray(candidate.finalists)||candidate.finalists.length<1||
     candidate.weeklyEnergyCertified!==false||candidate.writesSavedData!==false)
