@@ -32,21 +32,21 @@ test('pre-F2 independent audit: all 249 canonical species/forms map to supported
  assert.equal(api.grade('最大所持数アップS'),'white');
  assert.equal(api.grade('未対応'),'unknown');
 });
-test('pre-F2 independent audit: 19 shared ingredient icons exactly match both U2 grids and precached assets',()=>{
+test('pre-F2 independent audit: 20 shared ingredient icons exactly match both U2 grids and precached assets',()=>{
  const root={};vm.runInNewContext(shared,{window:root});
  const icons=root.PokeE7PokemonDetail.ingredientIcons;
  const u2=text('e7-preview/U2_Prep_Local_Ingredients_20261109_v50_E7.html');
  const rows=[...u2.matchAll(/<img class="pic" src="(assets\/ingredients\/ingredient-\d{2}\.png)"[^>]*>[\s\S]{0,400}?<span class="name">([^<]+)<\/span>/g)];
- assert.equal(Object.keys(icons).length,19);
- assert.equal(rows.length,38,'19 icons in both food views');
- for(let i=0;i<19;i++){
-  assert.equal(rows[i][2],rows[i+19][2]);
+ assert.equal(Object.keys(icons).length,20);
+ assert.equal(rows.length,40,'20 icons in both food views');
+ for(let i=0;i<20;i++){
+  assert.equal(rows[i][2],rows[i+20][2]);
   assert.equal(rows[i][1],rows[i+19][1]);
   assert.equal(icons[rows[i][2]],rows[i][1],rows[i][2]);
   assert(fs.existsSync(path.join(E7,rows[i][1])),rows[i][1]);
  }
  const sw=text('e7-preview/e7-sw-v50.js');
- assert.match(sw,/Array\.from\(\{length:19\}/);
+ assert.match(sw,/Array\.from\(\{length:20\}/);
  for(const file of ['e7-pokemon-detail-shared-v81.js','e7-pokemon-detail-shared-v81.css'])
   assert(sw.includes("'"+file+"'"),file);
  const fileList=sw.match(/const FILES=\[([\s\S]+?)\];/)[1];
