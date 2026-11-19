@@ -11,7 +11,7 @@
 })(typeof globalThis!=='undefined'?globalThis:null,function(){
  'use strict';
  const FOOD=['leek','mushroom','egg','potato','apple','herb','sausage','milk','honey',
-  'oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado','nut'];
+  'oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado','nuts'];
  const CODE=new Set(FOOD),CATS=new Set(['curry','salad','dessert','all']);
  const DAY_SLOTS=Object.freeze([
   Object.freeze({key:'morning',label:'朝',hours:4.5,range:'07:30–12:00'}),
