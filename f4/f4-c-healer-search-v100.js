@@ -93,6 +93,9 @@
     const bonus=team.reduce((n,other)=>n+Number(other!==id&&byId.get(other).helpingBonus),0);
     return byId.get(id).rates[bonus];
    }
+   const v125=input.candidateStrategy==='V125_DIVERSE';
+   if(v125&&typeof deps.diversity?.selectTeams!=='function')
+    return blocked('V125_DIVERSITY_DEPENDENCY_REQUIRED');
    const favorites=new Map();
    function score(team,weight){
     let berries=0,ingredients=0;
@@ -104,7 +107,20 @@
     }
     return berries+weight*ingredients;
    }
+   const candidateProof=[];
    for(const slot of ['morning','noon','evening']){
+    if(v125){
+     const chosen=deps.diversity.selectTeams({policy,slot,profiles,
+      rawProfiles:input.profiles,recipes:allowed,foods,inventory,
+      count:candidateCount,skillValues:deps.skillValues,
+      potCapacity:input.potCapacity,camp:input.camp});
+     if(chosen.status!=='CANDIDATES_READY'||!chosen.teams.length)
+      return blocked(chosen.reason||'V125_DIVERSITY_SCREEN_EMPTY');
+     favorites.set(slot,chosen.teams);
+     candidateProof.push({slot,screenedCombinations:chosen.screenedCombinations,
+      selected:chosen.selected,lanes:chosen.lanes});
+     continue;
+    }
     const candidates=new Map();
     for(const weight of [0,300,1200,4000,9000]){
      const sorted=[...policy.fillerIds].sort((a,b)=>
@@ -143,10 +159,11 @@
     lastTeam:[],slots:[],signature:'',prefCount:{}}];
    function rank(s){
     const stock=foods.reduce((n,k)=>n+s.inventory[k]*8,0);
-    return s.energy+stock+(preferredId.size?preferredBoost(s)*1000000:0);
+    return s.energy+stock;
    }
    function take(states){
-    states.sort((a,b)=>rank(b)-rank(a)||b.meal-a.meal||
+    states.sort((a,b)=>(preferredId.size?preferredBoost(b)-preferredBoost(a):0)||
+     rank(b)-rank(a)||b.meal-a.meal||
      a.signature.localeCompare(b.signature));
     const picked=[],seen=new Set();
     for(const s of states){
@@ -236,6 +253,8 @@
        startsAt:w.startsAt,endsAt:w.endsAt,
        team:[...w.team],recipeId:w.recipeId}))
      }))}:{}),
+    candidateStrategy:v125?'V125_DIVERSE_STRATEGY_SCREEN':'LEGACY_WEIGHTED',
+    candidateProof:v125?candidateProof:[],
     previousWeekCarryUnknown:input.previousWeekCarryUnknown===true,
     healthRecoveredActual:false,skillTriggersModeled:false,
     itemCollectionScheduleModeled:false,
