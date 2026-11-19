@@ -18,7 +18,7 @@ const NEW_IDS=new Set(['curry_nut_naan_20261116','salad_nut_wrap_20261116',
 const baselineRecipes=currentRecipes.filter(r=>!NEW_IDS.has(r.id));
 const master={...currentMaster,
  ingredients:Object.fromEntries(Object.entries(currentMaster.ingredients)
-  .filter(([code])=>code!=='nut')),
+  .filter(([code])=>code!=='nuts')),
  strength:Object.fromEntries(Object.entries(currentMaster.strength)
   .filter(([code])=>code!=='nut'))};
 const bridge=load('f4/f4-b-e7-readonly-v1.js');
