@@ -9,7 +9,7 @@ const load=p=>{
  vm.runInNewContext(read(p),ctx,{filename:p});
  return ctx.module.exports;
 };
-const recipes=load('src/recipes.js'),master=load('src/master.js');
+const recipes=load('e7-preview/e7-recipes-v122.js'),master=load('e7-preview/e7-master-v122.js');
 const calc=load('f3/f3-stockpile-v120.js');
 const e={window:{}};
 vm.runInNewContext(read('e7-preview/e7-e1-core-v84.js'),e,{filename:'e7-e1-core-v84.js'});
@@ -19,7 +19,9 @@ const newDishes=[
  ['salad_nut_wrap_20261116','salad','くさむすびサラダラップ',26350,{tomato:33,ginger:36,avocado:22,nuts:30},121],
  ['dessert_nut_tail_roll_20261116','dessert','おいしいシッポロールケーキ',19846,{soy:22,egg:33,tail:10,nuts:26},91]
 ];
-test('v122: exactly 20 source food codes and 81 unique cooking recipes',()=>{
+test('v122: preview-specific 20-food/81-recipe data keeps production STEP2 19/78 untouched',()=>{
+ assert.equal(load('src/recipes.js').length,78);
+ assert.equal(Object.keys(load('src/master.js').ingredients).length,19);
  assert.equal(Object.keys(master.ingredients).length,20);
  assert.equal(Object.keys(master.strength).length,20);
  assert.equal(master.ingredients.nuts,'ひとくちナッツ');
