@@ -71,7 +71,8 @@ def check_goals(page):
     assert page.locator('#goal-panel .row.total strong').inner_text()==f'{n:,}個',(n,values)
     assert page.locator('#f3-prep-status').get_attribute('data-state')=='ready'
     assert page.locator('#f3-prep-breakdown').count()==1
-    assert page.locator('#f3-prep-status').inner_text().startswith('F3備蓄目標')
+    assert page.locator('#f3-prep-status').inner_text().startswith(
+        ('備蓄目標','未保存の目標プレビュー'))
     return n
 try:
     with sync_playwright() as pw:
@@ -99,12 +100,30 @@ try:
             .map(k=>[k,localStorage.getItem(k)]))""")
         page.reload(wait_until='domcontentloaded')
         page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
-        # v120 selects at most five energy-ranked recipes and never exposes
-        # meal counts that exceed the ingredient bag capacity.
-        assert page.locator('#f3-v120-controls .f3-v120-row').count()==3
-        for el in page.locator('#f3-v120-controls .f3-v120-row select').all():
-            assert el.locator('option').count()<=22
+        # v121: keep the first food card at its approved position.
+        assert page.locator('#goal-panel>.card:first-child .goal-grid').count()==1
+        assert not page.locator('#f3-v120-controls').is_visible()
+        assert page.locator('#e6-prep-save').inner_text()=='料理・食数を変更'
+        assert 'バッグ容量' in page.locator('#prep-v121-summary').inner_text()
+        assert 'カレー' in page.locator('#prep-v121-summary').inner_text()
+        food_anchor=page.locator('#goal-panel .goal-grid .food').first.evaluate(
+            '(e)=>e.getBoundingClientRect().top+window.scrollY')
         a=check_goals(page)
+        page.locator('#e6-prep-save').click()
+        assert page.locator('#f3-v120-controls').is_visible()
+        assert page.locator('#f3-v120-controls .prep-v121-row').count()==3
+        for row in page.locator('#f3-v120-controls .prep-v121-row').all():
+            assert row.locator('select').count()==2
+            assert row.locator('select').nth(0).locator('option').count()<=5
+            assert row.locator('select').nth(1).locator('option').count()<=22
+        assert '食' in page.locator('#prep-v121-summary').inner_text()
+        after_anchor=page.locator('#goal-panel .goal-grid .food').first.evaluate(
+            '(e)=>e.getBoundingClientRect().top+window.scrollY')
+        assert abs(food_anchor-after_anchor)<1,(food_anchor,after_anchor)
+        page.locator('#prep-v121-cancel').click()
+        assert not page.locator('#f3-v120-controls').is_visible()
+        assert page.locator('#e6-prep-save').inner_text()=='料理・食数を変更'
+        check_goals(page)
         assert a<=600,(a,600)
         # No expensive real-box scan / F1 JSON request just by opening U2.
         assert len(model_requests)==before_model_requests,'Collapsed reference fetched source unnecessarily'
@@ -122,14 +141,29 @@ try:
             .map(k=>[k,localStorage.getItem(k)]))""")
         assert before==after,'F3 read-only load changed saved event data'
 
-        # Category edits do nothing to goals until the existing explicit Save.
+        # Draft changes update food targets without saving any storage key.
+        page.locator('#e6-prep-save').click()
         page.locator('[data-stock-count="1"]').click()
         page.locator('[data-stock-type="curry"]').click()
+        page.wait_for_function("""()=>document.querySelector('#f3-prep-status')?.
+          textContent.startsWith('未保存の目標プレビュー')""")
+        assert 'サラダ' not in page.locator('#f3-prep-dishes').inner_text()
+        assert before==page.evaluate("""()=>Object.fromEntries(
+          Object.keys(localStorage).filter(k=>k.startsWith('pokesleep-strategy-'))
+            .map(k=>[k,localStorage.getItem(k)]))""")
+        page.locator('#prep-v121-cancel').click()
+        page.wait_for_function("""()=>document.querySelector('#f3-prep-status')?.
+          textContent.startsWith('備蓄目標')""")
+        assert 'サラダ' in page.locator('#f3-prep-dishes').inner_text()
         assert before==page.evaluate("""()=>Object.fromEntries(
           Object.keys(localStorage).filter(k=>k.startsWith('pokesleep-strategy-'))
             .map(k=>[k,localStorage.getItem(k)]))""")
         page.locator('#e6-prep-save').click()
+        page.locator('[data-stock-count="1"]').click()
+        page.locator('[data-stock-type="curry"]').click()
+        page.locator('#e6-prep-save').click()
         page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        assert page.locator('#e6-prep-save').inner_text()=='料理・食数を変更'
         page.locator('#f3-prep-breakdown').evaluate("(el)=>el.open=true")
         text=page.locator('#f3-prep-dishes').inner_text()
         assert 'カレー' in text and 'サラダ' not in text and 'デザート' not in text,text
