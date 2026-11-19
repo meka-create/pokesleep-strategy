@@ -113,7 +113,8 @@
      const chosen=deps.diversity.selectTeams({policy,slot,profiles,
       rawProfiles:input.profiles,recipes:allowed,foods,inventory,
       count:candidateCount,skillValues:deps.skillValues,
-      potCapacity:input.potCapacity,camp:input.camp});
+      potCapacity:input.potCapacity,camp:input.camp,
+      preferredRecipes:preferred});
      if(chosen.status!=='CANDIDATES_READY'||!chosen.teams.length)
       return blocked(chosen.reason||'V125_DIVERSITY_SCREEN_EMPTY');
      favorites.set(slot,chosen.teams);
