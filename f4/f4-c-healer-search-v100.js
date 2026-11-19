@@ -163,6 +163,12 @@
     return s.energy+stock;
    }
    function take(states){
+    if(v125&&typeof deps.diversity?.selectStates==='function'){
+     const result=deps.diversity.selectStates({states,count:beamWidth,
+      recipes:allowed,stockKey:'inventory',rankEnergy:rank,
+      preferredCount:preferredBoost});
+     return result.status==='FRONTIER_READY'?result.states:[];
+    }
     states.sort((a,b)=>(preferredId.size?preferredBoost(b)-preferredBoost(a):0)||
      rank(b)-rank(a)||b.meal-a.meal||
      a.signature.localeCompare(b.signature));
