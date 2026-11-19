@@ -28,19 +28,19 @@ function run(overrides={}){
   bagCapacity:60,potCapacity:57,camp:true,currentStock:{},
   ...overrides});
 }
-test('F3 recipe data contract, all 81 official input recipes and 20 ingredients untouched',()=>{
- assert.equal(recipeSource.length,81);
+test('F3 recipe data contract, all 78 official input recipes and 19 ingredients untouched',()=>{
+ assert.equal(recipeSource.length,78);
  const normalized=F3.normalizeRecipes(recipeSource);
- assert.equal(normalized.length,81);
+ assert.equal(normalized.length,78);
  assert.deepEqual([...new Set(normalized.map(x=>x.type))].sort(),['curry','dessert','salad']);
- assert.equal(F3.INGREDIENT_CODES.length,20);
+ assert.equal(F3.INGREDIENT_CODES.length,19);
  assert.equal(JSON.stringify(recipeSource),snapshot);
  const r=F3.plan({recipes:recipeSource,categories:['curry','salad','dessert'],
   bagCapacity:600,potCapacity:57,camp:true,currentStock:{}});
  assert.equal(r.status,'PROVISIONAL',r.message);
  assert.equal(r.capacity.bag,600);
  assert(r.recipesUsed>0&&r.recipesUsed<=21);
- assert(Object.keys(r.goals).length===20);
+ assert(Object.keys(r.goals).length===19);
  assert.equal(JSON.stringify(recipeSource),snapshot);
 });
 test('F3 goals use a single shared stockpile, never re-use the same apple for two meals',()=>{
@@ -142,7 +142,7 @@ test('F3 U2 integration is read-only, respects saved event ledger, and precaches
  const prep=fs.readFileSync(path.resolve(__dirname,'../e7-preview/U2_Prep_Local_Ingredients_20261109_v50_E7.html'),'utf8');
  const ui=fs.readFileSync(path.resolve(__dirname,'../e7-preview/e7-f3-prep-goals-v88.js'),'utf8');
  const sw=fs.readFileSync(path.resolve(__dirname,'../e7-preview/e7-sw-v50.js'),'utf8');
- assert.match(prep,/<script src="\.\.\/src\/recipes\.js"><\/script>/);
+ assert.match(prep,/<script src="e7-recipes-v122\.js"><\/script>/);
  assert.match(prep,/<script src="\.\.\/f3\/f3-prep-optimizer-v1\.js"><\/script>/);
  assert.match(prep,/<script src="e7-f3-prep-goals-v88\.js"><\/script>/);
  assert.match(ui,/const ledger=E1\.validateConditionLedger\(JSON\.parse\(ledgerRaw\)\)/);
