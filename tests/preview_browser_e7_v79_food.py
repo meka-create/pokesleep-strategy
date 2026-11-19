@@ -40,7 +40,7 @@ try:
             base=BASE+'U2_Prep_Local_Ingredients_20261109_v50_E7.html?eventStart='+WEEK+\
                 '&eventId='+quote(OWNER,safe='')+'&previewNow=2026-11-17T09:00'
             page.goto(base,wait_until='domcontentloaded')
-            assert page.locator('#goal-panel .food').count()==19
+            assert page.locator('#goal-panel .food').count()==20
             grid_positions=[]
             total_positions=[]
             for selector in ('#goal-panel .food','#inventory-panel .food'):
@@ -127,7 +127,7 @@ try:
                     assert area
                     centers.append((area['x']+area['width']/2,area['y']+area['height']/2))
                 grid_positions.append(centers)
-            assert len(grid_positions[0])==len(grid_positions[1])==19
+            assert len(grid_positions[0])==len(grid_positions[1])==20
             assert len(total_positions)==2
             for a,b in zip(*total_positions):
                 assert abs(a-b)<=0.6,\
