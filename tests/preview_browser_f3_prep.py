@@ -116,7 +116,8 @@ try:
             assert row.locator('select').count()==2
             assert row.locator('select').nth(0).locator('option').count()<=5
             assert row.locator('select').nth(1).locator('option').count()<=22
-        assert '食' in page.locator('#prep-v121-summary').inner_text()
+        assert '未保存プレビュー' in page.locator('#prep-v121-summary').inner_text()
+        assert '自動（' in page.locator('#f3-v120-controls .prep-v121-row select').nth(1).inner_text()
         after_anchor=page.locator('#goal-panel .goal-grid .food').first.evaluate(
             '(e)=>e.getBoundingClientRect().top+window.scrollY')
         assert abs(food_anchor-after_anchor)<1,(food_anchor,after_anchor)
