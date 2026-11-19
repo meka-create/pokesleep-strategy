@@ -13,7 +13,7 @@
 })(typeof globalThis!=='undefined'?globalThis:null,function(){
  'use strict';
  const CODES=['leek','mushroom','egg','potato','apple','herb','sausage','milk',
-  'honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado','nut'];
+  'honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado','nuts'];
  const CODE_SET=new Set(CODES);
  const LEVELS=[10,25,50,70,80],SLOTS=['lv10','lv25','lv50','lv70','lv80'];
  const blocked=(reason,message,extra={})=>Object.freeze({
