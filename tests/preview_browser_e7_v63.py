@@ -17,7 +17,7 @@ try:
   page=ctx.new_page(); errors=[]
   page.on('pageerror',lambda e:errors.append(str(e)))
   # Fix the game-week clock for layout tests; past sleep slots are rightly disabled.
-   page.goto(BASE+'?tab=plan&previewNow=2026-11-08T12:00',wait_until='domcontentloaded')
+  page.goto(BASE+'?tab=plan&previewNow=2026-11-08T12:00',wait_until='domcontentloaded')
   def tab(name):
     page.locator('#tab-'+name).click()
     page.wait_for_function("""t=>{
