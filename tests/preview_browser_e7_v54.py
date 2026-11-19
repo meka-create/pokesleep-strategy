@@ -34,11 +34,11 @@ try:
         assert 0<=first_ms<20000,first_ms
         prep=page.frame_locator('#view-prep')
         icons=prep.locator('img.pic')
-        assert icons.count()==38,'Both ingredient sections must retain their icons'
+        assert icons.count()==40,'Both ingredient sections must retain their icons'
         srcs=icons.evaluate_all('(imgs)=>imgs.map(x=>x.getAttribute("src"))')
-        assert len(set(srcs))==19,'Ingredient art must be shared across grids'
+        assert len(set(srcs))==20,'Ingredient art must be shared across grids'
         assert all(s.startswith('assets/ingredients/') for s in srcs),srcs
-        assert all(icons.nth(i).get_attribute('loading')=='lazy' for i in range(38))
+        assert all(icons.nth(i).get_attribute('loading')=='lazy' for i in range(40))
         page.wait_for_function("""()=>{
           const img=document.getElementById('view-prep').contentDocument.querySelector('img.pic');
           return img.complete&&img.naturalWidth>0;
@@ -48,7 +48,7 @@ try:
         interactive('plan')
         page.locator('#tab-prep').click()
         assert page.locator('#status').is_hidden(),'Warm tab unnecessarily reloaded'
-        assert prep.locator('img.pic').count()==38
+        assert prep.locator('img.pic').count()==40
         # Core files and all ingredient images must survive an offline PWA launch.
         page.wait_for_function("""async()=>{
           if(!('serviceWorker' in navigator))return false;
@@ -56,7 +56,7 @@ try:
           if(!reg.active)return false;
           const cache=await caches.open('pokesleep-strategy-e7-v57-more-menu-20261110');
           const base=new URL('assets/ingredients/',reg.scope);
-          const hits=await Promise.all(Array.from({length:19},(_,i)=>
+          const hits=await Promise.all(Array.from({length:20},(_,i)=>
             cache.match(new URL('ingredient-'+String(i+1).padStart(2,'0')+'.png',base))));
           return hits.every(Boolean);
         }""",timeout=30000)
@@ -74,4 +74,4 @@ try:
 finally:
     server.shutdown()
     server.server_close()
-print('E7 v54 startup + 38 icons / 19 assets + offline + persistent tabs: PASS')
+print('E7 v54 startup + 40 icons / 20 assets + offline + persistent tabs: PASS')
