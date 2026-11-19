@@ -111,7 +111,7 @@ test('E7 v80 preserves both prep grids and tightens detail rows without changing
  assert.match(prep,/<style id="e7-v80-square-food-grid">/);
  assert.match(prep,/aspect-ratio:1\/1/);
  assert.match(prep,/\.goal-grid,\.actual-grid\{max-width:370px/);
- assert.equal((prep.match(/<img class="pic" src="assets\/ingredients\/ingredient-\d{2}\.png"/g)||[]).length,38);
+ assert.equal((prep.match(/<img class="pic" src="assets\/ingredients\/ingredient-\d{2}\.png"/g)||[]).length,40);
  assert.doesNotMatch(plan,/<style id="e7-v80-status-compact-rows">/);
  assert.doesNotMatch(plan,/<style id="e7-v79-status-ingredients">/);
  assert.match(css,/#pokemon-dialog #pokemon-base-rows>\.iv-value/);
