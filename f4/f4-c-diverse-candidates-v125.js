@@ -178,53 +178,64 @@
  // its initial team screening. Each chosen state is still scored by the
  // existing stateful week simulation; these lanes are NOT energy estimates.
  function selectStates({states,count=12,recipes,stockKey='inventory',
-   rankEnergy,preferredCount}={}){
+   rankEnergy,preferredCount,preferredRecipes={}}={}){
   try{
    if(!Array.isArray(states)||!states.length||states.length>50000||
     !Number.isSafeInteger(count)||count<2||count>60||
     !Array.isArray(recipes)||typeof rankEnergy!=='function'||
     !['stock','inventory'].includes(stockKey))
     return fail('V125_STATE_FRONTIER_INPUT_INVALID');
-   const viable=recipes.filter(r=>r?.requirements&&finite(r.baseStrength)&&
+   const available=recipes.filter(r=>r?.requirements&&finite(r.baseStrength)&&
     Object.values(r.requirements).some(v=>finite(v)&&v>0))
-    .sort((a,b)=>b.baseStrength-a.baseStrength||a.id.localeCompare(b.id))
-    .slice(0,6);
-   const byStock=x=>x?.[stockKey]||{};
-   const amount=x=>sum(byStock(x));
-   const preference=typeof preferredCount==='function'?preferredCount:()=>0;
-   const recipesPotential=(x,r)=>{
-    const values=Object.entries(r.requirements).filter(([,n])=>n>0)
-     .map(([k,n])=>Math.min(1,(byStock(x)[k]||0)/n));
-    if(!values.length)return 0;
-    const bottleneck=Math.min(...values);
-    return r.baseStrength*(0.8*bottleneck+0.2*
-     values.reduce((n,v)=>n+v,0)/values.length);
-   };
-   const safeMetric=(f,x)=>{
-    const v=f(x);
-    return Number.isFinite(v)?v:-Infinity;
-   };
-   const picked=[],used=new Set(),lanes={};
-   function pick(label,measure,max,positiveOnly=false){
-    const order=states.slice().filter(s=>
-     !positiveOnly||safeMetric(measure,s)>0).sort((a,b)=>
-     safeMetric(measure,b)-safeMetric(measure,a)||
-     (a.signature||'').localeCompare(b.signature||''));
-    let n=0;
-    for(const item of order){
-     if(picked.length>=count||n>=max)break;
-     const key=item.signature||JSON.stringify(item.slots||item);
-     if(used.has(key))continue;
-     used.add(key);picked.push(item);n++;
+    .sort((a,b)=>b.baseStrength-a.baseStrength||a.id.localeCompare(b.id));
+   const pinned=new Set(Object.values(preferredRecipes||{}));
+   const viable=[...available.filter(r=>pinned.has(r.id)),...available]
+    .filter((r,i,all)=>all.findIndex(x=>x.id===r.id)===i)
+    .slice(0,6).map(r=>({energy:r.baseStrength,
+     req:Object.entries(r.requirements).filter(([,v])=>v>0)}));
+   const pref=typeof preferredCount==='function'?preferredCount:()=>0;
+   // Cache all metrics ONCE. A 29-window run invokes this at every slot;
+   // sorting each lane repeatedly is unnecessarily slow on Android.
+   const rows=states.map((state,i)=>{
+    const stock=state[stockKey]||{},values=Object.values(stock);
+    const ingredientTotal=values.reduce((a,b)=>a+b,0);
+    const recipe=viable.map(r=>{
+     const frac=r.req.map(([k,n])=>Math.min(4,(stock[k]||0)/n));
+     const bottleneck=Math.min(...frac);
+     return r.energy*(0.8*bottleneck+0.2*
+      frac.reduce((a,b)=>a+b,0)/frac.length);
+    });
+    const energy=rankEnergy(state),preference=pref(state);
+    if(!finite(energy)||!finite(ingredientTotal)||!finite(preference)||
+     recipe.some(x=>!finite(x)))throw Error('INVALID_FRONTIER_SCORE');
+    return {state,key:state.signature||String(i),energy,
+     preference,ingredientTotal,recipe,used:false};
+   });
+   const picked=[],lanes={};
+   function pick(name,metric,max,positiveOnly=false){
+    let selected=0;
+    for(let k=0;k<max&&picked.length<count;k++){
+     let best=null,score=-Infinity;
+     for(const row of rows){
+      if(row.used)continue;
+      const value=metric(row);
+      if(positiveOnly&&value<=0)continue;
+      if(value>score||value===score&&(row.energy>(best?.energy??-Infinity)||
+       row.energy===(best?.energy??-Infinity)&&row.key<(best?.key??''))){
+       best=row;score=value;
+      }
+     }
+     if(!best)break;
+     best.used=true;picked.push(best.state);selected++;
     }
-    lanes[label]=n;
+    lanes[name]=selected;
    }
-   pick('energy',rankEnergy,Math.min(2,count));
-   pick('preferred',preference,1,true);
-   pick('ingredients',amount,1,true);
+   pick('energy',x=>x.energy,Math.min(2,count));
+   pick('preferred',x=>x.preference,1,true);
+   pick('ingredients',x=>x.ingredientTotal,1,true);
    for(let i=0;i<viable.length;i++)
-    pick('recipe_'+i,x=>recipesPotential(x,viable[i]),1,true);
-   pick('energy_fill',rankEnergy,count);
+    pick('recipe_'+i,x=>x.recipe[i],1,true);
+   pick('energy_fill',x=>x.energy,count);
    return Object.freeze({status:'FRONTIER_READY',states:picked,
     lanes,screenedStates:states.length,recipeLanes:viable.length,
     scoreIsWeeklyEnergy:false,weeklyEnergyCertified:false,writesSavedData:false});
