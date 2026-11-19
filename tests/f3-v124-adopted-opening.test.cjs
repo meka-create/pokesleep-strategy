@@ -3,13 +3,14 @@
  * event ownership, time ordering, bag capacity and no premature deduction.
  */
 const {test}=require('node:test'),assert=require('node:assert/strict');
-const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
-const projection=require('../f3/f3-adopted-opening-v124.js');
-const week=require('../f4/f4-b-game-week-v1.js');
-const stockpile=require('../f3/f3-stockpile-v120.js');
-const store=require('../f4/f4-c-real-storage-v112.js');
-const idsMod=require('../f4/f4-c-stable-box-ids-v1.js');
+const load=p=>{const c={module:{exports:{}},globalThis:{}};vm.runInNewContext(read(p),c,{filename:p});return c.module.exports;};
+const projection=load('f3/f3-adopted-opening-v124.js');
+const week=load('f4/f4-b-game-week-v1.js');
+const stockpile=load('f3/f3-stockpile-v120.js');
+const store=load('f4/f4-c-real-storage-v112.js');
+const idsMod=load('f4/f4-c-stable-box-ids-v1.js');
 const meal={id:'two_apples',type:'curry',baseStrength:100,requirements:{apple:12}};
 const base=stockpile.make({recipes:[meal],categories:['curry'],
  bagCapacity:120,potCapacity:12,camp:false,currentStock:{},
