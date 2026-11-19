@@ -156,6 +156,7 @@
     const found=extract(input,ctx,deps);
    if(found.error)return fail(found.error);
    const profileMap=new Map(input.profiles.map(p=>[p.id,p]));
+   const v125=typeof deps.diversity?.selectTeams==='function';
    const considered=[],errors=[];
    for(const pair of found.shortlist){
     const result=deps.itemRank.rank({...input,
@@ -165,9 +166,12 @@
      collectionScenario:'ASSUMED_AT_0730_1200_1800',
      initialHeldScenario:'EMPTY_AT_0400_ASSUMED',
      skillScenario:'CAPPED_EXPECTED_DIRECT_ONLY',
-     criticalScenario:'NO_CRITICAL',beamWidth:12,dayCandidateCount:8
+     criticalScenario:'NO_CRITICAL',beamWidth:12,
+     dayCandidateCount:v125?12:8,
+     candidateStrategy:v125?'V125_DIVERSE':'LEGACY_WEIGHTED'
     },{search:deps.healerSearch,policy:deps.healerPolicy,
-     base:deps.baseCore,clock:deps.weekClock,skillValues:deps.skillValues});
+     base:deps.baseCore,clock:deps.weekClock,skillValues:deps.skillValues,
+     diversity:deps.diversity});
     if(result?.status!=='PROVISIONAL'||result.slots?.length!==29||
      result.weeklyEnergyCertified!==false){errors.push(result?.reason||'BAD_RESULT');continue;}
     const ranked=rankingScore(result,pair,profileMap,deps.skillValues);
@@ -207,6 +211,7 @@
       ...(ctx.prepPreferenceRevision?[ctx.prepPreferenceRevision]:[])]),
     selectedPrimary:win.pair[0],selectedSecondary:win.pair[1],
     candidatePairsChecked:considered.length,
+    candidateStrategy:v125?'V125_DIVERSE_STRATEGY_SCREEN':'LEGACY_WEIGHTED',
     favoriteTypes:favorite,previousWeekCarryUnknown:unknown,
     autoSleep:ctx.autoSleep===true,
     healerRecoveryProxyPoints:win.recoveryProxyPoints,
@@ -220,7 +225,7 @@
     // Only the user may adopt after seeing the review; not yet certified.
     canAdopt:true,weeklyEnergyCertified:false,
     officialEventEnergyCertified:false,writesSavedData:false,
-    scopeNote:'20食材/81料理の限定探索。主副ヒーラーのきのみと回復を含む参考シナリオ'});
+    scopeNote:v125?'きのみ・食材・料理・スキル候補を保護した限定探索。未評価のスキル効果・げんき実測は含まない':'20食材/81料理の限定探索。主副ヒーラーのきのみと回復を含む参考シナリオ'});
   }catch(_){return fail('INVALID_INTEGRATED_PROPOSAL_INPUT');}
  }
  return Object.freeze({favorites,propose,rankingScore,selectNight});
