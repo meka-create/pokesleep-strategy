@@ -100,7 +100,10 @@ test('v122: both 5x4 tiles put nuts immediately to the right of avocado',()=>{
  assert.match(stock,/data-key="nuts"/);
  const image=fs.readFileSync(path.join(root,'e7-preview/assets/ingredients/ingredient-20.png'));
  assert.equal(image.toString('hex',0,8),'89504e470d0a1a0a');
- assert.equal(image.readUInt32BE(16),160);assert.equal(image.readUInt32BE(20),160);
+ assert.equal(image.readUInt32BE(16),256);assert.equal(image.readUInt32BE(20),256);
+ const hash=require('node:crypto').createHash('sha1');
+ hash.update(Buffer.from('blob '+image.length+'\\0','utf8'));hash.update(image);
+ assert.equal(hash.digest('hex'),'29cd95052c370da268108d319f2017c147517056','Use verified online image, never screenshot crop');
  const sw=read('e7-preview/e7-sw-v50.js');
  assert.match(sw,/Array.from\(\{length:20\}/);
 });
