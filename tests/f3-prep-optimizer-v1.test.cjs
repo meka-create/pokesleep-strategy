@@ -148,7 +148,8 @@ test('F3 U2 integration is read-only, respects saved event ledger, and precaches
  assert.match(ui,/const ledger=E1\.validateConditionLedger\(JSON\.parse\(ledgerRaw\)\)/);
  assert.match(ui,/\['CONFIRMED','MISSING'\]\.includes\(ledger\.confirmed\?\.status\)/);
  assert.match(ui,/const stockRaw=Scope\.read\(localStorage,week,id\)/);
- assert.match(ui,/const own=JSON\.parse\(raw\)/);
+ assert.match(ui,/const own=raw\?JSON\.parse\(raw\):null/);
+  assert.match(ui,/const chosenCategories=draft\?\.input\.categories\|\|own\?\.prep\.categories\|\|\[\]/);
  assert.doesNotMatch(ui,/localStorage\.setItem|localStorage\.removeItem/);
  assert.match(sw,/\.\.\/src\/recipes\.js/);
  assert.match(sw,/\.\.\/f3\/f3-prep-optimizer-v1\.js/);
