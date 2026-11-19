@@ -1,6 +1,6 @@
 /* E7 v50 preview-only offline cache / persistent v52 tabs; this is NOT the production root service worker. */
-const CACHE='pokesleep-strategy-e7-v84-shared-e1-footer-20261113-v86-f2-event-catalog-20261113-v88-f3-prep-20261113-v89-f3-b-20261113-v90-f4-audit-20261113-v105-box-detail-20261114-v110-box-proposal-20261114-v112-integrated-real-plan-20261114-v114-real-sleep-stats-carry-20261115-v116-shared-sprites-modal-20261115-v117-compact-dialog-20261115-v118-f5-prestart-save-guard-20261115-v119-f5-midweek-20261115-v120-stockpile-20261115-v121-compact-prep-20261119';
-const IMAGE_FILES=Array.from({length:19},(_,i)=>
+const CACHE='pokesleep-strategy-e7-v84-shared-e1-footer-20261113-v86-f2-event-catalog-20261113-v88-f3-prep-20261113-v89-f3-b-20261113-v90-f4-audit-20261113-v105-box-detail-20261114-v110-box-proposal-20261114-v112-integrated-real-plan-20261114-v114-real-sleep-stats-carry-20261115-v116-shared-sprites-modal-20261115-v117-compact-dialog-20261115-v118-f5-prestart-save-guard-20261115-v119-f5-midweek-20261115-v120-stockpile-20261115-v121-compact-prep-20261119-v122-nut81-20261119';
+const IMAGE_FILES=Array.from({length:20},(_,i)=>
  'assets/ingredients/ingredient-'+String(i+1).padStart(2,'0')+'.png');
 const imageUrls=new Set(IMAGE_FILES.map(x=>new URL(x,self.registration.scope).href));
 // Versioned, immutable common modules: once installed, avoid a network round-trip
