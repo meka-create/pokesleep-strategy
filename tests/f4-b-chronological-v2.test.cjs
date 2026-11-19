@@ -128,7 +128,7 @@ test('invalid source, invalid carry team and manual nights are BLOCKED',()=>{
   'VERIFIED_MANUAL_NIGHTS_REQUIRED');
  assert.equal(exact.plan(input({nightTeams:[...nights.slice(0,6),['p0','p0','p1','p2','p3']]}),deps).reason,
   'VERIFIED_MANUAL_NIGHTS_REQUIRED');
- assert.equal(exact.plan(input({initialInventory:{nuts:1}}),deps).reason,
+ assert.equal(exact.plan(input({initialInventory:{unknown_ingredient:1}}),deps).reason,
   'INVENTORY_INVALID');
  assert.equal(exact.plan(input({asOf:'2026-11-16T04:00:00'}),deps).reason,
   'SOURCE_OR_WEEK_INVALID');
