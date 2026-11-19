@@ -265,9 +265,16 @@
        }
       }
      }
-     expanded.sort((a,b)=>preferenceOrder(a,b)||rank(b)-rank(a)||
-      a.signature.localeCompare(b.signature));
-     beam=expanded.slice(0,8);
+     if(typeof deps.diversity?.selectStates==='function'){
+      const frontier=deps.diversity.selectStates({states:expanded,count:8,
+       recipes,stockKey:'stock',rankEnergy:rank,
+       preferredCount:preferredTotal});
+      beam=frontier.status==='FRONTIER_READY'?frontier.states:[];
+     }else{
+      expanded.sort((a,b)=>preferenceOrder(a,b)||rank(b)-rank(a)||
+       a.signature.localeCompare(b.signature));
+      beam=expanded.slice(0,8);
+     }
      if(!beam.length){bad=true;break;}
     }
     if(bad||!beam.length)continue;
