@@ -5,7 +5,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),read=p=>fs.readFileSync(path.join(root,p),'utf8');
-const load=p=>{const c={module:{exports:{}},globalThis:{}};vm.runInNewContext(read(p),c,{filename:p});return c.module.exports;};
+const load=p=>{const c={module:{exports:{}},globalThis:{},TextEncoder:globalThis.TextEncoder};vm.runInNewContext(read(p),c,{filename:p});return c.module.exports;};
 const projection=load('f3/f3-adopted-opening-v124.js');
 const week=load('f4/f4-b-game-week-v1.js');
 const stockpile=load('f3/f3-stockpile-v120.js');
