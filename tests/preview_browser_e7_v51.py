@@ -74,7 +74,7 @@ try:
         marker('prep','keep-prep')
         prep.locator('#btn-inventory').click()
         cells=prep.locator('#inventory-panel [data-key]')
-        assert cells.count()==19
+        assert cells.count()==20
         cells.first.fill('13')
         prep.locator('#save-inventory').click()
         data=page.evaluate("""()=>{
