@@ -20,7 +20,7 @@ const raw=Array.from({length:10},(_,i)=>({
   status:'BASE_RATES_AVAILABLE',helpSeconds:3600,
   berryEnergyPerHelp:i>=2&&i<=5?180:10,
   ingredientCountsPerHelp:{apple:i===6?4:0,tomato:i===7?4:0},
-  skillProbabilityPerEligibleHelp:i===8||i===9?.2:0,
+  skillProbabilityPerEligibleHelp:(i===8||i===9)?0.2:0,
   berryItemsPerHelp:1,berryCountPerBerryHelp:1
  }))
 }));
