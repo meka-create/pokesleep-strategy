@@ -90,7 +90,7 @@ function cleanInventoryValues(values) {
   if(!values||typeof values!=='object'||Array.isArray(values))throw Error('Inventory must be an object.');
   const keys=Object.keys(values);
   // Old event-owned v2 snapshots are strict 19-food records, not corrupt.
-  // Only the newly introduced nut may be absent; never silently default any
+  // Only the newly introduced nuts ingredient may be absent; never silently default any
   // of the other original 19 foods. Return a normalized 20-food READ view.
   const oldNames=INGREDIENT_NAMES.slice(0,-1),hasNut=
    Object.prototype.hasOwnProperty.call(values,'ひとくちナッツ');
