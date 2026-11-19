@@ -13,7 +13,7 @@
  const CATEGORIES=Object.freeze(['curry','salad','dessert']);
  const INGREDIENT_CODES=Object.freeze(['leek','mushroom','egg','potato','apple',
   'herb','sausage','milk','honey','oil','ginger','tomato','cacao','tail','soy',
-  'corn','coffee','pumpkin','avocado','nut']);
+  'corn','coffee','pumpkin','avocado','nuts']);
  const CODE_SET=new Set(INGREDIENT_CODES);
  const failure=(reason,message)=>Object.freeze({status:'BLOCKED',reason,message});
  const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
