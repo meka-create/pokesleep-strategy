@@ -10,7 +10,7 @@
  'use strict';
  const CATS=['curry','salad','dessert'];
  const FOODS=['leek','mushroom','egg','potato','apple','herb','sausage','milk',
-  'honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado'];
+  'honey','oil','ginger','tomato','cacao','tail','soy','corn','coffee','pumpkin','avocado','nut'];
  const err=(reason,message)=>({status:'BLOCKED',reason,message});
  const validInt=(n,a,b)=>Number.isSafeInteger(n)&&n>=a&&n<=b;
  const plain=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
