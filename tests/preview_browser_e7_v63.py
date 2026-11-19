@@ -66,7 +66,7 @@ try:
     # Ingredient tiles must preserve *all* positions during goal / stock tab switch.
     prep=tab('prep')
     prep.locator('#btn-goal').click()
-    assert prep.locator('#goal-panel .goal-grid .food').count()==19
+    assert prep.locator('#goal-panel .goal-grid .food').count()==20
     goal=prep.locator('#goal-panel .goal-grid').evaluate("""grid=>[...grid.children].map(el=>{
       const box=el.getBoundingClientRect(),img=el.querySelector('.food-media').getBoundingClientRect();
       return {x:box.left,y:box.top,imgx:img.left,imgy:img.top};
@@ -74,7 +74,7 @@ try:
     goalHeading=prep.locator('#goal-panel > .card:first-child > .card-heading h2').evaluate(
       '(el)=>({font:getComputedStyle(el).fontSize,height:el.parentNode.getBoundingClientRect().height})')
     prep.locator('#btn-inventory').click()
-    assert prep.locator('#inventory-panel .actual-grid .food').count()==19
+    assert prep.locator('#inventory-panel .actual-grid .food').count()==20
     stock=prep.locator('#inventory-panel .actual-grid').evaluate("""grid=>[...grid.children].map(el=>{
       const box=el.getBoundingClientRect(),img=el.querySelector('.food-media').getBoundingClientRect();
       return {x:box.left,y:box.top,imgx:img.left,imgy:img.top};
