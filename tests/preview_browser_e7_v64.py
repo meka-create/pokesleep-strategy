@@ -15,7 +15,8 @@ try:
   ctx=browser.new_context(viewport={'width':393,'height':852},timezone_id='Asia/Tokyo')
   page=ctx.new_page(); errors=[]
   page.on('pageerror',lambda e:errors.append(str(e)))
-  page.goto(BASE+'?tab=plan',wait_until='domcontentloaded')
+  # Fix the game-week clock for layout tests; past sleep slots are rightly disabled.
+   page.goto(BASE+'?tab=plan&previewNow=2026-11-08T12:00',wait_until='domcontentloaded')
   def tab(name):
    page.locator('#tab-'+name).click()
    page.wait_for_function("""t=>{
