@@ -113,12 +113,15 @@ function resolveSelection(){
 }
 function readContext(){
  const {week,id}=resolveSelection(),suffix=week+':'+encodeURIComponent(id);
+ const draft=Prefs.preview?.();
  const raw=localStorage.getItem('pokesleep-strategy-u2-e6-prep-v1:'+suffix);
- if(!raw)throw Error('備蓄する料理カテゴリを選んで保存してください。');
- const own=JSON.parse(raw);
- if(own?.version!==1||own.weekStart!==week||own.eventId!==id||
+ if(!raw&&!draft)throw Error('備蓄する料理カテゴリを選んで保存してください。');
+ const own=raw?JSON.parse(raw):null;
+ if(raw&&(own?.version!==1||own.weekStart!==week||own.eventId!==id||
   !own.prep||own.prep.count!==own.prep.categories?.length||
-  ![1,2,3].includes(own.prep.count))throw Error('備蓄カテゴリの保存内容を確認してください。');
+  ![1,2,3].includes(own.prep.count)))throw Error('備蓄カテゴリの保存内容を確認してください。');
+ const chosenCategories=draft?.input.categories||own?.prep.categories||[];
+ if(!chosenCategories.length)throw Error('備蓄する料理カテゴリを選択してください。');
  const ledgerRaw=localStorage.getItem('pokesleep-strategy-u3-e3-v1:'+suffix+':conditions');
  if(!ledgerRaw)throw Error('作戦タブでイベント条件を保存してください。');
  const ledger=E1.validateConditionLedger(JSON.parse(ledgerRaw));
@@ -129,7 +132,7 @@ function readContext(){
  if(!['','curry','salad','dessert','all'].includes(fields.food)||
   typeof fields.camp!=='boolean')
   throw Error('イベントの料理・チケット条件を確認してください。');
- if(fields.food&&fields.food!=='all'&&own.prep.categories.some(c=>c!==fields.food))
+ if(fields.food&&fields.food!=='all'&&chosenCategories.some(c=>c!==fields.food))
   throw Error('備蓄する料理カテゴリとイベント条件の料理が一致しません。');
  const playerRaw=localStorage.getItem('pokesleep-strategy-e7-player-v1');
  const player=playerRaw?JSON.parse(playerRaw):null;
@@ -144,7 +147,7 @@ function readContext(){
   current[code]=n;
  }
  return {week,id,revision:ledger.confirmed.revision,
-  categories:own.prep.categories,foodUnconfirmed:!fields.food,
+  categories:chosenCategories,foodUnconfirmed:!fields.food,draft:draft?.input||null,
   camp:fields.camp,pot:player?.pot,bag:player?.bag,current,
   preference:Prefs.read(week,id)};
 }
@@ -191,11 +194,11 @@ function render(){
   const result=Opt.make({recipes:window.PokeRecipes,categories:ctx.categories,
    camp:ctx.camp,bagCapacity:ctx.bag,potCapacity:ctx.pot,
    currentStock:ctx.current,
-   selectedRecipes:aligned?pref.selectedRecipes:undefined,
-   targetMeals:aligned?pref.targetMeals:undefined});
+   selectedRecipes:ctx.draft?.selectedRecipes||(aligned?pref.selectedRecipes:undefined),
+   targetMeals:ctx.draft?.targetMeals||(aligned?pref.targetMeals:undefined)});
   if(result.status!=='PROVISIONAL')throw Error(result.message);
   drawGoals(result.goals);
-  status.textContent='F3備蓄目標（上位レシピ限定）'+(ctx.foodUnconfirmed?'・料理未確定':'')+' · '+result.recipesUsed+'/'+result.mealSlots+
+  status.textContent=(ctx.draft?'未保存の目標プレビュー':'備蓄目標')+(ctx.foodUnconfirmed?'・料理未確定':'')+' · '+result.recipesUsed+'/'+result.mealSlots+
    '食 · バッグ '+result.capacity.used.toLocaleString('ja-JP')+'/'+
    result.capacity.bag.toLocaleString('ja-JP')+'個';
   status.dataset.state='ready';detail.hidden=false;
@@ -226,6 +229,7 @@ function render(){
 }
 const rerender=()=>queueMicrotask(render);
  window.addEventListener('pokesleep-prep-v120-saved',rerender);
+ window.addEventListener('pokesleep-prep-v121-preview',rerender);
 q('#e6-prep-save')?.addEventListener('click',rerender);
 q('#save-inventory')?.addEventListener('click',rerender);
 window.addEventListener('storage',e=>{

@@ -1,8 +1,11 @@
-/* F3 v120 preparation selectors: event-owned, one recipe and meal limit per category. */
+/* F3 v121: compact, event-owned recipe selector in the EXISTING U2 lower card.
+ * Keep the upper 19 ingredient cards and both top tab anchors bit-for-bit intact.
+ * Editing only previews; persistence is explicit and atomic for both keys.
+ */
 (function(root){
  'use strict';
- const calc=root.PokeF3StockpileV120,catCard=document.getElementById('e6-prep-category-card');
- if(!calc||!catCard)return;
+ const calc=root.PokeF3StockpileV120,card=document.getElementById('e6-prep-category-card');
+ if(!calc||!card)return;
  const q=s=>document.querySelector(s),types=calc.CATS,allRecipes=root.PokeRecipes;
  const selectedKey='pokesleep-strategy-u3-e3-v1:selected';
  const qs=new URLSearchParams(location.search);
@@ -16,6 +19,11 @@
  const key=(w,e)=>'pokesleep-strategy-f3-v120:prep:'+w+':'+encodeURIComponent(e);
  const oldKey=valid?'pokesleep-strategy-u2-e6-prep-v1:'+week+':'+encodeURIComponent(id):null;
  const newKey=valid?key(week,id):null;
+ const saveButton=q('#e6-prep-save'),legacyMsg=q('#e6-prep-message');
+ const countGroup=card.querySelector('.e6-prep-count');
+ const typeGroup=q('#e6-prep-types');
+ const title=card.querySelector('.card-heading');
+ if(!saveButton||!countGroup||!typeGroup||!title)return;
  function read(w,e){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(w||'')||typeof e!=='string'||!e)return null;
   const raw=localStorage.getItem(key(w,e));
@@ -29,20 +37,16 @@
    !r.selectedRecipes||!r.targetMeals)return null;
   return r;
  }
- const section=document.createElement('div');
- section.id='f3-v120-controls';
- section.setAttribute('aria-label','レシピと目標食数');
- const msg=document.createElement('p');msg.id='f3-v120-warning';msg.setAttribute('role','status');
- section.append(msg);
- catCard.insertBefore(section,q('#e6-prep-save'));
- const style=document.createElement('style');style.id='f3-v120-controls-style';
- style.textContent='#f3-v120-controls{display:grid;gap:8px;margin-top:9px}'+
-  '.f3-v120-row{padding:9px;border:1px solid #4b6077;border-radius:10px;background:#1d3045;display:grid;gap:6px}'+
-  '.f3-v120-row label{display:grid;gap:4px;color:#dee8f2;font-size:12px;font-weight:600}'+
-  '.f3-v120-row select{width:100%;min-height:40px;padding:5px 8px;border-radius:8px;color:#f5f7fc;background:#17283c;border:1px solid #6b8299;font:inherit;font-size:12px}'+
-  '.f3-v120-head{font-size:12px;font-weight:750;color:#f5e0b2}'+
-  '#f3-v120-warning{font-size:11px;color:#e3c48b;margin:1px 0;line-height:1.45}';
- document.head.append(style);
+ function oldCategories(){
+  if(!valid)return [];
+  try{
+   const r=JSON.parse(localStorage.getItem(oldKey)||'null');
+   if(r?.weekStart!==week||r.eventId!==id||r.prep?.count!==r.prep?.categories?.length||
+    ![1,2,3].includes(r.prep.count)||new Set(r.prep.categories).size!==r.prep.count||
+    r.prep.categories.some(c=>!types.includes(c)))return [];
+   return types.filter(c=>r.prep.categories.includes(c));
+  }catch(_){return [];}
+ }
  function cfg(){
   try{
    const raw=localStorage.getItem('pokesleep-strategy-e7-player-v1');
@@ -70,122 +74,263 @@
  function categories(){
   const count=Number(q('[data-stock-count][aria-pressed="true"]')?.dataset.stockCount||0);
   if(count===3)return [...types];
-  return types.filter(t=>q('[data-stock-type="'+t+'"]')?.getAttribute('aria-pressed')==='true')
-   .filter((_,i,a)=>a.length===count);
+  const active=types.filter(c=>q('[data-stock-type="'+c+'"]')?.getAttribute('aria-pressed')==='true');
+  return active.length===count?active:[];
  }
+ const summary=document.createElement('div');summary.id='prep-v121-summary';
+ summary.setAttribute('aria-live','polite');
+ title.after(summary);
+ const section=document.createElement('div');section.id='f3-v120-controls';
+ section.setAttribute('aria-label','レシピと目標食数');
+ const notice=document.createElement('p');notice.id='f3-v120-warning';
+ notice.setAttribute('role','status');section.append(notice);
+ typeGroup.after(section);
+ const actions=document.createElement('div');actions.id='prep-v121-actions';
+ const cancel=document.createElement('button');cancel.type='button';
+ cancel.id='prep-v121-cancel';cancel.className='btn secondary';cancel.textContent='キャンセル';
+ saveButton.before(actions);actions.append(cancel,saveButton);
+ const style=document.createElement('style');style.id='prep-v121-style';
+ style.textContent=
+  '#e6-prep-category-card:not(.prep-v121-editing) .e6-prep-count,'+
+  '#e6-prep-category-card:not(.prep-v121-editing) .e6-prep-types,'+
+  '#e6-prep-category-card:not(.prep-v121-editing) #f3-v120-controls{display:none!important}'+
+  '#prep-v121-summary{margin-top:7px;display:grid;gap:5px;font-size:12px;line-height:1.4}'+
+  '.prep-v121-summary-row{display:grid;grid-template-columns:54px minmax(0,1fr) auto;align-items:center;gap:5px}'+
+  '.prep-v121-summary-row span:nth-child(2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+  '.prep-v121-summary-row strong{color:var(--gold);font-size:12px;font-variant-numeric:tabular-nums}'+
+  '.prep-v121-summary-type{color:var(--muted);font-size:11px}'+
+  '.prep-v121-capacity{display:flex;justify-content:space-between;align-items:center;gap:7px;padding-top:6px;margin-top:4px;border-top:1px solid var(--line);font-size:11px}'+
+  '.prep-v121-capacity strong{color:var(--gold);font-variant-numeric:tabular-nums}'+
+  '#f3-v120-controls{display:grid;gap:4px;margin-top:9px}'+
+  '.prep-v121-row{display:grid;grid-template-columns:54px minmax(0,1fr) 98px;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}'+
+  '.prep-v121-row:last-child{border-bottom:0}'+
+  '.prep-v121-row label{display:block;min-width:0}'+
+  '.prep-v121-row label span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}'+
+  '.prep-v121-row select{width:100%;min-width:0;min-height:40px;padding:5px 5px;background:#17283c;color:var(--ink);border:1px solid #61768c;border-radius:9px;font:inherit;font-size:12px}'+
+  '#f3-v120-warning{font-size:11px;color:#e3c48b;margin:2px 0;line-height:1.45}'+
+  '#f3-v120-warning:empty{display:none}'+
+  '#prep-v121-actions{display:flex;gap:7px;margin-top:9px}'+
+  '#prep-v121-actions .btn{flex:1;min-width:0;width:auto;margin:0}'+
+  '#prep-v121-cancel[hidden]{display:none!important}'+
+  '#e6-prep-category-card.prep-v121-editing #prep-v121-summary .prep-v121-summary-row{display:none}'+
+  '@media(max-width:350px){.prep-v121-row{grid-template-columns:44px minmax(0,1fr) 85px;gap:4px}.prep-v121-row select{font-size:11px;padding:4px}.prep-v121-summary-row{grid-template-columns:44px minmax(0,1fr) auto}}';
+ document.head.append(style);
+ const label={curry:'カレー',salad:'サラダ',dessert:'デザート'};
  let saved=null;
  try{if(valid)saved=read(week,id);}catch(_){}
- let recipes={...(saved?.selectedRecipes||{})},meals={...(saved?.targetMeals||{})};
- let needsReview=false,renderKey='';
+ let recipes={},meals={},editing=false,needsReview=false,warning='',restoring=false;
+ // One editor is opened automatically only when the event lacks a saved category.
+ editing=valid&&oldCategories().length===0;
+ function resetDraft(){
+  saved=valid?read(week,id):null;
+  recipes={...(saved?.selectedRecipes||{})};
+  meals={...(saved?.targetMeals||{})};
+  needsReview=false;warning='';
+ }
+ try{resetDraft();}catch(_){saved=null;recipes={};meals={};warning='保存データの形式を確認してください。';}
+ function restoreButtons(){
+  const cats=oldCategories();
+  if(!cats.length)return;
+  restoring=true;
+  try{
+   card.querySelector('[data-stock-count="'+cats.length+'"]')?.click();
+   if(cats.length<3)for(const c of cats)
+    card.querySelector('[data-stock-type="'+c+'"]')?.click();
+  }finally{restoring=false;}
+ }
  function build(){
   const cats=categories(),conf=cfg(),stock=current();
-  const selectedRecipes={},targetMeals={};
+  const chosen={},wanted={};
   for(const c of cats){
    const top=calc.catalog(allRecipes,c,conf.potCapacity,conf.camp);
-   if(top.length)selectedRecipes[c]=recipes[c]&&top.some(x=>x.id===recipes[c])?
+   if(top.length)chosen[c]=recipes[c]&&top.some(x=>x.id===recipes[c])?
     recipes[c]:top[0].id;
-   targetMeals[c]=meals[c]??'auto';
+   wanted[c]=meals[c]??'auto';
   }
-  return {categories:cats,...conf,currentStock:stock??{},recipes:allRecipes,
-   selectedRecipes,targetMeals};
+  return {categories:cats,...conf,currentStock:stock,recipes:allRecipes,
+   selectedRecipes:chosen,targetMeals:wanted};
  }
- function draw(){
-  section.querySelectorAll('.f3-v120-row').forEach(n=>n.remove());
-  if(!valid){msg.textContent='イベントを選択してください。';return;}
-  const p=build();
-  if(!p.categories.length){msg.textContent='カテゴリを選ぶとレシピと食数を設定できます。';return;}
-  const result=calc.make(p);
-  msg.textContent=result.status==='PROVISIONAL'?
-   '各カテゴリ1種類。バッグ容量内で最大21食分。':
-   result.message||'食材目標を計算できません。';
-  for(const type of p.categories){
-   const top=calc.catalog(allRecipes,type,p.potCapacity,p.camp);
-   const row=document.createElement('div');row.className='f3-v120-row';
-   const head=document.createElement('div');head.className='f3-v120-head';
-   head.textContent=({curry:'カレー',salad:'サラダ',dessert:'デザート'}[type]);
-   const recipeLabel=document.createElement('label');recipeLabel.textContent='レシピ（高エナジー上位5件）';
-   const recipeSelect=document.createElement('select');
-   recipeSelect.setAttribute('aria-label',head.textContent+'のレシピ');
-   for(const r of top){
-    const o=document.createElement('option');o.value=r.id;
-    o.textContent=r.name+'（'+r.baseStrength.toLocaleString('ja-JP')+' / '+r.size+'個）';
-    recipeSelect.append(o);
-   }
-   recipeSelect.value=p.selectedRecipes[type]||'';
-   recipeSelect.addEventListener('change',()=>{
-    recipes[type]=recipeSelect.value;
-    // Changed ingredients invalidate a previously chosen manual count.
-    meals[type]='auto';needsReview=false;draw();
-   });
-   recipeLabel.append(recipeSelect);
-   const mealLabel=document.createElement('label');mealLabel.textContent='目標食数';
-   const mealSelect=document.createElement('select');
-   mealSelect.setAttribute('aria-label',head.textContent+'の目標食数');
-   const allowed=calc.mealOptions({...p,selectedRecipes:{...p.selectedRecipes,[type]:recipeSelect.value}},type);
-   const auto=document.createElement('option');auto.value='auto';
-   auto.textContent='自動（バッグ容量に合わせる）';
-   mealSelect.append(auto);
-   for(const n of allowed){
-    const o=document.createElement('option');o.value=String(n);o.textContent=n+'食分';
-    mealSelect.append(o);
-   }
-   const choice=p.targetMeals[type];
-   if(choice!=='auto'&&!allowed.includes(choice)){
-    meals[type]='auto';needsReview=true;
-    msg.textContent='容量や他カテゴリの設定が変わりました。食数を再選択して保存してください。';
-   }
-   mealSelect.value=meals[type]??'auto';
-   mealSelect.addEventListener('change',()=>{
-    meals[type]=mealSelect.value==='auto'?'auto':Number(mealSelect.value);
-    needsReview=false;draw();
-   });
-   mealLabel.append(mealSelect);
-   row.append(head,recipeLabel,mealLabel);section.append(row);
-  }
-  renderKey=JSON.stringify([p.categories,p.bagCapacity,p.potCapacity,p.camp,recipes,meals]);
+ function calculate(input){
+  if(!input.currentStock)return {status:'BLOCKED',message:'食材在庫を確認してください。'};
+  return calc.make(input);
  }
- for(const b of catCard.querySelectorAll('[data-stock-count],[data-stock-type]'))
-  b.addEventListener('click',()=>queueMicrotask(()=>{needsReview=false;draw();}));
- q('#e6-prep-save').addEventListener('click',e=>{
-  e.preventDefault();e.stopImmediatePropagation();
-  if(!valid)return;
-  const p=build();
-  const res=calc.make(p);
-  if(res.status!=='PROVISIONAL'||needsReview){
-   msg.textContent=needsReview?'食数を再選択してください。':res.message||'設定を確認してください。';
+ function savedResult(){
+  const cats=oldCategories();
+  if(!cats.length)return null;
+  const setting=cfg(),stock=current();
+  if(!stock)return {status:'BLOCKED',message:'食材在庫を確認してください。'};
+  return calc.make({recipes:allRecipes,categories:cats,...setting,currentStock:stock,
+   selectedRecipes:saved?.selectedRecipes,
+   targetMeals:saved?.targetMeals});
+ }
+ function preview(){if(!editing||!valid)return null;const input=build();
+  return {input,result:calculate(input)};}
+ function line(parent,cls,text){
+  const el=document.createElement('span');el.className=cls||'';
+  el.textContent=text;parent.append(el);return el;
+ }
+ function drawSummary(result){
+  summary.replaceChildren();
+  if(!valid){line(summary,'prep-v121-hint','作戦でイベントを選択してください。');return;}
+  if(!result){line(summary,'prep-v121-hint','備蓄する料理を設定してください。');return;}
+  if(result.status!=='PROVISIONAL'){
+   line(summary,'prep-v121-hint',result.message||'料理の設定を確認してください。');
    return;
   }
-  const draft={count:p.categories.length,categories:p.categories};
+  for(const cat of result.categories){
+   const row=document.createElement('div');row.className='prep-v121-summary-row';
+   line(row,'prep-v121-summary-type',label[cat.type]);
+   line(row,'',cat.name);
+   const strong=document.createElement('strong');strong.textContent=cat.count+'食';row.append(strong);
+   summary.append(row);
+  }
+  const bottom=document.createElement('div');bottom.className='prep-v121-capacity';
+  line(bottom,'',editing?'バッグ容量・未保存プレビュー':'バッグ容量');
+  const total=document.createElement('strong');
+  total.textContent=result.capacity.used.toLocaleString('ja-JP')+' / '+
+   result.capacity.bag.toLocaleString('ja-JP')+'個';
+  bottom.append(total);summary.append(bottom);
+  const small=document.createElement('div');small.className='prep-v121-summary-type';
+  small.textContent='空き '+result.capacity.free.toLocaleString('ja-JP')+'個';
+  summary.append(small);
+ }
+ function broadcast(){root.dispatchEvent(new Event('pokesleep-prep-v121-preview'));}
+ function draw(){
+  card.classList.toggle('prep-v121-editing',editing);
+  cancel.hidden=!editing||oldCategories().length===0;
+  saveButton.textContent=editing?'料理・食数を保存':'料理・食数を変更';
+  saveButton.disabled=!valid;
+  legacyMsg.textContent='';
+  section.querySelectorAll('.prep-v121-row').forEach(n=>n.remove());
+  const p=editing?preview():null;
+  const result=p?p.result:savedResult();
+  drawSummary(result);
+  notice.textContent=warning;
+  if(!editing){broadcast();return;}
+  if(!p?.input.categories.length){
+   notice.textContent=warning||'カテゴリ数と料理カテゴリを選択してください。';
+   broadcast();return;
+  }
+  for(const type of p.input.categories){
+   const top=calc.catalog(allRecipes,type,p.input.potCapacity,p.input.camp);
+   const row=document.createElement('div');row.className='prep-v121-row';
+   line(row,'prep-v121-summary-type',label[type]);
+   const recipeLabel=document.createElement('label');
+   const recipeHelp=document.createElement('span');recipeHelp.textContent=label[type]+'のレシピ';
+   recipeLabel.append(recipeHelp);
+   const recipeSelect=document.createElement('select');
+   recipeSelect.setAttribute('aria-label',label[type]+'のレシピ');
+   for(const r of top){
+    const o=document.createElement('option');o.value=r.id;
+    o.textContent=r.name+'（'+r.baseStrength.toLocaleString('ja-JP')+'）';
+    recipeSelect.append(o);
+   }
+   recipeSelect.value=p.input.selectedRecipes[type]||'';
+   recipeSelect.addEventListener('change',()=>{
+    recipes[type]=recipeSelect.value;warning='';needsReview=false;
+    const next=build(),count=meals[type];
+    if(count!=='auto'&&count!==undefined&&
+     !calc.mealOptions(next,type).includes(count)){
+     meals[type]='auto';
+     warning='新しい料理では以前の食数が容量を超えるため、自動に変更しました。';
+    }
+    draw();
+   });
+   recipeLabel.append(recipeSelect);
+   const mealLabel=document.createElement('label');
+   const mealHelp=document.createElement('span');mealHelp.textContent=label[type]+'の目標食数';
+   mealLabel.append(mealHelp);
+   const mealSelect=document.createElement('select');
+   mealSelect.setAttribute('aria-label',label[type]+'の目標食数');
+   const allowed=calc.mealOptions(p.input,type);
+   const auto=document.createElement('option');auto.value='auto';
+   const autoCount=result.status==='PROVISIONAL'?result.counts[type]:null;
+   auto.textContent='自動'+(autoCount?'（'+autoCount+'食）':'');
+   mealSelect.append(auto);
+   for(const n of allowed){
+    const o=document.createElement('option');o.value=String(n);o.textContent=n+'食';
+    mealSelect.append(o);
+   }
+   const chosen=p.input.targetMeals[type];
+   if(chosen!=='auto'&&!allowed.includes(chosen)){
+    meals[type]='auto';needsReview=true;
+    warning='他の料理・バッグ容量の変更で、食数が容量を超えました。食数を再確認してください。';
+    mealSelect.value='auto';
+   }else mealSelect.value=String(chosen);
+   mealSelect.addEventListener('change',()=>{
+    meals[type]=mealSelect.value==='auto'?'auto':Number(mealSelect.value);
+    needsReview=false;warning='';draw();
+   });
+   mealLabel.append(mealSelect);
+   row.append(recipeLabel,mealLabel);section.append(row);
+  }
+  notice.textContent=warning;
+  broadcast();
+ }
+ function openEditor(){
+  try{resetDraft();}catch(_){warning='保存データを読み込めません。';}
+  restoreButtons();
+  editing=true;
+  draw();
+ }
+ function closeEditor(){
+  editing=false;needsReview=false;warning='';
+  try{resetDraft();}catch(_){warning='保存データを読み込めません。';}
+  draw();
+ }
+ for(const b of card.querySelectorAll('[data-stock-count],[data-stock-type]'))
+  b.addEventListener('click',()=>queueMicrotask(()=>{
+   if(restoring||!editing)return;
+   warning='';needsReview=false;draw();
+  }));
+ cancel.addEventListener('click',closeEditor);
+ saveButton.addEventListener('click',e=>{
+  e.preventDefault();e.stopImmediatePropagation();
+  if(!valid)return;
+  if(!editing){openEditor();return;}
+  const input=build(),result=calculate(input);
+  if(result.status!=='PROVISIONAL'||needsReview){
+   warning=needsReview?'目標食数を確認してください。':
+    result.message||'料理・食数の設定を確認してください。';
+   draw();return;
+  }
   const stamp=new Date().toISOString();
-  const oldRecord={version:1,weekStart:week,eventId:id,prep:draft,savedAt:stamp};
+  const oldRecord={version:1,weekStart:week,eventId:id,
+   prep:{count:input.categories.length,categories:input.categories},savedAt:stamp};
   const newRecord={kind:'F3_STOCKPILE_PREF_V120',version:1,weekStart:week,eventId:id,
-   categories:p.categories,selectedRecipes:res.selectedRecipes,
-   targetMeals:res.targetMeals,allocatedMeals:res.counts,savedAt:stamp};
+   categories:input.categories,selectedRecipes:result.selectedRecipes,
+   targetMeals:result.targetMeals,allocatedMeals:result.counts,savedAt:stamp};
   const oldRaw=localStorage.getItem(oldKey),newRaw=localStorage.getItem(newKey);
   try{
    const old=oldRaw?JSON.parse(oldRaw):null,prior=newRaw?JSON.parse(newRaw):null;
    if(old&&(old.weekStart!==week||old.eventId!==id)||
-      prior&&(prior.weekStart!==week||prior.eventId!==id))
-    throw Error('EVENT_OWNER');
+    prior&&(prior.weekStart!==week||prior.eventId!==id))throw Error('EVENT_OWNER');
    localStorage.setItem(oldKey,JSON.stringify(oldRecord));
    localStorage.setItem(newKey,JSON.stringify(newRecord));
-   saved=newRecord;msg.textContent='';root.PokeUI.toast('備蓄レシピと食数を保存しました');
+   saved=newRecord;editing=false;needsReview=false;warning='';
+   draw();root.PokeUI.toast('料理・食数を保存しました');
    root.dispatchEvent(new Event('pokesleep-prep-v120-saved'));
   }catch(_){
-   try{if(oldRaw===null)localStorage.removeItem(oldKey);else localStorage.setItem(oldKey,oldRaw);
-    if(newRaw===null)localStorage.removeItem(newKey);else localStorage.setItem(newKey,newRaw);}catch(_){}
-   msg.textContent='保存できませんでした。既存データを保護しています。';
+   try{
+    if(oldRaw===null)localStorage.removeItem(oldKey);else localStorage.setItem(oldKey,oldRaw);
+    if(newRaw===null)localStorage.removeItem(newKey);else localStorage.setItem(newKey,newRaw);
+   }catch(_){}
+   warning='保存できませんでした。既存のデータは保護しています。';draw();
   }
  },true);
- const refresh=()=>{const sig=JSON.stringify([categories(),cfg(),recipes,meals]);
-  if(sig!==renderKey)draw();};
+ const refresh=()=>draw();
  root.addEventListener('storage',e=>{
-  if(e.key===oldKey||e.key===newKey||e.key==='pokesleep-strategy-e7-player-v1'){
-   saved=read(week,id);recipes={...(saved?.selectedRecipes||{})};
-   meals={...(saved?.targetMeals||{})};draw();
+  if(e.key===oldKey||e.key===newKey||
+   e.key==='pokesleep-strategy-e7-player-v1'||e.key?.startsWith('pokesleep-strategy-u2-e2-v1:')){
+   if(e.key===oldKey||e.key===newKey){
+    try{resetDraft();}catch(_){warning='保存内容を確認してください。';}
+    editing=false;
+   }
+   draw();
   }
  });
  q('#save-inventory')?.addEventListener('click',()=>queueMicrotask(draw));
- root.PokeF3PrepPrefsV120=Object.freeze({key,read,build,categories,refresh});
+ root.PokeF3PrepPrefsV120=Object.freeze({key,read,build,categories,refresh,preview,
+  isEditing:()=>editing});
  draw();
 })(window);
