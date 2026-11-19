@@ -75,7 +75,7 @@
    const byFood=new Map(foods.map(k=>[k,order(x=>x.food[k]||0)]));
    const pools=[];
    const addPool=(ids)=>{
-    const p=unique(ids).filter(id=>byId.has(id)).slice(0,14);
+    const p=unique(ids).filter(id=>byId.has(id)).slice(0,12);
     if(p.length>=need&& !pools.some(x=>x.join('|')===p.join('|')))pools.push(p);
    };
    const foundation=unique([...berry.slice(0,4),...ingredients.slice(0,4),
@@ -144,8 +144,9 @@
    const entries=[...seen.values()];
    if(!entries.length)return fail('V125_NO_FEASIBLE_TEAMS');
    const picked=[],pickedKeys=new Set(),lanes={};
-   const take=(name,key,amount)=>{
-    const order=entries.slice().sort((a,b)=>key(b.measure)-key(a.measure)||
+   const take=(name,key,amount,positiveOnly=false)=>{
+    const order=entries.slice().filter(x=>!positiveOnly||key(x.measure)>0)
+     .sort((a,b)=>key(b.measure)-key(a.measure)||
      a.key.localeCompare(b.key));
     let n=0;
     for(const p of order){
@@ -159,10 +160,10 @@
    // Reserve a place for every modeled avenue BEFORE blending energy.
    take('berry',m=>m.berry,2);
    take('ingredients',m=>m.throughput,1);
-   take('direct',m=>m.direct,1);
-   take('cooking_support',m=>m.support,1);
+   take('direct',m=>m.direct,1,true);
+   take('cooking_support',m=>m.support,1,true);
    for(let i=0;i<targets.length;i++)
-    take('recipe_'+i,m=>m.recipe[i]||0,1);
+    take('recipe_'+i,m=>m.recipe[i]||0,1,true);
    take('hybrid',m=>m.hybrid,count);
    return Object.freeze({status:'CANDIDATES_READY',
     teams:picked.map(x=>x.team),
