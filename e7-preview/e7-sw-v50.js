@@ -1,5 +1,5 @@
 /* E7 v50 preview-only offline cache / persistent v52 tabs; this is NOT the production root service worker. */
-const CACHE='pokesleep-strategy-e7-v84-shared-e1-footer-20261113-v86-f2-event-catalog-20261113-v88-f3-prep-20261113-v89-f3-b-20261113-v90-f4-audit-20261113-v105-box-detail-20261114-v110-box-proposal-20261114-v112-integrated-real-plan-20261114-v114-real-sleep-stats-carry-20261115-v116-shared-sprites-modal-20261115-v117-compact-dialog-20261115-v118-f5-prestart-save-guard-20261115-v119-f5-midweek-20261115-v120-stockpile-20261115-v121-compact-prep-20261119-v122-nut81-20261119-online-nuts-icon-256-v123-nut-size-parity-v124-adopted-stock-goals';
+const CACHE='pokesleep-strategy-e7-v84-shared-e1-footer-20261113-v86-f2-event-catalog-20261113-v88-f3-prep-20261113-v89-f3-b-20261113-v90-f4-audit-20261113-v105-box-detail-20261114-v110-box-proposal-20261114-v112-integrated-real-plan-20261114-v114-real-sleep-stats-carry-20261115-v116-shared-sprites-modal-20261115-v117-compact-dialog-20261115-v118-f5-prestart-save-guard-20261115-v119-f5-midweek-20261115-v120-stockpile-20261115-v121-compact-prep-20261119-v122-nut81-20261119-online-nuts-icon-256-v123-nut-size-parity-v124-adopted-stock-goals-v125-diverse-candidates';
 const IMAGE_FILES=Array.from({length:20},(_,i)=>
  'assets/ingredients/ingredient-'+String(i+1).padStart(2,'0')+'.png');
 const imageUrls=new Set(IMAGE_FILES.map(x=>new URL(x,self.registration.scope).href));
@@ -20,7 +20,7 @@ const FILES=[
  '../f3/f3-b-production-scenario-v1.js',
  '../f4/f4-chronological-core-v1.js','../f4/f4-f1b-roster-adapter-v1.js',
  '../f4/f4-b-game-week-v1.js','../f4/f4-b-e7-readonly-v1.js',
- '../f4/f4-c-healer-policy-v100.js','../f4/f4-c-healer-search-v100.js',
+ '../f4/f4-c-healer-policy-v100.js','../f4/f4-c-diverse-candidates-v125.js','../f4/f4-c-healer-search-v100.js',
  '../f1/f1-c-skill-values-v1.js','../f4/f4-c-item-aware-rank-v101.js',
  '../f4/f4-c-stable-box-ids-v1.js','../f4/f4-c-auto-v112.js',
  '../f4/f4-c-real-storage-v112.js','../f5/f5-midweek-v119.js','e7-f4c-integrated-v112.js',

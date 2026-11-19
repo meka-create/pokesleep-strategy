@@ -166,8 +166,9 @@
     for(const f of foods)got[f]+=items[f]*factor;
     return {stock:got,berry:carry?0:berry};
    }
-   const rank=state=>state.energy+Object.values(state.stock).reduce((a,b)=>a+b,0)*8+
-     (preferredIds.size?preferredTotal(state)*1000000:0);
+   const rank=state=>state.energy+Object.values(state.stock).reduce((a,b)=>a+b,0)*8;
+   const preferenceOrder=(a,b)=>preferredIds.size?
+    preferredTotal(b)-preferredTotal(a):0;
    const pairs=[],profileMap=new Map(roster.profiles.map(p=>[p.id,p]));
    for(const primary of healerIds)for(const secondary of healerIds){
     if(primary===secondary)continue;
@@ -206,6 +207,15 @@
     const choices={};
     let bad=false;
     for(const slot of ['morning','noon','evening']){
+     if(typeof deps.diversity?.selectTeams==='function'){
+      const chosen=deps.diversity.selectTeams({policy,slot,profiles,
+       rawProfiles:roster.profiles,recipes,foods,inventory,
+       count:8,potCapacity:player.pot,camp:ctx.fields.camp,
+       skillValues:deps.skillValues,preferredRecipes:pref});
+      if(chosen.status!=='CANDIDATES_READY'||!chosen.teams.length){bad=true;break;}
+      choices[slot]=chosen.teams;
+      continue;
+     }
      const candidates=new Map();
      for(const weight of [0,300,1500,5000]){
       const sorted=[...policy.fillerIds].sort((a,b)=>
@@ -255,12 +265,20 @@
        }
       }
      }
-     expanded.sort((a,b)=>rank(b)-rank(a)||a.signature.localeCompare(b.signature));
-     beam=expanded.slice(0,8);
+     if(typeof deps.diversity?.selectStates==='function'){
+      const frontier=deps.diversity.selectStates({states:expanded,count:8,
+       recipes,stockKey:'stock',rankEnergy:rank,
+       preferredCount:preferredTotal,preferredRecipes:pref});
+      beam=frontier.status==='FRONTIER_READY'?frontier.states:[];
+     }else{
+      expanded.sort((a,b)=>preferenceOrder(a,b)||rank(b)-rank(a)||
+       a.signature.localeCompare(b.signature));
+      beam=expanded.slice(0,8);
+     }
      if(!beam.length){bad=true;break;}
     }
     if(bad||!beam.length)continue;
-    const winner=[...beam].sort((a,b)=>(preferredIds.size?preferredTotal(b)-preferredTotal(a):0)||b.energy-a.energy||
+    const winner=[...beam].sort((a,b)=>preferenceOrder(a,b)||b.energy-a.energy||
      a.signature.localeCompare(b.signature))[0];
     // Same bounded recovery coverage proxy as F4-C, NOT actual skill procs.
     const ranked=deps.auto.rankingScore({energyExpected:winner.energy},
@@ -289,6 +307,8 @@
     selectedPrimary:best.primary,selectedSecondary:best.secondary,
     expectedRemainingEnergy:Math.round(best.winner.energy*1000)/1000,
     candidatePairsChecked:possibilities.length,
+    candidateStrategy:typeof deps.diversity?.selectTeams==='function'?
+     'V125_DIVERSE_STRATEGY_SCREEN':'LEGACY_WEIGHTED',
     healerRecoveryProxyPoints:best.recoveryProxyPoints,slots,
     pastEvidence:'UNOBSERVED_ADOPTED_FORECAST_ONLY',actualObservedCount:0,
     officialEffectsExcluded:ctx.fields.source!=null,autoSleep:ctx.autoSleep,
