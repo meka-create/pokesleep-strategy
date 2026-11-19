@@ -72,7 +72,8 @@ test('F3-B production scenario remains separate from conservative stockpile plan
  assert.equal(forecast.status,'PROVISIONAL',forecast.message);
  const variant=f3.plan({recipes,categories:['curry','salad','dessert'],
   bagCapacity:600,potCapacity:57,camp:true,
-  currentStock:{},forecastProduction:forecast.scenarioProduction});
+  currentStock:{},forecastProduction:Object.fromEntries(Object.entries(forecast.scenarioProduction)
+    .filter(([code])=>code!=='nuts'))});
  assert.equal(variant.status,'PROVISIONAL',variant.message);
  assert.equal(variant.assumptions.forecastProvided,true);
  assert.equal(base.assumptions.forecastProvided,false);
