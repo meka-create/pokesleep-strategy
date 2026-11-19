@@ -147,7 +147,7 @@
    const input={...prepared.input,previousWeekCarryUnknown:unknown,
     previousWeekSleepTeam:unknown?[]:prepared.input.previousWeekSleepTeam,
     autoSleep:false};
-   if(input.recipes.length!==78||input.eventSource!==null)
+   if(![78,81].includes(input.recipes.length)||input.eventSource!==null)
     return fail('RECIPE_OR_EVENT_SOURCE_INVALID');
    if(options.prepPreference){
      input.preferredRecipes=options.prepPreference.selectedRecipes;
@@ -220,7 +220,7 @@
     // Only the user may adopt after seeing the review; not yet certified.
     canAdopt:true,weeklyEnergyCertified:false,
     officialEventEnergyCertified:false,writesSavedData:false,
-    scopeNote:'現行19食材/78料理の限定探索。主副ヒーラーのきのみと回復を含む参考シナリオ'});
+    scopeNote:'20食材/81料理の限定探索。主副ヒーラーのきのみと回復を含む参考シナリオ'});
   }catch(_){return fail('INVALID_INTEGRATED_PROPOSAL_INPUT');}
  }
  return Object.freeze({favorites,propose,rankingScore,selectNight});
