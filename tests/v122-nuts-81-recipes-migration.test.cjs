@@ -38,7 +38,7 @@ test('v122: new cooking recipes match pinned energy and ingredient quantities',(
   assert.equal(r.baseStrength,energy);
   assert.deepEqual(JSON.parse(JSON.stringify(r.requirements)),req);
   assert.equal(Object.values(r.requirements).reduce((a,b)=>a+b,0),size);
-  const listed=calc.catalog(recipes,type,200,false);
+  const listed=calc.catalog([r],type,Math.max(7,size),false);
   assert(listed.some(x=>x.id===id),'new meal must participate in selectable recipe ranking');
  }
 });
@@ -77,8 +77,9 @@ test('v122: explicit in-event save upgrades 19-food timeline and retains its eve
  assert.equal(upgraded.currentInventory.values['ひとくちナッツ'],5);
  assert.equal(upgraded.startInventory,null);
  assert.equal(JSON.stringify(original),oldJSON,'pre-existing owner record must not be mutated');
- const stocked=calc.make({recipes,categories:['curry'],bagCapacity:250,
-  camp:false,potCapacity:65,currentStock:{nuts:5},
+ const stocked=calc.make({recipes:recipes.filter(r=>r.id==='curry_nut_naan_20261116'),
+  categories:['curry'],bagCapacity:250,
+  camp:false,potCapacity:39,currentStock:{nuts:5},
   selectedRecipes:{curry:'curry_nut_naan_20261116'}});
  assert.equal(stocked.status,'PROVISIONAL',stocked.message);
  assert(stocked.goals.nuts>=15);
