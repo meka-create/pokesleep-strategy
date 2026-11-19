@@ -12,6 +12,7 @@ const deps={scope:root.PokeE7InventoryScope,e1:root.PokeE7E1,
  rates:root.PokeF1BaseRates,baseCore:root.PokeF4ChronologicalCore,
  healerSearch:root.PokeF4CHealerSearch,healerPolicy:root.PokeF4CHealerPolicy,
  itemRank:root.PokeF4CItemAwareRank,skillValues:root.PokeF1SkillValues,
+ diversity:root.PokeF4CStrategyDiversityV125,
  master:root.PokeMaster,recipes:root.PokeRecipes,crypto:root.crypto};
 let data=null,bound=null,modelPromise=null,plan=null,sleep=null,draft=null;
 let draftPlanRaw=null;
