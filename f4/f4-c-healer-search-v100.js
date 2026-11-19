@@ -166,7 +166,7 @@
     if(v125&&typeof deps.diversity?.selectStates==='function'){
      const result=deps.diversity.selectStates({states,count:beamWidth,
       recipes:allowed,stockKey:'inventory',rankEnergy:rank,
-      preferredCount:preferredBoost});
+      preferredCount:preferredBoost,preferredRecipes:preferred});
      return result.status==='FRONTIER_READY'?result.states:[];
     }
     states.sort((a,b)=>(preferredId.size?preferredBoost(b)-preferredBoost(a):0)||
