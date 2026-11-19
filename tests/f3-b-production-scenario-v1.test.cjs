@@ -103,7 +103,7 @@ test('F3-B fails closed on insufficient eligible, empty source, bad form and mis
 test('F3-B preserves individual ingredient restrictions, no invented nut or unknown food',()=>{
  const p=prod.estimate(options(),deps);
  assert.equal(p.status,'PROVISIONAL',p.message);
- assert.equal(Object.hasOwn(p.scenarioProduction,'nuts'),false);
+ assert.equal(p.scenarioProduction.nuts,0,'Old 66-species source cannot invent nuts production');
  const rows=team();rows[0].ing1='ひとくちナッツ';
  const result=prod.estimate(options({items:rows}),deps);
  assert.equal(result.status,'PROVISIONAL');
