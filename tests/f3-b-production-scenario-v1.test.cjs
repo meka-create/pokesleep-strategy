@@ -56,7 +56,7 @@ test('F3-B pinned 66 species source, five real individuals, no private member da
  assert.equal(r.assumedMintCount,5);
  assert.equal(r.assumedRibbonCount,5);
  assert(Object.values(r.scenarioProduction).some(n=>n>0));
- assert.equal(Object.keys(r.scenarioProduction).length,19);
+ assert.equal(Object.keys(r.scenarioProduction).length,20);
  assert(!JSON.stringify(r).includes('PVT_NICKNAME_MUST_NOT_LEAK'));
  assert(!JSON.stringify(r).includes('nickname'));
  assert(!JSON.stringify(r).includes('lv10'));
