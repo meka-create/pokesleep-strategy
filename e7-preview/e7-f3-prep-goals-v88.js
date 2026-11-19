@@ -11,7 +11,7 @@ const stockCells=[...document.querySelectorAll('#inventory-panel .actual-grid .f
 const total=q('#goal-panel .row.total strong');
 const goalCard=q('#goal-panel>.card:first-child');
 if(!Opt||!Prefs||!Scope||!E1||!Array.isArray(window.PokeRecipes)||
- goalCells.length!==19||stockCells.length!==19||!total||!goalCard)return;
+ goalCells.length!==20||stockCells.length!==20||!total||!goalCard)return;
 const status=document.createElement('p');status.id='f3-prep-status';
 status.className='f3-status';status.setAttribute('role','status');
 goalCard.append(status);
@@ -212,7 +212,7 @@ function render(){
   const caveat=document.createElement('p');caveat.className='f3-caveat';
   caveat.textContent='バッグ容量内の指定レシピのみを備蓄。レシピレベル・料理チャンス・時間別生産は目標から未控除。'+
    (ctx.foodUnconfirmed?' 料理未確定のため、選択カテゴリを均等優先する準備用シナリオです。':'')+
-   (ctx.week>='2026-11-16'?' 11/16追加予定の新食材「ひとくちナッツ」と新料理3種は未反映。':'');
+   '';
   content.append(caveat);
   currentScenario={ctx,base:result,token};
   productionDetails.hidden=false;
