@@ -14,7 +14,7 @@ const FILES=[
  'U4_Box_Preview_20261109_v50_E7.html',
  'e7-feedback-v66.js','e7-feedback-v66.css','e7-event-delete-v71.js','e7-inventory-scope-v78.js',
  'e7-e1-core-v84.js','e7-footer-nav-v84.js','e7-f2-event-catalog-v1.js',
- '../src/master.js','../src/recipes.js','../f3/f3-prep-optimizer-v1.js','../f3/f3-stockpile-v120.js','e7-prep-settings-v120.js','e7-f3-prep-goals-v88.js',
+ '../src/master.js','../src/recipes.js','e7-master-v122.js','e7-recipes-v122.js','../f3/f3-prep-optimizer-v1.js','../f3/f3-stockpile-v120.js','e7-prep-settings-v120.js','e7-f3-prep-goals-v88.js',
  '../f1/f1-b-legal-build-v2.js','../f1/f1-b-base-rates-v1.js',
  '../f1/f1-b-target-source-v1.json','../f1/f1-b-help-traits-v1.json',
  '../f3/f3-b-production-scenario-v1.js',
