@@ -1,0 +1,8 @@
+/* E7 v123 — one visual-size adjustment for the verified 256px nuts PNG.
+   Shared by Prep (goals/inventory), Strategy and Box (Pokémon status modals),
+   and any other E7 view that uses the same local ingredient asset.
+   The original PNG, card dimensions, slot order, badges and storage are unchanged. */
+img[src$="/ingredient-20.png"] {
+  transform: scale(1.13);
+  transform-origin: center center;
+}
