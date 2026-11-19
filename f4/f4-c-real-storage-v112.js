@@ -93,6 +93,31 @@
    return fail('IDENTITY_LEDGER_CONTENTION_EXCEEDED');
   }catch(_){return fail('IDENTITY_READ_OR_SAVE_FAILED');}
  }
+ // F3 v124: verify an already-established ledger WITHOUT reconciling or
+ // writing it. A changed Box or stale ledger is not a reason to assign new IDs.
+ async function verifyExistingIdentities(storage,rows,deps={}){
+  try{
+   if(!deps.crypto?.subtle||!deps.identity?.validate||!storage?.getItem)
+    return fail('SECURE_READONLY_IDENTITY_UNAVAILABLE');
+   const boxRaw=storage.getItem(BOX),ledgerRaw=storage.getItem(LEDGER);
+   if(!boxRaw||!ledgerRaw||!Array.isArray(rows)||
+    JSON.stringify(JSON.parse(boxRaw)?.items)!==JSON.stringify(rows))
+    return fail('BOX_CHANGED_BEFORE_READONLY_MAPPING');
+   const record=JSON.parse(ledgerRaw);
+   if(!/^[0-9a-f]{32}$/.test(record?.salt||'')||
+    !deps.identity.validate(record.ledger)||record.ledger.entries.length!==rows.length)
+    return fail('BOX_LEDGER_NOT_CURRENT');
+   const digests=await hashes(rows,record.salt,deps.crypto);
+   if(!digests||digests.some((d,i)=>record.ledger.entries[i].digest!==d))
+    return fail('BOX_LEDGER_DIGEST_MISMATCH');
+   if(storage.getItem(BOX)!==boxRaw||storage.getItem(LEDGER)!==ledgerRaw)
+    return fail('BOX_CHANGED_DURING_READONLY_MAPPING');
+   const ids=record.ledger.entries.map(e=>e.id);
+   return {status:'IDENTITIES_READY',ids,
+    byId:new Map(ids.map((id,i)=>[id,i])),
+    digests,boxRaw,ledgerRevision:ledgerRaw,readOnly:true};
+  }catch(_){return fail('READONLY_IDENTITY_VERIFICATION_FAILED');}
+ }
  function uniqueUsed(ids,identity){
   const used=ids.map(id=>identity.byId.get(id));
   if(used.some(i=>i===undefined))return false;
@@ -332,6 +357,6 @@
     fail('PREVIOUS_SUNDAY_WRITE_FAILED');
   }catch(_){return fail('PREVIOUS_SUNDAY_SAVE_FAILED');}
  }
- return Object.freeze({PREFIX,LEDGER,key,identities,createRecord,
+ return Object.freeze({PREFIX,LEDGER,key,identities,verifyExistingIdentities,createRecord,
   readPlan,adopt,readSleep,saveSleep,readCarry,saveCarry,planShape});
 });
