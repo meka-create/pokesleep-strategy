@@ -65,7 +65,7 @@ test('v124: no planned meal match or wrong event can silently lower goal',()=>{
  assert.equal(projection.calculate(x).reason,'PLANNED_RECIPE_DIFFERS');
  x=fixture();x.identity.byId.delete(x.plan.slots[1].teamIds[0]);
  assert.equal(projection.calculate(x).reason,'TIMELINE_OR_IDENTITY_MISMATCH');
- x=fixture();x.ctx.clock.phase='DURING';
+ x=fixture();x.ctx.clock={...x.ctx.clock,phase:'DURING'};
  assert.equal(projection.calculate(x).reason,'VERIFIED_ADOPTED_WEEK_REQUIRED');
 });
 test('v124: missing producer, full bag, or extra stock cannot fake reductions',()=>{
