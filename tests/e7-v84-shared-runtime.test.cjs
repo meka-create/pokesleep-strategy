@@ -19,7 +19,7 @@ test('E7 v84 exports the superset of former U2/U3 E1 functions with unchanged ga
   'validateInventoryTimeline','applyInventorySave','previewLegacyU2V3',
   'getPrimaryViewState','newConditionLedger','validateConditionLedger','stageConditionEdits',
   'confirmEventConditions','conditionViewFromLedger'])assert(name in e,name);
- assert.equal(e.INGREDIENT_NAMES.length,19);
+ assert.equal(e.INGREDIENT_NAMES.length,20);
  assert.equal(e.validWeekStart('2026-11-16'),true);
  assert.equal(e.validWeekStart('2026-11-17'),false);
  const ev={id:'manual:2026-11-16',weekStart:'2026-11-16'};
