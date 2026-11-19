@@ -10,8 +10,17 @@ function load(p){
 const gate=load('f4/f4-c-banquet-release-v103.js');
 const effect=load('f4/f4-c-banquet-preview-v103.js');
 const rules=load('f4/f4-c-official-rules-v1.js');
-const baselineRecipes=load('src/recipes.js');
-const master=load('src/master.js');
+// v103 is a historical strict 19/78 *unreleased* gateway. Keep its
+// synthetic legacy fixtures independent of the current verified v122 catalog.
+const currentRecipes=load('src/recipes.js'),currentMaster=load('src/master.js');
+const NEW_IDS=new Set(['curry_nut_naan_20261116','salad_nut_wrap_20261116',
+ 'dessert_nut_tail_roll_20261116']);
+const baselineRecipes=currentRecipes.filter(r=>!NEW_IDS.has(r.id));
+const master={...currentMaster,
+ ingredients:Object.fromEntries(Object.entries(currentMaster.ingredients)
+  .filter(([code])=>code!=='nut')),
+ strength:Object.fromEntries(Object.entries(currentMaster.strength)
+  .filter(([code])=>code!=='nut'))};
 const bridge=load('f4/f4-b-e7-readonly-v1.js');
 const clone=v=>JSON.parse(JSON.stringify(v));
 const eventId='pokesleep-tool:bountiful banquet week vol1:2026-11-16';
@@ -60,7 +69,9 @@ const migration=x=>gate.inventoryPreview({
  timeline:x,weekStart:'2026-11-16',eventId,
  baselineIngredientNames:master.ingredients
 });
-test('v103: current production master remains 19 ingredient/78 recipe baseline',()=>{
+test('v103: historical 19/78 test fixture remains isolated from verified 20/81 master',()=>{
+ assert.equal(Object.keys(currentMaster.ingredients).length,20);
+ assert.equal(currentRecipes.length,81);
  assert.equal(Object.keys(master.ingredients).length,19);
  assert.equal(baselineRecipes.length,78);
  assert.equal(gate.LEGACY.length,19);
