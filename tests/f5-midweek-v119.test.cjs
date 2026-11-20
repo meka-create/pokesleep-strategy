@@ -38,7 +38,8 @@ const deps={weekClock:clock,roster:{adapt:()=>({
  status:'READY',sourceCommit:COMMIT,profiles})},
  base:core,policy,master:{ingredients:dict},recipes,
  auto:{favorites:()=>['water','fairy','flying'],
- rankingScore:(r,p)=>({score:r.energyExpected*(p[0]==='p0'?0.95:1),recoveryProxyPoints:20})},
+ rankingScore:(r,p)=>({score:r.energyExpected*(p[0]==='p0'?0.95:1),recoveryProxyPoints:20}),
+  assessHealer:()=>({qualified:true}),healerPairQuality:()=>({qualified:true})},
  skillValues:{skillValue:()=>({status:'BASE_VALUE_ONLY'})},
  snapshot:{upstream:{commit:COMMIT}},traits:{},legal:{},rates:{},store};
 function make(){
