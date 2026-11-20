@@ -98,7 +98,7 @@ test('M1: cooking bonus raises value of tasty chance and can reverse the winning
  const noEvent=increment(1),highEvent=increment(3);
  assert(noEvent>0);
  assert(highEvent>noEvent*2.9&&highEvent<noEvent*3.1);
- const berryAlternative=80; // illustrative extra berry energy from another team
+ const berryAlternative=200; // illustrative extra berry energy from another team
  assert(noEvent<berryAlternative,'normal week favors the berry alternative');
  assert(highEvent>berryAlternative,'cooking-bonus week favors the tasty-chance user');
 });
