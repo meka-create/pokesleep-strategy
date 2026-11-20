@@ -34,7 +34,8 @@
     !deps.roster?.adapt||!deps.base?.normalizeProfiles||
     !deps.base?.normalizeRecipes||!deps.policy?.validate||
     !deps.policy?.candidateTeams||!deps.auto?.favorites||
-    !deps.auto?.rankingScore||!deps.skillValues?.skillValue)
+    !deps.auto?.rankingScore||!deps.auto?.assessHealer||
+    !deps.auto?.healerPairQuality||!deps.skillValues?.skillValue)
     return fail('F5_CONTEXT_OR_PREVIOUS_PLAN_REQUIRED');
    const anchor=Date.parse(ctx.inventorySavedAt),now=Date.parse(ctx.clock.asOf);
    const start=Date.parse(ctx.clock.startsAt),end=Date.parse(ctx.clock.endsAt);
@@ -130,10 +131,12 @@
     const preferredIds=new Set(Object.values(pref));
     const preferredTotal=state=>Object.keys(pref).reduce((n,c)=>
      n+Math.min(remainingBudget[c],state.prefCount?.[c]||0),0);
-   const healerIds=roster.profiles.filter(p=>p.healerRole==='TEAM_WIDE_HEALER')
-    .map(p=>p.id);
-   if(healerIds.length<2||roster.profiles.length-healerIds.length<4)
+   const allHealers=roster.profiles.filter(p=>p.healerRole==='TEAM_WIDE_HEALER');
+   const healerIds=allHealers.filter(p=>
+    deps.auto.assessHealer(p,deps.skillValues).qualified).map(p=>p.id);
+   if(roster.profiles.length-allHealers.length<4)
     return fail('F5_HEALER_ROSTER_INSUFFICIENT');
+   if(healerIds.length<2)return fail('F5_TWO_QUALIFIED_HEALERS_REQUIRED');
    function rate(id,team){
     const p=people.get(id);
     if(!p)throw Error('UNKNOWN_POKEMON');
@@ -171,7 +174,8 @@
     preferredTotal(b)-preferredTotal(a):0;
    const pairs=[],profileMap=new Map(roster.profiles.map(p=>[p.id,p]));
    for(const primary of healerIds)for(const secondary of healerIds){
-    if(primary===secondary)continue;
+    if(primary===secondary||!deps.auto.healerPairQuality(
+     [primary,secondary],profileMap,deps.skillValues).qualified)continue;
     const ids=[primary,secondary],energy=teamValue(ids,100);
     const recover=deps.auto.rankingScore({energyExpected:energy},ids,
      profileMap,deps.skillValues);
@@ -180,6 +184,7 @@
     pairs.push({ids,energy,recovery:recover.recoveryProxyPoints,
      joint:recover.score});
    }
+   if(!pairs.length)return fail('F5_HEALER_PAIR_RECOVERY_INSUFFICIENT');
    // Do not preselect only strongest berry producers. Include independent
    // recovery-leading and total-energy-leading ordered pairs in bounded pool.
    const by=(key)=>[...pairs].sort((a,b)=>b[key]-a[key]||
