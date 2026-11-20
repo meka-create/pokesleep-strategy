@@ -178,3 +178,38 @@ test('F5 v127: insufficient skill-level healers block future plan while past ado
  assert.equal(f.storage.getItem(store.key('plan',W,ID)),initial);
  assert.equal(f.storage.getItem(mid.key(f.ctx)),null);
 });
+
+test('M1 F5: uses the same Lv70 and baseline great-success distribution while preserving past',()=>{
+ const f=make(),legacy=build(f);
+ assert.equal(legacy.status,'PROVISIONAL',legacy.reason);
+ const scorer=load('f4/f4-m1-lite-energy-v128.js');
+ const kernel=load('f4/f4-c-cooking-skills-v102.js');
+ const d={...deps,storage:f.storage,m1Lite:scorer,cookingSkills:kernel,
+  recipes:deps.recipes.map(x=>({...x,strength70:Math.round(x.baseStrength*3.58)}))};
+ const modern=mid.reference(f.ctx,f.previous,identity,d);
+ assert.equal(modern.status,'PROVISIONAL',modern.reason);
+ assert.equal(modern.m1Reference,true);
+ assert.equal(modern.eventDishMultiplier,1);
+ assert(modern.expectedRemainingEnergy>legacy.expectedRemainingEnergy,
+  'Lv70 plus standard great success increases the remaining-week energy estimate');
+ assert.equal(modern.slots.length,29);
+ for(let i=0;i<modern.anchorIndex;i++){
+  assert.equal(modern.slots[i].recipeId,legacy.slots[i].recipeId);
+  assert.deepEqual([...modern.slots[i].team],[...legacy.slots[i].team]);
+  assert.equal(modern.slots[i].windowPhase,'PAST_FORECAST_ONLY');
+ }
+});
+test('M1 F5: unsupported official event is not silently evaluated as neutral',()=>{
+ const f=make();
+ const id='pokesleep-tool:synthetic event:2026-11-16';
+ const source={id,start:f.ctx.weekStart,upstreamRevision:'a'.repeat(40),
+  verifiedEffects:{potSize:2},verifiedTarget:{},unknownEffects:false};
+ const scorer=load('f4/f4-m1-lite-energy-v128.js');
+ const kernel=load('f4/f4-c-cooking-skills-v102.js');
+ const c={...f.ctx,eventId:id,fields:{...f.ctx.fields,source}};
+ const result=mid.reference(c,f.previous,identity,{
+  ...deps,storage:f.storage,m1Lite:scorer,cookingSkills:kernel,
+  recipes:deps.recipes.map(x=>({...x,strength70:Math.round(x.baseStrength*3.58)}))});
+ assert.equal(result.status,'BLOCKED');
+ assert.equal(result.reason,'M1_EVENT_EFFECT_UNMODELED');
+});
