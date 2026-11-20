@@ -113,7 +113,7 @@ test('M1: event and chance adjustments do not modify original profiles or source
  const adjusted=lite.withEvent([raw],ev,values);
  assert.equal(adjusted.status,'ROSTER_READY',adjusted.reason);
  assert.equal(JSON.stringify(raw),clone);
- assert.equal(adjusted.profiles[0].ratesByTeammateBonus[0].skillProbabilityPerEligibleHelp,.6);
+ assert(Math.abs(adjusted.profiles[0].ratesByTeammateBonus[0].skillProbabilityPerEligibleHelp-.6)<1e-10);
 });
 test('M1: E7 injection, F4 and F5 scoring call verified shared module',()=>{
  const html=read('e7-preview/U3_Strategy_UI_20261109_v50_E7.html');
