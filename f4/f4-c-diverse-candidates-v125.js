@@ -12,13 +12,21 @@
 })(typeof globalThis!=='undefined'?globalThis:null,function(){
  'use strict';
  const DAY=new Set(['morning','noon','evening']);
- const SUPPORT=new Set(['Cooking Power-Up S','Tasty Chance S',
-  'Ingredient Magnet S','Ingredient Magnet S (Present)','Ingredient Draw S',
-  'Extra Helpful S','Helper Boost','Berry Burst','Charge Energy S',
-  'Energizing Cheer S','Energizing Cheer S (Heal Pulse)',
-  'Charge Strength S (Stockpile)','Charge Strength S (Random)',
-  'Charge Strength M (Bad Dreams)','Metronome',
-  'Skill Copy (Transform)','Versatile']);
+ // Only skills with a verified level-dependent effect may reserve a skill lane.
+ // Fixed-energy health recovery / context-unknown effects do not get a bonus.
+ const SUPPORT_CAP=Object.freeze({
+  'Cooking Power-Up S':7,'Tasty Chance S':6,
+  'Ingredient Magnet S':7,'Ingredient Magnet S (Present)':7,
+  'Ingredient Draw S':7,'Extra Helpful S':7,'Berry Burst':6
+ });
+ const SUPPORT_UNIT=Object.freeze({
+  'Cooking Power-Up S':'POT_CAPACITY_DELTA',
+  'Tasty Chance S':'EXTRA_TASTY_CHANCE_POINTS',
+  'Ingredient Magnet S':'INGREDIENT_ITEMS',
+  'Ingredient Magnet S (Present)':'INGREDIENT_ITEMS',
+  'Ingredient Draw S':'INGREDIENT_ITEMS',
+  'Extra Helpful S':'EXTRA_HELPS','Berry Burst':'BERRIES'
+ });
  const DIRECT=new Set(['Charge Strength S','Charge Strength M']);
  const fail=reason=>Object.freeze({status:'BLOCKED',reason,
   weeklyEnergyCertified:false,writesSavedData:false});
@@ -36,6 +44,18 @@
     !Number.isSafeInteger(potCapacity)||potCapacity<7||
     !Array.isArray(policy.fillerIds)||policy.fillerIds.length<4)
     return fail('V125_DIVERSITY_SOURCE_MISSING');
+   const levelWeightCache=new Map();
+   function supportWeight(skill,level){
+    if(!Object.hasOwn(SUPPORT_CAP,skill)||!Number.isSafeInteger(level))return 0;
+    const key=skill+'|'+level;
+    if(levelWeightCache.has(key))return levelWeightCache.get(key);
+    const proc=skillValues?.skillValue?.(skill,level);
+    const max=skillValues?.skillValue?.(skill,SUPPORT_CAP[skill]);
+    const good=v=>['BASE_VALUE_ONLY','PARTIAL_SIDE_EFFECT_UNMODELED'].includes(v?.status)&&
+     v.unit===SUPPORT_UNIT[skill]&&finite(v.value)&&v.value>0;
+    const weight=good(proc)&&good(max)?Math.min(1,proc.value/max.value):0;
+    levelWeightCache.set(key,weight);return weight;
+   }
    const all=new Map(profiles.map(p=>[p.id,p]));
    const raw=new Map(rawProfiles.map(p=>[p.id,p]));
    const fill=policy.fillerIds,need=slot==='morning'?3:4;
@@ -69,7 +89,7 @@
     const direct=DIRECT.has(skill)&&verified?.status==='BASE_VALUE_ONLY'&&
       verified?.unit==='ENERGY_PER_ACTIVATION'&&finite(verified.value)&&finite(chance)?
       hourly*chance*verified.value:0;
-    const support=SUPPORT.has(skill)&&finite(chance)?hourly*chance:0;
+    const support=finite(chance)?hourly*chance*supportWeight(skill,own?.selectedMainSkillLevel):0;
     return {id,berry:(r.berryEnergyPerHelp||0)*hourly,
      food,amount:sum(food),direct,support};
    };
@@ -113,7 +133,7 @@
        skillValues?.skillValue?.(skill,own.selectedMainSkillLevel):null;
       if(val?.status==='BASE_VALUE_ONLY'&&val.unit==='ENERGY_PER_ACTIVATION'&&finite(val.value))
        direct+=hourly*chance*val.value;
-      if(SUPPORT.has(skill))support+=hourly*chance;
+      support+=hourly*chance*supportWeight(skill,own.selectedMainSkillLevel);
      }
     }
     // Six hours is a screening horizon, NOT a predicted cooking time. The

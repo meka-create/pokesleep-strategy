@@ -34,16 +34,58 @@
    Object.keys(types).find(k=>types[k]===v));
   return codes.every(Boolean)&&new Set(codes).size===3?codes:null;
  }
- function healerScore(p,skillValues,hours){
+ // v127: A healer's role is an eligibility constraint, not a berry
+ // preference. The fixed-100%-energy strategy needs strong HEALING even
+ // though it does not simulate minute-by-minute recovery.
+ // Conservative reference thresholds; NOT a guarantee of actual 100% energy.
+ const HEALER_MIN_EFFECT_PER_CAST=15; // verified E4E/Berry Juice Lv5+ (Lv6=18)
+ const HEALER_MIN_RECOVERY_PER_DAY=30;
+ const HEALER_MIN_PRIMARY=20; // 16.5h reference
+ const HEALER_MIN_SECONDARY=5; // 4.5h reference
+ const HEALER_MIN_PAIR=30; // each member's expected recovery over 21h combined
+ const HEALER_SKILLS=new Set(['Energy for Everyone S',
+  'Energy for Everyone S (Berry Juice)']);
+ function assessHealer(p,skillValues){
+  const invalid=(reason)=>Object.freeze({qualified:false,reason,
+   expectedDaily:0,expectedPrimary:0,expectedSecondary:0,
+   level:p?.selectedMainSkillLevel??null,healPerCast:0});
+  if(p?.healerRole!=='TEAM_WIDE_HEALER'||!HEALER_SKILLS.has(p.skillCode))
+   return invalid('NOT_VERIFIED_TEAM_HEALER');
   const rate=p.ratesByTeammateBonus?.[0];
-  if(!rate||!['Energy for Everyone S','Energy for Everyone S (Berry Juice)']
-   .includes(p.skillCode))return 0;
-  const skill=skillValues?.skillValue(p.skillCode,p.selectedMainSkillLevel);
-  if(skill?.unit!=='TEAM_ENERGY_POINTS_EACH'||
-   !Number.isFinite(skill.value)||skill.value<0||
-   !Number.isFinite(rate.skillProbabilityPerEligibleHelp))return 0;
-  const helps=hours*3600/(rate.helpSeconds*.45);
-  return Math.max(0,helps*rate.skillProbabilityPerEligibleHelp*skill.value*5);
+  if(!rate||!Number.isFinite(rate.helpSeconds)||rate.helpSeconds<=0||
+   !Number.isFinite(rate.skillProbabilityPerEligibleHelp)||
+   rate.skillProbabilityPerEligibleHelp<0||rate.skillProbabilityPerEligibleHelp>1)
+   return invalid('HEALER_RATE_UNVERIFIED');
+  const skill=skillValues?.skillValue?.(p.skillCode,p.selectedMainSkillLevel);
+  // Berry Juice has a separately unpriced item bonus, but its team healing
+  // amount (5/7/9/11/15/18) is still verified and usable.
+  if(!['BASE_VALUE_ONLY','PARTIAL_SIDE_EFFECT_UNMODELED'].includes(skill?.status)||
+   skill.unit!=='TEAM_ENERGY_POINTS_EACH'||!Number.isFinite(skill.value)||
+   skill.value<=0)return invalid('HEALER_SKILL_LEVEL_UNVERIFIED');
+  const expectedPerDay=24*3600/(rate.helpSeconds*.45)*
+   rate.skillProbabilityPerEligibleHelp*skill.value;
+  const qualified=skill.value>=HEALER_MIN_EFFECT_PER_CAST&&
+   expectedPerDay>=HEALER_MIN_RECOVERY_PER_DAY;
+  return Object.freeze({qualified,
+   reason:qualified?null:'HEALER_RECOVERY_TOO_LOW',
+   expectedDaily:expectedPerDay,
+   expectedPrimary:expectedPerDay*16.5/24,
+   expectedSecondary:expectedPerDay*4.5/24,
+   level:p.selectedMainSkillLevel,healPerCast:skill.value});
+ }
+ function healerPairQuality(pair,profiles,skillValues){
+  const p=assessHealer(profiles.get(pair[0]),skillValues);
+  const s=assessHealer(profiles.get(pair[1]),skillValues);
+  const expected=p.expectedPrimary+s.expectedSecondary;
+  return Object.freeze({qualified:p.qualified&&s.qualified&&
+   p.expectedPrimary>=HEALER_MIN_PRIMARY&&
+   s.expectedSecondary>=HEALER_MIN_SECONDARY&&
+   expected>=HEALER_MIN_PAIR,
+   expected,primary:p,secondary:s});
+ }
+ function healerScore(p,skillValues,hours){
+  const metric=assessHealer(p,skillValues);
+  return metric.qualified?metric.expectedDaily*hours/24*5:0;
  }
  function quickScore(p,skillValues,primary){
   const rate=p.ratesByTeammateBonus[0];
@@ -54,13 +96,23 @@
    healerScore(p,skillValues,hours)*2+
    Number(p.helpingBonus)*1000;
  }
- function selectNight(profiles){
+ function selectNight(profiles,skillValues){
+  // Quick overnight screen still uses ingredient potential, but all known
+  // direct-energy skill gains are priced at the *actual* main-skill level.
   const available=[...profiles].map(p=>{
-   const rate=p.ratesByTeammateBonus[0];
-   return {id:p.id,score:rate.berryEnergyPerHelp*3600/
-    Math.max(1,rate.helpSeconds)+
-    sum(Object.values(rate.ingredientCountsPerHelp),x=>x)*150+
-    Number(p.helpingBonus)*80};
+   const rate=p.ratesByTeammateBonus[0],helps=3600/
+    Math.max(1,rate.helpSeconds*.45);
+   const effect=skillValues?.skillValue?.(p.skillCode,p.selectedMainSkillLevel);
+   const direct=['Charge Strength S','Charge Strength M',
+    'Charge Strength S (Random)'].includes(p.skillCode)&&
+    effect?.status==='BASE_VALUE_ONLY'&&
+    ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED'].includes(effect.unit)&&
+    Number.isFinite(effect.value)&&
+    Number.isFinite(rate.skillProbabilityPerEligibleHelp)?
+    effect.value*rate.skillProbabilityPerEligibleHelp*helps:0;
+   return {id:p.id,score:rate.berryEnergyPerHelp*helps+
+    sum(Object.values(rate.ingredientCountsPerHelp),x=>x)*helps*100+
+    direct+Number(p.helpingBonus)*80};
   }).sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
   return available.slice(0,5).map(p=>Number(p.id.slice(1)));
  }
@@ -68,12 +120,12 @@
  // skill) with expected availability of sustained high-energy helping.
  // Coverage is a bounded engineering scenario, not recorded heal triggers.
  function rankingScore(result,pair,profiles,skillValues){
-  const p=profiles.get(pair[0]),s=profiles.get(pair[1]);
-  const total=healerScore(p,skillValues,16.5*7)+
-   healerScore(s,skillValues,4.5*7);
-  const coverage=Math.min(1,total/(5*7*40));
-  return {score:result.energyExpected*(.65+.35*coverage),
-   recoveryProxyPoints:Math.round(total*10)/10,coverage};
+  const quality=healerPairQuality(pair,profiles,skillValues);
+  // The user-approved fixed-energy scenario does not convert healing into
+  // additional Snorlax energy. Healing is a strict eligibility gate.
+  return {score:quality.qualified?result.energyExpected:-Infinity,
+   recoveryProxyPoints:Math.round(quality.expected*7*10)/10,
+   coverage:quality.qualified?1:0,healerQualified:quality.qualified};
  }
  function extract(input,ctx,deps){
   const pairSet=new Set(input.profiles.filter(p=>
@@ -81,13 +133,17 @@
   if(pairSet.size<2)return {error:'TWO_VERIFIED_HEALERS_MISSING'};
   if(input.profiles.filter(p=>p.healerRole!== 'TEAM_WIDE_HEALER').length<4)
    return {error:'FOUR_NON_HEALERS_MISSING'};
-  const healers=input.profiles.filter(p=>pairSet.has(p.id));
+  const healers=input.profiles.filter(p=>pairSet.has(p.id)&&
+   assessHealer(p,deps.skillValues).qualified);
+  if(healers.length<2)return {error:'TWO_QUALIFIED_HEALERS_REQUIRED'};
+  const map=new Map(healers.map(p=>[p.id,p]));
   const mains=[...healers].sort((a,b)=>quickScore(b,deps.skillValues,true)-
    quickScore(a,deps.skillValues,true)||a.id.localeCompare(b.id));
   const seconds=[...healers].sort((a,b)=>quickScore(b,deps.skillValues,false)-
    quickScore(a,deps.skillValues,false)||a.id.localeCompare(b.id));
   const choices=[];
-  const append=(a,b)=>{if(a.id===b.id)return;
+  const append=(a,b)=>{if(a.id===b.id||
+   !healerPairQuality([a.id,b.id],map,deps.skillValues).qualified)return;
    const key=a.id+'|'+b.id;
    if(!choices.some(x=>x.key===key))choices.push({key,ids:[a.id,b.id],
     rough:quickScore(a,deps.skillValues,true)+quickScore(b,deps.skillValues,false)});
@@ -98,7 +154,7 @@
   for(const a of mains.slice(0,lim))for(const b of seconds.slice(0,lim))append(a,b);
   const shortlist=choices.sort((a,b)=>b.rough-a.rough||a.key.localeCompare(b.key))
    .slice(0,healers.length<=5?20:18).map(p=>p.ids);
-  return {shortlist};
+  return shortlist.length?{shortlist}:{error:'HEALER_PAIR_RECOVERY_INSUFFICIENT'};
  }
  function propose(ctx,options={},deps={}){
   try{
@@ -125,7 +181,7 @@
    if(basic?.status!=='READY')return fail(basic?.reason||'LEGAL_ROSTER_MISSING');
    const elig=new Set(basic.profiles.map(p=>Number(p.id.slice(1))));
    const nights=ctx.autoSleep===true?
-    Array.from({length:7},()=>selectNight(basic.profiles)):
+    Array.from({length:7},()=>selectNight(basic.profiles,deps.skillValues)):
     options.manualNights;
    if(!Array.isArray(nights)||nights.length!==7||
     nights.some(t=>!five(t)||t.some(i=>!elig.has(i))))
@@ -175,6 +231,7 @@
     if(result?.status!=='PROVISIONAL'||result.slots?.length!==29||
      result.weeklyEnergyCertified!==false){errors.push(result?.reason||'BAD_RESULT');continue;}
     const ranked=rankingScore(result,pair,profileMap,deps.skillValues);
+    if(!ranked.healerQualified||!Number.isFinite(ranked.score))continue;
     considered.push({pair,result,...ranked});
    }
    if(!considered.length)return fail(errors[0]||'NO_FEASIBLE_HEALER_PAIR');
@@ -228,5 +285,6 @@
     scopeNote:v125?'きのみ・食材・料理・スキル候補を保護した限定探索。未評価のスキル効果・げんき実測は含まない':'20食材/81料理の限定探索。主副ヒーラーのきのみと回復を含む参考シナリオ'});
   }catch(_){return fail('INVALID_INTEGRATED_PROPOSAL_INPUT');}
  }
- return Object.freeze({favorites,propose,rankingScore,selectNight});
+ return Object.freeze({favorites,propose,rankingScore,selectNight,
+  assessHealer,healerPairQuality});
 });

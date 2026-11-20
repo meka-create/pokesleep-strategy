@@ -38,7 +38,8 @@ const deps={weekClock:clock,roster:{adapt:()=>({
  status:'READY',sourceCommit:COMMIT,profiles})},
  base:core,policy,master:{ingredients:dict},recipes,
  auto:{favorites:()=>['water','fairy','flying'],
- rankingScore:(r,p)=>({score:r.energyExpected*(p[0]==='p0'?0.95:1),recoveryProxyPoints:20})},
+ rankingScore:(r,p)=>({score:r.energyExpected*(p[0]==='p0'?0.95:1),recoveryProxyPoints:20}),
+  assessHealer:()=>({qualified:true}),healerPairQuality:()=>({qualified:true})},
  skillValues:{skillValue:()=>({status:'BASE_VALUE_ONLY'})},
  snapshot:{upstream:{commit:COMMIT}},traits:{},legal:{},rates:{},store};
 function make(){
@@ -167,4 +168,13 @@ test('F5: preview load, SW cache and event deletion include the exact-owner part
  assert(sw.includes('../f5/f5-midweek-v119.js'));
  assert(del.includes("F5+week+':'+encoded"));
  assert(!read('index.html').includes('f5-midweek-v119'));
+});
+test('F5 v127: insufficient skill-level healers block future plan while past adoption remains untouched',()=>{
+ const f=make(),initial=f.storage.getItem(store.key('plan',W,ID));
+ const ref=mid.reference(f.ctx,f.previous,identity,{...deps,storage:f.storage,
+  auto:{...deps.auto,assessHealer:p=>({qualified:p.id==='p0'})}});
+ assert.equal(ref.status,'BLOCKED');
+ assert.equal(ref.reason,'F5_TWO_QUALIFIED_HEALERS_REQUIRED');
+ assert.equal(f.storage.getItem(store.key('plan',W,ID)),initial);
+ assert.equal(f.storage.getItem(mid.key(f.ctx)),null);
 });

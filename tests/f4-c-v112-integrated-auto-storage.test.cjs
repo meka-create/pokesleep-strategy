@@ -28,12 +28,12 @@ function profiles(fav){
  return names.map((_,i)=>({
   id:'p'+i,source:'F1_B_PINNED_66_SPECIES',healerRole:i<2?'TEAM_WIDE_HEALER':null,
   skillCode:i<2?'Energy for Everyone S':null,
-  selectedMainSkillLevel:i===0?6:1,helpingBonus:false,
+  selectedMainSkillLevel:i===0?6:5,helpingBonus:false,
   ratesByTeammateBonus:[{
    berryEnergyPerHelp:i===0?(fav[0]==='grass'?30:3):
     i===1?(fav[0]==='water'?30:3):1,
    ingredientCountsPerHelp:{apple:1},
-   helpSeconds:3600,skillProbabilityPerEligibleHelp:.02
+   helpSeconds:3600,skillProbabilityPerEligibleHelp:.06
   }]
  }));
 }
@@ -71,7 +71,7 @@ function fake(){
     weeklyEnergyCertified:false,slotCount:29};
   }},
   healerSearch:{plan:()=>{}},healerPolicy:{validate:()=>{}},
-  skillValues:{skillValue:(code,level)=>({unit:'TEAM_ENERGY_POINTS_EACH',value:level===6?18:5})},
+  skillValues:{skillValue:(code,level)=>({status:'BASE_VALUE_ONLY',unit:'TEAM_ENERGY_POINTS_EACH',value:level===6?18:15})},
   baseCore:{normalizeProfiles:()=>{}},weekClock:{build:()=>{}}
  };
  return {deps,state};

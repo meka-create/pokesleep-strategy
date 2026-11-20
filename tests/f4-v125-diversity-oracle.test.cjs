@@ -24,8 +24,10 @@ const raw=Array.from({length:10},(_,i)=>({
   berryItemsPerHelp:1,berryCountPerBerryHelp:1
  }))
 }));
-const known={skillValue:()=>({status:'BASE_VALUE_ONLY',
- unit:'ENERGY_PER_ACTIVATION',value:230})};
+const known={skillValue:(skill,level)=>skill==='Cooking Power-Up S'?
+ ({status:'BASE_VALUE_ONLY',unit:'POT_CAPACITY_DELTA',
+  value:level===7?31:10}):
+ ({status:'BASE_VALUE_ONLY',unit:'ENERGY_PER_ACTIVATION',value:230})};
 const recipes=[
  {id:'high',type:'curry',baseStrength:500000,
   requirements:{apple:12,tomato:12}},
