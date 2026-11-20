@@ -359,6 +359,8 @@ async function propose(){
     EVENT_FAVORITE_BERRIES_UNKNOWN:'好みのきのみが未確定です。イベント条件を確認してください。',
     SLEEP_PARTIES_NOT_CONFIGURED:'睡眠編成の自動をONにするか、既存の睡眠編成で7晩を設定してください。',
     TWO_VERIFIED_HEALERS_MISSING:'ボックスに対象の全体回復ヒーラーが2匹必要です。',
+    TWO_QUALIFIED_HEALERS_REQUIRED:'スキルLvや回復期待値が足りる全体回復ヒーラーを2匹以上用意してください。弱い個体は自動採用しません。',
+    HEALER_PAIR_RECOVERY_INSUFFICIENT:'主・副ヒーラーの回復期待値が不足しています。スキルLvや個体構成を確認してください。',
     FOUR_NON_HEALERS_MISSING:'ボックスにヒーラー以外の個体が4匹必要です。',
     PLAYER_VALUES_UNCONFIRMED:'プレイヤー情報の鍋・バッグ・フィールドボーナスを確認してください。'
    }[result.reason]||('今回の条件では自動提案できません：'+result.reason);
@@ -382,7 +384,9 @@ async function proposeDuring(){
    auto,base:deps.baseCore,store,storage:localStorage,
    prepPreference:pref.status==='READY'?pref:null});
   if(result.status!=='PROVISIONAL'){
-   error='残期間を再提案できません：'+result.reason+
+   error=['F5_TWO_QUALIFIED_HEALERS_REQUIRED','F5_HEALER_PAIR_RECOVERY_INSUFFICIENT'].includes(result.reason)?
+    '回復性能を満たす主・副ヒーラーが不足しています。スキルLvと発動期待値を確認してください。':
+    '残期間を再提案できません：'+result.reason+
     '。現在庫を更新し、採用済み作戦とボックスを確認してください。';
    return;
   }
