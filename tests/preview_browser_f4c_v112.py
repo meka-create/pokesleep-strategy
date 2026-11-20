@@ -25,7 +25,8 @@ def chosen_food(t,slot):
     raise ValueError((t['name'],slot))
 def individual(name):
     t=targets[name]
-    return dict(pokemon=name,nickname='非公開'+name,level=50,skillLevel=3,
+    return dict(pokemon=name,nickname='非公開'+name,level=50,
+        skillLevel=6 if name in ('サーナイト','ニンフィア') else 3,
         ing1=chosen_food(t,1),ing2=chosen_food(t,2),ing3=chosen_food(t,3),
         mainSkill=t['sourceProfile']['mainSkillJa'],nature='てれや',
         mint=False,ribbon=0,shiny=False,favorite='',
