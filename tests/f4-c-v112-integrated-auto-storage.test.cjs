@@ -71,7 +71,7 @@ function fake(){
     weeklyEnergyCertified:false,slotCount:29};
   }},
   healerSearch:{plan:()=>{}},healerPolicy:{validate:()=>{}},
-  skillValues:{skillValue:(code,level)=>({unit:'TEAM_ENERGY_POINTS_EACH',value:level===6?18:15})},
+  skillValues:{skillValue:(code,level)=>({status:'BASE_VALUE_ONLY',unit:'TEAM_ENERGY_POINTS_EACH',value:level===6?18:15})},
   baseCore:{normalizeProfiles:()=>{}},weekClock:{build:()=>{}}
  };
  return {deps,state};
