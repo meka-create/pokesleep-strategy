@@ -169,3 +169,12 @@ test('F5: preview load, SW cache and event deletion include the exact-owner part
  assert(del.includes("F5+week+':'+encoded"));
  assert(!read('index.html').includes('f5-midweek-v119'));
 });
+test('F5 v127: insufficient skill-level healers block future plan while past adoption remains untouched',()=>{
+ const f=make(),initial=f.storage.getItem(store.key('plan',W,ID));
+ const ref=mid.reference(f.ctx,f.previous,identity,{...deps,storage:f.storage,
+  auto:{...deps.auto,assessHealer:p=>({qualified:p.id==='p0'})}});
+ assert.equal(ref.status,'BLOCKED');
+ assert.equal(ref.reason,'F5_TWO_QUALIFIED_HEALERS_REQUIRED');
+ assert.equal(f.storage.getItem(store.key('plan',W,ID)),initial);
+ assert.equal(f.storage.getItem(mid.key(f.ctx)),null);
+});
