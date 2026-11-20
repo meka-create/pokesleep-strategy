@@ -105,7 +105,7 @@ test('v126: invalid box/ledger identity and corrupt preference fail without over
  const s=storage(),a=ctx();
  assert.equal(store.saveSleep(s,a,identity,week()).status,'SLEEP_SAVED');
  const saved=s.getItem(store.SLEEP_GLOBAL);
- const changed={...identity,byId:new Map([...identity.byId].slice(0,7))};
+ const changed={...identity,byId:new Map([...identity.byId].slice(0,5))};
  assert.equal(store.readSleep(s,a,changed).status,'BLOCKED');
  assert.equal(s.getItem(store.SLEEP_GLOBAL),saved);
  s.setItem(BOX,'{"version":1,"items":[1]}');
