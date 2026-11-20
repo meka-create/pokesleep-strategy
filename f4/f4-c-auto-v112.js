@@ -96,13 +96,23 @@
    healerScore(p,skillValues,hours)*2+
    Number(p.helpingBonus)*1000;
  }
- function selectNight(profiles){
+ function selectNight(profiles,skillValues){
+  // Quick overnight screen still uses ingredient potential, but all known
+  // direct-energy skill gains are priced at the *actual* main-skill level.
   const available=[...profiles].map(p=>{
-   const rate=p.ratesByTeammateBonus[0];
-   return {id:p.id,score:rate.berryEnergyPerHelp*3600/
-    Math.max(1,rate.helpSeconds)+
-    sum(Object.values(rate.ingredientCountsPerHelp),x=>x)*150+
-    Number(p.helpingBonus)*80};
+   const rate=p.ratesByTeammateBonus[0],helps=3600/
+    Math.max(1,rate.helpSeconds*.45);
+   const effect=skillValues?.skillValue?.(p.skillCode,p.selectedMainSkillLevel);
+   const direct=['Charge Strength S','Charge Strength M',
+    'Charge Strength S (Random)'].includes(p.skillCode)&&
+    effect?.status==='BASE_VALUE_ONLY'&&
+    ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED'].includes(effect.unit)&&
+    Number.isFinite(effect.value)&&
+    Number.isFinite(rate.skillProbabilityPerEligibleHelp)?
+    effect.value*rate.skillProbabilityPerEligibleHelp*helps:0;
+   return {id:p.id,score:rate.berryEnergyPerHelp*helps+
+    sum(Object.values(rate.ingredientCountsPerHelp),x=>x)*helps*100+
+    direct+Number(p.helpingBonus)*80};
   }).sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
   return available.slice(0,5).map(p=>Number(p.id.slice(1)));
  }
@@ -171,7 +181,7 @@
    if(basic?.status!=='READY')return fail(basic?.reason||'LEGAL_ROSTER_MISSING');
    const elig=new Set(basic.profiles.map(p=>Number(p.id.slice(1))));
    const nights=ctx.autoSleep===true?
-    Array.from({length:7},()=>selectNight(basic.profiles)):
+    Array.from({length:7},()=>selectNight(basic.profiles,deps.skillValues)):
     options.manualNights;
    if(!Array.isArray(nights)||nights.length!==7||
     nights.some(t=>!five(t)||t.some(i=>!elig.has(i))))
