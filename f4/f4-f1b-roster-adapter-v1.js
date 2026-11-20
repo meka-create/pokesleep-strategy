@@ -83,6 +83,7 @@
       ratesByTeammateBonus.push({
        status:'BASE_RATES_AVAILABLE',helpSeconds:rate.referenceHelpSeconds,
        berryEnergyPerHelp:berry,ingredientCountsPerHelp:rate.ingredientCountsPerHelp,
+       ingredientProbabilityPerHelp:rate.ingredientProbabilityPerHelp,
        // F4-C uses anonymous item counts/individual capacity for a separate
        // state replay. F4-A/B normalizeProfiles ignores these extra fields.
        berryItemsPerHelp:rate.berryProbabilityPerHelp*rate.berryCountPerBerryHelp,
@@ -103,6 +104,7 @@
     const healerRole=skill==='Energy for Everyone S'||
      skill==='Energy for Everyone S (Berry Juice)'?'TEAM_WIDE_HEALER':null;
     results.push({id:'p'+idx,source:'F1_B_PINNED_66_SPECIES',
+     pokemonType:target.type,
      helpingBonus:hasHelpingBonus,ratesByTeammateBonus,healerRole,
      // Fixed F1 source classification, not CSV-controlled arbitrary effects.
      skillCode:skill,skillSpecialty:target.specialty,

@@ -68,6 +68,11 @@
     return fail('F5_LATEST_ADOPTION_CHANGED');
    if(partialRaw!==null&&partialRaw!==previous.revision)
     return fail('F5_LATEST_ADOPTION_CHANGED');
+   const m1=!!(deps.m1Lite&&deps.cookingSkills);
+   if(ctx.fields?.source!=null&&!m1)return fail('F5_M1_EVENT_EVALUATOR_REQUIRED');
+   const event=m1?deps.m1Lite.event(ctx):null;
+   if(m1&&event.status!=='EVENT_READY')
+    return fail(event.reason||'F5_M1_EVENT_UNMODELED');
    const favorite=deps.auto.favorites(ctx,deps.master);
    if(!favorite||ctx.fields.field.endsWith('EX'))return fail('F5_BERRY_OR_EX_MODEL_UNVERIFIED');
    const player=ctx.player,fieldBonus=player?.bonuses?.[ctx.fields.field];
@@ -99,7 +104,12 @@
    if(roster?.status!=='READY')return fail(roster?.reason||'F5_ROSTER_INVALID');
    if(roster.sourceCommit!==deps.snapshot?.upstream?.commit)
     return fail('F5_SOURCE_COMMIT_MISMATCH');
-   const profiles=deps.base.normalizeProfiles(roster.profiles);
+   const adjusted=m1?deps.m1Lite.withEvent(roster.profiles,event,deps.skillValues):
+    {status:'ROSTER_READY',profiles:roster.profiles};
+   if(adjusted.status!=='ROSTER_READY')
+    return fail(adjusted.reason||'F5_M1_ROSTER_UNVERIFIED');
+   const liveProfiles=adjusted.profiles;
+   const profiles=deps.base.normalizeProfiles(liveProfiles);
    const people=new Map(profiles.map(p=>[p.id,p]));
    const eligible=new Set(profiles.map(p=>p.id));
    const old=previous.slots.map((w,i)=>{
@@ -117,6 +127,10 @@
    if(anchorIndex<0)return fail('F5_NO_REMAINING_WINDOWS');
    const recipes=deps.base.normalizeRecipes(deps.recipes)
     .filter(r=>ctx.fields.food==='all'||r.type===ctx.fields.food);
+   const level70ById=new Map(deps.recipes.map(r=>[r.id,r]));
+   if(m1&&(deps.recipes.length!==81||deps.recipes.some(r=>
+    !Number.isSafeInteger(r.strength70)||r.strength70<=0)))
+    return fail('F5_M1_LV70_RECIPES_UNVERIFIED');
    if(!recipes.length)return fail('F5_NO_ALLOWED_RECIPES');
     const pref=deps.prepPreference?.selectedRecipes??{},budget=deps.prepPreference?.targetCounts??{};
     if(!plain(pref)||!plain(budget)||Object.keys(pref).some(c=>
@@ -131,10 +145,10 @@
     const preferredIds=new Set(Object.values(pref));
     const preferredTotal=state=>Object.keys(pref).reduce((n,c)=>
      n+Math.min(remainingBudget[c],state.prefCount?.[c]||0),0);
-   const allHealers=roster.profiles.filter(p=>p.healerRole==='TEAM_WIDE_HEALER');
+   const allHealers=liveProfiles.filter(p=>p.healerRole==='TEAM_WIDE_HEALER');
    const healerIds=allHealers.filter(p=>
     deps.auto.assessHealer(p,deps.skillValues).qualified).map(p=>p.id);
-   if(roster.profiles.length-allHealers.length<4)
+   if(liveProfiles.length-allHealers.length<4)
     return fail('F5_HEALER_ROSTER_INSUFFICIENT');
    if(healerIds.length<2)return fail('F5_TWO_QUALIFIED_HEALERS_REQUIRED');
    function rate(id,team){
@@ -148,7 +162,7 @@
    for(const r of (preferredIds.size?recipes.filter(x=>preferredIds.has(x.id)):[...recipes].sort((a,b)=>b.baseStrength-a.baseStrength).slice(0,7)))
     for(const f of foods)demand[f]+=r.requirements[f]||0;
    const totalDemand=Math.max(1,Object.values(demand).reduce((a,b)=>a+b,0));
-   const rawById=new Map(roster.profiles.map(p=>[p.id,p]));
+   const rawById=new Map(liveProfiles.map(p=>[p.id,p]));
    function directSkillPerHelp(id,team){
     const own=rawById.get(id);
     if(!['Charge Strength S','Charge Strength M',
@@ -170,9 +184,9 @@
       foods.reduce((s,f)=>s+r.ingredientCountsPerHelp[f]*demand[f]/totalDemand,0));
     },0);
    }
-   function produce(stock,team,hours,slot,carry){
+   function produce(stock,team,hours,slot,carry,tasty){
     const got={...stock},items=Object.fromEntries(foods.map(f=>[f,0]));
-    let berry=0,skillEnergy=0;
+    let berry=0,skillEnergy=0,afterTaste=tasty;
     for(const id of team){
      const r=rate(id,team),help=hours*3600/(r.helpSeconds*(slot==='sleep'?1:0.45));
      berry+=help*r.berryEnergyPerHelp;
@@ -183,18 +197,26 @@
       Number(other!==id&&people.get(other)?.helpingBonus),0)]?.skillProbabilityPerEligibleHelp;
      if(perHelp>0&&Number.isFinite(chance)&&chance>0)
       skillEnergy+=Math.min(cap,help*chance)*perHelp/chance;
+     if(m1&&own?.skillCode==='Tasty Chance S'&&
+      Number.isFinite(chance)&&chance>0){
+      afterTaste=deps.m1Lite.expectedTastyCast(afterTaste,
+       own.selectedMainSkillLevel,Math.min(cap,help*chance),
+       cap,deps.skillValues,deps.cookingSkills);
+      if(afterTaste.status!=='STATE_READY')throw Error('F5_M1_TASTY_INVALID');
+     }
      for(const f of foods)items[f]+=help*r.ingredientCountsPerHelp[f];
     }
     const used=Object.values(got).reduce((a,b)=>a+b,0);
     const incoming=Object.values(items).reduce((a,b)=>a+b,0);
     const factor=incoming?Math.min(1,Math.max(0,player.bag-used)/incoming):0;
     for(const f of foods)got[f]+=items[f]*factor;
-    return {stock:got,berry:carry?0:berry,skillEnergy:carry?0:skillEnergy};
+    return {stock:got,berry:carry?0:berry,skillEnergy:carry?0:skillEnergy,
+     tasty:afterTaste};
    }
    const rank=state=>state.energy+Object.values(state.stock).reduce((a,b)=>a+b,0)*8;
    const preferenceOrder=(a,b)=>preferredIds.size?
     preferredTotal(b)-preferredTotal(a):0;
-   const pairs=[],profileMap=new Map(roster.profiles.map(p=>[p.id,p]));
+   const pairs=[],profileMap=new Map(liveProfiles.map(p=>[p.id,p]));
    for(const primary of healerIds)for(const secondary of healerIds){
     if(primary===secondary||!deps.auto.healerPairQuality(
      [primary,secondary],profileMap,deps.skillValues).qualified)continue;
@@ -228,7 +250,7 @@
    const possibilities=[];
    for(const pair of short){
     const [primary,secondary]=pair.ids;
-    const policy=deps.policy.validate({profiles:roster.profiles,
+    const policy=deps.policy.validate({profiles:liveProfiles,
      primaryHealerId:primary,secondaryHealerId:secondary,sleepScore:100});
     if(policy.status!=='POLICY_READY')continue;
     const choices={};
@@ -257,7 +279,10 @@
      if(!choices[slot].length){bad=true;break;}
     }
     if(bad)continue;
-    let beam=[{stock:{...inventory},energy:0,slots:[],signature:'',prefCount:{}}];
+    const initialTaste=m1?deps.cookingSkills.initial({potExtra:0,tastyExtra:0}):null;
+    if(m1&&initialTaste.status!=='STATE_READY')return fail('F5_M1_INITIAL_TASTY_INVALID');
+    let beam=[{stock:{...inventory},energy:0,slots:[],signature:'',prefCount:{},
+     tasty:initialTaste}];
     for(let i=anchorIndex;i<29;i++){
      const w=clock.windows[i],future=Date.parse(w.startsAt)>=anchor;
      const remaining=Math.max(0,(Date.parse(w.endsAt)-
@@ -275,10 +300,17 @@
       for(const dish of [null,...feasible]){
        const eaten={...state.stock};
        if(dish)for(const f of foods)eaten[f]-=dish.requirements[f];
-       const meal=dish?Math.floor(dish.baseStrength*(1+fieldBonus/100)+1e-9):0;
+       let meal=dish?Math.floor(dish.baseStrength*(1+fieldBonus/100)+1e-9):0;
+       let afterMeal=state.tasty;
+       if(m1&&dish){
+        const outcome=deps.m1Lite.cook(state.tasty,level70ById.get(dish.id),
+         fieldBonus,event.dish,w.day,deps.cookingSkills);
+        if(outcome.status!=='COOKED')throw Error('F5_M1_MEAL_INVALID');
+        meal=outcome.energyExpected;afterMeal=outcome.state;
+       }
        for(const team of teams){
         const estimated=produce(eaten,team,remaining,w.slot,
-         w.source==='PREVIOUS_WEEK_SLEEP');
+         w.source==='PREVIOUS_WEEK_SLEEP',afterMeal);
         const row=future?{...old[i],team:[...team],recipeId:dish?.id||null}:
          {...old[i]};
         row.windowPhase=future?'FUTURE_FORECAST':'ACTIVE_REMAINDER';
@@ -287,7 +319,7 @@
          energy:state.energy+meal+estimated.berry+estimated.skillEnergy,
          prefCount:dish&&pref[dish.type]===dish.id?
           {...state.prefCount,[dish.type]:(state.prefCount[dish.type]||0)+1}:state.prefCount,
-         slots:[...state.slots,row],
+         slots:[...state.slots,row],tasty:estimated.tasty,
          signature:state.signature+(dish?.id||'-')+':'+team.join(',')+';'});
        }
       }
@@ -338,10 +370,13 @@
      'V125_DIVERSE_STRATEGY_SCREEN':'LEGACY_WEIGHTED',
     healerRecoveryProxyPoints:best.recoveryProxyPoints,slots,
     pastEvidence:'UNOBSERVED_ADOPTED_FORECAST_ONLY',actualObservedCount:0,
-    officialEffectsExcluded:ctx.fields.source!=null,autoSleep:ctx.autoSleep,
+    officialEffectsExcluded:ctx.fields.source!=null&&!m1,autoSleep:ctx.autoSleep,
+    ...(m1?{m1Reference:true,eventSourceId:event.sourceId,
+     eventDishMultiplier:event.dish}:{}),
     weeklyEnergyCertified:false,officialEventEnergyCertified:false,
     canAdopt:true,writesSavedData:false,
-    scopeNote:'現在庫からACTIVE残部と未来のみ参考試算。経過済み編成と料理は旧採用予測であり、実績未確認'});
+    scopeNote:m1?'Lv70料理・大成功・料理チャンス・確認済みイベント倍率を含む残期間の軽量参考計算。過去の採用作戦は実績未確認':
+     '現在庫からACTIVE残部と未来のみ参考試算。経過済み編成と料理は旧採用予測であり、実績未確認'});
   }catch(_){return fail('F5_REFERENCE_INPUT_OR_MODEL_INVALID');}
  }
  function shape(p,clock,recipes){
@@ -454,7 +489,9 @@
     candidatePairsChecked:proposal.candidatePairsChecked,
     pastEvidence:'UNOBSERVED_ADOPTED_FORECAST_ONLY',
     actualObservedCount:0,autoSleep:ctx.autoSleep,
-    sourceMode:proposal.officialEffectsExcluded?'UNBONUSED_EVENT_REFERENCE':'NEUTRAL',
+    sourceMode:proposal.m1Reference?
+    (proposal.eventSourceId?'VERIFIED_EVENT_LIGHTWEIGHT_REFERENCE':'M1_NEUTRAL_LIGHTWEIGHT'):
+    proposal.officialEffectsExcluded?'UNBONUSED_EVENT_REFERENCE':'NEUTRAL',
     weeklyEnergyCertified:false,slots,revision:rev()};
    const issue=shape(record,clock,recipes);
    if(issue)return fail('PROPOSED_'+issue);

@@ -168,6 +168,13 @@
     return fail('F4_C_DEPENDENCIES_MISSING');
    if(ctx.fields.field.endsWith('EX'))
     return fail('EX_EVENT_CONDITIONS_UNVERIFIED');
+   const m1=!!(deps.m1Lite&&deps.cookingSkills);
+   // Never label an official event optimized when its verified effects
+   // cannot be priced. Legacy tests may still use the neutral-only model.
+   if(ctx.fields.source!=null&&!m1)return fail('M1_EVENT_EVALUATOR_REQUIRED');
+   const event=m1?deps.m1Lite.event(ctx):null;
+   if(m1&&event.status!=='EVENT_READY')
+    return fail(event.reason||'M1_EVENT_EFFECT_UNMODELED');
    const favorite=favorites(ctx,deps.master);
    if(!favorite)return fail('EVENT_FAVORITE_BERRIES_UNKNOWN');
    const player=ctx.player;
@@ -203,6 +210,14 @@
    const input={...prepared.input,previousWeekCarryUnknown:unknown,
     previousWeekSleepTeam:unknown?[]:prepared.input.previousWeekSleepTeam,
     autoSleep:false};
+   if(m1){
+    const adjusted=deps.m1Lite.withEvent(input.profiles,event,deps.skillValues);
+    if(adjusted.status!=='ROSTER_READY')
+     return fail(adjusted.reason||'M1_EVENT_PROFILE_INVALID');
+    input.profiles=adjusted.profiles;
+    input.m1Event=event;
+    input.m1Mode='M1_LIGHTWEIGHT_EVENT_V128';
+   }
    if(![78,81].includes(input.recipes.length)||input.eventSource!==null)
     return fail('RECIPE_OR_EVENT_SOURCE_INVALID');
    if(options.prepPreference){
@@ -222,12 +237,14 @@
      collectionScenario:'ASSUMED_AT_0730_1200_1800',
      initialHeldScenario:'EMPTY_AT_0400_ASSUMED',
      skillScenario:'CAPPED_EXPECTED_DIRECT_ONLY',
-     criticalScenario:'NO_CRITICAL',beamWidth:12,
+     criticalScenario:m1?'BASE_10_30_EXPECTATION':'NO_CRITICAL',
+     beamWidth:12,
      dayCandidateCount:v125?12:8,
      candidateStrategy:v125?'V125_DIVERSE':'LEGACY_WEIGHTED'
     },{search:deps.healerSearch,policy:deps.healerPolicy,
      base:deps.baseCore,clock:deps.weekClock,skillValues:deps.skillValues,
-     diversity:deps.diversity});
+     diversity:deps.diversity,m1Lite:deps.m1Lite,
+     cookingSkills:deps.cookingSkills});
     if(result?.status!=='PROVISIONAL'||result.slots?.length!==29||
      result.weeklyEnergyCertified!==false){errors.push(result?.reason||'BAD_RESULT');continue;}
     const ranked=rankingScore(result,pair,profileMap,deps.skillValues);
@@ -275,14 +292,18 @@
     healerCoverageScenario:win.coverage,
     expectedEnergy:win.result.energyExpected,
     rankingEnergyProxy:win.score,
-    officialEffectsExcluded:ctx.fields.source!=null,
+    officialEffectsExcluded:ctx.fields.source!=null&&!m1,
+    ...(m1?{m1Reference:true,eventSourceId:event.sourceId,
+     eventDishMultiplier:event.dish}:{}),
     slots:slots.map(s=>({day:s.day,slot:s.slot,source:s.source,
      startsAt:s.startsAt,endsAt:s.endsAt,team:[...s.team],
      recipeId:Object.hasOwn(s,'cookedRecipeId')?s.cookedRecipeId:s.recipeId??null})),
     // Only the user may adopt after seeing the review; not yet certified.
     canAdopt:true,weeklyEnergyCertified:false,
     officialEventEnergyCertified:false,writesSavedData:false,
-    scopeNote:v125?'きのみ・食材・料理・スキル候補を保護した限定探索。未評価のスキル効果・げんき実測は含まない':'20食材/81料理の限定探索。主副ヒーラーのきのみと回復を含む参考シナリオ'});
+    scopeNote:m1?'Lv70料理・大成功確率・料理チャンスの発動期待値と、確認済みのイベント倍率を考慮する軽量週間参考計算。鍋拡張・特殊イベントの未評価効果やげんき実測は含まない':
+     v125?'きのみ・食材・料理・スキル候補を保護した限定探索。未評価のスキル効果・げんき実測は含まない':
+     '20食材/81料理の限定探索。主副ヒーラーのきのみと回復を含む参考シナリオ'});
   }catch(_){return fail('INVALID_INTEGRATED_PROPOSAL_INPUT');}
  }
  return Object.freeze({favorites,propose,rankingScore,selectNight,

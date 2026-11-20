@@ -206,8 +206,10 @@
    planningBasis:proposal.planningBasis,
    sourceCommit:proposal.sourceCommit,primaryId,secondaryId,
    previousWeekCarryUnknown:proposal.previousWeekCarryUnknown===true,
-   sourceMode:proposal.officialEffectsExcluded?'UNBONUSED_EVENT_REFERENCE':'NEUTRAL',
-   scoreModel:'BOUND_HEALER_RECOVERY_PROXY',candidatePairsChecked:proposal.candidatePairsChecked,
+   sourceMode:proposal.m1Reference?
+    (proposal.eventSourceId?'VERIFIED_EVENT_LIGHTWEIGHT_REFERENCE':'M1_NEUTRAL_LIGHTWEIGHT'):
+    proposal.officialEffectsExcluded?'UNBONUSED_EVENT_REFERENCE':'NEUTRAL',
+   scoreModel:proposal.m1Reference?'M1_LV70_TASTY_EVENT_ENERGY':'BOUND_HEALER_RECOVERY_PROXY',candidatePairsChecked:proposal.candidatePairsChecked,
    expectedEnergy:proposal.expectedEnergy,rankingEnergyProxy:proposal.rankingEnergyProxy,
    autoSleep:proposal.autoSleep===true,
    slots:slots.map(s=>({day:s.day,slot:s.slot,source:s.source,

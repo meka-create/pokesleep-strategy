@@ -32,10 +32,17 @@
     typeof base?.normalizeRecipes!=='function'||typeof clock?.build!=='function'||
     typeof policy?.validate!=='function'||typeof skillValues?.skillValue!=='function')
     return fail('PINNED_DEPENDENCIES_MISSING');
+   const m1=input.m1Mode==='M1_LIGHTWEIGHT_EVENT_V128';
+   if(input.m1Mode!=null&&!m1)return fail('M1_MODE_INVALID');
+   if(m1&&(!deps.m1Lite?.recipeEnergy||!deps.m1Lite?.expectedTastyCast||
+    !deps.m1Lite?.cook||input.m1Event?.status!=='EVENT_READY'||
+    input.criticalScenario!=='BASE_10_30_EXPECTATION'))
+    return fail('M1_DEPENDENCIES_OR_EVENT_INVALID');
    const cookingMode=input.cookingSkillScenario==='EXPLICIT_TAP_EVENTS_V1';
+   if(m1&&cookingMode)return fail('M1_EXPLICIT_CASTS_CONFLICT');
    if(input.cookingSkillScenario!=null&&!cookingMode)
     return fail('COOKING_SKILL_SCENARIO_INVALID');
-   if(cookingMode&&(!deps.cookingSkills?.initial||
+   if((cookingMode||m1)&&(!deps.cookingSkills?.initial||
     !deps.cookingSkills?.cast||!deps.cookingSkills?.capacity||
     !deps.cookingSkills?.cook))return fail('COOKING_SKILL_KERNEL_MISSING');
    const width=input.beamWidth??12,n=Math.min(12,Math.max(2,Math.floor(width)));
@@ -50,6 +57,10 @@
     return fail('CLOCK_INVALID');
    const rows=input.profiles,normal=base.normalizeProfiles(rows);
    const recipes=base.normalizeRecipes(input.recipes),recipeMap=new Map(recipes.map(r=>[r.id,r]));
+   const lv70ById=new Map(input.recipes.map(r=>[r.id,r]));
+   if(m1&&(input.recipes.some(r=>!Number.isSafeInteger(r.strength70)||
+    r.strength70<=0)||input.recipes.length!==81))
+    return fail('M1_LV70_RECIPE_CATALOG_UNVERIFIED');
    const idMap=new Map(rows.map(r=>[r.id,r])),rateMap=new Map(normal.map(r=>[r.id,r]));
    const foods=base.FOOD;
    const overrides=input.displayedRecipeEnergies||{};
@@ -120,7 +131,9 @@
      extraTastyUnpriced=0,sneaky=0,forfeited=0,foodOverflow=0,
      blockedCooking=0,skillUnpriced=0,skillExpected=0,fullWindows=0;
     const windows=[];
-    let cooking=cookingMode?deps.cookingSkills.initial(input.initialCookingBuffs):null;
+    let cooking=m1?deps.cookingSkills.initial({potExtra:0,tastyExtra:0}):
+     cookingMode?deps.cookingSkills.initial(input.initialCookingBuffs):null;
+    if(m1&&cooking.status!=='STATE_READY')return fail('M1_TASTY_STATE_INVALID');
     let casts=0,ingredientAdded=0,potUsed=0,ingredientMissed=0;
     function collect(){
      // A tap at 07:30/12:00/18:00 collects only the CURRENT on-field
@@ -148,6 +161,12 @@
          effect.unit==='ENERGY_PER_ACTIVATION'&&
          (info.skill==='Charge Strength S'||info.skill==='Charge Strength M')){
          skills+=active*effect.value;
+        }else if(m1&&info.skill==='Tasty Chance S'&&
+         effect.status==='BASE_VALUE_ONLY'){
+         const next=deps.m1Lite.expectedTastyCast(cooking,info.level,
+          active,info.skillCap,skillValues,deps.cookingSkills);
+         if(next.status!=='STATE_READY')return next.reason||'M1_TASTY_CAST_INVALID';
+         cooking=next;
         }else skillUnpriced+=active;
        }else skillUnpriced+=active;
       }
@@ -229,7 +248,13 @@
        const successEnergy=Math.floor(levelEnergy*(1+input.fieldBonus/100)*
         (w.day===6?3:2)+1e-9);
        let extra;
-       if(cookingMode){
+       if(m1){
+        const outcome=deps.m1Lite.cook(cooking,lv70ById.get(dish.id),
+         input.fieldBonus,input.m1Event.dish,w.day,deps.cookingSkills);
+        if(outcome.status!=='COOKED')return fail(outcome.reason||'M1_RECIPE_MODEL_INVALID');
+        cooking=outcome.state;meal=outcome.energyExpected;
+        extra=outcome.criticalIncrementExpected;
+       }else if(cookingMode){
         const outcome=deps.cookingSkills.cook(cooking,{
          baseEnergy,successEnergy,day:w.day,useCritical:critical
         });
@@ -343,9 +368,10 @@
    const winner=evaluated[0];
    return Object.freeze({...winner,
     status:'PROVISIONAL',
-    stage:cookingMode?'F4_C_V102_COOKING_STATE_REFERENCE':
+    stage:m1?'F4_C_M1_LIGHTWEIGHT_V128':cookingMode?'F4_C_V102_COOKING_STATE_REFERENCE':
      'F4_C_V101_ITEM_AWARE_RERANK',
-    model:cookingMode?'EXPLICIT_COOKING_SKILL_29_WINDOW_REFERENCE':
+    model:m1?'LV70_EVENT_TASTY_BOUNDED_DISTRIBUTION_REFERENCE':
+      cookingMode?'EXPLICIT_COOKING_SKILL_29_WINDOW_REFERENCE':
      'BOUNDED_ASSUMED_COLLECTION_STATE_REFERENCE',
     evaluatedCandidates:evaluated.length,chosenCandidateIndex:winner.candidateIndex,
     collectionScenario:input.collectionScenario,
@@ -362,18 +388,25 @@
     healthRecoveredActual:false,
     exactDiscreteProbabilityModeled:false,
     cookingBaseCriticalChanceUnverified:true,
-    recipeEnergyMode:Object.keys(overrides).length?'MIXED_EXPLICIT_DISPLAY_ENERGY':'BASE_LEVEL_ONLY',
+    recipeEnergyMode:m1?'ALL_RECIPES_LV70_FIXED_EVENT_AWARE':
+     Object.keys(overrides).length?'MIXED_EXPLICIT_DISPLAY_ENERGY':'BASE_LEVEL_ONLY',
+    ...(m1?{m1EventMode:input.m1Event.official?'VERIFIED_EVENT':'NEUTRAL',
+     m1EventDishMultiplier:input.m1Event.dish,
+     tastyChanceExpectedIncluded:true}:{}),
     assumptions:[
      '料理前07:30/12:00/18:00の回収は比較用シナリオ。ユーザーの観測済み行動ではない',
      '00:00の睡眠編成切替では回収せず、外れた個体の所持品とストックは失う',
      '所持上限到達以降をきのみのおてつだいにし、食材生成・スキル抽選は行わない',
      '食材・きのみ・スキル抽選は連続期待値の比例近似で、個数の離散性は未検証',
      'スキルストックは1または2回上限の保守的期待値。発動保証ではない',
-     cookingMode?
+     m1?
+      '料理チャンスは発動時刻を追わず、1/2ストック上限と実Lv別発動期待数で近似。大成功後のリセットはv102の確率分布を適用':cookingMode?
       '明示した発動の鍋・料理チャンス・食材ゲットのみ参照計算。実発動は保証しない':
       '全体回復・料理チャンス・鍋拡張・食材ゲットなどの効果量はエナジーへ換算しない',
-     'レシピ表示エナジーを未指定の場合は基礎エナジー。大成功率は検証Wikiの仮説値',
-     '公式イベントやEX補正・20/81新食材カタログは未接続。週間エナジーは未認証'
+     m1?'Lv70固定の既存81レシピを使用。イベント料理倍率は該当成分に一度だけ適用':
+      'レシピ表示エナジーを未指定の場合は基礎エナジー。大成功率は検証Wikiの仮説値',
+     m1?'確認済みイベント補正のみ。鍋・未評価間接スキル・EX固有効果・実げんき時系列は未接続':
+      '公式イベントやEX補正・20/81新食材カタログは未接続。週間エナジーは未認証'
     ]});
   }catch(_){return fail('INVALID_ITEM_AWARE_INPUT');}
  }
