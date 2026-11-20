@@ -288,7 +288,9 @@ async function synchronize(force=false){
   const partial=mid.read(localStorage,c,refs,mods.snapshot.upstream.commit,
     deps.recipes,c.clock,store);
    if(['ADOPTED','STALE_ADOPTED','BLOCKED'].includes(partial.status))adopted=partial;
-   const nights=store.readSleep(localStorage,c,refs);
+   // One-time restore of verified legacy event-owned 7-night settings.
+   // The saved manual template itself is independent of the event/week.
+   const nights=store.migrateSleep(localStorage,c,refs);
   // Explicit manual night changes invalidate a formerly adopted plan.
   if(['ADOPTED','STALE_ADOPTED'].includes(adopted.status)&&!c.autoSleep){
    const saved=nights.status==='SLEEP_READY'?nights.teams:null;
