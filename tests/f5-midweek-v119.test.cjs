@@ -207,6 +207,11 @@ test('M1 F5: unsupported official event is not silently evaluated as neutral',()
  const scorer=load('f4/f4-m1-lite-energy-v128.js');
  const kernel=load('f4/f4-c-cooking-skills-v102.js');
  const c={...f.ctx,eventId:id,fields:{...f.ctx.fields,source}};
+ // The event must own the original adopted plan before the event-bonus
+ // model gate is reached. Avoid testing a missing owner instead.
+ const original=JSON.parse(f.storage.getItem(store.key('plan',W,ID)));
+ original.eventId=id;
+ f.storage.setItem(store.key('plan',W,id),JSON.stringify(original));
  const result=mid.reference(c,f.previous,identity,{
   ...deps,storage:f.storage,m1Lite:scorer,cookingSkills:kernel,
   recipes:deps.recipes.map(x=>({...x,strength70:Math.round(x.baseStrength*3.58)}))});
