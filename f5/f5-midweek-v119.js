@@ -148,26 +148,48 @@
    for(const r of (preferredIds.size?recipes.filter(x=>preferredIds.has(x.id)):[...recipes].sort((a,b)=>b.baseStrength-a.baseStrength).slice(0,7)))
     for(const f of foods)demand[f]+=r.requirements[f]||0;
    const totalDemand=Math.max(1,Object.values(demand).reduce((a,b)=>a+b,0));
+   const rawById=new Map(roster.profiles.map(p=>[p.id,p]));
+   function directSkillPerHelp(id,team){
+    const own=rawById.get(id);
+    if(!['Charge Strength S','Charge Strength M',
+     'Charge Strength S (Random)'].includes(own?.skillCode))return 0;
+    const bonus=team.reduce((n,other)=>n+Number(other!==id&&
+     people.get(other)?.helpingBonus),0);
+    const chance=own.ratesByTeammateBonus?.[bonus]?.skillProbabilityPerEligibleHelp;
+    if(!Number.isFinite(chance)||chance<0||chance>1)return 0;
+    const effect=deps.skillValues.skillValue(own.skillCode,
+     own.selectedMainSkillLevel,{fieldBonusPercent:fieldBonus});
+    return effect?.status==='BASE_VALUE_ONLY'&&
+     ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED'].includes(effect.unit)&&
+     Number.isFinite(effect.value)&&effect.value>=0?effect.value*chance:0;
+   }
    function teamValue(team,weight){
     return team.reduce((sum,id)=>{
      const r=rate(id,team),hourly=3600/r.helpSeconds;
-     return sum+hourly*(r.berryEnergyPerHelp+weight*
+     return sum+hourly*(r.berryEnergyPerHelp+directSkillPerHelp(id,team)+weight*
       foods.reduce((s,f)=>s+r.ingredientCountsPerHelp[f]*demand[f]/totalDemand,0));
     },0);
    }
    function produce(stock,team,hours,slot,carry){
     const got={...stock},items=Object.fromEntries(foods.map(f=>[f,0]));
-    let berry=0;
+    let berry=0,skillEnergy=0;
     for(const id of team){
      const r=rate(id,team),help=hours*3600/(r.helpSeconds*(slot==='sleep'?1:0.45));
      berry+=help*r.berryEnergyPerHelp;
+     const own=rawById.get(id);
+     const cap=own?.skillSpecialty==='Skills'?2:1;
+     const perHelp=directSkillPerHelp(id,team);
+     const chance=own?.ratesByTeammateBonus?.[team.reduce((n,other)=>n+
+      Number(other!==id&&people.get(other)?.helpingBonus),0)]?.skillProbabilityPerEligibleHelp;
+     if(perHelp>0&&Number.isFinite(chance)&&chance>0)
+      skillEnergy+=Math.min(cap,help*chance)*perHelp/chance;
      for(const f of foods)items[f]+=help*r.ingredientCountsPerHelp[f];
     }
     const used=Object.values(got).reduce((a,b)=>a+b,0);
     const incoming=Object.values(items).reduce((a,b)=>a+b,0);
     const factor=incoming?Math.min(1,Math.max(0,player.bag-used)/incoming):0;
     for(const f of foods)got[f]+=items[f]*factor;
-    return {stock:got,berry:carry?0:berry};
+    return {stock:got,berry:carry?0:berry,skillEnergy:carry?0:skillEnergy};
    }
    const rank=state=>state.energy+Object.values(state.stock).reduce((a,b)=>a+b,0)*8;
    const preferenceOrder=(a,b)=>preferredIds.size?
@@ -262,7 +284,7 @@
         row.windowPhase=future?'FUTURE_FORECAST':'ACTIVE_REMAINDER';
         row.remainingHours=remaining;
         expanded.push({stock:estimated.stock,
-         energy:state.energy+meal+estimated.berry,
+         energy:state.energy+meal+estimated.berry+estimated.skillEnergy,
          prefCount:dish&&pref[dish.type]===dish.id?
           {...state.prefCount,[dish.type]:(state.prefCount[dish.type]||0)+1}:state.prefCount,
          slots:[...state.slots,row],
