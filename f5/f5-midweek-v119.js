@@ -489,7 +489,9 @@
     candidatePairsChecked:proposal.candidatePairsChecked,
     pastEvidence:'UNOBSERVED_ADOPTED_FORECAST_ONLY',
     actualObservedCount:0,autoSleep:ctx.autoSleep,
-    sourceMode:proposal.officialEffectsExcluded?'UNBONUSED_EVENT_REFERENCE':'NEUTRAL',
+    sourceMode:proposal.m1Reference?
+    (proposal.eventSourceId?'VERIFIED_EVENT_LIGHTWEIGHT_REFERENCE':'M1_NEUTRAL_LIGHTWEIGHT'):
+    proposal.officialEffectsExcluded?'UNBONUSED_EVENT_REFERENCE':'NEUTRAL',
     weeklyEnergyCertified:false,slots,revision:rev()};
    const issue=shape(record,clock,recipes);
    if(issue)return fail('PROPOSED_'+issue);
