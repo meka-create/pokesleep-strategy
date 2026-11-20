@@ -583,8 +583,21 @@ function arrangeHealers(team){
 function makeBase(){return {days:Array.from({length:7},()=>({morning:arrangeHealers(BASE_DAY),noon:arrangeHealers(BASE_DAY),evening:arrangeHealers(BASE_DAY),sleep:arrangeHealers(BASE_SLEEP),recipes:[0,0,0]})),edited:[],autoSleep:false,foodMode:'curry'};}
 let applied=makeBase(),draft=null,view='active',selectedDay=0,edit=null,hasApplied=false,hasProposed=false;
 let selectedSleepDay=0,reviewDay=0,stockConfirmed=null,stockPending=null;
+// Player-wide illustrative manual setting. The real-Box setting uses stable IDs
+// in F4-C's independent global key and is never overwritten by these mock IDs.
+const MANUAL_SLEEP_GLOBAL='pokesleep-strategy-u3-e3-v1:manual-sleep-template-v126';
+function readGlobalManualSleep(){
+ try{
+  const raw=localStorage.getItem(MANUAL_SLEEP_GLOBAL);
+  if(!raw)return null;
+  const data=JSON.parse(raw);
+  if(data?.version!==1||data.kind!=='E7_MANUAL_SLEEP_TEMPLATE_V126'||
+   !validTeams(data.teams))return null;
+  return JSON.parse(JSON.stringify(data.teams));
+ }catch(_){return null;}
+}
 // Manually selected sleep teams survive proposals generated with auto-sleep ON.
-let manualSleep=Array.from({length:7},()=>arrangeHealers(BASE_SLEEP));
+let manualSleep=readGlobalManualSleep()||Array.from({length:7},()=>arrangeHealers(BASE_SLEEP));
 // Snapshots distinguish pending settings from the already-adopted plan.
 let appliedEventStart=null,appliedEventInfo=null;
 // Transfer is URL-based so the two offline HTML previews can work in the same folder.
@@ -746,6 +759,25 @@ function validStoredState(entry,week,id){
   (entry.eventInfo.source?.id||'manual:'+week)===id&&
   (!entry.hasApplied||validPlan(entry.applied))&&(!entry.draft||validPlan(entry.draft));
 }
+function storeSleepPreference(){
+ // Save only on an explicit manual choice, never during event auto-save.
+ const before=localStorage.getItem(MANUAL_SLEEP_GLOBAL);
+ try{
+  const raw=JSON.stringify({version:1,kind:'E7_MANUAL_SLEEP_TEMPLATE_V126',
+   teams:manualSleep});
+  if(!validTeams(manualSleep))return false;
+  localStorage.setItem(MANUAL_SLEEP_GLOBAL,raw);
+  if(localStorage.getItem(MANUAL_SLEEP_GLOBAL)!==raw||!storeState())
+   throw Error('SLEEP_PREF_OR_EVENT_SAVE_FAILED');
+  return true;
+ }catch(_){
+  try{
+   if(before===null)localStorage.removeItem(MANUAL_SLEEP_GLOBAL);
+   else localStorage.setItem(MANUAL_SLEEP_GLOBAL,before);
+  }catch(e){}
+  return false;
+ }
+}
 function storeState(){
  // A developer reset must never be undone by the old iframe's beforeunload save.
  if(window.__pokesleepE7ResetRevoked)return false;
@@ -763,13 +795,22 @@ function restoreState(week,resetIfMissing=false){
  // Switching event week never copies an old week's applied plan into the new week.
  if(resetIfMissing){applied=makeBase();hasApplied=false;hasProposed=false;appliedEventStart=null;appliedEventInfo=null;
    draft=null;stockConfirmed=null;stockPending=null;appliedInventoryAt=null;
-   manualSleep=Array.from({length:7},()=>arrangeHealers(BASE_SLEEP));setSwitch('auto-sleep',false);selectedDay=0;reviewDay=0;}
+   manualSleep=readGlobalManualSleep()||Array.from({length:7},()=>arrangeHealers(BASE_SLEEP));setSwitch('auto-sleep',false);selectedDay=0;reviewDay=0;}
  try{
   const entry=JSON.parse(localStorage.getItem(strategyKey(week))||'null');
   if(!validStoredState(entry,week,e3Selected?.id))return false;
   eventInfo=clone(entry.eventInfo);hasApplied=!!entry.hasApplied;applied=hasApplied?clone(entry.applied):makeBase();
   appliedEventStart=hasApplied?week:null;appliedEventInfo=hasApplied&&entry.appliedEventInfo?clone(entry.appliedEventInfo):null;
-  manualSleep=clone(entry.manualSleep);setSwitch('auto-sleep',!!entry.autoSleep);
+  const sharedSleep=readGlobalManualSleep();
+  manualSleep=sharedSleep||clone(entry.manualSleep);
+  // Migrate a pre-v126 event-scoped manual setting once. Never replace a
+  // newer globally saved preference just because an older event was opened.
+  if(!sharedSleep&&validTeams(entry.manualSleep)){
+   try{localStorage.setItem(MANUAL_SLEEP_GLOBAL,JSON.stringify({
+    version:1,kind:'E7_MANUAL_SLEEP_TEMPLATE_V126',teams:entry.manualSleep
+   }));}catch(_){}
+  }
+  setSwitch('auto-sleep',!!entry.autoSleep);
   draft=entry.draft?clone(entry.draft):null;
   hasProposed=!!entry.hasProposed||!!entry.hasApplied||!!entry.draft;
   stockConfirmed=entry.stockConfirmed?clone(entry.stockConfirmed):null;
@@ -1339,7 +1380,7 @@ async function copySleepNights(day){
  if(eligible.some(i=>JSON.stringify(manualSleep[i])!==JSON.stringify(team))&&!(await PokeUI.confirm('未開始の睡眠編成を、この5匹にそろえますか？',{title:'睡眠編成を一括設定',okText:'設定する'})))return;
  const before=clone(manualSleep);
  eligible.forEach(i=>{manualSleep[i]=[...team];});
- if(!storeState()){
+ if(!storeSleepPreference()){
   manualSleep=before;
   showToast('睡眠編成を保存できませんでした。変更前の設定を保持しました。',true);
   renderSleepSettings();render();return;
@@ -1357,7 +1398,7 @@ function saveEdit(){
  if(!edit||edit.slot!=='sleep'||edit.picks.length!==5)return;
  if(isPastSlot(edit.day,'sleep')){$('#edit-error').textContent='この夜は開始済みです。';return;}
  const day=edit.day,before=clone(manualSleep);manualSleep[day]=arrangeHealers(edit.picks);
- if(!storeState()){
+ if(!storeSleepPreference()){
   manualSleep=before;
   $('#edit-error').textContent='保存できませんでした。設定は変更されていません。';
   showToast('睡眠編成を保存できませんでした。',true);render();return;

@@ -11,6 +11,7 @@
  'use strict';
  const PREFIX='pokesleep-strategy-f4c-v112:',BOX='pokesleep-strategy-e7-box-v1';
  const LEDGER=PREFIX+'box-ledger';
+ const SLEEP_GLOBAL=PREFIX+'sleep-template-global-v126';
  const FIELDS=['nickname','pokemon','level','skillLevel','ing1','ing2','ing3',
   'mainSkill','nature','mint','lv10','lv25','lv50','lv70','lv80',
   'ribbon','shiny','favorite'];
@@ -270,44 +271,103 @@
   if(typeof crypto!=='undefined'&&crypto?.randomUUID)return crypto.randomUUID();
   return ''+Date.now();
  }
+ // Manual seven-night teams belong to the player, not an event/week.
+ // Event-owned adopted plans and confirmed previous-Sunday carry are separate.
+ function sleepIDs(teams,identity){
+  if(!Array.isArray(teams)||teams.length!==7||
+   teams.some(t=>t!==null&&(!Array.isArray(t)||t.length!==5||
+    new Set(t).size!==5||t.some(i=>!Number.isSafeInteger(i)||
+     i<0||i>=identity.ids.length))))return null;
+  const ids=teams.map(t=>t===null?null:t.map(i=>identity.ids[i]));
+  return uniqueUsed(ids.filter(Boolean).flat(),identity)?ids:null;
+ }
+ const sleepShape=v=>v?.version===1&&
+  Array.isArray(v.teams)&&v.teams.length===7&&
+  v.teams.some(Boolean)&&v.teams.every(row=>row===null||five(row));
+ function mapSleep(v,identity,scope){
+  if(!sleepShape(v))return fail('SLEEP_SAVE_INVALID');
+  if(!uniqueUsed(v.teams.filter(Boolean).flat(),identity))
+   return fail('SAVED_SLEEP_INDIVIDUAL_CHANGED');
+  return {status:'SLEEP_READY',source:scope,
+   teams:v.teams.map(row=>row===null?null:row.map(id=>identity.byId.get(id))),
+   revision:v.revision??null};
+ }
+ function legacySleep(storage,ctx,identity){
+  const own=entry(storage,key('sleep',ctx.weekStart,ctx.eventId));
+  if(own.value){
+   const v=own.value;
+   if(v.version!==1||v.weekStart!==ctx.weekStart||v.eventId!==ctx.eventId)
+    return fail('SLEEP_OWNER_MISMATCH');
+   return mapSleep(v,identity,'LEGACY_EVENT');
+  }
+  // Old UUID revisions carry no timestamp. For a previous event use the
+  // newest event WEEK, but fail closed if multiple events share that week.
+  if(typeof storage.length!=='number'||typeof storage.key!=='function')
+   return {status:'EMPTY',teams:null};
+  const matches=[];
+  for(let i=0;i<storage.length;i++){
+   const k=storage.key(i),m=/^pokesleep-strategy-f4c-v112:sleep:(\d{4}-\d\d-\d\d):(.+)$/.exec(k||'');
+   if(!m||!weekOK(m[1]))continue;
+   let id;try{id=decodeURIComponent(m[2]);}catch(_){continue;}
+   if(encodeURIComponent(id)!==m[2])continue;
+   const raw=entry(storage,k);
+   if(!raw.value||raw.value.weekStart!==m[1]||
+    raw.value.eventId!==id||!sleepShape(raw.value))continue;
+   matches.push({week:m[1],entry:raw.value});
+  }
+  matches.sort((a,b)=>b.week.localeCompare(a.week));
+  if(!matches.length)return {status:'EMPTY',teams:null};
+  if(matches.length>1&&matches[0].week===matches[1].week)
+   return fail('LEGACY_SLEEP_MULTIPLE_EVENTS_AMBIGUOUS');
+  return mapSleep(matches[0].entry,identity,'LEGACY_PREVIOUS_EVENT');
+ }
  function readSleep(storage,ctx,identity){
   try{
-   if(!ownerOK(ctx)||identity?.status!=='IDENTITIES_READY')return fail('BOX_NOT_VERIFIED');
-   const r=entry(storage,key('sleep',ctx.weekStart,ctx.eventId));
-   if(!r.value)return {status:'EMPTY',teams:null};
-   const v=r.value;
-   if(v.version!==1||v.eventId!==ctx.eventId||v.weekStart!==ctx.weekStart||
-    !Array.isArray(v.teams)||v.teams.length!==7||
-    v.teams.some(row=>row!==null&&!five(row)))return fail('SLEEP_SAVE_INVALID');
-   const refs=v.teams.filter(Boolean).flat();
-   if(!uniqueUsed(refs,identity))return fail('SAVED_SLEEP_INDIVIDUAL_CHANGED');
-   return {status:'SLEEP_READY',teams:v.teams.map(row=>row===null?null:
-    row.map(id=>identity.byId.get(id)))};
+   if(!ownerOK(ctx)||identity?.status!=='IDENTITIES_READY')
+    return fail('BOX_NOT_VERIFIED');
+   const current=entry(storage,SLEEP_GLOBAL);
+   if(current.raw!==null){
+    const v=current.value;
+    if(v?.kind!=='GLOBAL_MANUAL_SLEEP_V126'||!sleepShape(v)||
+      typeof v.revision!=='string'||!v.revision)
+     return fail('GLOBAL_SLEEP_SAVE_INVALID');
+    return mapSleep(v,identity,'GLOBAL');
+   }
+   return legacySleep(storage,ctx,identity);
   }catch(_){return fail('SAVED_SLEEP_READ_FAILED');}
  }
  function saveSleep(storage,ctx,identity,teams){
   try{
-   if(!ownerOK(ctx)||identity?.status!=='IDENTITIES_READY'||
-    !Array.isArray(teams)||teams.length!==7||teams.some(t=>
-     t!==null&&(!Array.isArray(t)||t.length!==5||
-      new Set(t).size!==5||t.some(i=>!Number.isSafeInteger(i)||
-       i<0||i>=identity.ids.length))))return fail('SLEEP_INPUT_INVALID');
-   const ids=teams.map(t=>t===null?null:t.map(i=>identity.ids[i]));
-   if(!uniqueUsed(ids.filter(Boolean).flat(),identity))
-    return fail('DUPLICATE_SLEEP_INDIVIDUAL_AMBIGUOUS');
+   if(!ownerOK(ctx)||identity?.status!=='IDENTITIES_READY')
+    return fail('BOX_NOT_VERIFIED');
+   const ids=sleepIDs(teams,identity);
+   if(!ids||!ids.some(Boolean))return fail('SLEEP_INPUT_INVALID');
    if(storage.getItem(BOX)!==identity.boxRaw||
-    storage.getItem(LEDGER)!==identity.ledgerRevision)
+      storage.getItem(LEDGER)!==identity.ledgerRevision)
     return fail('BOX_CHANGED_BEFORE_SLEEP_SAVE');
-   const k=key('sleep',ctx.weekStart,ctx.eventId),current=entry(storage,k);
-   if(current.value&&(current.value.eventId!==ctx.eventId||
-    current.value.weekStart!==ctx.weekStart))return fail('SLEEP_OWNER_MISMATCH');
-   const raw=JSON.stringify({version:1,eventId:ctx.eventId,
-    weekStart:ctx.weekStart,teams:ids,revision:depsRevision()});
-   if(storage.getItem(k)!==current.raw)return fail('SLEEP_CONCURRENT_UPDATE');
-   storage.setItem(k,raw);
-   return storage.getItem(k)===raw?{status:'SLEEP_SAVED'}:
-    fail('SLEEP_SAVE_FAILED');
+   const before=entry(storage,SLEEP_GLOBAL);
+   if(before.raw!==null){
+    if(before.value?.kind!=='GLOBAL_MANUAL_SLEEP_V126'||
+     !sleepShape(before.value))return fail('GLOBAL_SLEEP_SAVE_INVALID');
+   }
+   const raw=JSON.stringify({version:1,kind:'GLOBAL_MANUAL_SLEEP_V126',
+     teams:ids,revision:depsRevision()});
+   if(storage.getItem(SLEEP_GLOBAL)!==before.raw)
+    return fail('SLEEP_CONCURRENT_UPDATE');
+   storage.setItem(SLEEP_GLOBAL,raw);
+   return storage.getItem(SLEEP_GLOBAL)===raw?
+    {status:'SLEEP_SAVED',scope:'GLOBAL'}:fail('SLEEP_SAVE_FAILED');
   }catch(_){return fail('SLEEP_SAVE_FAILED');}
+ }
+ function migrateSleep(storage,ctx,identity){
+  // Never replace an existing global choice with a legacy event snapshot.
+  if(storage.getItem(SLEEP_GLOBAL)!==null)return readSleep(storage,ctx,identity);
+  const legacy=readSleep(storage,ctx,identity);
+  if(legacy.status!=='SLEEP_READY'||!legacy.source.startsWith('LEGACY_'))
+   return legacy;
+  const written=saveSleep(storage,ctx,identity,legacy.teams);
+  if(written.status!=='SLEEP_SAVED')return fail('LEGACY_SLEEP_MIGRATION_FAILED');
+  return readSleep(storage,ctx,identity);
  }
  const previousSunday=week=>{
   const d=Date.parse(week+'T12:00:00Z');
@@ -357,6 +417,6 @@
     fail('PREVIOUS_SUNDAY_WRITE_FAILED');
   }catch(_){return fail('PREVIOUS_SUNDAY_SAVE_FAILED');}
  }
- return Object.freeze({PREFIX,LEDGER,key,identities,verifyExistingIdentities,createRecord,
-  readPlan,adopt,readSleep,saveSleep,readCarry,saveCarry,planShape});
+ return Object.freeze({PREFIX,LEDGER,SLEEP_GLOBAL,key,identities,verifyExistingIdentities,createRecord,
+  readPlan,adopt,readSleep,saveSleep,migrateSleep,readCarry,saveCarry,planShape});
 });
