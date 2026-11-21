@@ -24,7 +24,13 @@
    return fail('M1_EVENT_OWNER_MISSING');
   const source=ctx.fields?.source;
   if(source==null){
-   if(ctx.eventId!=='manual:'+ctx.weekStart)
+   const prefix='manual:'+ctx.weekStart;
+   const suffix=ctx.eventId.slice(prefix.length);
+   // Multiple distinct user-created events can share the same week.
+   // Only same-week numeric suffixes are neutral manual events; never
+   // reinterpret an official/mismatched ID as a manual event.
+   if(ctx.eventId!==prefix&&
+    !(ctx.eventId.startsWith(prefix)&&/^-[1-9]\\d*$/.test(suffix)))
     return fail('M1_EVENT_SOURCE_REQUIRED');
    return neutral;
   }
