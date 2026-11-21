@@ -46,8 +46,24 @@ const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
      p.allocatedMeals[cat]<1||p.allocatedMeals[cat]>21)||
     p.categories.reduce((n,cat)=>n+p.allocatedMeals[cat],0)>21)
     return {status:'BLOCKED',reason:'備蓄レシピまたは食数が現在の条件と一致しません。準備タブで保存し直してください。'};
-   return {status:'READY',selectedRecipes:p.selectedRecipes,
-    targetCounts:p.allocatedMeals};
+    // In BEFORE, F3 targets must still fit simultaneous bag occupancy.
+    // A during-week snapshot is never confused with an opening inventory.
+    if(c.clock?.phase==='BEFORE'){
+     const stock={};
+     for(const code of calc.FOODS){
+      const label=deps.master?.ingredients?.[code],n=c.inventoryValues?.[label];
+      if(typeof label!=='string'||!Number.isSafeInteger(n)||n<0||n>10000)
+       return {status:'BLOCKED',reason:'準備の現在庫を照合できません。準備タブで保存し直してください。'};
+      stock[code]=n;
+     }
+     const checked=calc.make({recipes:deps.recipes,categories:p.categories,
+      camp:c.fields.camp,potCapacity:effectivePot,bagCapacity:c.player.bag,
+      currentStock:stock,selectedRecipes:p.selectedRecipes,targetMeals:p.allocatedMeals});
+     if(checked.status!=='PROVISIONAL')
+      return {status:'BLOCKED',reason:'準備の料理・食数が現在のバッグ容量に収まりません。準備タブで再設定してください。'};
+    }
+    return {status:'READY',selectedRecipes:p.selectedRecipes,
+     targetCounts:p.allocatedMeals};
   }catch(_){return {status:'BLOCKED',reason:'備蓄設定の保存内容を確認してください。'};}
  }
 const instant=()=>{
