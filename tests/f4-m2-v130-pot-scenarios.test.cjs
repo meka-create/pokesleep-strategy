@@ -25,7 +25,7 @@ test('M2 v130: 0,1,2 skill casts only compare capacity and recipe size, not drop
  const x=ref();
  assert.equal(x.status,'SCENARIOS_READY',x.reason);
  assert.equal(x.rows.length,3);
- assert.deepEqual(x.rows.map(y=>y.capacity),[33,40,47]);
+ assert.deepEqual(Array.from(x.rows,y=>y.capacity),[33,40,47]);
  assert.deepEqual(Array.from(x.rows[1].unlocked,y=>y.id),['medium']);
  assert.deepEqual(Array.from(x.rows[2].unlocked,y=>y.id),['next']);
  assert.equal(x.changed,true);
@@ -35,9 +35,9 @@ test('M2 v130: 0,1,2 skill casts only compare capacity and recipe size, not drop
  assert.equal(x.writesSavedData,false);
 });
 test('M2 v130: Sunday doubling, Good Camp and skill-level are sourced from v102',()=>{
- assert.deepEqual(ref({day:6}).rows.map(x=>x.capacity),[66,73,80]);
- assert.deepEqual(ref({camp:true}).rows.map(x=>x.capacity),[50,60,71]);
- assert.deepEqual(ref({skillLevel:6}).rows.map(x=>x.capacity),[33,60,87]);
+ assert.deepEqual(Array.from(ref({day:6}).rows,x=>x.capacity),[66,73,80]);
+ assert.deepEqual(Array.from(ref({camp:true}).rows,x=>x.capacity),[50,60,71]);
+ assert.deepEqual(Array.from(ref({skillLevel:6}).rows,x=>x.capacity),[33,60,87]);
 });
 test('M2 v130: verified event pot factor modifies base before Sunday/camp; fractional lower bound',()=>{
  const e=m1.event({weekStart:'2026-10-05',eventId:'pokesleep-tool:pot week:2026-10-05',
@@ -45,10 +45,10 @@ test('M2 v130: verified event pot factor modifies base before Sunday/camp; fract
    upstreamRevision:'a'.repeat(40),verifiedEffects:{potSize:2},verifiedTarget:{}}}});
  assert.equal(e.status,'EVENT_READY',e.reason);
  assert.equal(e.potSize,2);
- assert.deepEqual(ref({eventPotMultiplier:e.potSize}).rows.map(x=>x.capacity),[66,73,80]);
+ assert.deepEqual(Array.from(ref({eventPotMultiplier:e.potSize}).rows,x=>x.capacity),[66,73,80]);
  const guarded=ref({eventPotMultiplier:1.6});
  assert.equal(guarded.status,'SCENARIOS_READY');
- assert.deepEqual(guarded.rows.map(x=>x.capacity),[52,59,66]);
+ assert.deepEqual(Array.from(guarded.rows,x=>x.capacity),[52,59,66]);
  assert.equal(guarded.fractionalEventPotRoundedDown,true);
 });
 test('M2 v130: no extrapolation for unsupported level, missing skill source or invalid recipes',()=>{
