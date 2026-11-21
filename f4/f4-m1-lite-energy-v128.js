@@ -13,9 +13,9 @@
  const plain=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
  const valid=(x,a,b)=>typeof x==='number'&&Number.isFinite(x)&&x>=a&&x<=b;
  const known=new Set(['dish','skillTrigger','ingredient','berry','skillLevel',
-  'carryLimitAdd','globalCarryLimitAdd','carryLimitMul','dreamShard','energyFromDish']);
+  'carryLimitAdd','globalCarryLimitAdd','carryLimitMul','dreamShard','energyFromDish','potSize']);
  const neutral=Object.freeze({status:'EVENT_READY',official:false,dish:1,
-  skillTrigger:1,ingredient:0,berry:0,skillLevel:0,
+  skillTrigger:1,ingredient:0,berry:0,skillLevel:0,potSize:1,
   carryLimitAdd:0,globalCarryLimitAdd:0,carryLimitMul:1,
   target:Object.freeze({}),sourceId:null,unmodeled:[],
   referenceOnly:true});
@@ -42,7 +42,7 @@
    target.type!=null&&(!Array.isArray(target.type)||!target.type.length||
     target.type.some(t=>typeof t!=='string')))
    return fail('M1_EVENT_TARGET_UNVERIFIED');
-  const multipliers=['dish','skillTrigger','carryLimitMul'];
+  const multipliers=['dish','skillTrigger','carryLimitMul','potSize'];
   const integers=['ingredient','berry','skillLevel','carryLimitAdd','globalCarryLimitAdd'];
   if(multipliers.some(k=>fx[k]!=null&&!valid(fx[k],.05,20))||
    integers.some(k=>fx[k]!=null&&(!Number.isSafeInteger(fx[k])||fx[k]<0||fx[k]>1000)))
@@ -51,7 +51,7 @@
    ingredient:fx.ingredient??0,berry:fx.berry??0,
    skillLevel:fx.skillLevel??0,carryLimitAdd:fx.carryLimitAdd??0,
    globalCarryLimitAdd:fx.globalCarryLimitAdd??0,
-   carryLimitMul:fx.carryLimitMul??1};
+   carryLimitMul:fx.carryLimitMul??1,potSize:fx.potSize??1};
   if(source.unknownEffects===true)return fail('M1_EVENT_SOURCE_UNVERIFIED');
   return Object.freeze({status:'EVENT_READY',official:true,
    sourceId:source.id,target:Object.freeze({...target}),
