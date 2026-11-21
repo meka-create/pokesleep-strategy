@@ -154,6 +154,37 @@ function nav(id,index,cb){
  }
 }
 function recipesMap(){return new Map(deps.recipes.map(r=>[r.id,r.name]));}
+
+function mealAlignment(visible,c){
+ const model=root.PokeM3PlanAlignmentV132;
+ if(!visible?.slots||c?.status!=='CONTEXT_READY'||!model?.report)
+  return {status:'BLOCKED',reason:'M3_CONTEXT_MISSING'};
+ const event=deps.m1Lite?.event?.(c),pref=prepPreference(c);
+ if(event?.status!=='EVENT_READY'||pref.status==='BLOCKED')
+  return {status:'BLOCKED',reason:event?.reason||'M3_PREP_CHANGED'};
+ const stock=c.clock.phase==='BEFORE'?Object.fromEntries(model.FOOD.map(code=>[
+  code,c.inventoryValues?.[deps.master?.ingredients?.[code]]??0])):null;
+ return model.report({weekStart:c.weekStart,eventId:c.eventId,
+  slots:visible.slots,recipes:deps.recipes,
+  preference:pref.status==='READY'?pref:null,bagCapacity:c.player?.bag,
+  effectivePot:Math.floor(c.player?.pot*event.potSize+1e-9),
+  camp:c.fields.camp,phase:c.clock.phase,currentStock:stock});
+}
+function mealAlignmentMessage(r){
+ if(r?.status!=='ALIGNMENT_READY')
+  return '料理と準備目標を照合できません。条件・在庫を確認してください';
+ const parts=[];
+ if(r.preferenceStatus==='READY'){
+  if(r.match==='EXACT')parts.push('準備指定の料理・食数に一致（'+r.matched+'食）');
+  else parts.push('準備指定'+r.target+'食のうち一致'+r.matched+
+   '食／不足'+r.missing+'食／対象外・追加'+r.outside+
+   '食。生産見込みによる備蓄目標控除は料理・食数の一致時のみ');
+  if(!r.bagCompatible)parts.push('準備目標は現在のバッグ容量を超過');
+ }
+ if(r.emptyMeals>0)parts.push('21食中'+r.emptyMeals+'食は料理未計画');
+ if(r.pastForecastWindows>0)parts.push('過去の料理は採用時の予測であり実績未確認');
+ return parts.join('。');
+}
 function drawSlots(parent,visible,day){
  parent.replaceChildren();if(!visible)return;
  const known=recipesMap(),rows=visible.slots.slice(1+day*4,5+day*4);
