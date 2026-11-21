@@ -51,6 +51,10 @@ test('M3 potSize: shared verified event source, conservative capacity, no false 
   source:official({unknownEX:3}),potCapacity:40},m1).status,'BLOCKED');
  assert.equal(m3.resolve({weekStart:week,eventId:'manual:'+week,
   source:null,potCapacity:40},m1).effectivePot,40);
+ assert.equal(m3.resolve({weekStart:week,eventId:'manual:'+week+'-2',
+  source:null,potCapacity:40},m1).effectivePot,40);
+ assert.equal(m3.resolve({weekStart:week,eventId:'manual:2026-11-30-2',
+  source:null,potCapacity:40},m1).status,'BLOCKED');
  assert.equal(m3.resolve({weekStart:week,eventId,
   source:official({potSize:20}),potCapacity:400},m1).status,'BLOCKED');
  assert.equal(m3.resolve({weekStart:week,eventId:'pokesleep-tool:other:2026-11-23',
