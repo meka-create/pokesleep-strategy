@@ -203,7 +203,7 @@ test('M1 F5: unsupported official event is not silently evaluated as neutral',()
  const f=make();
  const id='pokesleep-tool:synthetic event:2026-11-16';
  const source={id,start:f.ctx.weekStart,upstreamRevision:'a'.repeat(40),
-  verifiedEffects:{potSize:2},verifiedTarget:{},unknownEffects:false};
+  verifiedEffects:{extraIng:'nuts'},verifiedTarget:{},unknownEffects:false};
  const scorer=load('f4/f4-m1-lite-energy-v128.js');
  const kernel=load('f4/f4-c-cooking-skills-v102.js');
  const c={...f.ctx,eventId:id,fields:{...f.ctx.fields,source}};
