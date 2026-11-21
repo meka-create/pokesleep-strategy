@@ -7,8 +7,8 @@ const read=name=>fs.readFileSync(path.join(base,name),'utf8');
 const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
-// v128 reviewed U3 load order for new cooking and event evaluator; U2 and Box unchanged.
-const auditedSHA=['91705916ede84eabc237f055636fe5ee799be80a', '411a4ac375e31b3b92d46218bfcfb4371393d7b0', 'e5593acbf7417451ac4f99d0d093245a2d5f54ab'];
+// v129 reviewed U3 load order for future-meal reserve module and styles; U2 and Box unchanged.
+const auditedSHA=['91705916ede84eabc237f055636fe5ee799be80a', '94505af020079a74ef315f2924a2277a28bd637b', 'e5593acbf7417451ac4f99d0d093245a2d5f54ab'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
