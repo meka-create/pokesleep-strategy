@@ -30,7 +30,7 @@
    // Only same-week numeric suffixes are neutral manual events; never
    // reinterpret an official/mismatched ID as a manual event.
    if(ctx.eventId!==prefix&&
-    !(ctx.eventId.startsWith(prefix)&&/^-[1-9]\\d*$/.test(suffix)))
+    !(ctx.eventId.startsWith(prefix)&&/^-[1-9][0-9]*$/.test(suffix)))
     return fail('M1_EVENT_SOURCE_REQUIRED');
    return neutral;
   }
