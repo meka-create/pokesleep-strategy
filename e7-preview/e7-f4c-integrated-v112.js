@@ -168,7 +168,7 @@ function drawSlots(parent,visible,day){
      Number.isSafeInteger(row.skillLevel)&&row.skillLevel>=1)
      .sort((a,b)=>b.skillLevel-a.skillLevel)[0];
     const event=deps.m1Lite?.event?.(data);
-    if(candidate&&event?.status==='EVENT_READY'&&
+    if(candidate&&event?.status==='EVENT_READY'&&event.skillLevel===0&&
      Number.isSafeInteger(data?.player?.pot)&&
      typeof data?.fields?.camp==='boolean'){
      const result=root.PokeM2PotScenariosV130.evaluate({
