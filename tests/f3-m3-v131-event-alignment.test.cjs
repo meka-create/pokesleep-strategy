@@ -92,3 +92,10 @@ test('M3 F5 diverse candidate uses the same event-adjusted roster as its scoring
  assert.doesNotMatch(f5,/rawProfiles:roster\.profiles,recipes,foods,inventory/);
  assert.match(f5,/deps\.m1Lite\.withEvent\(roster\.profiles,event/);
 });
+
+test('M3 F4 and F5 validate saved preparation using event-adjusted pot',()=>{
+ const u3=read('e7-preview/e7-f4c-integrated-v112.js');
+ assert.match(u3,/const event=deps\.m1Lite\?\.event\(c\)/);
+ assert.match(u3,/calc\.catalog\(deps\.recipes,cat,effectivePot,c\.fields\.camp\)/);
+ assert.doesNotMatch(u3,/calc\.catalog\(deps\.recipes,cat,c\.player\.pot,c\.fields\.camp\)/);
+});
