@@ -54,8 +54,14 @@
    const suffix=week+':'+encodeURIComponent(id);
    const led=localStorage.getItem('pokesleep-strategy-u3-e3-v1:'+suffix+':conditions');
    const c=led?JSON.parse(led):null;
-   return {potCapacity:player?.pot,bagCapacity:player?.bag,
-    camp:c?.confirmed?.fields?.camp};
+   const fields=c?.confirmed?.fields;
+    const verified=root.PokeF3M3EventV131?.resolve({
+     weekStart:week,eventId:id,source:fields?.source,
+     potCapacity:player?.pot},root.PokeM1LiteEnergyV128);
+    return {potCapacity:verified?.status==='EVENT_READY'?verified.effectivePot:null,
+     bagCapacity:player?.bag,camp:fields?.camp,
+     eventBlocked:verified?.status==='BLOCKED'?
+      'イベント補正・鍋容量を照合できません：'+verified.reason:null};
   }catch(_){return {};}
  }
  function current(){
@@ -151,15 +157,17 @@
    selectedRecipes:chosen,targetMeals:wanted};
  }
  function calculate(input){
-  if(!input.currentStock)return {status:'BLOCKED',message:'食材在庫を確認してください。'};
-  return calc.make(input);
+   if(!input.currentStock)return {status:'BLOCKED',message:'食材在庫を確認してください。'};
+   if(input.eventBlocked)return {status:'BLOCKED',message:input.eventBlocked};
+   return calc.make(input);
  }
  function savedResult(){
   const cats=oldCategories();
   if(!cats.length)return null;
   const setting=cfg(),stock=current();
   if(!stock)return {status:'BLOCKED',message:'食材在庫を確認してください。'};
-  return calc.make({recipes:allRecipes,categories:cats,...setting,currentStock:stock,
+   if(setting.eventBlocked)return {status:'BLOCKED',message:setting.eventBlocked};
+   return calc.make({recipes:allRecipes,categories:cats,...setting,currentStock:stock,
    selectedRecipes:saved?.selectedRecipes,
    targetMeals:saved?.targetMeals});
  }
