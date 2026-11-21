@@ -261,7 +261,7 @@
     for(const slot of ['morning','noon','evening']){
      if(typeof deps.diversity?.selectTeams==='function'){
       const chosen=deps.diversity.selectTeams({policy,slot,profiles,
-       rawProfiles:roster.profiles,recipes,foods,inventory,
+       rawProfiles:liveProfiles,recipes,foods,inventory,
        count:8,potCapacity:effectivePot,camp:ctx.fields.camp,
        skillValues:deps.skillValues,preferredRecipes:pref});
       if(chosen.status!=='CANDIDATES_READY'||!chosen.teams.length){bad=true;break;}
