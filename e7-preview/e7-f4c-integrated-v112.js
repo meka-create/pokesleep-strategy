@@ -156,6 +156,38 @@ function drawSlots(parent,visible,day){
    // Past and active F5 windows are unobserved forecasts, not a safe
    // current meal decision. Display advisory reserves only for future
    // windows or a pre-event full-week proposal.
+   // Optional capacity-only preview when the PREVIOUS collected party has
+   // a verified Cooking Power-Up S individual. Never infer actual casts.
+   if(w.recipeId&&w.windowPhase!=='PAST_FORECAST_ONLY'&&
+    w.windowPhase!=='ACTIVE_REMAINDER'&&
+    root.PokeM2PotScenariosV130?.evaluate){
+    const idx=1+day*4+offset;
+    const prior=visible.slots[idx-1]?.teamIndices||[];
+    const candidate=prior.map(i=>data?.privateBoxRows?.[i]).filter(row=>
+     row?.mainSkill==='料理パワーアップS'&&
+     Number.isSafeInteger(row.skillLevel)&&row.skillLevel>=1)
+     .sort((a,b)=>b.skillLevel-a.skillLevel)[0];
+    const event=deps.m1Lite?.event?.(data);
+    if(candidate&&event?.status==='EVENT_READY'&&
+     Number.isSafeInteger(data?.player?.pot)&&
+     typeof data?.fields?.camp==='boolean'){
+     const result=root.PokeM2PotScenariosV130.evaluate({
+      basePot:data.player.pot,skillLevel:candidate.skillLevel,
+      day:w.day,camp:data.fields.camp,
+      eventPotMultiplier:event.potSize,
+      foodMode:data.fields.food,recipes:deps.recipes
+     },{cookingSkills:deps.cookingSkills,skillValues:deps.skillValues});
+     if(result.status==='SCENARIOS_READY'&&result.changed){
+      const capacities=result.rows.map(x=>x.casts+'回 '+x.capacity).join(' / ');
+      const unlocked=result.rows.slice(1).flatMap(x=>x.unlocked.slice(0,1)
+       .map(y=>x.casts+'回で「'+y.name+'」が容量上可能'));
+      section.append(textNode('p','鍋拡張の参考（料理パワーアップS Lv.'+
+       candidate.skillLevel+'・発動した場合のみ）：'+capacities+
+       (unlocked.length?'。'+unlocked.join('／'):'')+
+       '。必要食材・実際の発動は未確認。','hint'));
+     }
+    }
+   }
    if(w.recipeId&&w.windowPhase!=='PAST_FORECAST_ONLY'&&
     w.windowPhase!=='ACTIVE_REMAINDER'){
     const after=reserve?.status==='RESERVES_READY'?
