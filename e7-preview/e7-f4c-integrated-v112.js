@@ -29,13 +29,18 @@ const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
   if(!raw)return {status:'EMPTY'};
   try{
    const p=JSON.parse(raw),calc=root.PokeF3StockpileV120;
-   if(!calc||p?.kind!=='F3_STOCKPILE_PREF_V120'||p.version!==1||
+   const event=deps.m1Lite?.event(c);
+    const effectivePot=event?.status==='EVENT_READY'?
+     Math.floor(c.player.pot*event.potSize+1e-9):null;
+    if(!Number.isSafeInteger(effectivePot)||effectivePot<7||effectivePot>5000)
+     return {status:'BLOCKED',reason:'イベント鍋倍率を確認できません。準備と作戦の条件を再確認してください。'};
+    if(!calc||p?.kind!=='F3_STOCKPILE_PREF_V120'||p.version!==1||
     p.weekStart!==c.weekStart||p.eventId!==c.eventId||
     !Array.isArray(p.categories)||p.categories.length<1||p.categories.length>3||
     new Set(p.categories).size!==p.categories.length||!p.selectedRecipes||
     !p.allocatedMeals||p.categories.some(cat=>!calc.CATS.includes(cat)||
      c.fields.food!=='all'&&c.fields.food!==cat||
-     !calc.catalog(deps.recipes,cat,c.player.pot,c.fields.camp)
+     !calc.catalog(deps.recipes,cat,effectivePot,c.fields.camp)
       .some(x=>x.id===p.selectedRecipes[cat])||
      !Number.isSafeInteger(p.allocatedMeals[cat])||
      p.allocatedMeals[cat]<1||p.allocatedMeals[cat]>21)||
