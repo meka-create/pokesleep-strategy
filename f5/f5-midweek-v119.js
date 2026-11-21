@@ -76,6 +76,9 @@
    const favorite=deps.auto.favorites(ctx,deps.master);
    if(!favorite||ctx.fields.field.endsWith('EX'))return fail('F5_BERRY_OR_EX_MODEL_UNVERIFIED');
    const player=ctx.player,fieldBonus=player?.bonuses?.[ctx.fields.field];
+   const effectivePot=m1?Math.floor(player.pot*event.potSize+1e-9):player.pot;
+   if(!Number.isSafeInteger(effectivePot)||effectivePot<7||
+    effectivePot>5000)return fail('F5_M2_EVENT_POT_UNVERIFIED');
    if(!Number.isSafeInteger(fieldBonus)||fieldBonus<0||fieldBonus>100||
     !Number.isSafeInteger(player?.bag)||player.bag<1||player.bag>5000||
     !Number.isSafeInteger(player?.pot)||player.pot<7||player.pot>5000)
@@ -259,7 +262,7 @@
      if(typeof deps.diversity?.selectTeams==='function'){
       const chosen=deps.diversity.selectTeams({policy,slot,profiles,
        rawProfiles:roster.profiles,recipes,foods,inventory,
-       count:8,potCapacity:player.pot,camp:ctx.fields.camp,
+       count:8,potCapacity:effectivePot,camp:ctx.fields.camp,
        skillValues:deps.skillValues,preferredRecipes:pref});
       if(chosen.status!=='CANDIDATES_READY'||!chosen.teams.length){bad=true;break;}
       choices[slot]=chosen.teams;
@@ -291,7 +294,7 @@
       [old[i].team]:choices[w.slot];
      const expanded=[];
      for(const state of beam){
-      const pot=Math.round(player.pot*(w.day===6?2:1)*(ctx.fields.camp?1.5:1));
+      const pot=Math.round(effectivePot*(w.day===6?2:1)*(ctx.fields.camp?1.5:1));
       const feasible=!future||w.slot==='sleep'?[]:recipes.filter(r=>
        r.size<=pot&&foods.every(f=>state.stock[f]+1e-8>=r.requirements[f]))
        .sort((a,b)=>Number(pref[b.type]===b.id&&(state.prefCount[b.type]||0)<remainingBudget[b.type])-
