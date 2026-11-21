@@ -1,0 +1,8 @@
+/* M2 v129: conservative future-meal ingredient reserves beneath each recipe. */
+.m2-reserve{margin:7px 0 1px 12px;padding:7px 8px;border:1px solid #3a546a;border-radius:8px;background:#182c3e}
+.m2-reserve-title{display:block;font-size:10px;color:#c4d4e0;line-height:1.3;margin-bottom:5px}
+.m2-reserve-items{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.m2-reserve-item{display:inline-flex;align-items:center;gap:2px;background:#22384e;border:1px solid #40576a;border-radius:7px;padding:2px 5px 2px 2px;min-width:52px}
+.m2-reserve-item img{width:30px;height:30px;object-fit:contain;flex:none}
+.m2-reserve-count{font-size:11px;font-weight:700;color:#edf3f8;font-variant-numeric:tabular-nums;white-space:nowrap}
+.m2-reserve-warning{margin:6px 0 0 12px;color:#f8aba3;font-size:11px}
