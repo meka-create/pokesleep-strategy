@@ -297,7 +297,12 @@ function drawReview(){
  else if(note)note.textContent=draft.officialEffectsExcluded?
   '実ボックスを使用した作戦です。一部イベント補正・新食材・新料理は未反映（参考計算）。':
   '実ボックスを使用した20食材・81料理の提案です。回復発動・収集は期待値の参考計算です。';
- const adopt=q('review-adopt');adopt.disabled=false;adopt.textContent='この作戦を採用';
+ const alignment=mealAlignment(draft,data);
+  const alignedNote=mealAlignmentMessage(alignment);
+  if(note&&alignedNote)note.textContent+=' '+alignedNote+'。';
+  const adopt=q('review-adopt');
+  adopt.disabled=alignment.status!=='ALIGNMENT_READY';
+  adopt.textContent='この作戦を採用';
  nav('review-day-nav',reviewDay,day=>{reviewDay=day;drawReview();});
  drawSlots(q('review-slots'),viewForDraft(),reviewDay);
 }
@@ -328,7 +333,14 @@ function drawAdopted(){
  q('day-label').textContent=DAYS[targetDay]+'曜日';
  q('day-date').textContent=dateOf(targetDay);
  nav('day-nav',targetDay,day=>{targetDay=day;drawAdopted();});
- drawSlots(q('slots'),plan,targetDay);
+  const report=mealAlignment(plan,data),noticeText=mealAlignmentMessage(report);
+  let notice=q('m3-week-alignment');
+  if(!notice){
+   notice=textNode('p',undefined,'hint');
+   notice.id='m3-week-alignment';q('day-nav')?.before(notice);
+  }
+  if(notice){notice.hidden=!noticeText;notice.textContent=noticeText;}
+  drawSlots(q('slots'),plan,targetDay);
  // No unverified weekly energy exposed as an authoritative figure.
  q('e4-result-energy').hidden=true;
  q('e4-changed').hidden=!stale;
@@ -503,9 +515,13 @@ async function proposeDuring(){
  try{
   const c=await preflight(true);
   if(!c||c.clock.phase!=='DURING')return;
-  const mods=await models(),pref=prepPreference(c);
-  if(pref.status==='BLOCKED'){error=pref.reason;return;}
-  const result=mid.reference(c,plan,bound,{...deps,...mods,
+  const fingerprint=dataFingerprint(c),mods=await models();
+   if(fingerprint!==dataFingerprint(ctx())){
+    error='イベント・在庫・ボックスが変更されました。再提案してください。';return;
+   }
+   const pref=prepPreference(c);
+   if(pref.status==='BLOCKED'){error=pref.reason;return;}
+   const result=mid.reference(c,plan,bound,{...deps,...mods,
    auto,base:deps.baseCore,store,storage:localStorage,
    prepPreference:pref.status==='READY'?pref:null});
   if(result.status!=='PROVISIONAL'){
@@ -527,7 +543,10 @@ async function adopt(){
   const partial=draft.stage==='F5_REMAINING_V119';
   const c=await preflight(partial);
   if(!c)return;
-  if(c.weekStart!==draft.weekStart||c.eventId!==draft.eventId||
+   if(mealAlignment(draft,c).status!=='ALIGNMENT_READY'){
+    error='料理と準備目標の条件が変更されました。作戦を再提案してください。';return;
+   }
+   if(c.weekStart!==draft.weekStart||c.eventId!==draft.eventId||
    c.conditionRevision!==draft.conditionRevision||
    c.inventoryRevision!==draft.inventoryRevision)
    {error='提案後に条件・在庫が更新されました。再提案してください。';return;}
