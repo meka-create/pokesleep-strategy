@@ -21,7 +21,10 @@
  function report(input={}){
   try{
    const {weekStart,eventId,slots,recipes,preference,bagCapacity,
-    effectivePot,camp,phase,currentStock}=input;
+    effectivePot,camp,phase,currentStock,planOwner}=input;
+   if(planOwner!=null&&(!plain(planOwner)||
+    planOwner.weekStart!==weekStart||planOwner.eventId!==eventId))
+    return fail('M3_FOREIGN_EVENT_PLAN');
    if(typeof weekStart!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)||
     typeof eventId!=='string'||!eventId||!Array.isArray(slots)||slots.length!==29||
     !Array.isArray(recipes)||recipes.length!==81||!int(bagCapacity,1,5000)||
