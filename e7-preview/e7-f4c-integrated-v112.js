@@ -164,7 +164,9 @@ function mealAlignment(visible,c){
   return {status:'BLOCKED',reason:event?.reason||'M3_PREP_CHANGED'};
  const stock=c.clock.phase==='BEFORE'?Object.fromEntries(model.FOOD.map(code=>[
   code,c.inventoryValues?.[deps.master?.ingredients?.[code]]??0])):null;
+ const owned=visible.plan||visible;
  return model.report({weekStart:c.weekStart,eventId:c.eventId,
+  planOwner:{weekStart:owned.weekStart,eventId:owned.eventId},
   slots:visible.slots,recipes:deps.recipes,
   preference:pref.status==='READY'?pref:null,bagCapacity:c.player?.bag,
   effectivePot:Math.floor(c.player?.pot*event.potSize+1e-9),
