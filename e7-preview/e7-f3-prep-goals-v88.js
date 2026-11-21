@@ -137,6 +137,12 @@ function readContext(){
  const playerRaw=localStorage.getItem('pokesleep-strategy-e7-player-v1');
  const player=playerRaw?JSON.parse(playerRaw):null;
  if(player&&player.version!==1)throw Error('プレイヤー情報を確認してください。');
+  const verified=window.PokeF3M3EventV131?.resolve({
+   weekStart:week,eventId:id,source:fields.source,
+   potCapacity:player?.pot},window.PokeM1LiteEnergyV128);
+  if(verified?.status!=='EVENT_READY')
+   throw Error('イベント補正・鍋容量を照合できません：'+
+    (verified?.reason||'M3_EVENT_SOURCE_UNAVAILABLE'));
  const stockRaw=Scope.read(localStorage,week,id);
  const stock=stockRaw?E1.validateInventoryTimeline(stockRaw,week):null;
  const values=stock?.currentInventory?.values||stock?.startInventory?.values||{};
@@ -148,7 +154,8 @@ function readContext(){
  }
  return {week,id,revision:ledger.confirmed.revision,
   categories:chosenCategories,foodUnconfirmed:!fields.food,draft:draft?.input||null,
-  camp:fields.camp,pot:player?.pot,bag:player?.bag,current,
+  camp:fields.camp,pot:verified.effectivePot,bag:player?.bag,current,
+   event:verified.event,eventPotMultiplier:verified.event.potSize,
   preference:Prefs.read(week,id)};
 }
 function badge(cell,count){
@@ -233,15 +240,21 @@ async function applyAdoptedOpening(ctx,base,token){
    snapshot:model.snapshot,traits:model.traits,legal:model.legal,
    rates:model.rates,master:window.PokeMaster});
   if(roster.status!=='READY'){
-   explanation('F1計算対象の実ボックス編成を確認できないため、生産予測は未控除です。');return;
-  }
-  const adopted=Store.readPlan(localStorage,c,ids,roster.sourceCommit,
+    explanation('F1計算対象の実ボックス編成を確認できないため、生産予測は未控除です。');return;
+   }
+   const adjusted=window.PokeF3M3EventV131?.adjust(roster.profiles,ctx.event,
+    window.PokeM1LiteEnergyV128,window.PokeF1SkillValues);
+   if(adjusted?.status!=='ROSTER_READY'){
+    explanation('イベント食材補正または個体スキルLvを照合できないため、生産予測は未控除です。');return;
+   }
+   const adopted=Store.readPlan(localStorage,c,ids,roster.sourceCommit,
    window.PokeRecipes,c.clock);
   if(adopted.status!=='ADOPTED'){
    explanation('採用済み作戦が現在の条件と一致しないため、生産予測を控除していません。再提案・採用後に更新されます。');return;
   }
   const result=Model.calculate({ctx:c,plan:adopted.plan,identity:ids,
-   roster,recipes:window.PokeRecipes,base,bagCapacity:ctx.bag,
+   roster:{...roster,profiles:adjusted.profiles},recipes:window.PokeRecipes,
+    base,bagCapacity:ctx.bag,
    currentStock:ctx.current});
   if(token!==renderToken)return;
   if(result.status!=='PROVISIONAL'){
@@ -251,8 +264,13 @@ async function applyAdoptedOpening(ctx,base,token){
    return;
   }
   // Check immutable owner inputs once more after all async work.
-  if(localStorage.getItem(k)!==adopted.revision||
-   localStorage.getItem('pokesleep-strategy-e7-box-v1')!==ids.boxRaw||
+  const fresh=readContext();
+   if(fresh.week!==ctx.week||fresh.id!==ctx.id||
+    fresh.revision!==ctx.revision||fresh.pot!==ctx.pot||
+    JSON.stringify(fresh.current)!==JSON.stringify(ctx.current)||
+    fresh.eventPotMultiplier!==ctx.eventPotMultiplier)return;
+   if(localStorage.getItem(k)!==adopted.revision||
+    localStorage.getItem('pokesleep-strategy-e7-box-v1')!==ids.boxRaw||
    localStorage.getItem(Store.LEDGER)!==ids.ledgerRevision||
    localStorage.getItem(prefs)!==c.prepPreferenceRevision)return;
   drawGoals(result.goals);
@@ -263,7 +281,7 @@ async function applyAdoptedOpening(ctx,base,token){
    '個（見込み控除 '+saved.toLocaleString('ja-JP')+'個）';
   const caveat=document.createElement('p');caveat.className='f3-caveat';
   caveat.textContent='29窓の採用済み料理・実個体・所持上限・回収時刻の仮定から算出。'+
-   '食材抽選や実際の回収、げんき、未検証のイベント補正は保証されません。'+
+   '確認済みイベントの通常食材補正は反映。食材抽選や実際の回収、げんき、未評価スキルは保証されません。'+
    '確実な備蓄には元の必要量 '+Object.values(base.goals).reduce((a,b)=>a+b,0)+
    '個を目安にしてください。';
   content.append(caveat);
@@ -296,7 +314,9 @@ function render(){
    content.append(section);
   }
   const caveat=document.createElement('p');caveat.className='f3-caveat';
-  caveat.textContent='バッグ容量内の指定レシピのみを備蓄。レシピレベル・料理チャンス・時間別生産は目標から未控除。'+
+  caveat.textContent='バッグ容量内の指定レシピのみを備蓄。確認済みイベント鍋倍率は容量判定に反映。'+
+    'レシピLv70と料理チャンスはF4/F5のエナジー評価で扱い、備蓄量には加点しません。'+
+    '時間別生産は採用作戦と補正済み個体を照合できた場合だけ参考控除。'+
    (ctx.foodUnconfirmed?' 料理未確定のため、選択カテゴリを均等優先する準備用シナリオです。':'')+
    '';
   content.append(caveat);
