@@ -43,7 +43,8 @@ test('M1: event owner, event provenance and unknown bonuses fail closed',()=>{
  const nope=event({dish:1.5,unknownExcitingBuff:20});
  assert.equal(nope.status,'BLOCKED');
  assert.equal(nope.reason,'M1_EVENT_EFFECT_UNMODELED');
- assert.equal(event({potSize:2}).status,'BLOCKED','pot expansion is a separate M2 feasibility scenario');
+ assert.equal(event({potSize:2}).status,'EVENT_READY','M2 models verified pot capacity separately from skill procs');
+ assert.equal(event({potSize:2}).potSize,2);
  assert.equal(event({dish:-1}).status,'BLOCKED');
 });
 test('M1: verified target scope applies skill proc, ingredient +1 and level independently',()=>{
