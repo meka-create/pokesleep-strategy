@@ -46,8 +46,24 @@ const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
      p.allocatedMeals[cat]<1||p.allocatedMeals[cat]>21)||
     p.categories.reduce((n,cat)=>n+p.allocatedMeals[cat],0)>21)
     return {status:'BLOCKED',reason:'備蓄レシピまたは食数が現在の条件と一致しません。準備タブで保存し直してください。'};
-   return {status:'READY',selectedRecipes:p.selectedRecipes,
-    targetCounts:p.allocatedMeals};
+    // In BEFORE, F3 targets must still fit simultaneous bag occupancy.
+    // A during-week snapshot is never confused with an opening inventory.
+    if(c.clock?.phase==='BEFORE'){
+     const stock={};
+     for(const code of calc.FOODS){
+      const label=deps.master?.ingredients?.[code],n=c.inventoryValues?.[label];
+      if(typeof label!=='string'||!Number.isSafeInteger(n)||n<0||n>10000)
+       return {status:'BLOCKED',reason:'準備の現在庫を照合できません。準備タブで保存し直してください。'};
+      stock[code]=n;
+     }
+     const checked=calc.make({recipes:deps.recipes,categories:p.categories,
+      camp:c.fields.camp,potCapacity:effectivePot,bagCapacity:c.player.bag,
+      currentStock:stock,selectedRecipes:p.selectedRecipes,targetMeals:p.allocatedMeals});
+     if(checked.status!=='PROVISIONAL')
+      return {status:'BLOCKED',reason:'準備の料理・食数が現在のバッグ容量に収まりません。準備タブで再設定してください。'};
+    }
+    return {status:'READY',selectedRecipes:p.selectedRecipes,
+     targetCounts:p.allocatedMeals};
   }catch(_){return {status:'BLOCKED',reason:'備蓄設定の保存内容を確認してください。'};}
  }
 const instant=()=>{
@@ -138,6 +154,39 @@ function nav(id,index,cb){
  }
 }
 function recipesMap(){return new Map(deps.recipes.map(r=>[r.id,r.name]));}
+
+function mealAlignment(visible,c){
+ const model=root.PokeM3PlanAlignmentV132;
+ if(!visible?.slots||c?.status!=='CONTEXT_READY'||!model?.report)
+  return {status:'BLOCKED',reason:'M3_CONTEXT_MISSING'};
+ const event=deps.m1Lite?.event?.(c),pref=prepPreference(c);
+ if(event?.status!=='EVENT_READY'||pref.status==='BLOCKED')
+  return {status:'BLOCKED',reason:event?.reason||'M3_PREP_CHANGED'};
+ const stock=c.clock.phase==='BEFORE'?Object.fromEntries(model.FOOD.map(code=>[
+  code,c.inventoryValues?.[deps.master?.ingredients?.[code]]??0])):null;
+ const owned=visible.plan||visible;
+ return model.report({weekStart:c.weekStart,eventId:c.eventId,
+  planOwner:{weekStart:owned.weekStart,eventId:owned.eventId},
+  slots:visible.slots,recipes:deps.recipes,
+  preference:pref.status==='READY'?pref:null,bagCapacity:c.player?.bag,
+  effectivePot:Math.floor(c.player?.pot*event.potSize+1e-9),
+  camp:c.fields.camp,phase:c.clock.phase,currentStock:stock});
+}
+function mealAlignmentMessage(r){
+ if(r?.status!=='ALIGNMENT_READY')
+  return '料理と準備目標を照合できません。条件・在庫を確認してください';
+ const parts=[];
+ if(r.preferenceStatus==='READY'){
+  if(r.match==='EXACT')parts.push('準備指定の料理・食数に一致（'+r.matched+'食）');
+  else parts.push('準備指定'+r.target+'食のうち一致'+r.matched+
+   '食／不足'+r.missing+'食／対象外・追加'+r.outside+
+   '食。生産見込みによる備蓄目標控除は料理・食数の一致時のみ');
+  if(!r.bagCompatible)parts.push('準備目標は現在のバッグ容量を超過');
+ }
+ if(r.emptyMeals>0)parts.push('21食中'+r.emptyMeals+'食は料理未計画');
+ if(r.pastForecastWindows>0)parts.push('過去の料理は採用時の予測であり実績未確認');
+ return parts.join('。');
+}
 function drawSlots(parent,visible,day){
  parent.replaceChildren();if(!visible)return;
  const known=recipesMap(),rows=visible.slots.slice(1+day*4,5+day*4);
@@ -250,7 +299,12 @@ function drawReview(){
  else if(note)note.textContent=draft.officialEffectsExcluded?
   '実ボックスを使用した作戦です。一部イベント補正・新食材・新料理は未反映（参考計算）。':
   '実ボックスを使用した20食材・81料理の提案です。回復発動・収集は期待値の参考計算です。';
- const adopt=q('review-adopt');adopt.disabled=false;adopt.textContent='この作戦を採用';
+ const alignment=mealAlignment(draft,data);
+  const alignedNote=mealAlignmentMessage(alignment);
+  if(note&&alignedNote)note.textContent+=' '+alignedNote+'。';
+  const adopt=q('review-adopt');
+  adopt.disabled=alignment.status!=='ALIGNMENT_READY';
+  adopt.textContent='この作戦を採用';
  nav('review-day-nav',reviewDay,day=>{reviewDay=day;drawReview();});
  drawSlots(q('review-slots'),viewForDraft(),reviewDay);
 }
@@ -281,7 +335,14 @@ function drawAdopted(){
  q('day-label').textContent=DAYS[targetDay]+'曜日';
  q('day-date').textContent=dateOf(targetDay);
  nav('day-nav',targetDay,day=>{targetDay=day;drawAdopted();});
- drawSlots(q('slots'),plan,targetDay);
+  const report=mealAlignment(plan,data),noticeText=mealAlignmentMessage(report);
+  let notice=q('m3-week-alignment');
+  if(!notice){
+   notice=textNode('p',undefined,'hint');
+   notice.id='m3-week-alignment';q('day-nav')?.before(notice);
+  }
+  if(notice){notice.hidden=!noticeText;notice.textContent=noticeText;}
+  drawSlots(q('slots'),plan,targetDay);
  // No unverified weekly energy exposed as an authoritative figure.
  q('e4-result-energy').hidden=true;
  q('e4-changed').hidden=!stale;
@@ -456,9 +517,13 @@ async function proposeDuring(){
  try{
   const c=await preflight(true);
   if(!c||c.clock.phase!=='DURING')return;
-  const mods=await models(),pref=prepPreference(c);
-  if(pref.status==='BLOCKED'){error=pref.reason;return;}
-  const result=mid.reference(c,plan,bound,{...deps,...mods,
+  const fingerprint=dataFingerprint(c),mods=await models();
+   if(fingerprint!==dataFingerprint(ctx())){
+    error='イベント・在庫・ボックスが変更されました。再提案してください。';return;
+   }
+   const pref=prepPreference(c);
+   if(pref.status==='BLOCKED'){error=pref.reason;return;}
+   const result=mid.reference(c,plan,bound,{...deps,...mods,
    auto,base:deps.baseCore,store,storage:localStorage,
    prepPreference:pref.status==='READY'?pref:null});
   if(result.status!=='PROVISIONAL'){
@@ -480,7 +545,10 @@ async function adopt(){
   const partial=draft.stage==='F5_REMAINING_V119';
   const c=await preflight(partial);
   if(!c)return;
-  if(c.weekStart!==draft.weekStart||c.eventId!==draft.eventId||
+   if(mealAlignment(draft,c).status!=='ALIGNMENT_READY'){
+    error='料理と準備目標の条件が変更されました。作戦を再提案してください。';return;
+   }
+   if(c.weekStart!==draft.weekStart||c.eventId!==draft.eventId||
    c.conditionRevision!==draft.conditionRevision||
    c.inventoryRevision!==draft.inventoryRevision)
    {error='提案後に条件・在庫が更新されました。再提案してください。';return;}

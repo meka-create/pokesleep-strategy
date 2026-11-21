@@ -218,3 +218,19 @@ test('M1 F5: unsupported official event is not silently evaluated as neutral',()
  assert.equal(result.status,'BLOCKED');
  assert.equal(result.reason,'M1_EVENT_EFFECT_UNMODELED');
 });
+
+test('M3 v132: changing saved prep preference during F5 review cannot overwrite history or partial sidecar',()=>{
+ const f=make();
+ f.ctx={...f.ctx,prepPreferenceRevision:'saved-prep-1'};
+ const draft=build(f);
+ assert.equal(draft.status,'PROVISIONAL',draft.reason);
+ const rootBefore=f.storage.getItem(store.key('plan',W,ID));
+ const contextChanged={...f.ctx,prepPreferenceRevision:'saved-prep-2'};
+ const old=f.storage.getItem(mid.key(f.ctx));
+ const denied=mid.adopt(f.storage,contextChanged,draft,identity,COMMIT,
+  recipes,contextChanged.clock,store);
+ assert.equal(denied.status,'BLOCKED');
+ assert.equal(denied.reason,'F5_PROPOSAL_CONTEXT_CHANGED');
+ assert.equal(f.storage.getItem(mid.key(f.ctx)),old);
+ assert.equal(f.storage.getItem(store.key('plan',W,ID)),rootBefore);
+});
