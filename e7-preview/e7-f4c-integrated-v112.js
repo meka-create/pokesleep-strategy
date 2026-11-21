@@ -136,7 +136,10 @@ function recipesMap(){return new Map(deps.recipes.map(r=>[r.id,r.name]));}
 function drawSlots(parent,visible,day){
  parent.replaceChildren();if(!visible)return;
  const known=recipesMap(),rows=visible.slots.slice(1+day*4,5+day*4);
- for(const w of rows){
+ // Compute from the selected plan only. No live inventory, future harvest,
+ // user data or saved plan mutation is involved in reserve quantities.
+ const reserve=root.PokeM2MealReservesV129?.build(visible.slots,deps.recipes);
+ for(const [offset,w] of rows.entries()){
   const section=textNode('section',undefined,'slot');section.dataset.slot=w.slot;
   const heading=textNode('div',undefined,'slot-head');
   heading.append(textNode('span',({
@@ -150,6 +153,43 @@ function drawSlots(parent,visible,day){
    const meal=textNode('div',w.recipeId?
     (known.get(w.recipeId)||'未照合レシピ'):'料理なし','meal');
    section.append(meal);
+   // Past and active F5 windows are unobserved forecasts, not a safe
+   // current meal decision. Display advisory reserves only for future
+   // windows or a pre-event full-week proposal.
+   if(w.recipeId&&w.windowPhase!=='PAST_FORECAST_ONLY'&&
+    w.windowPhase!=='ACTIVE_REMAINDER'){
+    const after=reserve?.status==='RESERVES_READY'?
+     reserve.afterByWindow[1+day*4+offset]:null;
+    if(!after){
+     section.append(textNode('p','未来の料理用の最低残数を確認できません',
+      'm2-reserve-warning'));
+    }else if(after.length){
+     const master=root.PokeMaster?.ingredients||{};
+     const icons=root.PokeE7PokemonDetail?.ingredientIcons||{};
+     const mapped=after.map(x=>({name:master[x.foodCode],
+      count:x.count,url:icons[master[x.foodCode]]}));
+     if(mapped.some(x=>!x.name||!x.url)){
+      section.append(textNode('p','未来の料理用の食材アイコンを照合できません',
+       'm2-reserve-warning'));
+     }else{
+      const group=textNode('div',undefined,'m2-reserve');
+      group.append(textNode('span','最低残す（この料理の後）',
+       'm2-reserve-title'));
+      const grid=textNode('div',undefined,'m2-reserve-items');
+      for(const x of mapped){
+       const item=textNode('span',undefined,'m2-reserve-item');
+       item.setAttribute('role','img');
+       item.setAttribute('aria-label',x.name+'を最低'+x.count+'個残す');
+       item.title=x.name+'：最低'+x.count+'個';
+       const img=doc.createElement('img');img.src=x.url;
+       img.alt='';img.loading='lazy';img.decoding='async';
+       item.append(img,textNode('span','×'+x.count,'m2-reserve-count'));
+       grid.append(item);
+      }
+      group.append(grid);section.append(group);
+     }
+    }
+   }
   }
   if(w.windowPhase==='PAST_FORECAST_ONLY')section.append(textNode('p',
    '以前に採用した予測（実績は未確認・再計算対象外）','hint'));
