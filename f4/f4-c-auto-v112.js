@@ -217,6 +217,12 @@
     input.profiles=adjusted.profiles;
     input.m1Event=event;
     input.m1Mode='M1_LIGHTWEIGHT_EVENT_V128';
+    // Event potSize acts on the base pot, before Sunday and camp.
+    // Fractional input is conservatively rounded downward.
+    input.potCapacity=Math.floor(input.potCapacity*event.potSize+1e-9);
+    if(!Number.isSafeInteger(input.potCapacity)||
+     input.potCapacity<7||input.potCapacity>5000)
+     return fail('M2_EVENT_POT_CAPACITY_UNVERIFIED');
    }
    if(![78,81].includes(input.recipes.length)||input.eventSource!==null)
     return fail('RECIPE_OR_EVENT_SOURCE_INVALID');
