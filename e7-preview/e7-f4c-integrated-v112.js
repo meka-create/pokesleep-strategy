@@ -39,7 +39,8 @@ const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
     !Array.isArray(p.categories)||p.categories.length<1||p.categories.length>3||
     new Set(p.categories).size!==p.categories.length||!p.selectedRecipes||
     !p.allocatedMeals||p.categories.some(cat=>!calc.CATS.includes(cat)||
-     c.fields.food!=='all'&&c.fields.food!==cat||
+     // F3 may hedge all three cooking types before the event's meal is known.
+     // Week-specific F4/F5 priorities are filtered separately below.
      !calc.catalog(deps.recipes,cat,effectivePot,c.fields.camp)
       .some(x=>x.id===p.selectedRecipes[cat])||
      !Number.isSafeInteger(p.allocatedMeals[cat])||
@@ -62,8 +63,14 @@ const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
      if(checked.status!=='PROVISIONAL')
       return {status:'BLOCKED',reason:'準備の料理・食数が現在のバッグ容量に収まりません。準備タブで再設定してください。'};
     }
-    return {status:'READY',selectedRecipes:p.selectedRecipes,
-     targetCounts:p.allocatedMeals};
+    // F3 bag occupancy above uses ALL saved categories. Only matching
+    // event-week dishes participate in F4/F5 preferences, without edits.
+    const projected=root.PokeM4PrepFoodPreferenceV133?.project({
+     categories:p.categories,selectedRecipes:p.selectedRecipes,
+     targetCounts:p.allocatedMeals,food:c.fields.food});
+    if(projected?.status!=='READY')
+     return {status:'BLOCKED',reason:'備蓄設定のカテゴリ・レシピ・食数を照合できません。'};
+    return projected;
   }catch(_){return {status:'BLOCKED',reason:'備蓄設定の保存内容を確認してください。'};}
  }
 const instant=()=>{
@@ -165,17 +172,28 @@ function mealAlignment(visible,c){
  const stock=c.clock.phase==='BEFORE'?Object.fromEntries(model.FOOD.map(code=>[
   code,c.inventoryValues?.[deps.master?.ingredients?.[code]]??0])):null;
  const owned=visible.plan||visible;
- return model.report({weekStart:c.weekStart,eventId:c.eventId,
+ const report=model.report({weekStart:c.weekStart,eventId:c.eventId,
   planOwner:{weekStart:owned.weekStart,eventId:owned.eventId},
   slots:visible.slots,recipes:deps.recipes,
-  preference:pref.status==='READY'?pref:null,bagCapacity:c.player?.bag,
+  preference:pref.status==='READY'&&Object.keys(pref.selectedRecipes).length?pref:null,
+  bagCapacity:c.player?.bag,
   effectivePot:Math.floor(c.player?.pot*event.potSize+1e-9),
   camp:c.fields.camp,phase:c.clock.phase,currentStock:stock});
+ return report.status==='ALIGNMENT_READY'&&pref.status==='READY'?
+  {...report,excludedPrepCategories:pref.excludedCategories,
+   preparedCategories:pref.allCategories,eventFood:pref.eventFood}:report;
 }
 function mealAlignmentMessage(r){
  if(r?.status!=='ALIGNMENT_READY')
   return '料理と準備目標を照合できません。条件・在庫を確認してください';
  const parts=[];
+ if(r.excludedPrepCategories?.length){
+  const names={curry:'カレー',salad:'サラダ',dessert:'デザート'};
+  parts.push('備蓄'+r.preparedCategories.length+'カテゴリは保持。'+
+   'イベント週は'+names[r.eventFood]+'のため、'+
+   r.excludedPrepCategories.map(cat=>names[cat]).join('・')+
+   'の備蓄は週間料理の優先指定に含めません');
+ }
  if(r.preferenceStatus==='READY'){
   if(r.match==='EXACT')parts.push('準備指定の料理・食数に一致（'+r.matched+'食）');
   else parts.push('準備指定'+r.target+'食のうち一致'+r.matched+

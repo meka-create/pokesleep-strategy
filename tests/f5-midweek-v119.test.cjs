@@ -234,3 +234,25 @@ test('M3 v132: changing saved prep preference during F5 review cannot overwrite 
  assert.equal(f.storage.getItem(mid.key(f.ctx)),old);
  assert.equal(f.storage.getItem(store.key('plan',W,ID)),rootBefore);
 });
+
+test('M4 v133 F5: 3 stored prep categories with single curry week remain re-plannable',()=>{
+ const f=make(),projector=load('f3/f3-m4-food-preference-v133.js');
+ const all={categories:['curry','salad','dessert'],
+  selectedRecipes:{curry:'recipe_1',salad:'unrelated_salad',dessert:'unrelated_dessert'},
+  targetCounts:{curry:2,salad:2,dessert:2},food:'curry'};
+ const projected=projector.project(all);
+ assert.equal(projected.status,'READY',projected.reason);
+ assert.deepEqual(Object.keys(projected.selectedRecipes),['curry']);
+ const result=mid.reference(f.ctx,f.previous,identity,{...deps,
+  storage:f.storage,prepPreference:projected});
+ assert.equal(result.status,'PROVISIONAL',result.reason);
+ assert.equal(result.slots.length,29);
+ assert.equal(result.pastEvidence,'UNOBSERVED_ADOPTED_FORECAST_ONLY');
+ assert.equal(f.storage.getItem(mid.key(f.ctx)),null,'F5 preview must not auto-save');
+ // Raw, unprojected categories must still fail: only the event-valid
+ // subset is passed by the UI, not a weaker cooking gate inside F5.
+ const unfiltered=mid.reference(f.ctx,f.previous,identity,{...deps,
+  storage:f.storage,prepPreference:{
+   selectedRecipes:all.selectedRecipes,targetCounts:all.targetCounts}});
+ assert.equal(unfiltered.reason,'F5_PREFERRED_RECIPES_INVALID');
+});
