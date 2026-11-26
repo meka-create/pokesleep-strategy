@@ -132,8 +132,9 @@ function readContext(){
  if(!['','curry','salad','dessert','all'].includes(fields.food)||
   typeof fields.camp!=='boolean')
   throw Error('イベントの料理・チケット条件を確認してください。');
- if(fields.food&&fields.food!=='all'&&chosenCategories.some(c=>c!==fields.food))
-  throw Error('備蓄する料理カテゴリとイベント条件の料理が一致しません。');
+ // The three F3 categories may be prepared before the weekly cooking type
+ // is confirmed. A later single-category event does not cancel this hedge.
+ // F4/F5 project only the eligible category; F3 retains all saved targets.
  const playerRaw=localStorage.getItem('pokesleep-strategy-e7-player-v1');
  const player=playerRaw?JSON.parse(playerRaw):null;
  if(player&&player.version!==1)throw Error('プレイヤー情報を確認してください。');
