@@ -183,6 +183,8 @@ try:
         page.locator('#prep-v121-cancel').click()
         page.wait_for_function("""()=>document.querySelector('#f3-prep-status')?.
           textContent.startsWith('備蓄目標')""")
+        # Reload closes <details>; reopen the read-only dish breakdown.
+        page.locator('#f3-prep-breakdown').evaluate('(el)=>el.open=true')
         assert 'サラダ' in page.locator('#f3-prep-dishes').inner_text()
         assert before==page.evaluate("""()=>Object.fromEntries(
           Object.keys(localStorage).filter(k=>k.startsWith('pokesleep-strategy-'))
