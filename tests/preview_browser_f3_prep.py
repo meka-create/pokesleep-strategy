@@ -142,6 +142,34 @@ try:
             .map(k=>[k,localStorage.getItem(k)]))""")
         assert before==after,'F3 read-only load changed saved event data'
 
+        # M4 v133: the real bug. A 3-category F3 hedge must survive the
+        # single-category cooking confirmation WITHOUT rewriting saved prep.
+        cond=PREF+WEEK+':'+quote(ID1,safe="~!*'()-._")+':conditions'
+        prep_key=PREP+WEEK+':'+quote(ID1,safe="~!*'()-._")
+        saved_prep=page.evaluate('key=>localStorage.getItem(key)',prep_key)
+        page.evaluate("""key=>{
+          const x=JSON.parse(localStorage.getItem(key));
+          x.confirmed.fields.food='curry';
+          localStorage.setItem(key,JSON.stringify(x));
+        }""",cond)
+        page.reload(wait_until='domcontentloaded')
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        check_goals(page)
+        page.locator('#f3-prep-breakdown').evaluate('(el)=>el.open=true')
+        dishes=page.locator('#f3-prep-dishes').inner_text()
+        assert all(x in dishes for x in ['カレー','サラダ','デザート']),dishes
+        assert page.evaluate('key=>localStorage.getItem(key)',prep_key)==saved_prep
+        page.evaluate("""key=>{
+          const x=JSON.parse(localStorage.getItem(key));
+          x.confirmed.fields.food='all';
+          localStorage.setItem(key,JSON.stringify(x));
+        }""",cond)
+        page.reload(wait_until='domcontentloaded')
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        assert before==page.evaluate("""()=>Object.fromEntries(
+          Object.keys(localStorage).filter(k=>k.startsWith('pokesleep-strategy-'))
+            .map(k=>[k,localStorage.getItem(k)]))"""),'F3 projection changed saved records'
+
         # Draft changes update food targets without saving any storage key.
         page.locator('#e6-prep-save').click()
         page.locator('[data-stock-count="1"]').click()
