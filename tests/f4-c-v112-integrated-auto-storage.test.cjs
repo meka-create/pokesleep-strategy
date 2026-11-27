@@ -186,7 +186,10 @@ test('real Strategy modal loads the same F1-B numerical source as Box, not place
  assert(html.includes('e7-box-individual-stats-v105.js'));
  assert(ui.includes('root.PokeE7BoxStats?.calculate?.(item)'));
  assert(ui.includes('eligibleIndices.has(i)'));
- assert(ui.includes("store.readCarry(localStorage,c,refs)"));
+ assert(!ui.includes("store.readCarry(localStorage,c,refs)"),
+   'lightweight UI must never read legacy Sunday registrations');
+ assert(ui.includes('previousWeekSleepIndices:null'),
+   'every new plan treats prior-Sunday carry as unobserved');
 });
 
 test('v115 parallel real-Box identity initialization converges on one ledger and stable IDs',async()=>{

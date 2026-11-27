@@ -19,7 +19,7 @@ let data=null,bound=null,modelPromise=null,plan=null,sleep=null,draft=null;
 let draftPlanRaw=null;
 let targetDay=0,reviewDay=0,sleepDay=0,editPicks=[],pending=false;
 let readToken=0,owner='',lastKey='',error='',sleepBusy=false,detailVersion=0;
-let eligibleIndices=new Set(),carryTeam=null,sleepViewCarry=false,editingCarry=false,carryIssue='';
+let eligibleIndices=new Set();
 let collapsedRealEvent='';
 const val=(storageKey)=>{try{return JSON.parse(localStorage.getItem(storageKey)||'null');}catch(_){return null;}};
 const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
@@ -83,13 +83,10 @@ const instant=()=>{
 const ctx=()=>{
  const c=bridge.readContext(localStorage,deps,instant());
  if(c.status!=='CONTEXT_READY')return c;
- const k=store.key('carry',c.weekStart,c.eventId);
- try{
-  const raw=localStorage.getItem(k),p=raw?JSON.parse(raw):null;
-  return {...c,previousCarryRevision:raw?(p?.revision||'INVALID_CARRY'):null,
-   prepPreferenceRevision:localStorage.getItem(prepKey(c))||null};
- }catch(_){return {...c,previousCarryRevision:'INVALID_CARRY',
-   prepPreferenceRevision:localStorage.getItem(prepKey(c))||null};}
+ // Keep any legacy record for backup, but do not READ it in the
+ // lightweight planner: the 04:00-07:30 boundary is always unobserved.
+ return {...c,previousCarryRevision:null,
+  prepPreferenceRevision:localStorage.getItem(prepKey(c))||null};
 };
 const textNode=(tag,txt,cl)=>{
  const e=doc.createElement(tag);if(txt!==undefined)e.textContent=txt;
@@ -369,9 +366,6 @@ function drawAdopted(){
  q('e4-changed').hidden=!stale;
 }
 function renderEffective(){
- const carryButton=q('f4c-carry-trigger');
- if(carryButton)carryButton.hidden=!(data?.status==='CONTEXT_READY'&&
-  !!bound&&data?.clock?.phase==='BEFORE');
  const sel=selected();
  if(!sel||!data||sel.weekStart!==data.weekStart||sel.id!==data.eventId)return;
  if(['ADOPTED','STALE_ADOPTED'].includes(plan?.status)){
@@ -383,7 +377,7 @@ function renderEffective(){
  if(!card||!button)return;
  card.hidden=false;button.hidden=false;
  const can=data.status==='CONTEXT_READY'&&
-  ['BEFORE','DURING'].includes(data.clock.phase)&&!!bound&&!carryIssue;
+  ['BEFORE','DURING'].includes(data.clock.phase)&&!!bound;
  // Never bypass E7 condition validation when the player has unsaved edits.
  if(['SELECT_EVENT','SET_EVENT','SET_INVENTORY'].includes(button.dataset.action))return;
  button.textContent=data.clock.phase==='DURING'?'作戦を再提案':'作戦を提案';
@@ -415,7 +409,7 @@ async function synchronize(force=false){
  const id=++readToken,c=ctx(),sel=selected();
  if(c.status!=='CONTEXT_READY'){
   if(id!==readToken)return;
-  data=c;bound=null;plan=null;sleep=null;carryTeam=null;carryIssue='';eligibleIndices=new Set();lastKey='';owner='';
+  data=c;bound=null;plan=null;sleep=null;eligibleIndices=new Set();lastKey='';owner='';
   if(sel&&sel.id)error=c.message||'実ボックスの計算条件を確認してください。';
   renderEffective();return;
  }
@@ -430,7 +424,7 @@ async function synchronize(force=false){
   });
   if(id!==readToken)return;
   if(refs.status!=='IDENTITIES_READY'){
-   data=c;owner=newOwner;plan=null;bound=null;sleep=null;carryTeam=null;eligibleIndices=new Set();error=refs.reason;
+   data=c;owner=newOwner;plan=null;bound=null;sleep=null;eligibleIndices=new Set();error=refs.reason;
    renderEffective();return;
   }
   // A stable Box ID proves identity, NOT F1 legality or numerical support.
@@ -441,8 +435,6 @@ async function synchronize(force=false){
     legal:deps.legal,rates:deps.rates,master:deps.master});
    const nextEligible=new Set(eligibility.status==='READY'?
     eligibility.profiles.map(p=>Number(p.id.slice(1))):[]);
-   const carried=store.readCarry(localStorage,c,refs);
-   const nextCarryIssue=carried.status==='BLOCKED'?carried.reason:'';
    let adopted=store.readPlan(localStorage,c,refs,mods.snapshot.upstream.commit,
    deps.recipes,c.clock);
   const partial=mid.read(localStorage,c,refs,mods.snapshot.upstream.commit,
@@ -458,36 +450,33 @@ async function synchronize(force=false){
     (!saved[w.day]||w.teamIndices.join('|')!==saved[w.day].join('|'))))
     adopted={...adopted,status:'STALE_ADOPTED',reason:'MANUAL_SLEEP_CHANGED'};
   }
+  // If an older saved plan used a known prior-Sunday lineup, do not
+  // claim it was computed under the now-unknown carry policy.
+  if(['ADOPTED','STALE_ADOPTED'].includes(adopted.status)&&
+   adopted.plan?.previousWeekCarryUnknown!==true)
+   adopted={...adopted,status:'STALE_ADOPTED',reason:'PREVIOUS_SUNDAY_INPUT_RETIRED'};
   if(id!==readToken)return;
   if(owner!==newOwner)draft=null;
-  owner=newOwner;data=c;bound=refs;eligibleIndices=nextEligible;carryIssue=nextCarryIssue;
-   carryTeam=carried.status==='CARRY_READY'?carried.team:null;
-  plan=!carryIssue&&['ADOPTED','STALE_ADOPTED'].includes(adopted.status)?adopted:null;
+  owner=newOwner;data=c;bound=refs;eligibleIndices=nextEligible;
+  plan=['ADOPTED','STALE_ADOPTED'].includes(adopted.status)?adopted:null;
   sleep=nights.status==='SLEEP_READY'?nights.teams:Array.from({length:7},()=>null);
-  error=carryIssue?'前週日曜の個体照合に失敗しました。確定した5匹を再登録してください：'+carryIssue:
-    adopted.status==='BLOCKED'?
+  error=adopted.status==='BLOCKED'?
    '採用済み作戦は保存条件またはボックスが変更されたため保護しました。再提案が必要です。':
-   carried.status==='CARRY_READY'&&carried.team.some(i=>!nextEligible.has(i))?
-     '前週日曜の確定編成に未検証の個体が含まれています。対象個体5匹を再登録してください。':
-    nights.status==='BLOCKED'?'睡眠編成の実個体照合に失敗しました。':
-    nights.status==='SLEEP_READY'&&nights.teams.some(team=>
-     team&&team.some(i=>!nextEligible.has(i)))?
-     '睡眠編成にF1計算対象外または未検証の個体があります。合法個体5匹で再設定してください。':
-    eligibility.status!=='READY'?'睡眠編成用の合法個体判定ができません：'+eligibility.reason:'';
+   nights.status==='BLOCKED'?'睡眠編成の実個体照合に失敗しました。':
+   nights.status==='SLEEP_READY'&&nights.teams.some(team=>
+    team&&team.some(i=>!nextEligible.has(i)))?
+    '睡眠編成にF1計算対象外または未検証の個体があります。合法個体5匹で再設定してください。':
+   eligibility.status!=='READY'?'睡眠編成用の合法個体判定ができません：'+eligibility.reason:'';
   lastKey=key;renderEffective();
  }catch(_){
   if(id!==readToken)return;
-  data=c;bound=null;plan=null;carryTeam=null;carryIssue='';eligibleIndices=new Set();error='計算原典またはボックス照合を確認できません。';
+  data=c;bound=null;plan=null;eligibleIndices=new Set();error='計算原典またはボックス照合を確認できません。';
   renderEffective();
  }
 }
 function refresh(){void synchronize();}
 async function preflight(allowDuring=false){
  const c=ctx();
- if(carryIssue){
-  error='前週日曜の保存編成が照合できません。確定5匹を再登録してください。';
-  renderEffective();return null;
- }
  if(c.status!=='CONTEXT_READY'){error=c.message||c.reason;renderEffective();return null;}
  if(c.clock.phase!=='BEFORE'&&!(allowDuring&&c.clock.phase==='DURING')){
   error='現在の週ではこの操作を行えません。';renderEffective();return null;}
@@ -511,7 +500,7 @@ async function propose(){
   if(original!==dataFingerprint(ctx())){error='保存内容が変更されました。';return;}
   const pref=prepPreference(c);
   if(pref.status==='BLOCKED'){error=pref.reason;return;}
-  const o={manualNights:sleep,previousWeekSleepIndices:carryTeam,
+  const o={manualNights:sleep,previousWeekSleepIndices:null,
    prepPreference:pref.status==='READY'?pref:null};
   const result=auto.propose(c,o,{...deps,...mods});
   if(result.status!=='PROVISIONAL'){
@@ -593,17 +582,7 @@ async function adopt(){
 }
 function drawSleep(){
  if(!data||!bound)return;
- q('sleep-title').textContent=sleepViewCarry?'前週日曜の睡眠編成':'睡眠編成';
- q('f4c-carry-entry').hidden=!sleepViewCarry;
- q('sleep-manual').hidden=sleepViewCarry;
- if(sleepViewCarry){
-  const target=q('f4c-carry-preview');target.replaceChildren();
-  if(carryTeam)for(const i of carryTeam)target.append(realAvatar(i));
-  else target.append(textNode('p','確定編成は未登録です。持越しは未観測として計算します。','hint'));
-  root.PokeSprite?.enhance(target);
-  q('f4c-carry-edit').disabled=data.clock?.phase!=='BEFORE';
-  return;
- }
+ q('sleep-title').textContent='睡眠編成';
  nav('sleep-day-nav',sleepDay,d=>{sleepDay=d;drawSleep();});
  const target=q('sleep-team-preview');target.replaceChildren();
  const chosen=sleep?.[sleepDay];
@@ -616,27 +595,13 @@ function drawSleep(){
 function openSleep(){
  if(!data||!bound){error='ボックスを確認できません。';renderEffective();return;}
  if(data.autoSleep){error='睡眠自動ONでは当週7晩の手動設定は無効です。';renderEffective();return;}
- sleepViewCarry=false;sleepDay=0;drawSleep();q('sleep-dialog').showModal();
-}
-function openCarry(){
- if(!data||!bound||data.clock?.phase!=='BEFORE'){
-  error='前週日曜の確定編成はイベント開始前にのみ登録できます。';
-  renderEffective();return;
- }
- sleepViewCarry=true;drawSleep();q('sleep-dialog').showModal();
-}
-function beginCarryEdit(){
- if(!bound||!eligibleIndices.size||data?.clock?.phase!=='BEFORE')return;
- editingCarry=true;
- editPicks=carryTeam?carryTeam.filter(i=>eligibleIndices.has(i)):[];
- q('edit-title').textContent='前週日曜 · 確定5匹';
- drawEditor();q('edit-dialog').showModal();
+ sleepDay=0;drawSleep();q('sleep-dialog').showModal();
 }
 function drawEditor(){
  const grid=q('pick-grid');grid.replaceChildren();
  q('select-count').textContent=editPicks.length+' / 5';
  q('edit-save').disabled=editPicks.length!==5;
- q('edit-save').textContent=editingCarry?'前週日曜の5匹を登録':'この夜を保存';
+ q('edit-save').textContent='この夜を保存';
  for(let i=0;i<data.privateBoxRows.length;i++){
   if(!eligibleIndices.has(i))continue;
   const item=itemAt(i),on=editPicks.includes(i),entry=textNode('div',undefined,'pick');
@@ -666,7 +631,6 @@ function drawEditor(){
  }
 }
 function beginEdit(){
- editingCarry=false;
  editPicks=sleep?.[sleepDay]?sleep[sleepDay].filter(i=>eligibleIndices.has(i)):[];
  q('edit-title').textContent=DAYS[sleepDay]+'曜日 · 睡眠編成';
  drawEditor();q('edit-dialog').showModal();
@@ -693,21 +657,6 @@ function saveNight(teams){
 function saveEdit(){
  if(editPicks.length!==5||new Set(editPicks).size!==5||
     editPicks.some(i=>!eligibleIndices.has(i)))return;
- if(editingCarry){
-  const c=ctx();
-  if(c.status!=='CONTEXT_READY'||c.clock.phase!=='BEFORE'||!bound||
-     c.eventId!==data?.eventId){error='前週日曜の登録条件が変更されました。';renderEffective();return;}
-  const saved=store.saveCarry(localStorage,c,bound,editPicks);
-  if(saved.status!=='CARRY_SAVED'){
-   error='前週日曜の確定編成を保存できませんでした：'+saved.reason;
-   renderEffective();return;
-  }
-  carryTeam=[...editPicks];draft=null;lastKey='';
-  q('edit-dialog').close();drawSleep();
-  void synchronize(true);
-  root.PokeUI?.toast('前週日曜の確定5匹を登録しました');
-  return;
- }
  const teams=sleep.map(x=>x?[...x]:null);
  teams[sleepDay]=[...editPicks];
  if(saveNight(teams)){
@@ -749,8 +698,6 @@ hijack('review-cancel',()=>{draft=null;draftPlanRaw=null;q('review-dialog').clos
 // Once a legal real Box is ready, use the exact same existing modal controls.
 const realReady=()=>data?.status==='CONTEXT_READY'&&!!bound;
 hijack('sleep-open',openSleep,realReady);
-hijack('f4c-carry-trigger',openCarry);
-hijack('f4c-carry-edit',beginCarryEdit);
 hijack('sleep-change',beginEdit,realReady);
 hijack('sleep-copy',copyNights,realReady);
 hijack('edit-save',saveEdit,realReady);
@@ -766,7 +713,7 @@ root.addEventListener('storage',refresh);
 root.addEventListener('pageshow',refresh);
 root.PokeF4CIntegratedUI=Object.freeze({refresh,
  status:()=>({context:data?.status||'NONE',identityReady:!!bound,
-  eligibleCount:eligibleIndices.size,problem:error||'',carryIssue:carryIssue||''}),
+  eligibleCount:eligibleIndices.size,problem:error||''}),
  isAdopted:(e)=>
  !!plan&&['ADOPTED','STALE_ADOPTED'].includes(plan.status)&&
  e?.weekStart===data?.weekStart&&e?.id===data?.eventId});

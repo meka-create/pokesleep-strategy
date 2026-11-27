@@ -121,37 +121,22 @@ try:
         page.goto(BASE,wait_until='domcontentloaded')
         page.evaluate('(data)=>{for(const [key,val] of Object.entries(data))localStorage.setItem(key,val)}',seed)
         page.reload(wait_until='domcontentloaded')
-        # The prior Sunday registration is only offered after secure real-Box
-        # identity and verified computation inputs are both ready.
-        try:
-            page.locator('#f4c-carry-trigger').wait_for(state='visible',timeout=20000)
-        except Exception as exc:
-            detail={
-              'integrated':page.evaluate('''() => window.PokeF4CIntegratedUI?.status?.()'''),
-              'warning':page.locator('#e3-warning').text_content(),
-              'action':page.locator('#e3-next').get_attribute('data-action'),
-              'errors':errors[-6:]
-            }
-            raise AssertionError('Confirmed carry controls not ready: '+repr(detail)) from exc
-        page.locator('#e3-next[data-action="F4C_PROPOSE"]:not([disabled])').wait_for(state='visible',timeout=20000)
+        # M4 v136: legacy prior-Sunday records may exist (or even be
+        # malformed) but the lightweight planner must NEVER read, edit,
+        # delete, or apply them. The seven-night editor remains intact.
+        legacy='pokesleep-strategy-f4c-v112:carry:2026-11-16:manual%3A2026-11-16'
+        page.evaluate("(k)=>localStorage.setItem(k,'{legacy-invalid-json')",legacy)
+        page.reload(wait_until='domcontentloaded')
+        page.locator('#e3-next[data-action="F4C_PROPOSE"]:not([disabled])').wait_for(
+          state='visible',timeout=20000)
+        assert page.locator('#f4c-carry-trigger').count()==0
+        assert page.locator('#f4c-carry-entry').count()==0
+        assert page.locator('#f4c-carry-edit').count()==0
+        assert page.locator('#sleep-day-nav').count()==1
+        assert page.locator('#sleep-copy').count()==1
+        assert page.evaluate('k=>localStorage.getItem(k)',legacy)=='{legacy-invalid-json'
         assert page.locator('#f4c-real-card').count()==0
         assert page.locator('#f4c-real-consent').count()==0
-        # A human explicitly confirms actual previous Sunday sleeping five.
-        # The old accepted PLAN by itself must never populate this record.
-        page.locator('#f4c-carry-trigger').click()
-        page.locator('#f4c-carry-edit').click()
-        assert_mobile_geometry(page,'#pick-grid .pick-status','#edit-dialog')
-        for _ in range(5):
-            page.locator('#pick-grid .pick-select[aria-pressed="false"]:not([disabled])').first.click()
-        page.locator('#edit-save').click()
-        page.locator('#sleep-dialog').wait_for(state='visible')
-        assert page.locator('#f4c-carry-preview .mon').count()==5
-        assert_mobile_geometry(page,'#f4c-carry-preview .avatar','#sleep-dialog')
-        carry=page.evaluate('''() => JSON.parse(localStorage.getItem(
-         'pokesleep-strategy-f4c-v112:carry:2026-11-16:manual%3A2026-11-16'))''')
-        assert carry['source']=='USER_CONFIRMED_PREVIOUS_SUNDAY' and len(carry['teamIds'])==5
-        assert carry['previousSunday']=='2026-11-15'
-        page.locator('#sleep-close').click()
         before=page.evaluate('(keys)=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]))',list(seed))
         page.locator('#e3-next').click()
         try:
@@ -192,7 +177,9 @@ try:
         assert saved['kind']=='REAL_BOX_PLAN_V112' and saved['slots']==29,saved
         actual=page.evaluate('''() => JSON.parse(localStorage.getItem(
          'pokesleep-strategy-f4c-v112:plan:2026-11-16:manual%3A2026-11-16'))''')
-        assert len(actual['slots'][0]['teamIds'])==5,'confirmed prior Sunday must not be discarded'
+        assert len(actual['slots'][0]['teamIds'])==0,'prior Sunday must stay unobserved'
+        assert actual['previousWeekCarryUnknown'] is True
+        assert page.evaluate('k=>localStorage.getItem(k)',legacy)=='{legacy-invalid-json'
         after=page.evaluate('(keys)=>Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]))',list(seed))
         assert before==after,'Adoption must not mutate legacy mock plan or Box'
         page.reload(wait_until='domcontentloaded')
