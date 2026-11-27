@@ -45,10 +45,12 @@ const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
       .some(x=>x.id===p.selectedRecipes[cat])||
      !Number.isSafeInteger(p.allocatedMeals[cat])||
      p.allocatedMeals[cat]<1||p.allocatedMeals[cat]>21)||
-    p.categories.reduce((n,cat)=>n+p.allocatedMeals[cat],0)>21)
+    (c.fields.food==='all'&&
+     p.categories.reduce((n,cat)=>n+p.allocatedMeals[cat],0)>21))
     return {status:'BLOCKED',reason:'備蓄レシピまたは食数が現在の条件と一致しません。準備タブで保存し直してください。'};
-    // In BEFORE, F3 targets must still fit simultaneous bag occupancy.
-    // A during-week snapshot is never confused with an opening inventory.
+    // In BEFORE, F3 targets must fit real bag capacity. The three saved
+    // category dishes are alternatives if only one weekly food can be cooked.
+    // A during-week snapshot is never confused with opening inventory.
     if(c.clock?.phase==='BEFORE'){
      const stock={};
      for(const code of calc.FOODS){
@@ -59,6 +61,7 @@ const selected=()=>val('pokesleep-strategy-u3-e3-v1:selected');
      }
      const checked=calc.make({recipes:deps.recipes,categories:p.categories,
       camp:c.fields.camp,potCapacity:effectivePot,bagCapacity:c.player.bag,
+      preparationMode:c.fields.food==='all'?'ALL_MEALS':'ALTERNATIVE_WEEKLY_FOOD',
       currentStock:stock,selectedRecipes:p.selectedRecipes,targetMeals:p.allocatedMeals});
      if(checked.status!=='PROVISIONAL')
       return {status:'BLOCKED',reason:'準備の料理・食数が現在のバッグ容量に収まりません。準備タブで再設定してください。'};
