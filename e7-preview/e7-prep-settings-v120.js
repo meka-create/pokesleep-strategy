@@ -60,6 +60,8 @@
      potCapacity:player?.pot},root.PokeM1LiteEnergyV128);
     return {potCapacity:verified?.status==='EVENT_READY'?verified.effectivePot:null,
      bagCapacity:player?.bag,camp:fields?.camp,
+     // One fixed weekly food = mutually exclusive alternative food cases.
+     preparationMode:fields?.food==='all'?'ALL_MEALS':'ALTERNATIVE_WEEKLY_FOOD',
      eventBlocked:verified?.status==='BLOCKED'?
       'イベント補正・鍋容量を照合できません：'+verified.reason:null};
   }catch(_){return {};}
@@ -201,6 +203,12 @@
   const small=document.createElement('div');small.className='prep-v121-summary-type';
   small.textContent='空き '+result.capacity.free.toLocaleString('ja-JP')+'個';
   summary.append(small);
+  if(result.preparationMode==='ALTERNATIVE_WEEKLY_FOOD'&&
+   result.alternativeCategories>1){
+   const hint=document.createElement('div');hint.className='prep-v121-summary-type';
+   hint.textContent='週の料理カテゴリはいずれか1つ。共通食材は最大値で確保（合算しません）';
+   summary.append(hint);
+  }
  }
  function broadcast(){root.dispatchEvent(new Event('pokesleep-prep-v121-preview'));}
  function draw(){

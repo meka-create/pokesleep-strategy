@@ -155,6 +155,7 @@ function readContext(){
  }
  return {week,id,revision:ledger.confirmed.revision,
   categories:chosenCategories,foodUnconfirmed:!fields.food,draft:draft?.input||null,
+  preparationMode:fields.food==='all'?'ALL_MEALS':'ALTERNATIVE_WEEKLY_FOOD',
   camp:fields.camp,pot:verified.effectivePot,bag:player?.bag,current,
    event:verified.event,eventPotMultiplier:verified.event.potSize,
   preference:Prefs.read(week,id)};
@@ -201,6 +202,11 @@ async function applyAdoptedOpening(ctx,base,token){
  const Clock=window.PokeF4BGameWeek,IDs=window.PokeF4CStableBoxIDs;
  const Adapter=window.PokeF4F1RosterAdapter,Model=window.PokeF3AdoptedOpeningV124;
  if(!Store||!Bridge||!Clock||!IDs||!Adapter||!Model||ctx.draft)return;
+ // v124 requires all selected meals to be actually cooked. Alternative
+ // weekly categories are not simultaneously consumed, so its additive
+ // production deduction must not reduce this conservative max reserve.
+ if(base.preparationMode==='ALTERNATIVE_WEEKLY_FOOD'&&
+  base.alternativeCategories>1)return;
  const k=Store.key('plan',ctx.week,ctx.id);
  if(!localStorage.getItem(k))return;
  const explanation=(message)=>{
@@ -298,13 +304,17 @@ function render(){
    ctx.categories.every(c=>pref.categories.includes(c));
   const result=Opt.make({recipes:window.PokeRecipes,categories:ctx.categories,
    camp:ctx.camp,bagCapacity:ctx.bag,potCapacity:ctx.pot,
+   preparationMode:ctx.preparationMode,
    currentStock:ctx.current,
    selectedRecipes:ctx.draft?.selectedRecipes||(aligned?pref.selectedRecipes:undefined),
    targetMeals:ctx.draft?.targetMeals||(aligned?pref.targetMeals:undefined)});
   if(result.status!=='PROVISIONAL')throw Error(result.message);
   drawGoals(result.goals);
+  const alternative=result.preparationMode==='ALTERNATIVE_WEEKLY_FOOD'&&
+   result.alternativeCategories>1;
   status.textContent=(ctx.draft?'未保存の目標プレビュー':'備蓄目標')+(ctx.foodUnconfirmed?'・料理未確定':'')+' · '+result.recipesUsed+'/'+result.mealSlots+
-   '食 · バッグ '+result.capacity.used.toLocaleString('ja-JP')+'/'+
+   '食'+(alternative?'（'+result.alternativeCategories+'カテゴリ候補・最大値）':'')+
+   ' · バッグ '+result.capacity.used.toLocaleString('ja-JP')+'/'+
    result.capacity.bag.toLocaleString('ja-JP')+'個';
   status.dataset.state='ready';detail.hidden=false;
   content.replaceChildren();
@@ -315,7 +325,10 @@ function render(){
    content.append(section);
   }
   const caveat=document.createElement('p');caveat.className='f3-caveat';
-  caveat.textContent='バッグ容量内の指定レシピのみを備蓄。確認済みイベント鍋倍率は容量判定に反映。'+
+  caveat.textContent=(alternative?
+   '週の料理カテゴリは1つのため、共通食材はカテゴリ別必要量の最大値で計算。3品を同時に調理する材料数ではありません。':
+   '複数カテゴリを実際に調理できる週は、使用食材を合算します。')+
+   'バッグ容量内の指定レシピのみを備蓄。確認済みイベント鍋倍率は容量判定に反映。'+
     'レシピLv70と料理チャンスはF4/F5のエナジー評価で扱い、備蓄量には加点しません。'+
     '時間別生産は採用作戦と補正済み個体を照合できた場合だけ参考控除。'+
    (ctx.foodUnconfirmed?' 料理未確定のため、選択カテゴリを均等優先する準備用シナリオです。':'')+
