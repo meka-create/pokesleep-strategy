@@ -39,6 +39,14 @@
     input.categories.length>3||new Set(input.categories).size!==input.categories.length||
     input.categories.some(c=>!CATS.includes(c))||!validInt(input.bagCapacity,1,5000))
    return err('INPUT','カテゴリと食材バッグ容量を確認してください。');
+  // Normal weekly cuisine is one fixed category; F3 may store alternative
+  // candidates before it is known. The player needs enough of each shared
+  // ingredient for ANY ONE candidate, not all mutually exclusive dishes.
+  // An event explicitly allowing all dishes preserves simultaneous demand.
+  const mode=input.preparationMode??'ALL_MEALS';
+  if(!['ALL_MEALS','ALTERNATIVE_WEEKLY_FOOD'].includes(mode))
+   return err('PREPARATION_MODE','備蓄する料理カテゴリの扱いを確認してください。');
+  const exclusive=mode==='ALTERNATIVE_WEEKLY_FOOD';
   const stock=validStock(input.currentStock);
   if(!stock||total(stock)>input.bagCapacity)
    return err('STOCK','現在庫と食材バッグ容量を確認してください。');
@@ -61,21 +69,26 @@
    const amounts=Object.fromEntries(FOODS.map(k=>[k,0]));
    for(const type of input.categories)
     for(const [f,n] of Object.entries(selected[type].requirements))
-     amounts[f]+=n*(counts[type]||0);
+     amounts[f]=exclusive?
+      Math.max(amounts[f],n*(counts[type]||0)):
+      amounts[f]+n*(counts[type]||0);
    return amounts;
   }
   function fit(counts){
    const values=Object.values(counts),d=demand(counts);
-   return values.every(n=>validInt(n,0,21))&&total(counts)<=21&&
+   return values.every(n=>validInt(n,0,21))&&
+    (exclusive||total(counts)<=21)&&
     FOODS.reduce((n,k)=>n+Math.max(stock[k],d[k]),0)<=input.bagCapacity;
   }
   const count={};
   for(const type of input.categories)count[type]=wanted[type]==='auto'?1:wanted[type];
   if(!fit(count))return err('NO_ROOM','選択したレシピを各カテゴリ1食以上準備できません。食数またはレシピを変更してください。');
-  // Equal-priority automatic distribution: one meal minimum per selected
-  // category. Never silently reduce a manually selected count.
+  // Equal-priority automatic distribution: one meal minimum per chosen
+  // category. In an exclusive-food week the count is PER POSSIBLE category:
+  // each case may use 21 meals, not 21 across mutually exclusive cases.
+  // Never silently reduce a manually selected count.
   let advance=true;
-  while(advance&&total(count)<21){
+  while(advance&&(exclusive||total(count)<21)){
    advance=false;
    for(const type of input.categories){
     if(wanted[type]!=='auto')continue;
@@ -96,9 +109,12 @@
   const goals=demand(count);
   const topups=Object.fromEntries(FOODS.map(k=>[k,Math.max(0,goals[k]-stock[k])]));
   const occupied=FOODS.reduce((s,k)=>s+Math.max(stock[k],goals[k]),0);
-  const meals=total(count),production=Object.fromEntries(FOODS.map(k=>[k,0]));
+  const meals=exclusive?Math.max(...Object.values(count)):total(count);
+  const production=Object.fromEntries(FOODS.map(k=>[k,0]));
   return {status:'PROVISIONAL',stage:'F3_STOCKPILE_V120',
-   method:'ONE_TOP_RECIPE_PER_CATEGORY_CAPACITY_FIRST',
+   method:exclusive?'ALTERNATIVE_WEEKLY_FOOD_MAX':'ONE_TOP_RECIPE_PER_CATEGORY_CAPACITY_FIRST',
+   preparationMode:mode,alternativeCategories:exclusive?input.categories.length:0,
+   alternativeMealCounts:exclusive?{...count}:null,
    categories:input.categories.map(type=>({...selected[type],type,count:count[type],
     requestedMeals:wanted[type],maximumMeals:limits[type]})),
    selectedRecipes:Object.fromEntries(input.categories.map(c=>[c,selected[c].id])),
@@ -106,7 +122,9 @@
    production,recipesUsed:meals,mealSlots:21,
    capacity:{bag:input.bagCapacity,starting:total(stock),used:occupied,
     additional:total(topups),free:input.bagCapacity-occupied},
-   notes:['各カテゴリ1レシピのみ。バッグ容量内で最大21食を配分。',
+   notes:[exclusive?
+    '3カテゴリは週の料理タイプ別の代替候補です。食材ごとに必要数の最大値を備蓄します。':
+    '各カテゴリ1レシピのみ。バッグ容量内で最大21食を配分。',
     '実編成・回収時刻を保証できない間は生産予測を自動控除しません。'],
    productionCertified:false,weeklyPlanCertified:false};
  }
