@@ -25,7 +25,7 @@
      !Number.isSafeInteger(targetCounts[c])||targetCounts[c]<1||targetCounts[c]>21)||
     Object.keys(selectedRecipes).some(c=>!categories.includes(c))||
     Object.keys(targetCounts).some(c=>!categories.includes(c))||
-    categories.reduce((n,c)=>n+targetCounts[c],0)>21)
+    (food==='all'&&categories.reduce((n,c)=>n+targetCounts[c],0)>21))
     return fail('M4_PREP_PREFERENCE_INVALID');
    const eligible=categories.filter(c=>food==='all'||c===food);
    const excluded=categories.filter(c=>!eligible.includes(c));
