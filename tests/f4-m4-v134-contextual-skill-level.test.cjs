@@ -9,7 +9,7 @@ const load=p=>{const x={module:{exports:{}},globalThis:{}};
  return x.module.exports;};
 const model=load('f4/f4-m1-lite-energy-v128.js'),
  values=load('f1/f1-c-skill-values-v1.js'),
- base=load('f1/f1-b-base-rates-v1.js');
+ base=require('../f1/f1-b-base-rates-v1.js');
 const targets=JSON.parse(read('f1/f1-b-target-source-v1.json')).targets;
 const skills=[...new Set(targets.map(t=>t.sourceProfile.mainSkill))].sort();
 const WEEK='2026-11-23',SOURCE='pokesleep-tool:synthetic verified skill week:'+WEEK;
