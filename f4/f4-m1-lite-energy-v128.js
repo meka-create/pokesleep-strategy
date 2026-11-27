@@ -83,13 +83,24 @@
    if(affected&&event.skillLevel>0&&p.skillCode){
     if(!Number.isSafeInteger(level)||!skillValues?.skillValue)
      return fail('M1_EVENT_SKILL_LEVEL_SOURCE_MISSING');
-    let max=0;
-    for(let n=1;n<=8;n++){
-     const x=skillValues.skillValue(p.skillCode,n);
-     if(['BASE_VALUE_ONLY','PARTIAL_SIDE_EFFECT_UNMODELED'].includes(x?.status))
-      max=n;
+    // Skill level ceilings are independently pinned by F1-C even for
+    // contextual skills (Metronome, Skill Copy, Versatile, Stockpile).
+    // A missing numeric *effect* table must not make the legal level
+    // increment invalid or block the entire real Box roster.
+    // This does NOT price contextual effects into weekly energy.
+    let max=skillValues.maxLevel?.(p.skillCode);
+    if(!Number.isSafeInteger(max)||max<1||max>8){
+     // Backward-compatible oracle dependency: numeric effect tables alone
+     // may still establish a cap for supported direct-value skills.
+     max=0;
+     for(let n=1;n<=8;n++){
+      const x=skillValues.skillValue(p.skillCode,n);
+      if(['BASE_VALUE_ONLY','PARTIAL_SIDE_EFFECT_UNMODELED'].includes(x?.status))
+       max=n;
+     }
     }
     if(!max)return fail('M1_EVENT_SKILL_LEVEL_UNVERIFIED');
+    if(level<1||level>max)return fail('M1_EVENT_SKILL_LEVEL_SOURCE_MISSING');
     nextLevel=Math.min(max,level+event.skillLevel);
    }
    const rates=[];
