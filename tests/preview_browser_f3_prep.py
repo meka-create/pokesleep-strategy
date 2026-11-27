@@ -244,6 +244,52 @@ try:
         assert 'バッグ容量' in page.locator('#f3-prep-status').inner_text()
         assert page.locator('#goal-panel .food.needed').count()==0
         assert not page.locator('#f3-prep-breakdown').is_visible()
+
+        # M4 v135: actual 3 chosen dishes shown in the Android screenshots.
+        # A single-category week needs max(ingredient demand), not 3 dishes
+        # consumed together: mushroom=31 (not 58), corn=28 (not 46).
+        special='manual:'+WEEK+'-4'
+        suffix=WEEK+':'+quote(special,safe="~!*'()-._")
+        fixture=records(special,['curry','salad','dessert'])
+        fixture[PREF+suffix+':conditions']['confirmed']['fields']['food']='curry'
+        fixture[PLAYER]={'version':1,'pot':150,'bag':800,'bonuses':{}}
+        fixture['pokesleep-strategy-f3-v120:prep:'+suffix]={
+          'kind':'F3_STOCKPILE_PREF_V120','version':1,
+          'weekStart':WEEK,'eventId':special,
+          'categories':['curry','salad','dessert'],
+          'selectedRecipes':{'curry':'curry_25','salad':'salad_51','dessert':'dessert_78'},
+          'targetMeals':{'curry':1,'salad':1,'dessert':1},
+          'allocatedMeals':{'curry':1,'salad':1,'dessert':1},
+          'savedAt':'2026-11-20T00:00:00Z'
+        }
+        page.evaluate("""entries=>{
+          for(const [key,value] of Object.entries(entries))
+            localStorage.setItem(key,JSON.stringify(value));
+        }""",fixture)
+        prep_key='pokesleep-strategy-f3-v120:prep:'+suffix
+        before_prep=page.evaluate('key=>localStorage.getItem(key)',prep_key)
+        page.goto(url(special),wait_until='domcontentloaded')
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        assert page.locator('#goal-panel .row.total strong').inner_text()=='277個'
+        assert '3カテゴリ候補・最大値' in page.locator('#f3-prep-status').inner_text()
+        assert '最大値で確保' in page.locator('#prep-v121-summary').inner_text()
+        check_goals(page)
+        page.locator('#f3-prep-breakdown').evaluate('(el)=>el.open=true')
+        names=page.locator('#f3-prep-dishes').inner_text()
+        assert all(s in names for s in
+          ['とびはねるカレーうどん','ごろごろねっとうサラダ','みつあつめチョコワッフル']),names
+        assert page.evaluate('key=>localStorage.getItem(key)',prep_key)==before_prep
+        # When all cuisine types can actually be cooked, we must not
+        # silently treat three simultaneously planned dishes as exclusive.
+        page.evaluate("""key=>{
+          const v=JSON.parse(localStorage.getItem(key));
+          v.confirmed.fields.food='all';
+          localStorage.setItem(key,JSON.stringify(v));
+        }""",PREF+suffix+':conditions')
+        page.reload(wait_until='domcontentloaded')
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        assert page.locator('#goal-panel .row.total strong').inner_text()=='322個'
+        assert page.evaluate('key=>localStorage.getItem(key)',prep_key)==before_prep
         assert not failures,failures
         ctx.close()
         browser.close()
