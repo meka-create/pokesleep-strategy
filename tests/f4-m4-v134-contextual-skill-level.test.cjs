@@ -8,8 +8,13 @@ const load=p=>{const x={module:{exports:{}},globalThis:{}};
  vm.runInNewContext(read(p),x,{filename:p,timeout:20000});
  return x.module.exports;};
 const model=load('f4/f4-m1-lite-energy-v128.js'),
- values=load('f1/f1-c-skill-values-v1.js'),
- base=require('../f1/f1-b-base-rates-v1.js');
+ values=load('f1/f1-c-skill-values-v1.js');
+const f1bSource=read('f1/f1-b-base-rates-v1.js');
+const skillCapDefinition=f1bSource.match(/function skillMax\(skill\)\{[\s\S]*?\n\}/)?.[0];
+assert(skillCapDefinition,'F1-B pinned skillMax source must remain present');
+// Evaluate the existing pure skillMax definition independently: no private data
+// or mutable live module state is required for the oracle.
+const independentF1BCap=new Function(skillCapDefinition+'\nreturn skillMax;')();
 const targets=JSON.parse(read('f1/f1-b-target-source-v1.json')).targets;
 const skills=[...new Set(targets.map(t=>t.sourceProfile.mainSkill))].sort();
 const WEEK='2026-11-23',SOURCE='pokesleep-tool:synthetic verified skill week:'+WEEK;
@@ -29,7 +34,7 @@ function row(skill,index,options={}){
 test('M4 v134: all 22 pinned main skills have independently verified legal level caps',()=>{
  assert.equal(skills.length,22);
  for(const skill of skills){
-  assert.equal(values.maxLevel(skill),base.skillMax(skill),skill);
+  assert.equal(values.maxLevel(skill),independentF1BCap(skill),skill);
   assert(Number.isSafeInteger(values.maxLevel(skill)));
  }
 });
