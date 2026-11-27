@@ -8,7 +8,7 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 // v136 reviewed U3 sleep modal: remove prior-Sunday input only. U2 and Box protected blobs unchanged.
-const auditedSHA=['3083e41b5deae49fd1b952939b2ef77f2ef5625a', '85e131271d82dd50b62f8e7be2c7a4bce2243dae', 'e5593acbf7417451ac4f99d0d093245a2d5f54ab'];
+const auditedSHA=['3083e41b5deae49fd1b952939b2ef77f2ef5625a', 'dc0ced46056ab2ac6c84c44b8d785295da7b2841', 'e5593acbf7417451ac4f99d0d093245a2d5f54ab'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');
