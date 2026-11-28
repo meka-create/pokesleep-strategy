@@ -69,11 +69,10 @@ function showProductionResult(ctx,base,source){
  const labelFor=Object.fromEntries([...codes].map(([jp,code])=>[code,jp]));
  write('168時間の0げんき基準・連続編成シナリオ（主な食材）：'+
   (ranked.map(([key,n])=>(labelFor[key]||key)+' 約'+n+'個').join('、')||'対象なし'));
- write('料理は各カテゴリ1レシピに限定。仮生産は収集時刻不明のため目標へ自動控除しません。');
- write('実際の編成ではありません。げんき・所持数・回収・スキル・収集時刻は未反映。'+
+ write('所持数・回収時刻・スキル・げんきの変動は未反映。'+
   (source.assumedMintCount||source.assumedRibbonCount?
    ' ミント未記入'+source.assumedMintCount+'匹／睡眠時間未記入'+source.assumedRibbonCount+'匹は仮定値です。':'')+
-  ' 生産量は確実ではないため、準備目標から自動控除しません。');
+  ' 仮の生産量は準備目標から自動控除しません。');
 }
 async function refreshProduction(ctx,base,token){
  const bridge=window.PokeF3ProductionScenario;
@@ -324,16 +323,15 @@ function render(){
     ' '+group.count+'食：'+group.name;
    content.append(section);
   }
-  const caveat=document.createElement('p');caveat.className='f3-caveat';
-  caveat.textContent=(alternative?
-   '週の料理カテゴリは1つのため、共通食材はカテゴリ別必要量の最大値で計算。3品を同時に調理する材料数ではありません。':
-   '複数カテゴリを実際に調理できる週は、使用食材を合算します。')+
-   'バッグ容量内の指定レシピのみを備蓄。確認済みイベント鍋倍率は容量判定に反映。'+
-    'レシピLv70と料理チャンスはF4/F5のエナジー評価で扱い、備蓄量には加点しません。'+
-    '時間別生産は採用作戦と補正済み個体を照合できた場合だけ参考控除。'+
-   (ctx.foodUnconfirmed?' 料理未確定のため、選択カテゴリを均等優先する準備用シナリオです。':'')+
-   '';
-  content.append(caveat);
+  if(ctx.foodUnconfirmed){
+   const note=document.createElement('p');note.className='f3-caveat';
+   note.textContent='料理未確定のため、選択カテゴリを均等に優先。';
+   content.append(note);
+  }else if(!alternative&&result.categories.length>1){
+   const note=document.createElement('p');note.className='f3-caveat';
+   note.textContent='複数カテゴリの必要食材を合算。';
+   content.append(note);
+  }
   currentScenario={ctx,base:result,token};
   if(!ctx.draft)void applyAdoptedOpening(ctx,result,token);
   productionDetails.hidden=false;

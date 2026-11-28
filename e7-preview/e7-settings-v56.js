@@ -127,12 +127,11 @@ function build(){
   '<p id="e7-player-status" class="settings-status" role="status" aria-live="polite"></p>',
   '</div></section>',
   '<section id="e7-backup-settings" class="settings-section" hidden><div class="settings-panel">',
-  '<p class="settings-muted">作戦・在庫・ボックス・プレイヤー情報など、この端末に保存された作戦室データをまとめて保存します。</p>',
-  '<div class="settings-actions"><button type="button" id="e7-settings-export" class="settings-btn alt">保存データを書き出す</button></div>',
+  '<div class="settings-actions"><button type="button" id="e7-settings-export" class="settings-btn alt">全データを書き出す</button></div>',
   '<label>バックアップを読み込む<input id="e7-settings-import-file" type="file" accept=".json,application/json"></label>',
   '<p id="e7-settings-import-summary" class="settings-muted"></p>',
   '<div class="settings-actions"><button type="button" id="e7-settings-restore" class="settings-btn" disabled>バックアップから復元</button></div>',
-  '<p class="settings-muted">復元すると現在の作戦室データがバックアップの内容に置き換わります。先に書き出しておくことをおすすめします。ボックスのCSV登録とは別の機能です。</p>',
+  '<p class="settings-muted">復元すると、この端末の作戦室データをすべて上書きします。</p>',
   '<p id="e7-backup-status" class="settings-status" role="status" aria-live="polite"></p>',
   '</div></section></div>'
  ].join('');

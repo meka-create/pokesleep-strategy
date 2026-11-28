@@ -42,6 +42,7 @@ details{margin-top:9px}details summary{cursor:pointer;color:#d9e5ef;font-weight:
 #e7-import-panel>summary::after{content:"";display:block;width:9px;height:9px;flex:0 0 9px;margin-right:5px;border-right:2px solid #cbd9e7;border-bottom:2px solid #cbd9e7;transform:rotate(45deg) translateY(-2px);transition:transform .15s}
 #e7-import-panel[open]>summary::after{transform:rotate(225deg) translate(-2px,-1px)}
 #e7-import-panel .import-content{border-top:1px solid #394e65;margin-top:8px;padding-top:11px}
+#e7-import-panel .import-content>label{margin-top:7px}
 #e7-import-panel .import-actions{display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:stretch;gap:8px;margin-top:13px}
 #e7-import-panel .import-actions #box-commit{flex:1 1 auto;min-width:0}
 #e7-import-panel .import-actions #box-clear{flex:0 0 auto}
@@ -89,8 +90,7 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 <section class="card" id="box-registration" aria-labelledby="box-import-title">
 <details id="e7-import-panel"><summary id="box-import-title">CSV・TSVから登録</summary>
 <div class="import-content">
-<p class="muted">pokesleep-toolのCSV・TSVを読み込み、確認後に追加します。</p>
-<label>ファイル選択<input id="upload" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values"></label>
+<label>pokesleep-toolのファイルを選択<input id="upload" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values"></label>
 <div id="import-summary" class="info" role="status"></div>
 <ul id="e7-import-preview"></ul>
 <div class="actions import-actions"><button id="box-commit" type="button" class="btn secondary" disabled>確認した個体を追加</button><button type="button" class="btn danger-subtle" id="box-clear">全削除</button></div>

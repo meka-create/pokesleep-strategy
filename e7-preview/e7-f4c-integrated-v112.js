@@ -317,10 +317,10 @@ function drawReview(){
  if(!draft)return;
  const note=q('review-dialog')?.querySelector('.review-note');
  if(note&&draft.stage==='F5_REMAINING_V119')note.textContent=
-  '食材在庫の確定時点から残時間だけを再計算します。過去の表示は以前の予測であり、実績未確認です。イベント未確認効果は未反映。';
+  '在庫確定後の残り時間を再計算。過去の枠は採用時の予測です。未確認のイベント効果は未反映。';
  else if(note)note.textContent=draft.officialEffectsExcluded?
-  '実ボックスを使用した作戦です。一部イベント補正・新食材・新料理は未反映（参考計算）。':
-  '実ボックスを使用した20食材・81料理の提案です。回復発動・収集は期待値の参考計算です。';
+  '一部のイベント補正・新食材・新料理は未反映です。':
+  '回復・収集は期待値です。';
  const alignment=mealAlignment(draft,data);
   const alignedNote=mealAlignmentMessage(alignment);
   if(note&&alignedNote)note.textContent+=' '+alignedNote+'。';
@@ -348,8 +348,8 @@ function drawAdopted(){
   button.dataset.action=data?.clock?.phase==='DURING'?'F5_REPROPOSE':'F4C_REPROPOSE';
   button.disabled=data?.clock?.phase==='ENDED'||pending||!bound;
   flash(data?.clock?.phase==='DURING'?
-   '以前の採用予測を保持しています。準備タブで現在庫を更新した後、残期間を再提案できます。':
-   '以前の作戦を保持しています。変更した条件・在庫を反映するには再提案してください。');
+   '準備で在庫を更新してから、残り期間の作戦を再提案してください。':
+   '変更した条件・在庫を反映するには再提案してください。');
  }else flash(error,Boolean(error));
  const footer=q('e6-footer-plan');
  if(footer)footer.dataset.reproposal=String(stale);
@@ -582,7 +582,7 @@ async function adopt(){
   q('review-dialog').close();lastKey='';
   await synchronize(true);
   if(plan?.status==='ADOPTED')root.PokeUI?.toast(partial?
-   '現在庫を基準に残期間の作戦を更新しました':'実ボックスから作成した作戦を採用しました');
+   '現在庫を基準に残期間の作戦を更新しました':'作戦を採用しました');
  }catch(_){error='実個体作戦を安全に保存できませんでした。';}
  finally{pending=false;q('review-adopt').disabled=false;renderEffective();
   if(error)flash(error,true);}

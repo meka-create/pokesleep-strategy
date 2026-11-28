@@ -211,7 +211,7 @@
   if(result.preparationMode==='ALTERNATIVE_WEEKLY_FOOD'&&
    result.alternativeCategories>1){
    const hint=document.createElement('div');hint.className='prep-v121-summary-type';
-   hint.textContent='週の料理カテゴリはいずれか1つ。共通食材は最大値で確保（合算しません）';
+   hint.textContent='料理カテゴリ候補間の共通食材は最大値で確保';
    summary.append(hint);
   }
  }
@@ -237,7 +237,7 @@
    const row=document.createElement('div');row.className='prep-v121-row';
    line(row,'prep-v121-summary-type',label[type]);
    const recipeLabel=document.createElement('label');
-   const recipeHelp=document.createElement('span');recipeHelp.textContent=label[type]+'のレシピ';
+   const recipeHelp=document.createElement('span');recipeHelp.textContent='レシピ';
    recipeLabel.append(recipeHelp);
    const recipeSelect=document.createElement('select');
    recipeSelect.setAttribute('aria-label',label[type]+'のレシピ');
@@ -259,7 +259,7 @@
    });
    recipeLabel.append(recipeSelect);
    const mealLabel=document.createElement('label');
-   const mealHelp=document.createElement('span');mealHelp.textContent=label[type]+'の目標食数';
+   const mealHelp=document.createElement('span');mealHelp.textContent='目標食数';
    mealLabel.append(mealHelp);
    const mealSelect=document.createElement('select');
    mealSelect.setAttribute('aria-label',label[type]+'の目標食数');

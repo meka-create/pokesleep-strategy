@@ -121,8 +121,7 @@ test('F3-B UI only renders read-only optional scenario, keeps root and F1 calcul
  assert.match(ui,/targetIngredients:base\.demand/);
  // v120: hypothetical roster's weekly production must never be silently deducted.
  assert.doesNotMatch(ui,/forecastProduction:source\.scenarioProduction/);
- assert.match(ui,/仮生産は収集時刻不明のため目標へ自動控除しません/);
- assert.match(ui,/準備目標から自動控除しません/);
+ assert.match(ui,/仮の生産量は準備目標から自動控除しません/);
  assert.doesNotMatch(ui,/localStorage\.setItem|localStorage\.removeItem/);
  assert.match(prep,/src="\.\.\/f3\/f3-b-production-scenario-v1\.js"/);
  assert.match(prep,/src="\.\.\/f1\/f1-b-base-rates-v1\.js"/);
