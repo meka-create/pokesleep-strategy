@@ -8,7 +8,7 @@ const names=['U2_Prep_Local_Ingredients_20261109_v50_E7.html',
  'U3_Strategy_UI_20261109_v50_E7.html',
  'U4_Box_Preview_20261109_v50_E7.html'];
 // v141 reviewed shorter strategy and import copy; U2 keeps its existing baseline.
-const auditedSHA=['3083e41b5deae49fd1b952939b2ef77f2ef5625a', 'bc0b93158b5f1db71a2943c4a0d6f2dd8f51a5ef', '0ddb97205289026c1d719c3094fcdebff2651d42'];
+const auditedSHA=['3083e41b5deae49fd1b952939b2ef77f2ef5625a', '1a7eeab2d102f84b92a489d48c84520d20d95ffd', '0ddb97205289026c1d719c3094fcdebff2651d42'];
 const gitBlobSHA=text=>{
  const bytes=Buffer.from(text,'utf8');
  return crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0','utf8')).update(bytes).digest('hex');

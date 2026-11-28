@@ -32,9 +32,11 @@ try:
    for name,asset in [('シアンの砂浜','field-cyan.png'),('シアンの砂浜EX','field-cyan-ex.jpg'),('','')]:
     field.select_option(name,force=True)
     card=plan.locator('#event-details')
-    assert card.locator('.field-name').all_text_contents()==[name,name]
+    assert card.locator('.field-heading').all_text_contents()==['イベント条件','イベント条件']
     assert (card.get_attribute('data-ex')=='true')==name.endswith('EX')
     for selector in ('summary','.e6-conditions-label'):
+     typography=card.locator(selector).evaluate("el=>[getComputedStyle(el).fontSize,getComputedStyle(el).fontWeight]")
+     assert typography==['15px','800'],(width,selector,typography)
      background=card.locator(selector).evaluate("el=>getComputedStyle(el,'::before').backgroundImage")
      assert (asset in background if asset else background=='none'),(width,name,background)
    plan.locator('#event-details').evaluate("""el=>{
@@ -49,6 +51,15 @@ try:
      return {before:content.top-heading.bottom,after:label.top-content.top,
              width:el.getBoundingClientRect().width};
    }""")
+   for phase in ('true','false'):
+    edges=event.evaluate("""(el,phase)=>{
+      const main=el.closest('main'),previous=main.dataset.hasProposed;
+      main.dataset.hasProposed=phase;
+      const card=el.getBoundingClientRect(),rule=el.querySelector('.event-fields').getBoundingClientRect();
+      main.dataset.hasProposed=previous;
+      return [rule.left-card.left,card.right-rule.right];
+    }""",phase)
+    assert all(abs(edge-1)<.7 for edge in edges),(width,phase,edges)
    box=tab('box')
    box.locator('#e7-import-panel > summary').click()
    reference=box.locator('#e7-import-panel').evaluate("""el=>{

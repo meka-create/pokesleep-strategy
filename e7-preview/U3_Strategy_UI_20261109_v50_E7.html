@@ -132,12 +132,11 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 @media(max-width:360px){#e6-footer a{font-size:11px}#e6-footer a small{font-size:9px}}
 #event-details[data-field-art] {overflow:hidden;--field-shade:linear-gradient(90deg,rgba(8,18,30,.84),rgba(8,18,30,.63) 56%,rgba(8,18,30,.5))}
 #event-details[data-field-art][data-ex="true"] {--field-shade:linear-gradient(90deg,rgba(18,15,55,.91),rgba(35,29,81,.57),rgba(34,28,72,.58));--field-ring:inset 0 0 0 2px #b9abf777}
-#event-details[data-field-art]>.field-heading {position:relative;isolation:isolate;gap:8px;color:white;text-shadow:0 1px 3px #000}
+#event-details[data-field-art]>.field-heading {position:relative;isolation:isolate;gap:8px}
 #event-details[data-field-art]>.field-heading::before {content:"";position:absolute;z-index:-1;pointer-events:none;inset:-4px -10px;border-radius:14px;background:var(--field-shade),var(--field-art) center 48% / cover;box-shadow:var(--field-ring,none)}
 #event-details[data-field-art][open]>.field-heading::before {bottom:-8px;border-radius:14px 14px 0 0}
-#event-details[data-field-art]>.e6-conditions-label::before {inset:-9px -13px -8px}
+#event-details[data-field-art]>.e6-conditions-label::before {inset:-9px -13px -12px}
 main:not([data-has-proposed="true"]) #event-details[data-field-art]>.e6-conditions-label {display:flex;align-items:center;min-height:36px}
-.field-heading .field-name {margin-left:auto;font-size:12px;font-weight:700}
 </style>
 <style id="e6-dev-css">
 #e6-dev{max-width:680px;margin:8px auto 10px;padding:0 12px;color:#f4f6fc;font:14px/1.45 system-ui,"Noto Sans JP",sans-serif}
@@ -211,6 +210,10 @@ main:not([data-has-proposed="true"]) #event-details[data-field-art]>.e6-conditio
 main[data-has-proposed="true"] #event-details[open]{padding:4px 10px}
 main[data-has-proposed="true"] #event-details[open]>summary{height:40px;min-height:40px;padding:0;line-height:1.35}
 main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px;padding-top:18px;border-top-color:#394e65}
+#event-details.card>.field-heading {font-size:15px;font-weight:800;line-height:1.35;letter-spacing:.015em;color:#fff;text-shadow:0 1px 3px #000,0 0 9px #000a}
+#event-details.card {--event-inset:13px}
+main[data-has-proposed="true"] #event-details.card {--event-inset:10px}
+#event-details>.event-fields {margin-inline:calc(-1 * var(--event-inset));padding-inline:var(--event-inset)}
 /* More horizontal room for six full-width nickname characters on phones. */
 #pick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(min-width:480px){#pick-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -307,7 +310,7 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
  <p id="phase-intro-message">食材の備蓄目標を確認しましょう。</p>
  <a class="btn secondary u2-nav" id="phase-intro-u2" href="U2_Prep_Local_Ingredients_20261109_v50_E7.html">準備目標・食材在庫へ</a>
 </section>
-<details class="event-details card" id="event-details"><summary class="field-heading"><span>イベント条件</span><span class="field-name"></span></summary><div class="e6-conditions-label field-heading">イベント条件<span class="field-name"></span></div><div class="event-fields">
+<details class="event-details card" id="event-details"><summary class="field-heading"><span>イベント条件</span></summary><div class="e6-conditions-label field-heading">イベント条件</div><div class="event-fields">
 <div class="field wide e6-event-selector"><span>イベント</span>
 <select id="event-source-select" aria-label="イベント"><option value="">手動設定</option></select><button type="button" id="f2-update-source" class="btn small secondary" hidden>更新された補正を選択</button>
 </div>
@@ -1007,7 +1010,6 @@ function e6UpdateFieldArt(){
  card.dataset.ex=String(field.endsWith('EX'));
  if(file)card.style.setProperty('--field-art','url("https://meka-create.github.io/pokesleep-priority/assets/'+file+'")');
  else card.style.removeProperty('--field-art');
- for(const name of card.querySelectorAll('.field-heading .field-name'))name.textContent=field;
 }
 function syncEventControls(){
  $('#event-start').value=eventInfo.start;
