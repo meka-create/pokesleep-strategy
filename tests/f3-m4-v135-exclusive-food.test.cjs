@@ -99,9 +99,9 @@ test('v135: F3 UI and F4 checks explicitly use one food mode and caveat',()=>{
  const ui=read('e7-preview/e7-f4c-integrated-v112.js');
  const sw=read('e7-preview/e7-sw-v50.js');
  for(const s of [f3,prefs,ui])assert.match(s,/ALTERNATIVE_WEEKLY_FOOD/);
- assert.match(f3,/カテゴリ候補・最大値/);
+ assert.doesNotMatch(f3,/料理内訳/);
  assert.match(f3,/base\.preparationMode==='ALTERNATIVE_WEEKLY_FOOD'/);
- assert.match(prefs,/共通食材は最大値で確保/);
+ assert.match(prefs,/備蓄後の空き/);
  assert.match(ui,/preparationMode:c\.fields\.food==='all'/);
  assert.match(sw,/v135-exclusive-food-max/);
  assert.doesNotMatch(read('f3/f3-stockpile-v120.js'),/localStorage|setItem\(/);

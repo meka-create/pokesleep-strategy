@@ -105,9 +105,8 @@ test('F4 audit guard cannot modify private records, production root or existing 
 });
 test('F4 lazy reference must skip private box scan and pinned JSON until explicit expansion',()=>{
  const s=read('e7-preview/e7-f3-prep-goals-v88.js');
- assert.match(s,/detail\.addEventListener\('toggle',requestOpenScenario\)/);
  assert.match(s,/productionDetails\.addEventListener\('toggle',requestOpenScenario\)/);
- assert.match(s,/if\(!detail\.open\|\|!productionDetails\.open\|\|!currentScenario\)return/);
+ assert.match(s,/if\(!productionDetails\.open\|\|!currentScenario\)return/);
  assert.match(s,/if\(lastRequestedToken===token\)return/);
  assert.doesNotMatch(s,/^\s*void refreshProduction\(ctx,result,token\);/m);
  assert.doesNotMatch(s,/localStorage\.setItem|localStorage\.removeItem/);

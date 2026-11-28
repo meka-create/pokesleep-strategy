@@ -109,6 +109,10 @@
   '.prep-v121-summary-type{color:var(--muted);font-size:11px}'+
   '.prep-v121-capacity{display:flex;justify-content:space-between;align-items:center;gap:7px;padding-top:6px;margin-top:4px;border-top:1px solid var(--line);font-size:11px}'+
   '.prep-v121-capacity strong{color:var(--gold);font-variant-numeric:tabular-nums}'+
+  '#f3-prep-status:empty{display:none}'+
+  '#f3-b-production>summary{cursor:pointer;font-weight:700;font-size:12px}'+
+  '.ingredient-picks{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;align-items:center;padding:5px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}'+
+  '.ingredient-picks img{width:30px;height:30px;object-fit:contain}'+
   '#f3-v120-controls{display:grid;gap:4px;margin-top:9px}'+
   '.prep-v121-row{display:grid;grid-template-columns:54px minmax(0,1fr) 98px;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}'+
   '.prep-v121-row:last-child{border-bottom:0}'+
@@ -200,20 +204,11 @@
    summary.append(row);
   }
   const bottom=document.createElement('div');bottom.className='prep-v121-capacity';
-  line(bottom,'',editing?'バッグ容量・未保存プレビュー':'バッグ容量');
-  const total=document.createElement('strong');
-  total.textContent=result.capacity.used.toLocaleString('ja-JP')+' / '+
+  line(bottom,'',editing?'備蓄後の空き・未保存プレビュー':'備蓄後の空き');
+  const free=document.createElement('strong');
+  free.textContent=result.capacity.free.toLocaleString('ja-JP')+' / '+
    result.capacity.bag.toLocaleString('ja-JP')+'個';
-  bottom.append(total);summary.append(bottom);
-  const small=document.createElement('div');small.className='prep-v121-summary-type';
-  small.textContent='空き '+result.capacity.free.toLocaleString('ja-JP')+'個';
-  summary.append(small);
-  if(result.preparationMode==='ALTERNATIVE_WEEKLY_FOOD'&&
-   result.alternativeCategories>1){
-   const hint=document.createElement('div');hint.className='prep-v121-summary-type';
-   hint.textContent='料理カテゴリ候補間の共通食材は最大値で確保';
-   summary.append(hint);
-  }
+  bottom.append(free);summary.append(bottom);
  }
  function broadcast(){root.dispatchEvent(new Event('pokesleep-prep-v121-preview'));}
  function draw(){
