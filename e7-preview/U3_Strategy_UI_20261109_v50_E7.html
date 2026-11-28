@@ -130,9 +130,14 @@ body{padding-bottom:calc(86px + env(safe-area-inset-bottom,0px))!important}
 #e6-dev:not([open]){margin-bottom:6px}
 .u2-transfer,#phase-intro-u2,#e3-update-stock{display:none!important}
 @media(max-width:360px){#e6-footer a{font-size:11px}#e6-footer a small{font-size:9px}}
-.e6-field-art{min-height:96px;position:relative;border:1px solid #53687e;border-radius:12px;overflow:hidden;background:#21364d;background-size:cover;background-position:center 48%}
-.e6-field-art[hidden]{display:none!important}
-.e6-field-art[data-ex="true"]{border-color:#a79ad9;box-shadow:inset 0 0 0 1px #aa98e088}
+#event-details[data-field-art] {overflow:hidden;--field-shade:linear-gradient(90deg,rgba(8,18,30,.84),rgba(8,18,30,.63) 56%,rgba(8,18,30,.5))}
+#event-details[data-field-art][data-ex="true"] {--field-shade:linear-gradient(90deg,rgba(18,15,55,.91),rgba(35,29,81,.57),rgba(34,28,72,.58));--field-ring:inset 0 0 0 2px #b9abf777}
+#event-details[data-field-art]>.field-heading {position:relative;isolation:isolate;gap:8px;color:white;text-shadow:0 1px 3px #000}
+#event-details[data-field-art]>.field-heading::before {content:"";position:absolute;z-index:-1;pointer-events:none;inset:-4px -10px;border-radius:14px;background:var(--field-shade),var(--field-art) center 48% / cover;box-shadow:var(--field-ring,none)}
+#event-details[data-field-art][open]>.field-heading::before {bottom:-8px;border-radius:14px 14px 0 0}
+#event-details[data-field-art]>.e6-conditions-label::before {inset:-9px -13px -8px}
+main:not([data-has-proposed="true"]) #event-details[data-field-art]>.e6-conditions-label {display:flex;align-items:center;min-height:36px}
+.field-heading .field-name {margin-left:auto;font-size:12px;font-weight:700}
 </style>
 <style id="e6-dev-css">
 #e6-dev{max-width:680px;margin:8px auto 10px;padding:0 12px;color:#f4f6fc;font:14px/1.45 system-ui,"Noto Sans JP",sans-serif}
@@ -302,14 +307,14 @@ main[data-has-proposed="true"] #event-details[open]>.event-fields{margin-top:8px
  <p id="phase-intro-message">食材の備蓄目標を確認しましょう。</p>
  <a class="btn secondary u2-nav" id="phase-intro-u2" href="U2_Prep_Local_Ingredients_20261109_v50_E7.html">準備目標・食材在庫へ</a>
 </section>
-<details class="event-details card" id="event-details"><summary><span>イベント条件</span></summary><div class="e6-conditions-label" aria-hidden="true">イベント条件</div><div class="event-fields">
+<details class="event-details card" id="event-details"><summary class="field-heading"><span>イベント条件</span><span class="field-name"></span></summary><div class="e6-conditions-label field-heading">イベント条件<span class="field-name"></span></div><div class="event-fields">
 <div class="field wide e6-event-selector"><span>イベント</span>
 <select id="event-source-select" aria-label="イベント"><option value="">手動設定</option></select><button type="button" id="f2-update-source" class="btn small secondary" hidden>更新された補正を選択</button>
 </div>
 <div class="field wide e6-bonus-panel" id="e6-bonus-panel" role="group" aria-label="イベントの補正" hidden>
 <ul id="e6-bonus-list"></ul>
 </div>
-<label class="field">開始日<input id="event-start" type="date"></label><div class="field"><span>イベント週の料理</span><select id="event-food"><option value="">未確定</option><option value="curry">カレー</option><option value="salad">サラダ</option><option value="dessert">デザート</option><option value="all">すべて</option></select></div><div class="field wide"><span>フィールド</span><select id="event-field"><option value="">未設定</option><option>ワカクサ本島</option><option>シアンの砂浜</option><option>トープ洞窟</option><option>ウノハナ雪原</option><option>ラピスラズリ湖畔</option><option>ゴールド旧発電所</option><option>アンバー渓谷</option><option>ワカクサ本島EX</option><option>シアンの砂浜EX</option></select></div><div id="e6-field-art" class="field wide e6-field-art" hidden aria-hidden="true"></div><div class="field wide e6-berry-settings" id="e6-berry-settings" hidden>
+<label class="field">開始日<input id="event-start" type="date"></label><div class="field"><span>イベント週の料理</span><select id="event-food"><option value="">未確定</option><option value="curry">カレー</option><option value="salad">サラダ</option><option value="dessert">デザート</option><option value="all">すべて</option></select></div><div class="field wide"><span>フィールド</span><select id="event-field"><option value="">未設定</option><option>ワカクサ本島</option><option>シアンの砂浜</option><option>トープ洞窟</option><option>ウノハナ雪原</option><option>ラピスラズリ湖畔</option><option>ゴールド旧発電所</option><option>アンバー渓谷</option><option>ワカクサ本島EX</option><option>シアンの砂浜EX</option></select></div><div class="field wide e6-berry-settings" id="e6-berry-settings" hidden>
 <span>好みのきのみ</span>
 <div class="e6-berry-choices"><label><select id="e6-berry-main" aria-label="好みのきのみ 1"><option value="">未確定</option></select></label><label><select id="e6-berry-sub1" aria-label="好みのきのみ 2"><option value="">未確定</option></select></label><label><select id="e6-berry-sub2" aria-label="好みのきのみ 3"><option value="">未確定</option></select></label></div>
 <div id="e6-ex-effect-field" hidden><label>EXの週替わり効果<select id="e6-ex-effect">
@@ -997,11 +1002,12 @@ function canPlanNow(){return planningWindow()&&!conditionBlocksForPlanning()&&ha
 
 const E6_FIELD_ART={"ワカクサ本島":"field-greengrass.png","シアンの砂浜":"field-cyan.png","トープ洞窟":"field-taupe.png","ウノハナ雪原":"field-snowdrop.png","ラピスラズリ湖畔":"field-lapis.png","ゴールド旧発電所":"field-gold.png","アンバー渓谷":"field-amber-landscape.jpg","ワカクサ本島EX":"field-greengrass-ex.jpg","シアンの砂浜EX":"field-cyan-ex.jpg"};
 function e6UpdateFieldArt(){
- const field=$('#event-field').value,frame=$('#e6-field-art'),file=E6_FIELD_ART[field];
- frame.hidden=!file;frame.dataset.ex=String(field.endsWith('EX'));
- if(!file){frame.style.backgroundImage='';return;}
- // Exact artwork used by 厳選ノート; display degrades to a name if offline.
- frame.style.backgroundImage='linear-gradient(90deg,#0a1828bb,#0a182844),url("https://meka-create.github.io/pokesleep-priority/assets/'+file+'")';
+ const field=$('#event-field').value,card=$('#event-details'),file=E6_FIELD_ART[field];
+ card.toggleAttribute('data-field-art',Boolean(file));
+ card.dataset.ex=String(field.endsWith('EX'));
+ if(file)card.style.setProperty('--field-art','url("https://meka-create.github.io/pokesleep-priority/assets/'+file+'")');
+ else card.style.removeProperty('--field-art');
+ for(const name of card.querySelectorAll('.field-heading .field-name'))name.textContent=field;
 }
 function syncEventControls(){
  $('#event-start').value=eventInfo.start;
