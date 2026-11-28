@@ -252,7 +252,8 @@ try:
         suffix=WEEK+':'+quote(special,safe="~!*'()-._")
         fixture=records(special,['curry','salad','dessert'])
         fixture[PREF+suffix+':conditions']['confirmed']['fields']['food']='curry'
-        fixture[PLAYER]={'version':1,'pot':150,'bag':800,'bonuses':{}}
+        fixture[PREF+suffix+':conditions']['confirmed']['fields']['camp']=False
+        fixture[PLAYER]={'version':1,'pot':81,'bag':800,'bonuses':{}}
         fixture['pokesleep-strategy-f3-v120:prep:'+suffix]={
           'kind':'F3_STOCKPILE_PREF_V120','version':1,
           'weekStart':WEEK,'eventId':special,

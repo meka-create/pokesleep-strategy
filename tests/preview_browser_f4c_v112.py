@@ -166,6 +166,15 @@ try:
         page.locator('#review-adopt').click()
         page.locator('#week-content').wait_for(state='visible',timeout=30000)
         assert_mobile_geometry(page,'#slots .avatar')
+        details=page.locator('#slots details.meal-details').filter(has=page.locator('.m2-reserve')).first
+        details.wait_for(state='visible')
+        summary=details.locator('summary')
+        assert summary.inner_text().strip()
+        assert not details.locator('.m2-reserve').is_visible()
+        summary.click()
+        assert details.locator('.m2-reserve-count').first.is_visible()
+        summary.click()
+        assert not details.locator('.m2-reserve').is_visible()
         adopted=page.locator('#slots').inner_text()
         assert 'サーナイト' in adopted or 'ニンフィア' in adopted,adopted[:500]
         saved=page.evaluate('''() => {

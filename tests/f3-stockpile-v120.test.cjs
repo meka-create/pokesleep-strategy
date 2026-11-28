@@ -17,10 +17,18 @@ const RECIPES=[
 ];
 const base={recipes:RECIPES,bagCapacity:200,potCapacity:80,camp:false,
  currentStock:{},categories:['curry'],selectedRecipes:{curry:'c1'}};
-test('top five are energy ranked, feasible by weekday pot, sixth is never selectable',()=>{
+test('prep keeps the strongest five and the existing weekday choices',()=>{
  const a=Calc.catalog(RECIPES,'curry',80,false);
  assert.equal(a.length,5);assert.deepEqual(Array.from(a,r=>r.id),['c1','c2','c3','c4','c5']);
- assert.equal(Calc.catalog(RECIPES,'curry',30,false)[0].id,'c4');
+ for(const camp of [false,true]){
+  const options=Calc.catalog(RECIPES,'curry',30,camp);
+  assert.equal(options[0].id,'c1');
+  assert(options.some(r=>r.id==='c6'),'previously selectable small recipe');
+  const prep=Calc.make({...base,potCapacity:30,camp,targetMeals:{curry:2}});
+  assert.equal(prep.status,'PROVISIONAL');
+  assert.equal(prep.goals.apple,120);
+  assert.equal(Calc.make({...base,potCapacity:30,camp,bagCapacity:50}).reason,'NO_ROOM');
+ }
  assert.equal(Calc.make({...base,selectedRecipes:{curry:'c6'}}).reason,'RECIPE_SELECTION_STALE');
 });
 test('automatic meal count uses full bag only without fraction or overflow',()=>{
