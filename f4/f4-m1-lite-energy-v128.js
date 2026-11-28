@@ -186,6 +186,27 @@
   return {status:'STATE_READY',potExtra:state.potExtra,
    tastyDistribution:next,weeklyEnergyCertified:false,writesSavedData:false};
  }
+ // Frontier heuristic only. Value the next affordable meal up to a total
+ // 40% chance; the actual cook still uses the full distribution and cap.
+ function nextMealCredit(recipes,pot,camp,windows){
+  const dishes=[...recipes].sort((a,b)=>b.baseStrength-a.baseStrength)
+   .map(r=>({base:r.baseStrength,size:r.size,needs:Object.entries(r.requirements).filter(([,n])=>n>0)}));
+  const byDay=[false,true].map(sunday=>dishes.filter(r=>
+   r.size<=Math.round(pot*(camp?1.5:1)*(sunday?2:1))));
+  return windows.map((_,i)=>{
+   const next=windows.slice(i+1).find(w=>w.slot!=='sleep');
+   if(!next)return ()=>0;
+   const sunday=next.day===6,limit=sunday?10:30;
+   return (stock,tasty)=>{
+    if(!tasty)return 0;
+    const points=typeof tasty==='number'?Math.min(limit,tasty):
+     tasty.tastyDistribution.reduce((sum,mass,b)=>sum+mass*Math.min(limit,b),0);
+    if(!points)return 0;
+    const dish=byDay[Number(sunday)].find(r=>r.needs.every(([k,n])=>(stock[k]||0)+1e-8>=n));
+    return dish?dish.base*points/100*(sunday?2:1):0;
+   };
+  });
+ }
  function cook(state,recipe,fieldBonus,dishMultiplier,day,kernel){
   const level=recipeEnergy(recipe,fieldBonus,dishMultiplier);
   if(level.status!=='ENERGY_READY')return level;
@@ -193,5 +214,5 @@
    successEnergy:day===6?level.sundaySuccess:level.weekdaySuccess,
    day,useCritical:true});
  }
- return Object.freeze({event,applies,withEvent,recipeEnergy,expectedTastyCast,cook});
+ return Object.freeze({event,applies,withEvent,recipeEnergy,expectedTastyCast,nextMealCredit,cook});
 });
