@@ -463,9 +463,9 @@ async function synchronize(force=false){
   error=adopted.status==='BLOCKED'?
    '採用済み作戦は保存条件またはボックスが変更されたため保護しました。再提案が必要です。':
    nights.status==='BLOCKED'?'睡眠編成の実個体照合に失敗しました。':
-   nights.status==='SLEEP_READY'&&nights.teams.some(team=>
+   !c.autoSleep&&nights.status==='SLEEP_READY'&&nights.teams.some(team=>
     team&&team.some(i=>!nextEligible.has(i)))?
-    '睡眠編成にF1計算対象外または未検証の個体があります。合法個体5匹で再設定してください。':
+    '手動の睡眠編成に計算対象外の個体がいます。作戦を提案するには、その個体を入れ替えるか睡眠編成を自動にしてください。':
    eligibility.status!=='READY'?'睡眠編成用の合法個体判定ができません：'+eligibility.reason:'';
   lastKey=key;renderEffective();
  }catch(_){
@@ -500,6 +500,9 @@ async function propose(){
   if(original!==dataFingerprint(ctx())){error='保存内容が変更されました。';return;}
   const pref=prepPreference(c);
   if(pref.status==='BLOCKED'){error=pref.reason;return;}
+  if(!c.autoSleep&&sleep?.some(team=>team?.some(i=>!eligibleIndices.has(i)))){
+   error='手動の睡眠編成に計算対象外の個体がいます。該当する個体を入れ替えるか、睡眠編成を自動にしてください。';return;
+  }
   const o={manualNights:sleep,previousWeekSleepIndices:null,
    prepPreference:pref.status==='READY'?pref:null};
   const result=auto.propose(c,o,{...deps,...mods});
@@ -602,9 +605,10 @@ function drawEditor(){
  q('select-count').textContent=editPicks.length+' / 5';
  q('edit-save').disabled=editPicks.length!==5;
  q('edit-save').textContent='この夜を保存';
- for(let i=0;i<data.privateBoxRows.length;i++){
-  if(!eligibleIndices.has(i))continue;
-  const item=itemAt(i),on=editPicks.includes(i),entry=textNode('div',undefined,'pick');
+ const sorted=data.privateBoxRows.map((item,index)=>({item,index}))
+  .sort((a,b)=>b.item.level-a.item.level||a.index-b.index);
+ for(const {item,index:i} of sorted){
+  const on=editPicks.includes(i),entry=textNode('div',undefined,'pick');
   entry.dataset.selected=String(on);
   const pic=textNode('button',undefined,'pick-status sprite-stage');
   pic.type='button';pic.setAttribute('aria-label',label(i)+'の個体詳細');
@@ -617,6 +621,7 @@ function drawEditor(){
   const meta=textNode('span',undefined,'pick-meta');
   meta.append(textNode('span','Lv.'+item.level,'pick-level'),
    textNode('span',label(i),'pick-name'));
+  if(!eligibleIndices.has(i))meta.append(textNode('span','作戦計算対象外','pick-level'));
   choose.append(meta,textNode('span',on?'✓':'','selected-check'));
   choose.addEventListener('click',()=>{
    editPicks=on?editPicks.filter(v=>v!==i):[...editPicks,i];
@@ -625,13 +630,10 @@ function drawEditor(){
   entry.append(pic,choose);grid.append(entry);
  }
  root.PokeSprite?.enhance(grid);
- if(!eligibleIndices.size){
-  const notice=textNode('p','F1計算対象となる合法個体を確認できません。イベント条件・プレイヤー情報・ボックスを確認してください。','hint');
-  grid.append(notice);
- }
+
 }
 function beginEdit(){
- editPicks=sleep?.[sleepDay]?sleep[sleepDay].filter(i=>eligibleIndices.has(i)):[];
+ editPicks=sleep?.[sleepDay]?[...sleep[sleepDay]]:[];
  q('edit-title').textContent=DAYS[sleepDay]+'曜日 · 睡眠編成';
  drawEditor();q('edit-dialog').showModal();
 }
@@ -639,10 +641,6 @@ function saveNight(teams){
  const c=ctx();
  if(c.clock?.phase!=='BEFORE'){
   error='開始済み週の睡眠編成変更はF5で対応します。';renderEffective();return false;
- }
- if(!Array.isArray(teams)||teams.some(team=>
-  team&&team.some(i=>!eligibleIndices.has(i)))){
-  error='F1計算対象外の個体を睡眠編成へ保存できません。';renderEffective();return false;
  }
  if(c.status!=='CONTEXT_READY'||c.eventId!==data?.eventId||
   !bound)return false;
@@ -655,8 +653,7 @@ function saveNight(teams){
  return true;
 }
 function saveEdit(){
- if(editPicks.length!==5||new Set(editPicks).size!==5||
-    editPicks.some(i=>!eligibleIndices.has(i)))return;
+ if(editPicks.length!==5||new Set(editPicks).size!==5)return;
  const teams=sleep.map(x=>x?[...x]:null);
  teams[sleepDay]=[...editPicks];
  if(saveNight(teams)){

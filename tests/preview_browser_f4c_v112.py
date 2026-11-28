@@ -214,6 +214,34 @@ try:
         assert_mobile_geometry(box_page,'#box-detail-dialog .status-portrait','#box-detail-dialog')
         box_page.close()
         print('F4-C v116 Chromium: real 29-window plan + sprite containment/sheet center at 320/393/430px PASS')
+        # Use a separate Box to exercise display order independently of F1 eligibility.
+        picker_context=browser.new_context(viewport={'width':393,'height':852},timezone_id='Asia/Tokyo')
+        picker=picker_context.new_page()
+        picker.goto(BASE,wait_until='domcontentloaded')
+        picker_items=[dict(row) for row in items]
+        picker_items[1]['level']=65
+        picker_items.append(dict(items[0],pokemon='ミュウ',nickname='テストミュウ',level=60))
+        picker_seed={**seed,key('plan'):json.dumps({**plan(event,None),'autoSleep':False}),
+                     'pokesleep-strategy-e7-box-v1':json.dumps({**box,'items':picker_items})}
+        picker.evaluate('(entries)=>Object.entries(entries).forEach(([k,v])=>localStorage.setItem(k,v))',picker_seed)
+        picker.reload(wait_until='domcontentloaded')
+        def open_picker():
+            picker.locator('#e3-next[data-action="F4C_PROPOSE"]:not([disabled])').wait_for()
+            picker.locator('#sleep-open').click()
+            picker.locator('#sleep-change').click()
+        open_picker()
+        buttons=picker.locator('#pick-grid .pick-select')
+        expected=sorted(range(len(picker_items)),key=lambda i:-picker_items[i]['level'])
+        assert buttons.evaluate_all('(els)=>els.map(e=>Number(e.dataset.id))')==expected
+        for index in range(5):
+            buttons.nth(index).click()
+        picker.locator('#edit-save').click()
+        assert 'テストミュウ' in picker.locator('#sleep-team-preview').inner_text()
+        picker.reload(wait_until='domcontentloaded')
+        open_picker()
+        assert buttons.evaluate_all('(els)=>els.filter(e=>e.getAttribute("aria-pressed")==="true").map(e=>Number(e.dataset.id))')==expected[:5]
+        assert picker.evaluate("()=>localStorage.getItem('pokesleep-strategy-e7-box-v1')")==picker_seed['pokesleep-strategy-e7-box-v1']
+        picker_context.close()
         browser.close()
 finally:
     server.shutdown()
