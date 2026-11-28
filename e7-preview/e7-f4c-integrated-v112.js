@@ -357,14 +357,7 @@ function drawAdopted(){
  q('day-label').textContent=DAYS[targetDay]+'曜日';
  q('day-date').textContent=dateOf(targetDay);
  nav('day-nav',targetDay,day=>{targetDay=day;drawAdopted();});
-  const report=mealAlignment(plan,data),noticeText=mealAlignmentMessage(report);
-  let notice=q('m3-week-alignment');
-  if(!notice){
-   notice=textNode('p',undefined,'hint');
-   notice.id='m3-week-alignment';q('day-nav')?.before(notice);
-  }
-  if(notice){notice.hidden=!noticeText;notice.textContent=noticeText;}
-  drawSlots(q('slots'),plan,targetDay);
+ drawSlots(q('slots'),plan,targetDay);
  // No unverified weekly energy exposed as an authoritative figure.
  q('e4-result-energy').hidden=true;
  q('e4-changed').hidden=!stale;

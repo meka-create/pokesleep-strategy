@@ -166,6 +166,7 @@ try:
         page.locator('#review-adopt').click()
         page.locator('#week-content').wait_for(state='visible',timeout=30000)
         assert_mobile_geometry(page,'#slots .avatar')
+        assert page.locator('#week-content #m3-week-alignment').count()==0
         details=page.locator('#slots details.meal-details').filter(has=page.locator('.m2-reserve')).first
         details.wait_for(state='visible')
         summary=details.locator('summary')
