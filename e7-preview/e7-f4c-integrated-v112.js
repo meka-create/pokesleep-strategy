@@ -222,9 +222,8 @@ function drawSlots(parent,visible,day){
   for(const i of w.teamIndices)lineup.append(realAvatar(i));
   section.append(lineup);
   if(w.slot!=='sleep'){
-   const meal=textNode('div',w.recipeId?
-    (known.get(w.recipeId)||'未照合レシピ'):'料理なし','meal');
-   section.append(meal);
+   const name=w.recipeId?(known.get(w.recipeId)||'未照合レシピ'):'料理なし';
+   const notes=doc.createDocumentFragment();
    // Past and active F5 windows are unobserved forecasts, not a safe
    // current meal decision. Display advisory reserves only for future
    // windows or a pre-event full-week proposal.
@@ -253,7 +252,7 @@ function drawSlots(parent,visible,day){
       const capacities=result.rows.map(x=>x.casts+'回 '+x.capacity).join(' / ');
       const unlocked=result.rows.slice(1).flatMap(x=>x.unlocked.slice(0,1)
        .map(y=>x.casts+'回で「'+y.name+'」が容量上可能'));
-      section.append(textNode('p','鍋拡張の参考（料理パワーアップS Lv.'+
+      notes.append(textNode('p','鍋拡張の参考（料理パワーアップS Lv.'+
        candidate.skillLevel+'・発動した場合のみ）：'+capacities+
        (unlocked.length?'。'+unlocked.join('／'):'')+
        '。必要食材・実際の発動は未確認。','hint'));
@@ -265,7 +264,7 @@ function drawSlots(parent,visible,day){
     const after=reserve?.status==='RESERVES_READY'?
      reserve.afterByWindow[1+day*4+offset]:null;
     if(!after){
-     section.append(textNode('p','未来の料理用の最低残数を確認できません',
+     notes.append(textNode('p','未来の料理用の最低残数を確認できません',
       'm2-reserve-warning'));
     }else if(after.length){
      const master=root.PokeMaster?.ingredients||{};
@@ -273,7 +272,7 @@ function drawSlots(parent,visible,day){
      const mapped=after.map(x=>({name:master[x.foodCode],
       count:x.count,url:icons[master[x.foodCode]]}));
      if(mapped.some(x=>!x.name||!x.url)){
-      section.append(textNode('p','未来の料理用の食材アイコンを照合できません',
+      notes.append(textNode('p','未来の料理用の食材アイコンを照合できません',
        'm2-reserve-warning'));
      }else{
       const group=textNode('div',undefined,'m2-reserve');
@@ -290,10 +289,15 @@ function drawSlots(parent,visible,day){
        item.append(img,textNode('span','×'+x.count,'m2-reserve-count'));
        grid.append(item);
       }
-      group.append(grid);section.append(group);
+      group.append(grid);notes.append(group);
      }
     }
    }
+   if(notes.childElementCount){
+    const details=textNode('details',undefined,'meal-details');
+    details.append(textNode('summary',name,'meal'),notes);
+    section.append(details);
+   }else section.append(textNode('div',name,'meal'));
   }
   if(w.windowPhase==='PAST_FORECAST_ONLY')section.append(textNode('p',
    '以前に採用した予測（実績は未確認・再計算対象外）','hint'));

@@ -19,11 +19,15 @@
   if(!CATS.includes(type)||!Array.isArray(recipes)||!validInt(pot,7,5000)||
     typeof camp!=='boolean')return [];
   const cap=Math.round(pot*(camp?1.5:1));
-  return recipes.filter(r=>plain(r)&&r.type===type&&typeof r.id==='string'&&
+  const ranked=recipes.filter(r=>plain(r)&&r.type===type&&typeof r.id==='string'&&
    validInt(r.baseStrength,1,1000000)&&plain(r.requirements)&&
    Object.keys(r.requirements).every(k=>FOODS.includes(k)&&validInt(r.requirements[k],0,500))&&
-   total(r.requirements)>0&&total(r.requirements)<=cap)
-   .sort((a,b)=>b.baseStrength-a.baseStrength||a.id.localeCompare(b.id)).slice(0,5)
+   total(r.requirements)>0)
+   .sort((a,b)=>b.baseStrength-a.baseStrength||a.id.localeCompare(b.id));
+  // Preserve the weekday shortlist and add the strongest stockpile targets
+  // for players carrying a pot expansion into Monday morning.
+  const regular=new Set(ranked.filter(r=>total(r.requirements)<=cap).slice(0,5));
+  return ranked.filter((r,i)=>i<5||regular.has(r))
    .map(r=>({id:r.id,name:r.name,baseStrength:r.baseStrength,size:total(r.requirements),
     requirements:{...r.requirements}}));
  }
@@ -53,7 +57,7 @@
   const selected={};
   for(const type of input.categories){
    const top=catalog(input.recipes,type,input.potCapacity,input.camp);
-   if(!top.length)return err('NO_COOKABLE_RECIPES',type+'の調理可能な料理がありません。');
+   if(!top.length)return err('NO_COOKABLE_RECIPES',type+'の備蓄候補がありません。');
    const id=input.selectedRecipes?.[type]??top[0].id;
    const chosen=top.find(r=>r.id===id);
    if(!chosen)return err('RECIPE_SELECTION_STALE',type+'の選択レシピを確認してください。');
