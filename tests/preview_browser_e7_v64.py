@@ -45,7 +45,7 @@ try:
    reference=box.locator('#e7-import-panel').evaluate("""el=>{
      const heading=el.querySelector('summary').getBoundingClientRect();
      const content=el.querySelector('.import-content').getBoundingClientRect();
-     const first=el.querySelector('.import-content>.muted').getBoundingClientRect();
+     const first=el.querySelector('.import-content>label').getBoundingClientRect();
      return {before:content.top-heading.bottom,after:first.top-content.top};
    }""")
    assert abs(geometry['before']-reference['before'])<.7,(width,geometry,reference)
