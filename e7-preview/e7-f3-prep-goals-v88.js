@@ -15,31 +15,24 @@ if(!Opt||!Prefs||!Scope||!E1||!Array.isArray(window.PokeRecipes)||
 const status=document.createElement('p');status.id='f3-prep-status';
 status.className='f3-status';status.setAttribute('role','status');
 goalCard.append(status);
-const detail=document.createElement('details');detail.id='f3-prep-breakdown';
-const summary=document.createElement('summary');summary.textContent='料理内訳';
-const content=document.createElement('div');content.id='f3-prep-dishes';
-detail.append(summary,content);goalCard.append(detail);
-// F3-B production scenario is read-only, secondary, and never replaces the
-// confirmed preparation targets. Defer nonessential data loads until ready.
 const productionDetails=document.createElement('details');
 productionDetails.id='f3-b-production';
 const productionSummary=document.createElement('summary');
-productionSummary.textContent='実個体の食材生産（参考）';
+productionSummary.textContent='食材別のおすすめポケモン';
 const productionBody=document.createElement('div');
 productionBody.id='f3-b-production-content';
-productionDetails.append(productionSummary,productionBody);detail.append(productionDetails);
+productionDetails.append(productionSummary,productionBody);goalCard.append(productionDetails);
 let sourcePromise=null,renderToken=0,lastRequestedToken=0,currentScenario=null;
 // F4 preflight audit: the optional F3-B reference is deliberately lazy.
 // Loading an unexpanded secondary section must not parse a private box or
 // fetch the pinned source catalog on every preparation-tab navigation.
 function requestOpenScenario(){
- if(!detail.open||!productionDetails.open||!currentScenario)return;
+ if(!productionDetails.open||!currentScenario)return;
  const {ctx,base,token}=currentScenario;
  if(lastRequestedToken===token)return;
  lastRequestedToken=token;
  void refreshProduction(ctx,base,token);
 }
-detail.addEventListener('toggle',requestOpenScenario);
 productionDetails.addEventListener('toggle',requestOpenScenario);
 function sourceModels(){
  if(!sourcePromise)sourcePromise=Promise.all(
@@ -51,28 +44,27 @@ function sourceModels(){
   .catch(e=>{sourcePromise=null;throw e;});
  return sourcePromise;
 }
-function showProductionResult(ctx,base,source){
+function showRecommendations(source,items){
  productionBody.replaceChildren();
- const write=(text,cls='f3-caveat')=>{
-  const p=document.createElement('p');p.className=cls;p.textContent=text;
-  productionBody.append(p);
- };
  if(source.status!=='PROVISIONAL'){
-  write(source.message||'ボックスの個体情報を確認してください。');
+  productionBody.textContent=source.message;
   return;
  }
- const members=source.teamSpecies.join('・');
- write('仮の5匹：'+members,'f3-category-result');
- // Hypothetical 5-member roster is NOT confirmed F4/F5 production.
- const all=source.scenarioProduction;
- const ranked=Object.entries(all).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).slice(0,6);
- const labelFor=Object.fromEntries([...codes].map(([jp,code])=>[code,jp]));
- write('168時間の0げんき基準・連続編成シナリオ（主な食材）：'+
-  (ranked.map(([key,n])=>(labelFor[key]||key)+' 約'+n+'個').join('、')||'対象なし'));
- write('所持数・回収時刻・スキル・げんきの変動は未反映。'+
-  (source.assumedMintCount||source.assumedRibbonCount?
-   ' ミント未記入'+source.assumedMintCount+'匹／睡眠時間未記入'+source.assumedRibbonCount+'匹は仮定値です。':'')+
-  ' 仮の生産量は準備目標から自動控除しません。');
+ for(const cell of stockCells){
+  const indices=source.byIngredient[cell.dataset.item];
+  if(!indices||!cell.classList.contains('needed'))continue;
+  const row=document.createElement('div');row.className='ingredient-picks';
+  row.dataset.ingredient=cell.dataset.item;
+  const name=cell.querySelector('.name').textContent.trim();
+  const icon=document.createElement('img');icon.src=cell.querySelector('.pic').src;
+  icon.alt=name;icon.title=name;
+  const choices=document.createElement('span');
+  choices.textContent=indices.map(i=>{
+   const item=items[i];
+   return (item.nickname||item.pokemon)+' Lv.'+item.level;
+  }).join(' ／ ')||'該当する個体なし';
+  row.append(icon,choices);productionBody.append(row);
+ }
 }
 async function refreshProduction(ctx,base,token){
  const bridge=window.PokeF3ProductionScenario;
@@ -80,21 +72,24 @@ async function refreshProduction(ctx,base,token){
  let box;
  try{
   const raw=localStorage.getItem('pokesleep-strategy-e7-box-v1');
-  if(!raw){productionDetails.hidden=true;return;}
+  if(!raw){productionBody.textContent='ボックスにポケモンを登録してください。';return;}
   box=JSON.parse(raw);
   if(box?.version!==1||!Array.isArray(box.items))throw Error('BOX_SCHEMA');
+  if(!box.items.length){productionBody.textContent='ボックスにポケモンを登録してください。';return;}
  }catch(_){productionDetails.hidden=false;productionBody.textContent='ボックス情報を確認してください。';return;}
- productionDetails.hidden=false;productionBody.textContent='計算原典を照合中…';
+ productionDetails.hidden=false;productionBody.textContent='候補を計算中…';
  try{
   const deps=await sourceModels();
   if(token!==renderToken)return;
-  const result=bridge.estimate({items:box.items,camp:ctx.camp,
+  const result=bridge.recommend({items:box.items,camp:ctx.camp,
    targetIngredients:base.demand},deps);
   if(token!==renderToken)return;
-  showProductionResult(ctx,base,result);
+  showRecommendations(result,box.items);
  }catch(_){
-  if(token===renderToken)
+  if(token===renderToken){
+   lastRequestedToken=0;
    productionBody.textContent='計算原典を読み込めません。オフラインの場合は保存済みの準備目標を利用してください。';
+  }
  }
 }
 const codes=new Map(stockCells.map(cell=>[
@@ -210,8 +205,7 @@ async function applyAdoptedOpening(ctx,base,token){
  if(!localStorage.getItem(k))return;
  const explanation=(message)=>{
   if(token!==renderToken)return;
-  const row=document.createElement('p');row.className='f3-caveat';
-  row.textContent=message;content.append(row);
+  status.textContent=message;
  };
  try{
   const mock=new URLSearchParams(location.search).get('previewNow');
@@ -281,16 +275,11 @@ async function applyAdoptedOpening(ctx,base,token){
    localStorage.getItem(prefs)!==c.prepPreferenceRevision)return;
   drawGoals(result.goals);
   const saved=Object.values(result.deductedExpected).reduce((a,b)=>a+b,0);
-  status.textContent='備蓄目標（採用作戦の生産見込み反映・参考） · '+
-   result.matchedPlannedMeals+'/'+base.mealSlots+'食 · 初期目標 '+
-   Object.values(result.goals).reduce((a,b)=>a+b,0).toLocaleString('ja-JP')+
-   '個（見込み控除 '+saved.toLocaleString('ja-JP')+'個）';
-  const caveat=document.createElement('p');caveat.className='f3-caveat';
-  caveat.textContent='29窓の採用済み料理・実個体・所持上限・回収時刻の仮定から算出。'+
-   '確認済みイベントの通常食材補正は反映。食材抽選や実際の回収、げんき、未評価スキルは保証されません。'+
-   '確実な備蓄には元の必要量 '+Object.values(base.goals).reduce((a,b)=>a+b,0)+
-   '個を目安にしてください。';
-  content.append(caveat);
+  status.textContent=saved?'採用作戦の生産見込みで '+saved.toLocaleString('ja-JP')+'個控除':'';
+  for(const row of productionBody.querySelectorAll('.ingredient-picks')){
+   if(!result.goals[row.dataset.ingredient])row.remove();
+  }
+  productionDetails.hidden=!Object.values(result.goals).some(n=>n>0);
  }catch(_){explanation('計算原典または保存状態を照合できないため、生産予測は未控除です。');}
 }
 
@@ -309,39 +298,17 @@ function render(){
    targetMeals:ctx.draft?.targetMeals||(aligned?pref.targetMeals:undefined)});
   if(result.status!=='PROVISIONAL')throw Error(result.message);
   drawGoals(result.goals);
-  const alternative=result.preparationMode==='ALTERNATIVE_WEEKLY_FOOD'&&
-   result.alternativeCategories>1;
-  status.textContent=(ctx.draft?'未保存の目標プレビュー':'備蓄目標')+(ctx.foodUnconfirmed?'・料理未確定':'')+' · '+result.recipesUsed+'/'+result.mealSlots+
-   '食'+(alternative?'（'+result.alternativeCategories+'カテゴリ候補・最大値）':'')+
-   ' · バッグ '+result.capacity.used.toLocaleString('ja-JP')+'/'+
-   result.capacity.bag.toLocaleString('ja-JP')+'個';
-  status.dataset.state='ready';detail.hidden=false;
-  content.replaceChildren();
-  for(const group of result.categories){
-   const section=document.createElement('p');section.className='f3-category-result';
-   section.textContent=({'curry':'カレー','salad':'サラダ','dessert':'デザート'}[group.type])+
-    ' '+group.count+'食：'+group.name;
-   content.append(section);
-  }
-  if(ctx.foodUnconfirmed){
-   const note=document.createElement('p');note.className='f3-caveat';
-   note.textContent='料理未確定のため、選択カテゴリを均等に優先。';
-   content.append(note);
-  }else if(!alternative&&result.categories.length>1){
-   const note=document.createElement('p');note.className='f3-caveat';
-   note.textContent='複数カテゴリの必要食材を合算。';
-   content.append(note);
-  }
+  status.textContent=ctx.draft?'未保存の目標プレビュー':ctx.foodUnconfirmed?'料理未確定':'';
+  status.dataset.state='ready';
   currentScenario={ctx,base:result,token};
   if(!ctx.draft)void applyAdoptedOpening(ctx,result,token);
   productionDetails.hidden=false;
-  if(detail.open&&productionDetails.open)requestOpenScenario();
+  if(productionDetails.open)requestOpenScenario();
   else productionBody.replaceChildren();
  }catch(error){
   drawGoals({});
   status.textContent=error.message||'備蓄目標を算出できません。';
   status.dataset.state='blocked';
-  detail.hidden=true;content.replaceChildren();
   currentScenario=null;
   productionDetails.hidden=true;productionBody.replaceChildren();
  }

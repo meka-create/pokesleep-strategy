@@ -48,7 +48,7 @@
    if(row.level>=LEVELS[i]&&row[SLOTS[i]]===jp)active=true;
   return active;
  }
- function estimate(input,deps){
+ function calculate(input,deps,rankIngredients){
   try{
    if(!plain(input)||!deps?.rates?.evaluate||!deps?.rates?.validateTraits||
     !deps?.legal?.auditBuild||!deps?.snapshot||!deps?.traits)
@@ -91,6 +91,16 @@
     candidates.push({index:i,pokemon:row.pokemon,raw:adapted.row,
      assumesMint:adapted.assumesMint,assumesRibbon:adapted.assumesRibbon,
      helpsBonus:availableHelpingBonus(adapted.row,hb),perCode});
+   }
+   if(rankIngredients){
+    const byIngredient={};
+    for(const code of CODES){
+     if(!need[code])continue;
+     byIngredient[code]=candidates.filter(c=>c.perCode[code]>0)
+      .sort((a,b)=>b.perCode[code]-a.perCode[code]||a.index-b.index)
+      .slice(0,3).map(c=>c.index);
+    }
+    return {status:'PROVISIONAL',byIngredient};
    }
    if(candidates.length<5)
     return blocked('INSUFFICIENT_VERIFIED_POKEMON',
@@ -168,5 +178,6 @@
     '個体の計算原典または食材条件を検証できません。');
   }
  }
- return Object.freeze({estimate,CODES});
+ return Object.freeze({estimate:(input,deps)=>calculate(input,deps,false),
+  recommend:(input,deps)=>calculate(input,deps,true),CODES});
 });

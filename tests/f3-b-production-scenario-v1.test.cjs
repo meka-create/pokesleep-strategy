@@ -112,6 +112,23 @@ test('F3-B preserves individual ingredient restrictions, no invented nut or unkn
  assert.equal(result.teamSpecies.length,5);
  assert.equal(rows[0].ing1,'ひとくちナッツ');
 });
+test('ingredient picks use each unlocked yield, include smaller boxes and omit zero yields',()=>{
+ const rows=team();
+ const need={sausage:12,herb:5,nuts:1};
+ for(const items of [rows,rows.slice(0,1)]){
+  const result=prod.recommend(options({items,targetIngredients:need}),deps);
+  assert.equal(result.status,'PROVISIONAL');
+  assert.deepEqual(Object.keys(result.byIngredient).sort(),Object.keys(need).sort());
+  for(const code of Object.keys(need)){
+   const expected=items.map((row,index)=>{
+    const rate=rates.evaluate({...row,mint:false,ribbon:0},snapshot,traits,
+     {teammateHelpingBonusCount:0,goodCamp:true});
+    return {index,yield:(rate.ingredientCountsPerHelp[code]||0)/rate.referenceHelpSeconds};
+   }).filter(x=>x.yield>0).sort((a,b)=>b.yield-a.yield||a.index-b.index);
+   assert.deepEqual(Array.from(result.byIngredient[code]),expected.slice(0,3).map(x=>x.index));
+  }
+ }
+});
 test('F3-B UI only renders read-only optional scenario, keeps root and F1 calculation unmodified',()=>{
  const ui=get('e7-preview/e7-f3-prep-goals-v88.js');
  const prep=get('e7-preview/U2_Prep_Local_Ingredients_20261109_v50_E7.html');
@@ -121,7 +138,7 @@ test('F3-B UI only renders read-only optional scenario, keeps root and F1 calcul
  assert.match(ui,/targetIngredients:base\.demand/);
  // v120: hypothetical roster's weekly production must never be silently deducted.
  assert.doesNotMatch(ui,/forecastProduction:source\.scenarioProduction/);
- assert.match(ui,/仮の生産量は準備目標から自動控除しません/);
+ assert.match(ui,/bridge\.recommend\(/);
  assert.doesNotMatch(ui,/localStorage\.setItem|localStorage\.removeItem/);
  assert.match(prep,/src="\.\.\/f3\/f3-b-production-scenario-v1\.js"/);
  assert.match(prep,/src="\.\.\/f1\/f1-b-base-rates-v1\.js"/);

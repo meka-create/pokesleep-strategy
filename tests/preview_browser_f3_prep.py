@@ -70,9 +70,7 @@ def check_goals(page):
     assert n>0
     assert page.locator('#goal-panel .row.total strong').inner_text()==f'{n:,}個',(n,values)
     assert page.locator('#f3-prep-status').get_attribute('data-state')=='ready'
-    assert page.locator('#f3-prep-breakdown').count()==1
-    assert page.locator('#f3-prep-status').inner_text().startswith(
-        ('備蓄目標','未保存の目標プレビュー'))
+    assert page.locator('#f3-prep-breakdown').count()==0
     return n
 try:
     with sync_playwright() as pw:
@@ -99,12 +97,12 @@ try:
           Object.keys(localStorage).filter(k=>k.startsWith('pokesleep-strategy-'))
             .map(k=>[k,localStorage.getItem(k)]))""")
         page.reload(wait_until='domcontentloaded')
-        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(state='attached',timeout=15000)
         # v121: keep the first food card at its approved position.
         assert page.locator('#goal-panel>.card:first-child .goal-grid').count()==1
         assert not page.locator('#f3-v120-controls').is_visible()
         assert page.locator('#e6-prep-save').inner_text()=='料理・食数を変更'
-        assert 'バッグ容量' in page.locator('#prep-v121-summary').inner_text()
+        assert '備蓄後の空き' in page.locator('#prep-v121-summary').inner_text()
         assert 'カレー' in page.locator('#prep-v121-summary').inner_text()
         food_anchor=page.locator('#goal-panel .goal-grid .food').first.evaluate(
             '(e)=>e.getBoundingClientRect().top+window.scrollY')
@@ -129,14 +127,14 @@ try:
         # No expensive real-box scan / F1 JSON request just by opening U2.
         assert len(model_requests)==before_model_requests,'Collapsed reference fetched source unnecessarily'
         assert page.locator('#f3-b-production-content').text_content()==''
-        page.locator('#f3-prep-breakdown').evaluate('(el)=>el.open=true')
-        page.locator('#f3-b-production').evaluate('(el)=>el.open=true')
-        page.wait_for_function("""()=>document.querySelector('#f3-b-production-content')?.textContent.includes('仮の5匹')""",timeout=25000)
-        assert len(model_requests)>before_model_requests,'Reference did not load after explicit expansion'
-        scenario_text=page.locator('#f3-b-production-content').text_content()
-        assert '168時間' in scenario_text and '準備目標から自動控除しません' in scenario_text
-        assert 'SENTINEL_PRIVATE_NICKNAME' not in scenario_text
-        assert page.locator('#f3-b-production').count()==1
+        page.locator('#f3-b-production>summary').click()
+        picks=page.locator('#f3-b-production-content .ingredient-picks')
+        picks.first.wait_for()
+        assert picks.count()==page.locator('#goal-panel .food.needed').count()
+        assert len(model_requests)>before_model_requests
+        assert 'Lv.60' in page.locator('#f3-b-production-content').inner_text()
+        page.locator('#f3-b-production>summary').click()
+        assert not picks.first.is_visible()
         after=page.evaluate("""()=>Object.fromEntries(
           Object.keys(localStorage).filter(k=>k.startsWith('pokesleep-strategy-'))
             .map(k=>[k,localStorage.getItem(k)]))""")
@@ -153,10 +151,9 @@ try:
           localStorage.setItem(key,JSON.stringify(x));
         }""",cond)
         page.reload(wait_until='domcontentloaded')
-        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(state='attached',timeout=15000)
         check_goals(page)
-        page.locator('#f3-prep-breakdown').evaluate('(el)=>el.open=true')
-        dishes=page.locator('#f3-prep-dishes').inner_text()
+        dishes=page.locator('#prep-v121-summary').inner_text()
         assert all(x in dishes for x in ['カレー','サラダ','デザート']),dishes
         assert page.evaluate('key=>localStorage.getItem(key)',prep_key)==saved_prep
         page.evaluate("""key=>{
@@ -165,7 +162,7 @@ try:
           localStorage.setItem(key,JSON.stringify(x));
         }""",cond)
         page.reload(wait_until='domcontentloaded')
-        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(state='attached',timeout=15000)
         assert before==page.evaluate("""()=>Object.fromEntries(
           Object.keys(localStorage).filter(k=>k.startsWith('pokesleep-strategy-'))
             .map(k=>[k,localStorage.getItem(k)]))"""),'F3 projection changed saved records'
@@ -176,16 +173,14 @@ try:
         page.locator('[data-stock-type="curry"]').click()
         page.wait_for_function("""()=>document.querySelector('#f3-prep-status')?.
           textContent.startsWith('未保存の目標プレビュー')""")
-        assert 'サラダ' not in page.locator('#f3-prep-dishes').inner_text()
+        assert 'サラダ' not in page.locator('#prep-v121-summary').inner_text()
         assert before==page.evaluate("""()=>Object.fromEntries(
           Object.keys(localStorage).filter(k=>k.startsWith('pokesleep-strategy-'))
             .map(k=>[k,localStorage.getItem(k)]))""")
         page.locator('#prep-v121-cancel').click()
         page.wait_for_function("""()=>document.querySelector('#f3-prep-status')?.
-          textContent.startsWith('備蓄目標')""")
-        # Reload closes <details>; reopen the read-only dish breakdown.
-        page.locator('#f3-prep-breakdown').evaluate('(el)=>el.open=true')
-        assert 'サラダ' in page.locator('#f3-prep-dishes').inner_text()
+          textContent===''""")
+        assert 'サラダ' in page.locator('#prep-v121-summary').inner_text()
         assert before==page.evaluate("""()=>Object.fromEntries(
           Object.keys(localStorage).filter(k=>k.startsWith('pokesleep-strategy-'))
             .map(k=>[k,localStorage.getItem(k)]))""")
@@ -193,10 +188,9 @@ try:
         page.locator('[data-stock-count="1"]').click()
         page.locator('[data-stock-type="curry"]').click()
         page.locator('#e6-prep-save').click()
-        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(state='attached',timeout=15000)
         assert page.locator('#e6-prep-save').inner_text()=='料理・食数を変更'
-        page.locator('#f3-prep-breakdown').evaluate("(el)=>el.open=true")
-        text=page.locator('#f3-prep-dishes').inner_text()
+        text=page.locator('#prep-v121-summary').inner_text()
         assert 'カレー' in text and 'サラダ' not in text and 'デザート' not in text,text
         check_goals(page)
         assert json.loads(page.evaluate("""key=>localStorage.getItem(key)""",
@@ -217,9 +211,8 @@ try:
 
         # Same-week separate event: its own prep and zero stock, not A's inventory.
         page.goto(url(ID2),wait_until='domcontentloaded')
-        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
-        page.locator('#f3-prep-breakdown').evaluate('(el)=>el.open=true')
-        result=page.locator('#f3-prep-dishes').inner_text()
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(state='attached',timeout=15000)
+        result=page.locator('#prep-v121-summary').inner_text()
         assert 'デザート' in result and 'カレー' not in result,result
         check_goals(page)
         page.locator('#btn-inventory').click()
@@ -228,7 +221,7 @@ try:
         # Preparation may proceed on a saved MISSING recipe week; only
         # adoption/reproposal (not F3 preparation) requires full confirmation.
         page.goto(url(ID3),wait_until='domcontentloaded')
-        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(state='attached',timeout=15000)
         assert '料理未確定' in page.locator('#f3-prep-status').inner_text()
         check_goals(page)
         assert page.evaluate("""key=>JSON.parse(localStorage.getItem(key)).confirmed.status""",
@@ -270,13 +263,10 @@ try:
         prep_key='pokesleep-strategy-f3-v120:prep:'+suffix
         before_prep=page.evaluate('key=>localStorage.getItem(key)',prep_key)
         page.goto(url(special),wait_until='domcontentloaded')
-        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(state='attached',timeout=15000)
         assert page.locator('#goal-panel .row.total strong').inner_text()=='277個'
-        assert '3カテゴリ候補・最大値' in page.locator('#f3-prep-status').inner_text()
-        assert '最大値で確保' in page.locator('#prep-v121-summary').inner_text()
         check_goals(page)
-        page.locator('#f3-prep-breakdown').evaluate('(el)=>el.open=true')
-        names=page.locator('#f3-prep-dishes').inner_text()
+        names=page.locator('#prep-v121-summary').inner_text()
         assert all(s in names for s in
           ['とびはねるカレーうどん','ごろごろねっとうサラダ','みつあつめチョコワッフル']),names
         assert page.evaluate('key=>localStorage.getItem(key)',prep_key)==before_prep
@@ -288,7 +278,7 @@ try:
           localStorage.setItem(key,JSON.stringify(v));
         }""",PREF+suffix+':conditions')
         page.reload(wait_until='domcontentloaded')
-        page.locator('#f3-prep-status[data-state="ready"]').wait_for(timeout=15000)
+        page.locator('#f3-prep-status[data-state="ready"]').wait_for(state='attached',timeout=15000)
         assert page.locator('#goal-panel .row.total strong').inner_text()=='322個'
         assert page.evaluate('key=>localStorage.getItem(key)',prep_key)==before_prep
         assert not failures,failures
