@@ -69,3 +69,40 @@ test('M1 v128 F4 real 29-window reranker prices level70 meals and dish event mul
  assert.equal(boosted.weeklyEnergyCertified,false);
  assert.equal(boosted.writesSavedData,false);
 });
+
+test('v138: the bounded weekly search responds to cooking bonuses and verified direct skill value',()=>{
+ const diversity=load('f4/f4-c-diverse-candidates-v125.js');
+ function run(dish,chance){
+  const input=fixture(dish);
+  input.candidateStrategy='V125_DIVERSE';
+  input.beamWidth=8;
+  input.dayCandidateCount=8;
+  input.initialInventory={};
+  input.potCapacity=7;
+  input.previousWeekCarryUnknown=true;
+  input.previousWeekSleepTeam=[];
+  input.nightTeams=Array.from({length:7},()=>['p0','p1','p2','p3','p4']);
+  for(const [i,p] of input.profiles.entries()){
+   p.helpingBonus=false;
+   p.skillCode=i===7?'Charge Strength S (Random)':null;
+   p.selectedMainSkillLevel=i===7?7:null;
+   p.skillSpecialty=i===7?'Skills':i===6?'Ingredients':'Berries';
+   for(const rate of p.ratesByTeammateBonus){
+    rate.berryEnergyPerHelp=i<2?1:i<=5?200:2;
+    rate.helpSeconds=3600;
+    rate.ingredientCountsPerHelp={apple:i===6?0.75:0};
+    rate.skillProbabilityPerEligibleHelp=i===7?chance:0;
+   }
+  }
+  const result=ranker.rank(input,{...deps,diversity});
+  assert.equal(result.status,'PROVISIONAL',result.reason);
+  return result;
+ }
+ const normal=run(1,0),cookingEvent=run(4,0),skill=run(1,.9);
+ const daytimeCount=(r,id)=>r.slots.filter(w=>w.slot!=='sleep'&&w.team.includes(id)).length;
+ assert(daytimeCount(normal,'p6')<daytimeCount(cookingEvent,'p6'));
+ assert(cookingEvent.mealsExpected>normal.mealsExpected);
+ assert(daytimeCount(skill,'p7')>daytimeCount(normal,'p7'));
+ assert(skill.directSkillEnergyExpected>0);
+ assert.equal(normal.directSkillEnergyExpected,0);
+});
