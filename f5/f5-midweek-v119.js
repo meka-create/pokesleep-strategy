@@ -221,7 +221,8 @@
     return {stock:got,berry:carry?0:berry,skillEnergy:carry?0:skillEnergy,
      tasty:afterTaste};
    }
-   const rank=state=>state.energy+Object.values(state.stock).reduce((a,b)=>a+b,0)*8;
+   const lookahead=m1?deps.m1Lite.nextMealCredit(recipes,effectivePot,ctx.fields.camp,clock.windows):null;
+   const rank=state=>state.energy+(state.nextMealCredit||0)+Object.values(state.stock).reduce((a,b)=>a+b,0)*8;
    const preferenceOrder=(a,b)=>preferredIds.size?
     preferredTotal(b)-preferredTotal(a):0;
    const pairs=[],profileMap=new Map(liveProfiles.map(p=>[p.id,p]));
@@ -324,6 +325,7 @@
         row.windowPhase=future?'FUTURE_FORECAST':'ACTIVE_REMAINDER';
         row.remainingHours=remaining;
         expanded.push({stock:estimated.stock,
+         nextMealCredit:lookahead?lookahead[i](estimated.stock,estimated.tasty):0,
          energy:state.energy+meal+estimated.berry+estimated.skillEnergy,
          prefCount:dish&&pref[dish.type]===dish.id?
           {...state.prefCount,[dish.type]:(state.prefCount[dish.type]||0)+1}:state.prefCount,

@@ -130,3 +130,20 @@ test('M1: E7 injection, F4 and F5 scoring call verified shared module',()=>{
  assert.match(item,/M1_LIGHTWEIGHT_EVENT_V128/);
  assert.match(item,/expectedTastyCast/);
 });
+
+test('tasty support competes with replacement energy for the next cook only',()=>{
+ const dishes=[{size:5,baseStrength:10000,requirements:{apple:5}},
+  {size:90,baseStrength:30000,requirements:{milk:90}}];
+ const windows=[{day:5,slot:'morning'},{day:5,slot:'noon'},
+  {day:5,slot:'sleep'},{day:6,slot:'morning'}];
+ const credit=lite.nextMealCredit(dishes,80,false,windows);
+ const stock={apple:5,milk:90};
+ assert.equal(credit[0](stock,20),2000);
+ assert.equal(credit[0](stock,30),3000);
+ assert.equal(credit[0](stock,40),3000);
+ assert.equal(credit[0]({},30),0);
+ assert.equal(credit[1](stock,20),6000);
+ const mixture=Array(71).fill(0);mixture[0]=0.5;mixture[40]=0.5;
+ assert.equal(credit[0](stock,{tastyDistribution:mixture}),1500);
+ assert.equal(credit[3](stock,30),0);
+});

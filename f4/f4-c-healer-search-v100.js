@@ -193,9 +193,10 @@
    }
    let beam=[{inventory,energy:0,meals:0,berry:0,meal:0,carry:0,discarded:0,
     lastTeam:[],slots:[],signature:'',prefCount:{},tasty:0}];
+   const lookahead=lightweight?deps.m1Lite.nextMealCredit(allowed,input.potCapacity,input.camp,clock.windows):null;
    function rank(s){
     const stock=foods.reduce((n,k)=>n+s.inventory[k]*8,0);
-    return s.energy+stock;
+    return s.energy+stock+(s.nextMealCredit||0);
    }
    function take(states){
     if(v125&&typeof deps.diversity?.selectStates==='function'){
@@ -220,7 +221,7 @@
     }
     return picked;
    }
-   for(const w of clock.windows){
+   for(const [index,w] of clock.windows.entries()){
     const sleep=w.slot==='sleep';
     // Unknown historical team: explicitly EMPTY carry, never invented.
     const fixed=w.source==='PREVIOUS_WEEK_SLEEP'?
@@ -247,8 +248,9 @@
       for(const team of fixed){
        const got=produce(after,team,w),carry=w.source==='PREVIOUS_WEEK_SLEEP';
        const countedBerry=carry?0:got.berry;
-       expanded.push({inventory:got.inventory,
-        tasty:Math.min(70,remainingTaste+(carry?0:skills.get(team).tasty)),
+       const tasty=Math.min(70,remainingTaste+(carry?0:skills.get(team).tasty));
+       expanded.push({inventory:got.inventory,tasty,
+        nextMealCredit:lookahead?lookahead[index](got.inventory,tasty):0,
         energy:s.energy+countedBerry+meal+(carry?0:skills.get(team).direct),berry:s.berry+countedBerry,
         meal:s.meal+meal,carry:s.carry+(carry?got.berry:0),
         discarded:s.discarded+got.discarded,meals:s.meals+Number(Boolean(dish)),
