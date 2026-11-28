@@ -103,11 +103,11 @@
    const rate=p.ratesByTeammateBonus[0],helps=hours*3600/rate.helpSeconds;
    const food=sum(Object.values(rate.ingredientCountsPerHelp),x=>x);
    const items=helps*(food+rate.berryItemsPerHelp);
-   const accepted=items>0?Math.min(1,p.carryLimit/items):1;
+   const accepted=items>0&&Number.isFinite(p.carryLimit)?Math.min(1,p.carryLimit/items):1;
    const cap=['Skills','All'].includes(p.skillSpecialty)?2:1;
    const berryUnit=rate.berryItemsPerHelp>0?rate.berryEnergyPerHelp/rate.berryItemsPerHelp:0;
    const berries=helps*(accepted*rate.berryEnergyPerHelp+
-    (1-accepted)*rate.berryCountPerBerryHelp*berryUnit);
+    (accepted<1?(1-accepted)*rate.berryCountPerBerryHelp*berryUnit:0));
    const effect=skillValues?.skillValue?.(p.skillCode,p.selectedMainSkillLevel,
     {fieldBonusPercent:fieldBonus});
    const direct=['Charge Strength S','Charge Strength M',
@@ -198,8 +198,11 @@
    if(ctx.autoSleep===true){
     const roster=m1?deps.m1Lite.withEvent(basic.profiles,event,deps.skillValues):basic;
     if(!roster.profiles)return fail(roster.reason||'M1_EVENT_PROFILE_INVALID');
-    const order=ctx.clock.windows.filter(w=>w.slot==='sleep'&&w.day>=0)
-     .map(w=>nightScores(roster.profiles,deps.skillValues,w.hours??7.5,player.bonuses[ctx.fields.field]));
+    const order=Array.from({length:7},(_,day)=>{
+     const w=ctx.clock.windows.find(w=>w.slot==='sleep'&&w.day===day);
+     return nightScores(roster.profiles,deps.skillValues,w?.hours??(day===6?4:7.5),
+      player.bonuses[ctx.fields.field]);
+    });
     nights=order.map(rows=>rows.slice(0,5).map(p=>Number(p.id.slice(1))));
     // Compare one skill-focused substitution. Preserve the rest of the night team.
     alternative=order.map((rows,day)=>{
