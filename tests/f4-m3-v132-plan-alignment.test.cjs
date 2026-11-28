@@ -110,7 +110,7 @@ test('M3: UI and offline assets use one report without adding a storage sidecar'
  assert.match(strategy,/f4-m3-plan-alignment-v132\.js/);
  assert.match(ui,/function mealAlignment\(visible,c\)/);
  assert.match(ui,/mealAlignment\(draft,data\)/);
- assert.match(ui,/mealAlignment\(plan,data\)/);
+ assert.doesNotMatch(ui,/mealAlignment\(plan,data\)/);
  assert.match(ui,/if\(mealAlignment\(draft,c\)\.status!=='ALIGNMENT_READY'\)/);
  assert.match(ui,/fingerprint!==dataFingerprint\(ctx\(\)\)/);
  assert.match(ui,/targetMeals:p\.allocatedMeals/);
