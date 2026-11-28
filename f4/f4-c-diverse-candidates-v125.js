@@ -111,6 +111,9 @@
    const foundation=unique([...berry.slice(0,4),...ingredients.slice(0,4),
     ...direct.slice(0,2),...order(x=>x.tasty).filter(id=>byId.get(id).tasty>0).slice(0,1),...support.slice(0,2)]);
    addPool([...foundation,...fill]);
+   // A holder below the individual cutoffs can still improve all four allies.
+   const holders=order(x=>x.berry+x.direct+100*x.amount).filter(id=>all.get(id).helpingBonus);
+   if(holders.length)addPool([...holders.slice(0,need),...foundation,...fill]);
    for(const recipe of targets){
     const req=Object.keys(recipe.requirements).sort((a,b)=>
      recipe.requirements[b]-recipe.requirements[a]||a.localeCompare(b));

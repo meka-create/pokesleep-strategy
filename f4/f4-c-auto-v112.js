@@ -87,20 +87,22 @@
   const metric=assessHealer(p,skillValues);
   return metric.qualified?metric.expectedDaily*hours/24*5:0;
  }
- function quickScore(p,skillValues,primary){
+ function quickScore(p,skillValues,primary,allyGain){
   const rate=p.ratesByTeammateBonus[0];
   const hours=primary?16.5:4.5;
   return (rate.berryEnergyPerHelp+
    sum(Object.values(rate.ingredientCountsPerHelp),v=>v)*8)*
    3600/Math.max(rate.helpSeconds,1)*hours+
    healerScore(p,skillValues,hours)*2+
-   Number(p.helpingBonus)*1000;
+   (p.helpingBonus?allyGain*hours:0);
  }
  function nightScores(profiles,skillValues,hours,fieldBonus){
   // Quick overnight screen still uses ingredient potential, but all known
   // direct-energy skill gains are priced at the *actual* main-skill level.
-  return profiles.map(p=>{
-   const rate=p.ratesByTeammateBonus[0],helps=hours*3600/rate.helpSeconds;
+  const compare=(a,b)=>b.score-a.score||a.id.localeCompare(b.id);
+  function value(p,otherHolders){
+   const rate=p.ratesByTeammateBonus[otherHolders]||p.ratesByTeammateBonus[0];
+   const helps=hours*3600/rate.helpSeconds;
    const food=sum(Object.values(rate.ingredientCountsPerHelp),x=>x);
    const items=helps*(food+rate.berryItemsPerHelp);
    const accepted=items>0&&Number.isFinite(p.carryLimit)?Math.min(1,p.carryLimit/items):1;
@@ -117,8 +119,23 @@
     Number.isFinite(effect.value)&&
     Number.isFinite(rate.skillProbabilityPerEligibleHelp)?
     effect.value*Math.min(cap,rate.skillProbabilityPerEligibleHelp*helps*accepted):0;
-   return {id:p.id,direct,score:(berries+food*helps*accepted*100+direct)/hours+Number(p.helpingBonus)*80};
-  }).sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
+   return {id:p.id,direct,score:(berries+food*helps*accepted*100+direct)/hours};
+  }
+  const holders=profiles.filter(p=>p.helpingBonus),others=profiles.filter(p=>!p.helpingBonus);
+  const size=Math.min(5,profiles.length);
+  let best=null,bestScore=-Infinity;
+  // At fixed holder count each member's speed is independent of the other identities.
+  for(let n=Math.max(0,size-others.length);n<=Math.min(size,holders.length);n++){
+   const withBonus=holders.map(p=>value(p,Math.max(0,n-1))).sort(compare);
+   const without=others.map(p=>value(p,Math.min(4,n))).sort(compare);
+   const team=[...withBonus.slice(0,n),...without.slice(0,size-n)].sort(compare);
+   const score=sum(team,p=>p.score);
+   if(!best||score>bestScore){
+    bestScore=score;
+    best=team.concat(withBonus.slice(n),without.slice(size-n));
+   }
+  }
+  return best;
  }
  function selectNight(profiles,skillValues,hours=7.5,fieldBonus=0){
   return nightScores(profiles,skillValues,hours,fieldBonus).slice(0,5).map(p=>Number(p.id.slice(1)));
@@ -144,16 +161,26 @@
    assessHealer(p,deps.skillValues).qualified);
   if(healers.length<2)return {error:'TWO_QUALIFIED_HEALERS_REQUIRED'};
   const map=new Map(healers.map(p=>[p.id,p]));
-  const mains=[...healers].sort((a,b)=>quickScore(b,deps.skillValues,true)-
-   quickScore(a,deps.skillValues,true)||a.id.localeCompare(b.id));
-  const seconds=[...healers].sort((a,b)=>quickScore(b,deps.skillValues,false)-
-   quickScore(a,deps.skillValues,false)||a.id.localeCompare(b.id));
+  // Approximate healer shortlist only: marginal hourly gain of four productive
+  // daytime partners. The full paths below use the actual five rates.
+  const partners=input.profiles.filter(p=>!p.healerRole).map(p=>{
+   const [base,boosted]=p.ratesByTeammateBonus;
+   const unit=base.berryEnergyPerHelp+sum(Object.values(base.ingredientCountsPerHelp),v=>v)*8;
+   const hourly=unit*3600/(base.helpSeconds*.45);
+   return {hourly,gain:boosted?hourly*(base.helpSeconds/boosted.helpSeconds-1):0};
+  }).sort((a,b)=>b.hourly-a.hourly).slice(0,4);
+  const mainGain=sum(partners,p=>p.gain);
+  const morningGain=sum(partners.slice(0,3),p=>p.gain);
+  const mains=[...healers].sort((a,b)=>quickScore(b,deps.skillValues,true,mainGain)-
+   quickScore(a,deps.skillValues,true,mainGain)||a.id.localeCompare(b.id));
+  const seconds=[...healers].sort((a,b)=>quickScore(b,deps.skillValues,false,morningGain)-
+   quickScore(a,deps.skillValues,false,morningGain)||a.id.localeCompare(b.id));
   const choices=[];
   const append=(a,b)=>{if(a.id===b.id||
    !healerPairQuality([a.id,b.id],map,deps.skillValues).qualified)return;
    const key=a.id+'|'+b.id;
    if(!choices.some(x=>x.key===key))choices.push({key,ids:[a.id,b.id],
-    rough:quickScore(a,deps.skillValues,true)+quickScore(b,deps.skillValues,false)});
+    rough:quickScore(a,deps.skillValues,true,mainGain)+quickScore(b,deps.skillValues,false,morningGain)});
   };
   // Score all pairs when <=5 healers (20 pairs max). At larger roster
   // sizes keep recovery-first AND favorite-berry-first profiles in pool.
@@ -198,10 +225,13 @@
    if(ctx.autoSleep===true){
     const roster=m1?deps.m1Lite.withEvent(basic.profiles,event,deps.skillValues):basic;
     if(!roster.profiles)return fail(roster.reason||'M1_EVENT_PROFILE_INVALID');
+    const byHours=new Map();
     const order=Array.from({length:7},(_,day)=>{
      const w=ctx.clock.windows.find(w=>w.slot==='sleep'&&w.day===day);
-     return nightScores(roster.profiles,deps.skillValues,w?.hours??(day===6?4:7.5),
-      player.bonuses[ctx.fields.field]);
+     const hours=w?.hours??(day===6?4:7.5);
+     if(!byHours.has(hours))byHours.set(hours,nightScores(roster.profiles,deps.skillValues,hours,
+      player.bonuses[ctx.fields.field]));
+     return byHours.get(hours);
     });
     nights=order.map(rows=>rows.slice(0,5).map(p=>Number(p.id.slice(1))));
     // Compare one skill-focused substitution. Preserve the rest of the night team.
