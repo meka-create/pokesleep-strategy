@@ -28,6 +28,15 @@ try:
   for width in (320,393,430):
    page.set_viewport_size({'width':width,'height':852})
    plan=tab('plan')
+   field=plan.locator('#event-field')
+   for name,asset in [('シアンの砂浜','field-cyan.png'),('シアンの砂浜EX','field-cyan-ex.jpg'),('','')]:
+    field.select_option(name,force=True)
+    card=plan.locator('#event-details')
+    assert card.locator('.field-name').all_text_contents()==[name,name]
+    assert (card.get_attribute('data-ex')=='true')==name.endswith('EX')
+    for selector in ('summary','.e6-conditions-label'):
+     background=card.locator(selector).evaluate("el=>getComputedStyle(el,'::before').backgroundImage")
+     assert (asset in background if asset else background=='none'),(width,name,background)
    plan.locator('#event-details').evaluate("""el=>{
      el.closest('main').dataset.hasProposed='true';el.open=true;
    }""")
