@@ -49,6 +49,20 @@ test('v135: two alternatives 554, three 831; bag 800 limits 3 but not 2',()=>{
  assert.equal(opt.make(input(3,{bagCapacity:800})).reason,'NO_ROOM');
  assert.equal(total(opt.make(input(2,{bagCapacity:800})).goals),554);
 });
+test('automatic servings stay equal across two or three alternatives',()=>{
+ const settings=input('auto',{bagCapacity:800});
+ const three=opt.make(settings);
+ assert.deepEqual({...three.counts},mealCounts(2));
+ assert.equal(three.capacity.used,554);
+ assert.deepEqual({...opt.make({...settings,bagCapacity:831}).counts},mealCounts(3));
+ for(const categories of [['curry','salad'],['salad','curry']]){
+  const two=opt.make({...settings,categories});
+  assert.deepEqual({...two.counts},{curry:4,salad:4});
+  assert.equal(two.capacity.used,720);
+ }
+ const mixed=opt.make({...settings,targetMeals:{curry:'auto',salad:4,dessert:'auto'}});
+ assert.deepEqual({...mixed.counts},{curry:2,salad:4,dessert:2});
+});
 test('v135: real bag occupancy includes ALL unrelated stock, not only 277 target',()=>{
  const r=opt.make(input(1,{bagCapacity:800,currentStock:{apple:550}}));
  assert.equal(r.status,'BLOCKED');

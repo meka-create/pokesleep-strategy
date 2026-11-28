@@ -87,18 +87,13 @@
   const count={};
   for(const type of input.categories)count[type]=wanted[type]==='auto'?1:wanted[type];
   if(!fit(count))return err('NO_ROOM','選択したレシピを各カテゴリ1食以上準備できません。食数またはレシピを変更してください。');
-  // Equal-priority automatic distribution: one meal minimum per chosen
-  // category. In an exclusive-food week the count is PER POSSIBLE category:
-  // each case may use 21 meals, not 21 across mutually exclusive cases.
-  // Never silently reduce a manually selected count.
-  let advance=true;
-  while(advance&&(exclusive||total(count)<21)){
-   advance=false;
-   for(const type of input.categories){
-    if(wanted[type]!=='auto')continue;
-    const candidate={...count,[type]:count[type]+1};
-    if(fit(candidate)){count[type]++;advance=true;}
-   }
+  const automatic=input.categories.filter(type=>wanted[type]==='auto');
+  // Reserve another serving only when every automatic category can gain one.
+  for(let meals=2;automatic.length>0&&meals<=21;meals++){
+   const candidate={...count};
+   for(const type of automatic)candidate[type]=meals;
+   if(!fit(candidate))break;
+   Object.assign(count,candidate);
   }
   const limits={};
   for(const type of input.categories){
