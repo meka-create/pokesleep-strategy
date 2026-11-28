@@ -157,9 +157,9 @@
         // Only skills with a PINNED direct Snorlax energy effect can
         // enter this total. Heal, ingredient, pot, tasty chance, random
         // targets and side effects stay visible but UNPRICED.
-        if(effect.status==='BASE_VALUE_ONLY'&&
+        if((effect.status==='BASE_VALUE_ONLY'||info.skill==='Charge Strength M (Bad Dreams)'&&effect?.status==='PARTIAL_SIDE_EFFECT_UNMODELED')&&
          ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED'].includes(effect.unit)&&
-         ['Charge Strength S','Charge Strength M','Charge Strength S (Random)'].includes(info.skill)){
+         ['Charge Strength S','Charge Strength M','Charge Strength S (Random)','Charge Strength M (Bad Dreams)'].includes(info.skill)){
          skills+=active*effect.value;
         }else if(m1&&info.skill==='Tasty Chance S'&&
          effect.status==='BASE_VALUE_ONLY'){

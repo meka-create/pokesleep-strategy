@@ -27,7 +27,7 @@
   'Ingredient Draw S':'INGREDIENT_ITEMS',
   'Extra Helpful S':'EXTRA_HELPS','Berry Burst':'BERRIES'
  });
- const DIRECT=new Set(['Charge Strength S','Charge Strength M','Charge Strength S (Random)']);
+ const DIRECT=new Set(['Charge Strength S','Charge Strength M','Charge Strength S (Random)','Charge Strength M (Bad Dreams)']);
  const fail=reason=>Object.freeze({status:'BLOCKED',reason,
   weeklyEnergyCertified:false,writesSavedData:false});
  const finite=x=>typeof x==='number'&&Number.isFinite(x)&&x>=0;
@@ -81,7 +81,7 @@
    const directValues=new Map(rawProfiles.filter(p=>DIRECT.has(p.skillCode)).map(p=>{
     const effect=skillValues?.skillValue?.(p.skillCode,p.selectedMainSkillLevel,
      {fieldBonusPercent:fieldBonus});
-    const verified=effect?.status==='BASE_VALUE_ONLY'&&finite(effect.value)&&
+    const verified=(effect?.status==='BASE_VALUE_ONLY'||p.skillCode==='Charge Strength M (Bad Dreams)'&&effect?.status==='PARTIAL_SIDE_EFFECT_UNMODELED')&&finite(effect.value)&&
      ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED'].includes(effect.unit);
     return [p.id,verified?effect.value:0];
    }));

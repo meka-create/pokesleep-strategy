@@ -170,7 +170,8 @@
    if(lightweight)for(const p of input.profiles){
     const effect=deps.skillValues.skillValue(p.skillCode,p.selectedMainSkillLevel,
      {fieldBonusPercent:input.fieldBonus});
-    if(effect?.status==='BASE_VALUE_ONLY'&&
+    if((effect?.status==='BASE_VALUE_ONLY'||p.skillCode==='Charge Strength M (Bad Dreams)'&&
+     effect?.status==='PARTIAL_SIDE_EFFECT_UNMODELED')&&
      ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED','EXTRA_TASTY_CHANCE_POINTS'].includes(effect.unit))
      effects.set(p.id,{profile:p,value:effect.value,tasty:effect.unit==='EXTRA_TASTY_CHANCE_POINTS'});
    }

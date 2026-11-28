@@ -49,7 +49,7 @@
    const results=[];let unsupported=0,invalid=0;
    for(let idx=0;idx<input.items.length;idx++){
     const row=input.items[idx];
-    const target=names.get(row?.pokemon);
+    const target=names.get(row?.pokemon)||legal.additionalForm?.(row?.pokemon);
     if(!target){unsupported++;continue;}
     if(!valid(row)||!Number.isSafeInteger(row.level)){
      invalid++;continue;

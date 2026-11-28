@@ -71,7 +71,7 @@
    const candidates=[];
    for(let i=0;i<input.items.length;i++){
     const row=input.items[i];
-    if(!row||!identities.has(row.pokemon)){unsupported++;continue;}
+    if(!row||(!identities.has(row.pokemon)&&!legal.additionalForm?.(row.pokemon))){unsupported++;continue;}
     const adapted=normalization(row);
     if(!adapted){excluded++;continue;}
     let rate;

@@ -111,8 +111,8 @@
    const effect=skillValues?.skillValue?.(p.skillCode,p.selectedMainSkillLevel,
     {fieldBonusPercent:fieldBonus});
    const direct=['Charge Strength S','Charge Strength M',
-    'Charge Strength S (Random)'].includes(p.skillCode)&&
-    effect?.status==='BASE_VALUE_ONLY'&&
+    'Charge Strength S (Random)','Charge Strength M (Bad Dreams)'].includes(p.skillCode)&&
+    (effect?.status==='BASE_VALUE_ONLY'||p.skillCode==='Charge Strength M (Bad Dreams)'&&effect?.status==='PARTIAL_SIDE_EFFECT_UNMODELED')&&
     ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED'].includes(effect.unit)&&
     Number.isFinite(effect.value)&&
     Number.isFinite(rate.skillProbabilityPerEligibleHelp)?
