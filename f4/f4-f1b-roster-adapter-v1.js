@@ -59,13 +59,28 @@
     const assumedMint=row.mint==null,assumedRibbon=row.ribbon==null;
     const normalized={...row,mint:assumedMint?false:row.mint,
      ribbon:assumedRibbon?0:row.ribbon};
+    // This chosen Mew skill earns shards only. Its unknown trigger rate
+    // is unnecessary for berry, ingredient and carry calculations.
+    const shardSkill='Dream Shard Magnet S (Random)';
+    const shardMew=target.upstreamName==='Mew'&&
+     typeof row.mainSkill==='string'&&row.mainSkill.normalize('NFKC').replace(/\s/g,'')===
+      snapshot.dictionaries.mainSkills[shardSkill]?.normalize('NFKC').replace(/\s/g,'');
+    if(shardMew){
+     normalized.mainSkill=snapshot.dictionaries.mainSkills[shardSkill];
+     const audit=legal.auditBuild(normalized,snapshot);
+     if(audit.checks?.ingredients.slice(0,2).some(check=>check!=='SOURCE_MATCH')){
+      invalid++;continue;
+     }
+    }
     const ratesByTeammateBonus=[];
     let accepted=true;
     for(let bonus=0;bonus<=4;bonus++){
      try{
       const rate=rates.evaluate(normalized,snapshot,traits,{
        teammateHelpingBonusCount:bonus,goodCamp:input.camp});
-      if(rate?.status!=='BASE_RATES_AVAILABLE'||
+      const shardProduction=shardMew&&rate?.status==='SPECIAL_REVIEW_REQUIRED'&&
+       rate.sourceStatus==='REVIEW_REQUIRED'&&rate.mainSkillProbabilityPerEligibleHelp===null;
+      if((rate?.status!=='BASE_RATES_AVAILABLE'&&!shardProduction)||
        !Number.isFinite(rate.referenceHelpSeconds)||rate.referenceHelpSeconds<=0||
        !Number.isFinite(rate.ingredientProbabilityPerHelp)||
        !Number.isFinite(rate.berryProbabilityPerHelp)||
@@ -100,7 +115,7 @@
     // Only pinned source main skills that heal the whole party qualify.
     // A self-heal, random cheer or targeted heal is not substituted for
     // the user's team-wide main/secondary healer by speculation.
-    const skill=target.sourceProfile?.mainSkill;
+    const skill=shardMew?shardSkill:target.sourceProfile?.mainSkill;
     const healerRole=skill==='Energy for Everyone S'||
      skill==='Energy for Everyone S (Berry Juice)'?'TEAM_WIDE_HEALER':null;
     results.push({id:'p'+idx,source:'F1_B_PINNED_66_SPECIES',

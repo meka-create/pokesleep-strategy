@@ -96,25 +96,32 @@
    healerScore(p,skillValues,hours)*2+
    Number(p.helpingBonus)*1000;
  }
- function selectNight(profiles,skillValues){
+ function nightScores(profiles,skillValues,hours,fieldBonus){
   // Quick overnight screen still uses ingredient potential, but all known
   // direct-energy skill gains are priced at the *actual* main-skill level.
-  const available=[...profiles].map(p=>{
-   const rate=p.ratesByTeammateBonus[0],helps=3600/
-    Math.max(1,rate.helpSeconds*.45);
-   const effect=skillValues?.skillValue?.(p.skillCode,p.selectedMainSkillLevel);
+  return profiles.map(p=>{
+   const rate=p.ratesByTeammateBonus[0],helps=hours*3600/rate.helpSeconds;
+   const food=sum(Object.values(rate.ingredientCountsPerHelp),x=>x);
+   const items=helps*(food+rate.berryItemsPerHelp);
+   const accepted=items>0&&Number.isFinite(p.carryLimit)?Math.min(1,p.carryLimit/items):1;
+   const cap=['Skills','All'].includes(p.skillSpecialty)?2:1;
+   const berryUnit=rate.berryItemsPerHelp>0?rate.berryEnergyPerHelp/rate.berryItemsPerHelp:0;
+   const berries=helps*(accepted*rate.berryEnergyPerHelp+
+    (accepted<1?(1-accepted)*rate.berryCountPerBerryHelp*berryUnit:0));
+   const effect=skillValues?.skillValue?.(p.skillCode,p.selectedMainSkillLevel,
+    {fieldBonusPercent:fieldBonus});
    const direct=['Charge Strength S','Charge Strength M',
     'Charge Strength S (Random)'].includes(p.skillCode)&&
     effect?.status==='BASE_VALUE_ONLY'&&
     ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED'].includes(effect.unit)&&
     Number.isFinite(effect.value)&&
     Number.isFinite(rate.skillProbabilityPerEligibleHelp)?
-    effect.value*rate.skillProbabilityPerEligibleHelp*helps:0;
-   return {id:p.id,score:rate.berryEnergyPerHelp*helps+
-    sum(Object.values(rate.ingredientCountsPerHelp),x=>x)*helps*100+
-    direct+Number(p.helpingBonus)*80};
+    effect.value*Math.min(cap,rate.skillProbabilityPerEligibleHelp*helps*accepted):0;
+   return {id:p.id,direct,score:(berries+food*helps*accepted*100+direct)/hours+Number(p.helpingBonus)*80};
   }).sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
-  return available.slice(0,5).map(p=>Number(p.id.slice(1)));
+ }
+ function selectNight(profiles,skillValues,hours=7.5,fieldBonus=0){
+  return nightScores(profiles,skillValues,hours,fieldBonus).slice(0,5).map(p=>Number(p.id.slice(1)));
  }
  // This compares energy earned IN THE FULL DAYTIME ROSTER (berry/food/meal/
  // skill) with expected availability of sustained high-energy helping.
@@ -187,9 +194,25 @@
      rates:deps.rates,master:deps.master});
    if(basic?.status!=='READY')return fail(basic?.reason||'LEGAL_ROSTER_MISSING');
    const elig=new Set(basic.profiles.map(p=>Number(p.id.slice(1))));
-   const nights=ctx.autoSleep===true?
-    Array.from({length:7},()=>selectNight(basic.profiles,deps.skillValues)):
-    options.manualNights;
+   let nights=options.manualNights,alternative=null;
+   if(ctx.autoSleep===true){
+    const roster=m1?deps.m1Lite.withEvent(basic.profiles,event,deps.skillValues):basic;
+    if(!roster.profiles)return fail(roster.reason||'M1_EVENT_PROFILE_INVALID');
+    const order=Array.from({length:7},(_,day)=>{
+     const w=ctx.clock.windows.find(w=>w.slot==='sleep'&&w.day===day);
+     return nightScores(roster.profiles,deps.skillValues,w?.hours??(day===6?4:7.5),
+      player.bonuses[ctx.fields.field]);
+    });
+    nights=order.map(rows=>rows.slice(0,5).map(p=>Number(p.id.slice(1))));
+    // Compare one skill-focused substitution. Preserve the rest of the night team.
+    alternative=order.map((rows,day)=>{
+     const chosen=rows.slice(0,5);
+     const weakest=chosen.filter(p=>p.direct>0).sort((a,b)=>a.direct-b.direct)[0];
+     const bench=rows.slice(5).filter(p=>p.direct>0).sort((a,b)=>b.direct-a.direct)[0];
+     if(!weakest||!bench||bench.direct<=weakest.direct)return nights[day];
+     return chosen.map(p=>Number((p===weakest?bench:p).id.slice(1)));
+    });
+   }
    if(!Array.isArray(nights)||nights.length!==7||
     nights.some(t=>!five(t)||t.some(i=>!elig.has(i))))
     return fail('SLEEP_PARTIES_NOT_CONFIGURED');
@@ -235,8 +258,8 @@
    const profileMap=new Map(input.profiles.map(p=>[p.id,p]));
    const v125=typeof deps.diversity?.selectTeams==='function';
    const considered=[],errors=[];
-   for(const pair of found.shortlist){
-    const result=deps.itemRank.rank({...input,
+   function evaluate(pair,nightTeams){
+    const result=deps.itemRank.rank({...input,nightTeams,
      primaryHealerId:pair[0],secondaryHealerId:pair[1],
      healthScenario:'HEALER_MAINTAINS_80_PLUS_REFERENCE',
      sleepScore:100,
@@ -252,17 +275,27 @@
      diversity:deps.diversity,m1Lite:deps.m1Lite,
      cookingSkills:deps.cookingSkills});
     if(result?.status!=='PROVISIONAL'||result.slots?.length!==29||
-     result.weeklyEnergyCertified!==false){errors.push(result?.reason||'BAD_RESULT');continue;}
+     result.weeklyEnergyCertified!==false){errors.push(result?.reason||'BAD_RESULT');return null;}
     const ranked=rankingScore(result,pair,profileMap,deps.skillValues);
-    if(!ranked.healerQualified||!Number.isFinite(ranked.score))continue;
-    considered.push({pair,result,...ranked});
+    if(!ranked.healerQualified||!Number.isFinite(ranked.score))return null;
+    return {pair,result,...ranked};
+   }
+   for(const pair of found.shortlist){
+    const ranked=evaluate(pair,input.nightTeams);
+    if(ranked)considered.push(ranked);
    }
    if(!considered.length)return fail(errors[0]||'NO_FEASIBLE_HEALER_PAIR');
-   considered.sort((a,b)=>(input.preferredRecipes?(b.result.preferredAchieved||0)-(a.result.preferredAchieved||0):0)||
+   const compare=(a,b)=>(input.preferredRecipes?(b.result.preferredAchieved||0)-(a.result.preferredAchieved||0):0)||
      b.score-a.score||
     b.result.energyExpected-a.result.energyExpected||
-    a.pair.join('|').localeCompare(b.pair.join('|')));
-   const win=considered[0],slots=win.result.slots;
+    a.pair.join('|').localeCompare(b.pair.join('|'));
+   considered.sort(compare);
+   let win=considered[0];
+   if(m1&&alternative?.some((team,day)=>team!==nights[day])){
+    const other=evaluate(win.pair,alternative.map(team=>team.map(i=>'p'+i)));
+    if(other&&compare(other,win)<0){win=other;nights=alternative;}
+   }
+   const slots=win.result.slots;
    for(let i=0;i<29;i++){
     const w=slots[i],ref=ctx.clock.windows[i];
     if(w.day!==ref.day||w.slot!==ref.slot||
