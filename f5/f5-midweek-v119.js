@@ -134,6 +134,11 @@
    if(m1&&(deps.recipes.length!==81||deps.recipes.some(r=>
     !Number.isSafeInteger(r.strength70)||r.strength70<=0)))
     return fail('F5_M1_LV70_RECIPES_UNVERIFIED');
+   if(m1)for(const recipe of recipes){
+    const energy=deps.m1Lite.recipeEnergy(level70ById.get(recipe.id),fieldBonus,event.dish);
+    if(energy.status!=='ENERGY_READY')return fail(energy.reason);
+    recipe.baseStrength=energy.base;
+   }
    if(!recipes.length)return fail('F5_NO_ALLOWED_RECIPES');
     const pref=deps.prepPreference?.selectedRecipes??{},budget=deps.prepPreference?.targetCounts??{};
     if(!plain(pref)||!plain(budget)||Object.keys(pref).some(c=>
@@ -194,7 +199,7 @@
      const r=rate(id,team),help=hours*3600/(r.helpSeconds*(slot==='sleep'?1:0.45));
      berry+=help*r.berryEnergyPerHelp;
      const own=rawById.get(id);
-     const cap=own?.skillSpecialty==='Skills'?2:1;
+     const cap=['Skills','All'].includes(own?.skillSpecialty)?2:1;
      const perHelp=directSkillPerHelp(id,team);
      const chance=own?.ratesByTeammateBonus?.[team.reduce((n,other)=>n+
       Number(other!==id&&people.get(other)?.helpingBonus),0)]?.skillProbabilityPerEligibleHelp;
@@ -263,7 +268,7 @@
       const chosen=deps.diversity.selectTeams({policy,slot,profiles,
        rawProfiles:liveProfiles,recipes,foods,inventory,
        count:8,potCapacity:effectivePot,camp:ctx.fields.camp,
-       skillValues:deps.skillValues,preferredRecipes:pref});
+       skillValues:deps.skillValues,preferredRecipes:pref,fieldBonus});
       if(chosen.status!=='CANDIDATES_READY'||!chosen.teams.length){bad=true;break;}
       choices[slot]=chosen.teams;
       continue;

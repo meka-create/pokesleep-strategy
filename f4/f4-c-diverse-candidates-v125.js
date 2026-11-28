@@ -27,7 +27,7 @@
   'Ingredient Draw S':'INGREDIENT_ITEMS',
   'Extra Helpful S':'EXTRA_HELPS','Berry Burst':'BERRIES'
  });
- const DIRECT=new Set(['Charge Strength S','Charge Strength M']);
+ const DIRECT=new Set(['Charge Strength S','Charge Strength M','Charge Strength S (Random)']);
  const fail=reason=>Object.freeze({status:'BLOCKED',reason,
   weeklyEnergyCertified:false,writesSavedData:false});
  const finite=x=>typeof x==='number'&&Number.isFinite(x)&&x>=0;
@@ -35,7 +35,7 @@
  const sum=x=>Object.values(x).reduce((n,v)=>n+v,0);
  function selectTeams({policy,slot,profiles,rawProfiles,recipes,foods,
    inventory={},count=12,skillValues,potCapacity=5000,camp=false,
-   preferredRecipes={}}={}){
+   preferredRecipes={},fieldBonus=0}={}){
   try{
    if(policy?.status!=='POLICY_READY'||!DAY.has(slot)||
     !Array.isArray(profiles)||!Array.isArray(rawProfiles)||!Array.isArray(recipes)||
@@ -78,20 +78,24 @@
     .filter((r,i,all)=>all.findIndex(a=>a.id===r.id)===i).slice(0,6);
    // Single-member value is for CANDIDATE POOL only. It never limits later
    // team synergy by assigning an ingredient to a Pokemon "specialty".
+   const directValues=new Map(rawProfiles.filter(p=>DIRECT.has(p.skillCode)).map(p=>{
+    const effect=skillValues?.skillValue?.(p.skillCode,p.selectedMainSkillLevel,
+     {fieldBonusPercent:fieldBonus});
+    const verified=effect?.status==='BASE_VALUE_ONLY'&&finite(effect.value)&&
+     ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED'].includes(effect.unit);
+    return [p.id,verified?effect.value:0];
+   }));
    const single=id=>{
     const p=all.get(id),r=p.rates?.[0];
     if(!r||!finite(r.helpSeconds)||r.helpSeconds<=0)throw Error('INVALID_RATE');
     const hourly=3600/r.helpSeconds;
     const food=Object.fromEntries(foods.map(k=>[k,(r.ingredientCountsPerHelp[k]||0)*hourly]));
     const own=raw.get(id),chance=own?.ratesByTeammateBonus?.[0]?.skillProbabilityPerEligibleHelp;
-    const skill=own?.skillCode,verified=DIRECT.has(skill)?
-     skillValues?.skillValue?.(skill,own?.selectedMainSkillLevel):null;
-    const direct=DIRECT.has(skill)&&verified?.status==='BASE_VALUE_ONLY'&&
-      verified?.unit==='ENERGY_PER_ACTIVATION'&&finite(verified.value)&&finite(chance)?
-      hourly*chance*verified.value:0;
+    const skill=own?.skillCode;
+    const direct=finite(chance)?hourly*chance*(directValues.get(id)||0):0;
     const support=finite(chance)?hourly*chance*supportWeight(skill,own?.selectedMainSkillLevel):0;
     return {id,berry:(r.berryEnergyPerHelp||0)*hourly,
-     food,amount:sum(food),direct,support};
+     food,amount:sum(food),direct,support,tasty:skill==='Tasty Chance S'?support:0};
    };
    const singles=fill.map(single),byId=new Map(singles.map(x=>[x.id,x]));
    const order=(key)=>singles.slice().sort((a,b)=>key(b)-key(a)||
@@ -105,7 +109,7 @@
     if(p.length>=need&& !pools.some(x=>x.join('|')===p.join('|')))pools.push(p);
    };
    const foundation=unique([...berry.slice(0,4),...ingredients.slice(0,4),
-    ...direct.slice(0,2),...support.slice(0,2)]);
+    ...direct.slice(0,2),...order(x=>x.tasty).filter(id=>byId.get(id).tasty>0).slice(0,1),...support.slice(0,2)]);
    addPool([...foundation,...fill]);
    for(const recipe of targets){
     const req=Object.keys(recipe.requirements).sort((a,b)=>
@@ -116,7 +120,7 @@
    }
    const seen=new Map();
    function metrics(team){
-    let berry=0,direct=0,support=0,food=Object.fromEntries(foods.map(k=>[k,0]));
+    let berry=0,direct=0,support=0,tasty=0,food=Object.fromEntries(foods.map(k=>[k,0]));
     for(const id of team){
      const p=all.get(id),own=raw.get(id);
      const bonus=team.reduce((n,other)=>n+Number(other!==id&&all.get(other).helpingBonus),0);
@@ -129,11 +133,10 @@
      const chance=own?.ratesByTeammateBonus?.[bonus]?.skillProbabilityPerEligibleHelp;
      if(finite(chance)){
       const skill=own.skillCode;
-      const val=DIRECT.has(skill)?
-       skillValues?.skillValue?.(skill,own.selectedMainSkillLevel):null;
-      if(val?.status==='BASE_VALUE_ONLY'&&val.unit==='ENERGY_PER_ACTIVATION'&&finite(val.value))
-       direct+=hourly*chance*val.value;
-      support+=hourly*chance*supportWeight(skill,own.selectedMainSkillLevel);
+      direct+=hourly*chance*(directValues.get(id)||0);
+      const weight=hourly*chance*supportWeight(skill,own.selectedMainSkillLevel);
+      support+=weight;
+      if(skill==='Tasty Chance S')tasty+=weight;
      }
     }
     // Six hours is a screening horizon, NOT a predicted cooking time. The
@@ -146,7 +149,7 @@
     });
     const cooking=recipe.length?Math.max(...recipe):0;
     const throughput=sum(food);
-    return {berry,direct,support,throughput,cooking,recipe,
+    return {berry,direct,support,tasty,throughput,cooking,recipe,
      hybrid:berry*6+direct*6+cooking};
    }
    function makeTeams(ids){
@@ -173,7 +176,7 @@
    const take=(name,key,amount,positiveOnly=false)=>{
     const order=entries.slice().filter(x=>!positiveOnly||key(x.measure)>0)
      .sort((a,b)=>key(b.measure)-key(a.measure)||
-     a.key.localeCompare(b.key));
+     b.measure.hybrid-a.measure.hybrid||a.key.localeCompare(b.key));
     let n=0;
     for(const p of order){
      if(picked.length>=count||n>=amount)break;
@@ -187,7 +190,9 @@
    take('berry',m=>m.berry,2);
    take('ingredients',m=>m.throughput,1);
    take('direct',m=>m.direct,1,true);
+   take('tasty',m=>m.tasty,1,true);
    take('support_skill',m=>m.support,1,true);
+   take('mixed',m=>m.hybrid,1);
    for(let i=0;i<targets.length;i++)
     take('recipe_'+i,m=>m.recipe[i]||0,1,true);
    take('hybrid',m=>m.hybrid,count);

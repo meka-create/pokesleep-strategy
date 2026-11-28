@@ -47,7 +47,7 @@
     !deps.cookingSkills?.cook))return fail('COOKING_SKILL_KERNEL_MISSING');
    const width=input.beamWidth??12,n=Math.min(12,Math.max(2,Math.floor(width)));
    const candidate=search.plan({...input,maxFinalists:n},{base,clock,policy,
-    diversity:deps.diversity,skillValues});
+    diversity:deps.diversity,skillValues,m1Lite:deps.m1Lite});
    if(candidate.status!=='PROVISIONAL'||candidate.slotCount!==29||
     !Array.isArray(candidate.finalists)||candidate.finalists.length<1||
     candidate.weeklyEnergyCertified!==false||candidate.writesSavedData!==false)
@@ -158,8 +158,8 @@
         // enter this total. Heal, ingredient, pot, tasty chance, random
         // targets and side effects stay visible but UNPRICED.
         if(effect.status==='BASE_VALUE_ONLY'&&
-         effect.unit==='ENERGY_PER_ACTIVATION'&&
-         (info.skill==='Charge Strength S'||info.skill==='Charge Strength M')){
+         ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED'].includes(effect.unit)&&
+         ['Charge Strength S','Charge Strength M','Charge Strength S (Random)'].includes(info.skill)){
          skills+=active*effect.value;
         }else if(m1&&info.skill==='Tasty Chance S'&&
          effect.status==='BASE_VALUE_ONLY'){

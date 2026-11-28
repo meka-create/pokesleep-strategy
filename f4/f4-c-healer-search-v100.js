@@ -45,6 +45,14 @@
    // No POOL IDs, automatic overnight changes or inferred prior-week team.
    const profiles=deps.base.normalizeProfiles(input.profiles);
    const recipes=deps.base.normalizeRecipes(input.recipes);
+   const lightweight=input.m1Mode==='M1_LIGHTWEIGHT_EVENT_V128';
+   if(lightweight){
+    for(const [i,recipe] of recipes.entries()){
+     const energy=deps.m1Lite.recipeEnergy(input.recipes[i],input.fieldBonus,input.m1Event.dish);
+     if(energy.status!=='ENERGY_READY')return blocked(energy.reason);
+     recipe.baseStrength=energy.base;
+    }
+   }
    const foods=deps.base.FOOD,byId=new Map(profiles.map(p=>[p.id,p]));
    const verified=ids=>Array.isArray(ids)&&ids.length===5&&
     new Set(ids).size===5&&ids.every(id=>byId.has(id));
@@ -114,7 +122,7 @@
       rawProfiles:input.profiles,recipes:allowed,foods,inventory,
       count:candidateCount,skillValues:deps.skillValues,
       potCapacity:input.potCapacity,camp:input.camp,
-      preferredRecipes:preferred});
+      preferredRecipes:preferred,fieldBonus:input.fieldBonus});
      if(chosen.status!=='CANDIDATES_READY'||!chosen.teams.length)
       return blocked(chosen.reason||'V125_DIVERSITY_SCREEN_EMPTY');
      favorites.set(slot,chosen.teams);
@@ -156,8 +164,35 @@
     for(const k of foods)next[k]+=expected[k]*scale;
     return {inventory:next,berry:berries,discarded:incoming*(1-scale)};
    }
+   // Compute once per team/window. This cheap mean is used only for pruning;
+   // the finalists replay collections, carry limits and the full chance distribution.
+   const effects=new Map();
+   if(lightweight)for(const p of input.profiles){
+    const effect=deps.skillValues.skillValue(p.skillCode,p.selectedMainSkillLevel,
+     {fieldBonusPercent:input.fieldBonus});
+    if(effect?.status==='BASE_VALUE_ONLY'&&
+     ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED','EXTRA_TASTY_CHANCE_POINTS'].includes(effect.unit))
+     effects.set(p.id,{profile:p,value:effect.value,tasty:effect.unit==='EXTRA_TASTY_CHANCE_POINTS'});
+   }
+   function windowSkills(team,w){
+    let direct=0,tasty=0;
+    for(const id of team){
+     const effect=effects.get(id);
+     if(!effect)continue;
+     const p=effect.profile;
+     const bonus=team.reduce((n,other)=>n+Number(other!==id&&byId.get(other).helpingBonus),0);
+     const rate=p.ratesByTeammateBonus[bonus];
+     const chance=rate.skillProbabilityPerEligibleHelp;
+     if(!Number.isFinite(chance)||chance<=0)continue;
+     const helps=w.hours*3600/(rate.helpSeconds*(w.slot==='sleep'?1:.45));
+     const casts=Math.min(['Skills','All'].includes(p.skillSpecialty)?2:1,helps*chance);
+     if(effect.tasty)tasty+=casts*effect.value;
+     else direct+=casts*effect.value;
+    }
+    return {direct,tasty};
+   }
    let beam=[{inventory,energy:0,meals:0,berry:0,meal:0,carry:0,discarded:0,
-    lastTeam:[],slots:[],signature:'',prefCount:{}}];
+    lastTeam:[],slots:[],signature:'',prefCount:{},tasty:0}];
    function rank(s){
     const stock=foods.reduce((n,k)=>n+s.inventory[k]*8,0);
     return s.energy+stock;
@@ -191,6 +226,7 @@
     const fixed=w.source==='PREVIOUS_WEEK_SLEEP'?
      [input.previousWeekCarryUnknown===true?[]:input.previousWeekSleepTeam]:sleep?
      [input.nightTeams[w.day]]:favorites.get(w.slot);
+    const skills=new Map(fixed.map(team=>[team,windowSkills(team,w)]));
     const pot=Math.round(input.potCapacity*(w.day===6?2:1)*
      (input.camp?1.5:1));
     const expanded=[];
@@ -204,12 +240,16 @@
      for(const dish of [null,...feasible]){
       const after={...s.inventory};
       if(dish)for(const k of foods)after[k]-=dish.requirements[k];
-      const meal=dish?Math.floor(dish.baseStrength*(1+input.fieldBonus/100)+1e-9):0;
+      const chance=(w.day===6?.30:.10)+s.tasty/100;
+      const meal=!dish?0:lightweight?dish.baseStrength*(1+chance*(w.day===6?2:1)):
+       Math.floor(dish.baseStrength*(1+input.fieldBonus/100)+1e-9);
+      const remainingTaste=dish?s.tasty*(1-chance):s.tasty;
       for(const team of fixed){
        const got=produce(after,team,w),carry=w.source==='PREVIOUS_WEEK_SLEEP';
        const countedBerry=carry?0:got.berry;
        expanded.push({inventory:got.inventory,
-        energy:s.energy+countedBerry+meal,berry:s.berry+countedBerry,
+        tasty:Math.min(70,remainingTaste+(carry?0:skills.get(team).tasty)),
+        energy:s.energy+countedBerry+meal+(carry?0:skills.get(team).direct),berry:s.berry+countedBerry,
         meal:s.meal+meal,carry:s.carry+(carry?got.berry:0),
         discarded:s.discarded+got.discarded,meals:s.meals+Number(Boolean(dish)),
         lastTeam:team,
