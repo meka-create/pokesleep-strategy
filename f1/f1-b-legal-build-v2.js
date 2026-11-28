@@ -46,6 +46,16 @@
  const empty=v=>v===null||v===undefined||norm(v)===''||norm(v)==='-';
  const error=(code)=>Object.assign(new Error('F1-B source snapshot validation failed: '+code),{code});
  const freezeArray=a=>Object.freeze(a.slice());
+ // Additional planning form from the same pinned pokemon.json as the original 66.
+ const alolaVulpix={name:'ロコン (アローラ)',upstreamName:'Vulpix (Alola)',pokedexId:37,
+  type:'ice',specialty:'Berries',evolutionCount:0,evolutionLeft:1,
+  sourceProfile:{frequency:5600,ingredientRate:23,skillRate:2.8,carryLimit:10,
+   mainSkill:'Extra Helpful S',mainSkillJa:'おてつだいサポートS',
+   ing1:{name:'soy',c1:1,c2:2,c3:4},ing2:{name:'corn',c2:2,c3:3},
+   ing3:{name:'potato',c3:3}}};
+ function additionalForm(name){
+  return norm(name)===alolaVulpix.name?alolaVulpix:null;
+ }
  function validateSource(snapshot){
   if(snapshot?.schema!==PIN.schema||
    snapshot?.status!=='SOURCE_MAPPED_CALCULATION_BLOCKED'||
@@ -108,7 +118,7 @@
  function auditBuild(row,snapshot){
   const targets=validateSource(snapshot);
   if(!row||typeof row!=='object'||Array.isArray(row))throw error('INDIVIDUAL');
-  const name=norm(row.pokemon),t=targets.get(name);
+  const name=norm(row.pokemon),t=targets.get(name)||additionalForm(name);
   if(!t)return Object.freeze({speciesForm:name||null,inScope:false,
    status:'OUTSIDE_SCOPE',reasons:freezeArray(['OUTSIDE_F1_SCOPE']),calculation:'BLOCKED'});
   const dict=snapshot.dictionaries,foods=[],subs=[],reasons=[];
@@ -198,5 +208,5 @@
   });
  }
  return Object.freeze({PIN,SUBSKILL_KEYS,MEW_SKILL_KEYS,SPECIAL_FOODS,
-  validateSource,auditBuild,auditRoster});
+  additionalForm,validateSource,auditBuild,auditRoster});
 });

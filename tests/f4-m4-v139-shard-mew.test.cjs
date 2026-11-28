@@ -41,3 +41,20 @@ test('overnight direct-energy comparison uses the saved skill level and caps sto
  candidates[4].selectedMainSkillLevel=7;
  assert(browser.PokeF4CAutoV112.selectNight(candidates,skill,7.5,0).includes(4));
 });
+test('planning distinguishes Alolan Vulpix and accepts legal Darkrai unlocks',()=>{
+ const normal={...mew,pokemon:'ロコン',level:40,skillLevel:2,
+  ing1:'ワカクサ大豆',ing2:'ワカクサコーン',ing3:'ほっこりポテト',
+  mainSkill:'げんきエールS',lv25:'食材確率アップS',lv50:'スキル確率アップS',
+  lv70:'おてつだいスピードS',lv80:'最大所持数アップS'};
+ const alola={...normal,pokemon:'ロコン (アローラ)',mainSkill:'おてつだいサポートS'};
+ const dark={...mew,pokemon:'ダークライ',level:62,skillLevel:5,
+  mainSkill:'ナイトメア (エナジーチャージM)',ing1:'とくせんリンゴ',ing2:null,ing3:null};
+ const items=[normal,alola,dark,mew,{...dark,ing2:'マメミート',ing3:'あまいミツ'},
+  {...dark,ing3:'あまいミツ'},{...alola,mainSkill:normal.mainSkill}];
+ const roster=browser.PokeF4F1RosterAdapter.adapt({items,camp:false,fieldBonus:0,favoriteTypes:[]},deps);
+ assert.deepEqual(Array.from(roster.profiles,p=>p.id),['p0','p1','p2','p3','p4']);
+ assert.deepEqual(Array.from(roster.profiles.slice(0,3),p=>p.pokemonType),['fire','ice','dark']);
+ assert.equal(roster.profiles[1].skillCode,'Extra Helpful S');
+ assert.equal(roster.profiles[2].skillCode,'Charge Strength M (Bad Dreams)');
+ assert(roster.profiles[2].ratesByTeammateBonus[0].ingredientCountsPerHelp.apple>0);
+});

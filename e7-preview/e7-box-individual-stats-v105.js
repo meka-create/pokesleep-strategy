@@ -28,7 +28,7 @@ async function calculate(item){
  try{
   const {snapshot,traits}=await sources();
   const name=String(item?.pokemon||'').normalize('NFKC').trim();
-  const target=snapshot.targets.find(t=>t.name===name);
+  const target=snapshot.targets.find(t=>t.name===name)||root.PokeF1LegalBuild.additionalForm(name);
   if(!target)return {helpTime:'F1対象外',carry:'F1対象外',state:'OUT_OF_SCOPE'};
   const result=root.PokeF1BaseRates.evaluate(item,snapshot,traits,{
    goodCamp:false,teammateHelpingBonusCount:0
@@ -43,7 +43,7 @@ async function calculate(item){
   // Source data is pinned to the older per-form baseline: for example
   // Blastoise 17 -> current 27, Raichu 21 -> current 31 (Ver.2.9.0).
   // This is invariant across direct capture / evolution of the SAME form.
-  const sourceTrait=traits.traits.find(t=>t.name===name);
+  const sourceTrait=traits.traits.find(t=>t.name===name)||root.PokeF1LegalBuild.additionalForm(name);
   if(!sourceTrait||!Number.isSafeInteger(sourceTrait.evolutionCount)||
      !Number.isSafeInteger(p.carryLimit)||p.carryLimit<=0)
    return {helpTime:duration(p.frequency)+'（種族基礎）',

@@ -111,9 +111,9 @@ function evaluate(row,snapshot,traits,options={}){
  if(!integer(options.teammateHelpingBonusCount??0,0,4)||
     (options.goodCamp!==undefined&&typeof options.goodCamp!=='boolean'))
   return block('INVALID_TEAM_OPTIONS');
- const t=snapshot.targets.find(t=>t.name===prior.speciesForm);
+ const t=snapshot.targets.find(t=>t.name===prior.speciesForm)||legal.additionalForm(prior.speciesForm);
  if(row.skillLevel>skillMax(t.sourceProfile.mainSkill))return block('INVALID_SKILL_LEVEL');
- const tr=byName.get(prior.speciesForm);
+ const tr=byName.get(prior.speciesForm)||t;
  // CSV ribbon = sleeping hours, NOT the 0-4 ribbon tier in upstream PokemonIv.
  const ribbon=ribbonTier(row.ribbon);
  if(ribbon===null)return block('UNKNOWN_SLEEP_HOURS');
@@ -155,6 +155,7 @@ function evaluate(row,snapshot,traits,options={}){
  for(let slot=1;slot<=3;slot++){
   if(slot===2&&row.level<30)continue;
   if(slot===3&&row.level<60)continue;
+  if(t.name==='ダークライ'&&slot>1&&prior.checks.ingredients[slot-1]==='UNSET_SLOT')continue;
   const ing=getIngredient(withDictionary,slot,row['ing'+slot],special);
   if(!ing)return block('UNVERIFIED_ACTIVE_INGREDIENT_SLOT_'+slot);
   slots.push(ing);
@@ -166,7 +167,8 @@ function evaluate(row,snapshot,traits,options={}){
  const specialtyRateStatus=t.name==='ミュウ'?'UNVERIFIED_MEW_SELECTED_SKILL_RATE':'PINNED_SOURCE_BASE_RATE';
  return Object.freeze({
   speciesForm:t.name,calculation:'BLOCKED',model:'BASE_RATES_ONLY',
-  status:prior.status==='SOURCE_COMPATIBLE'?'BASE_RATES_AVAILABLE':'SPECIAL_REVIEW_REQUIRED',
+  status:(prior.status==='SOURCE_COMPATIBLE'||t.name==='ダークライ'&&
+   prior.checks.mainSkill==='SOURCE_MATCH'&&prior.reasons.every(r=>r.endsWith(':UNSET_SLOT')))?'BASE_RATES_AVAILABLE':'SPECIAL_REVIEW_REQUIRED',
   sourceStatus:prior.status,
   // Values below are per completed normal help at fixed 0-energy frequency.
   // Never multiply by 24h here: energy, fullness, sleep/tap cycles are separate.

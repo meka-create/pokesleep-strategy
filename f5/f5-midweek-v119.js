@@ -174,14 +174,14 @@
    function directSkillPerHelp(id,team){
     const own=rawById.get(id);
     if(!['Charge Strength S','Charge Strength M',
-     'Charge Strength S (Random)'].includes(own?.skillCode))return 0;
+     'Charge Strength S (Random)','Charge Strength M (Bad Dreams)'].includes(own?.skillCode))return 0;
     const bonus=team.reduce((n,other)=>n+Number(other!==id&&
      people.get(other)?.helpingBonus),0);
     const chance=own.ratesByTeammateBonus?.[bonus]?.skillProbabilityPerEligibleHelp;
     if(!Number.isFinite(chance)||chance<0||chance>1)return 0;
     const effect=deps.skillValues.skillValue(own.skillCode,
      own.selectedMainSkillLevel,{fieldBonusPercent:fieldBonus});
-    return effect?.status==='BASE_VALUE_ONLY'&&
+    return (effect?.status==='BASE_VALUE_ONLY'||own.skillCode==='Charge Strength M (Bad Dreams)'&&effect?.status==='PARTIAL_SIDE_EFFECT_UNMODELED')&&
      ['ENERGY_PER_ACTIVATION','ENERGY_PER_ACTIVATION_EXPECTED'].includes(effect.unit)&&
      Number.isFinite(effect.value)&&effect.value>=0?effect.value*chance:0;
    }
