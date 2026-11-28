@@ -146,11 +146,16 @@
     card.querySelector('[data-stock-type="'+c+'"]')?.click();
   }finally{restoring=false;}
  }
+ function recipeOptions(type,settings){
+  const ranked=calc.catalog(allRecipes,type,settings.potCapacity,settings.camp);
+  // Keep a previously saved smaller dish available when editing its plan.
+  return ranked.filter((r,index)=>index<5||r.id===saved?.selectedRecipes?.[type]);
+ }
  function build(){
   const cats=categories(),conf=cfg(),stock=current();
   const chosen={},wanted={};
   for(const c of cats){
-   const top=calc.catalog(allRecipes,c,conf.potCapacity,conf.camp);
+   const top=recipeOptions(c,conf);
    if(top.length)chosen[c]=recipes[c]&&top.some(x=>x.id===recipes[c])?
     recipes[c]:top[0].id;
    wanted[c]=meals[c]??'auto';
@@ -228,7 +233,7 @@
    broadcast();return;
   }
   for(const type of p.input.categories){
-   const top=calc.catalog(allRecipes,type,p.input.potCapacity,p.input.camp);
+   const top=recipeOptions(type,p.input);
    const row=document.createElement('div');row.className='prep-v121-row';
    line(row,'prep-v121-summary-type',label[type]);
    const recipeLabel=document.createElement('label');
