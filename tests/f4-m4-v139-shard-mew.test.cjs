@@ -58,3 +58,13 @@ test('planning distinguishes Alolan Vulpix and accepts legal Darkrai unlocks',()
  assert.equal(roster.profiles[2].skillCode,'Charge Strength M (Bad Dreams)');
  assert(roster.profiles[2].ratesByTeammateBonus[0].ingredientCountsPerHelp.apple>0);
 });
+test('night team prices the four allies, including saturation and stacked holders',()=>{
+ const roster=Array.from({length:7},(_,i)=>({id:'p'+i,helpingBonus:i>=5,
+  ratesByTeammateBonus:Array.from({length:5},(_,n)=>({helpSeconds:3600*(1-0.05*(n+Number(i>=5))),
+   berryEnergyPerHelp:i>=5?900:1000,ingredientCountsPerHelp:{},berryItemsPerHelp:1,
+   berryCountPerBerryHelp:1,skillProbabilityPerEligibleHelp:0}))}));
+ const select=()=>Array.from(browser.PokeF4CAutoV112.selectNight(roster,null));
+ assert.deepEqual(select().filter(i=>i>=5).sort(),[5,6]);
+ for(const p of roster)p.ratesByTeammateBonus.fill(p.ratesByTeammateBonus[0]);
+ assert(select().every(i=>i<5),'capped allies gain nothing from additional holders');
+});

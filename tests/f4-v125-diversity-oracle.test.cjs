@@ -150,3 +150,14 @@ test('v125: F4/F5 use one bounded screen and beam frontier without changing E7 o
  assert.match(sw,/v125-diverse-candidates/);
  assert.match(read('e7-preview/e7-ingredient-size-v123.css'),/scale\(1\.13\)/);
 });
+test('a bonus holder outside the individual pool can win the daytime berry lane',()=>{
+ const people=Array.from({length:19},(_,i)=>({...raw[0],id:'p'+i,
+  helpingBonus:i===18,healerRole:i<2?'TEAM_WIDE_HEALER':null,
+  ratesByTeammateBonus:raw[0].ratesByTeammateBonus.map((r,n)=>({...r,
+   helpSeconds:3600*(1-.05*(n+Number(i===18))),berryEnergyPerHelp:i===18?90:100}))}));
+ const settings=policy.validate({profiles:people,primaryHealerId:'p0',secondaryHealerId:'p1',sleepScore:100});
+ const result=diversity.selectTeams({...common,policy:settings,profiles:base.normalizeProfiles(people),
+  rawProfiles:people,slot:'noon'});
+ assert.equal(result.status,'CANDIDATES_READY');
+ assert(result.teams[0].includes('p18'));
+});
